@@ -1,5 +1,7 @@
 package it.auties.leap;
 
+import it.auties.leap.impl.linux.*;
+import it.auties.leap.impl.shared.*;
 import it.auties.leap.impl.win.*;
 
 import javax.net.ssl.*;
@@ -15,36 +17,45 @@ import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.InvalidMarkException;
 import java.nio.charset.StandardCharsets;
-import java.util.Base64;
-import java.util.Objects;
-import java.util.Optional;
-import java.util.OptionalInt;
+import java.util.*;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.locks.ReentrantLock;
+import java.util.function.Consumer;
 
 @SuppressWarnings("unused")
 public final class SocketClient implements AutoCloseable {
     private static final int DEFAULT_CONNECTION_TIMEOUT = 300;
 
     public static SocketClient ofPlain(URI proxy) throws IOException {
-        var transmissionLayer = new TransmissionLayer.Windows();
+        var transmissionLayer = createPlatformTransmissionLayer();
         var layerSupport = new SecurityLayer.Plain(transmissionLayer);
         var proxySupport = TunnelLayer.of(transmissionLayer, layerSupport, proxy);
         return new SocketClient(transmissionLayer, proxySupport, layerSupport);
     }
 
     public static SocketClient ofSecure(SSLContext sslContext, SSLParameters sslParameters, URI proxy) throws IOException {
-        var transmissionLayer = new TransmissionLayer.Windows();
+        var transmissionLayer = createPlatformTransmissionLayer();
         var layerSupport = new SecurityLayer.Secure(transmissionLayer, sslContext, sslParameters);
         var proxySupport = TunnelLayer.of(transmissionLayer, layerSupport, proxy);
         return new SocketClient(transmissionLayer, proxySupport, layerSupport);
     }
 
-    final TransmissionLayer transmissionLayer;
+    private static TransmissionLayer<?> createPlatformTransmissionLayer() throws SocketException {
+        var os = System.getProperty("os.name").toLowerCase();
+        if(os.contains("win")) {
+            return new TransmissionLayer.Windows();
+        }else if(os.contains("nix") || os.contains("nux") || os.contains("aix")) {
+            return new TransmissionLayer.Linux();
+        }else {
+            throw new IllegalArgumentException("Unsupported os: " + os);
+        }
+    }
+
+    final TransmissionLayer<?> transmissionLayer;
     final TunnelLayer tunnelLayer;
     SecurityLayer securityLayer;
-    private SocketClient(TransmissionLayer transmissionLayer, TunnelLayer tunnelLayer, SecurityLayer securityLayer) {
+    private SocketClient(TransmissionLayer<?> transmissionLayer, TunnelLayer tunnelLayer, SecurityLayer securityLayer) {
         this.transmissionLayer = transmissionLayer;
         this.tunnelLayer = tunnelLayer;
         this.securityLayer = securityLayer;
@@ -137,9 +148,23 @@ public final class SocketClient implements AutoCloseable {
         return securityLayer.read(buffer, true);
     }
 
-    private static sealed abstract class TransmissionLayer implements AutoCloseable {
+    private static sealed abstract class TransmissionLayer<HANDLE> implements AutoCloseable {
+        private static final int IO_BUFFER_SIZE = 8192;
+
+        final Arena arena;
+        final HANDLE handle;
+        final ReentrantLock ioLock;
+        final AtomicBoolean connected;
+        MemorySegment ioBuffer;
+        boolean keepAlive;
+        private TransmissionLayer(Arena arena, HANDLE handle) {
+            this.arena = arena;
+            this.handle = handle;
+            this.ioLock = new ReentrantLock(true);
+            this.connected = new AtomicBoolean(false);
+        }
+
         abstract CompletableFuture<Void> connect(InetSocketAddress address);
-        abstract boolean isConnected();
         abstract CompletableFuture<Void> write(ByteBuffer data);
         abstract CompletableFuture<ByteBuffer> read(ByteBuffer buffer);
         abstract int sendBufferSize();
@@ -155,9 +180,51 @@ public final class SocketClient implements AutoCloseable {
                     .thenApply(_ -> buffer);
         }
 
+        boolean isConnected() {
+            return connected.get();
+        }
+
+        Optional<MemorySegment> createRemoteAddress(InetSocketAddress address) {
+            var remoteAddress = arena.allocate(sockaddr_in.layout());
+            sockaddr_in.sin_family(remoteAddress, (short) WindowsSockets.AF_INET());
+            sockaddr_in.sin_port(remoteAddress, Short.reverseBytes((short) address.getPort()));
+            var inAddr = arena.allocate(in_addr.layout());
+            var ipv4Host = getLittleEndianIPV4Host(address);
+            if(ipv4Host.isEmpty()) {
+                return Optional.empty();
+            }
+
+            in_addr.S_un(inAddr, arena.allocateFrom(WindowsSockets.ULONG, ipv4Host.getAsInt()));
+            sockaddr_in.sin_addr(remoteAddress, inAddr);
+            return Optional.of(remoteAddress);
+        }
+
+        private OptionalInt getLittleEndianIPV4Host(InetSocketAddress address) {
+            var inetAddress = address.getAddress();
+            if(inetAddress == null) {
+                return OptionalInt.empty();
+            }
+
+            var result = ByteBuffer.wrap(inetAddress.getAddress())
+                    .order(ByteOrder.LITTLE_ENDIAN)
+                    .getInt();
+            return OptionalInt.of(result);
+        }
+
+        void writeToIOBuffer(ByteBuffer input, int length) {
+            for (int i = 0; i < length; i++) {
+                ioBuffer.setAtIndex(ValueLayout.JAVA_BYTE, i, input.get());
+            }
+        }
+
+        void readFromIOBuffer(ByteBuffer output, int readLength) {
+            for (int i = 0; i < readLength; i++) {
+                output.put(ioBuffer.getAtIndex(ValueLayout.JAVA_BYTE, i));
+            }
+        }
+
         // Completion Ports
-        private static final class Windows extends TransmissionLayer {
-            private static final int IO_BUFFER_SIZE = 8192;
+        private static final class Windows extends TransmissionLayer<Long> {
             private static final MemorySegment CONNECT_EX_FUNCTION;
             static {
                 System.loadLibrary("ws2_32");
@@ -236,15 +303,12 @@ public final class SocketClient implements AutoCloseable {
                 return connectExGuid;
             }
 
-            private final Arena arena;
-            private final long handle;
-            private final ReentrantLock ioLock;
-            private final AtomicBoolean connected;
             private CompletionPort completionPort;
-            private MemorySegment ioBuffer;
-            private boolean keepAlive;
             private Windows() throws SocketException {
-                this.arena = Arena.ofAuto();
+                super(Arena.ofAuto(), createSocketHandle());
+            }
+
+            private static long createSocketHandle() throws SocketException {
                 var handle = WindowsSockets.WSASocketA(
                         WindowsSockets.AF_INET(),
                         WindowsSockets.SOCK_STREAM(),
@@ -256,9 +320,7 @@ public final class SocketClient implements AutoCloseable {
                 if(handle == WindowsSockets.INVALID_SOCKET()) {
                     throw new SocketException("Cannot create socket");
                 }
-                this.handle = handle;
-                this.ioLock = new ReentrantLock(true);
-                this.connected = new AtomicBoolean(false);
+                return handle;
             }
 
             @Override
@@ -333,37 +395,6 @@ public final class SocketClient implements AutoCloseable {
                 return remoteAddress;
             }
 
-            private Optional<MemorySegment> createRemoteAddress(InetSocketAddress address) {
-                var remoteAddress = arena.allocate(sockaddr_in.layout());
-                sockaddr_in.sin_family(remoteAddress, (short) WindowsSockets.AF_INET());
-                sockaddr_in.sin_port(remoteAddress, Short.reverseBytes((short) address.getPort()));
-                var inAddr = arena.allocate(in_addr.layout());
-                var ipv4Host = getLittleEndianIPV4Host(address);
-                if(ipv4Host.isEmpty()) {
-                    return Optional.empty();
-                }
-
-                in_addr.S_un(inAddr, arena.allocateFrom(WindowsSockets.ULONG, ipv4Host.getAsInt()));
-                sockaddr_in.sin_addr(remoteAddress, inAddr);
-                return Optional.of(remoteAddress);
-            }
-
-            private OptionalInt getLittleEndianIPV4Host(InetSocketAddress address) {
-                var inetAddress = address.getAddress();
-                if(inetAddress == null) {
-                    return OptionalInt.empty();
-                }
-
-                var result = ByteBuffer.wrap(inetAddress.getAddress())
-                        .order(ByteOrder.LITTLE_ENDIAN)
-                        .getInt();
-                return OptionalInt.of(result);
-            }
-
-            @Override
-            boolean isConnected() {
-                return connected.get();
-            }
 
             @Override
             public CompletableFuture<Void> write(ByteBuffer input) {
@@ -385,9 +416,7 @@ public final class SocketClient implements AutoCloseable {
 
             private CompletableFuture<Void> writeUnchecked(ByteBuffer input) {
                 var length = Math.min(input.remaining(), IO_BUFFER_SIZE);
-                for (int i = 0; i < length; i++) {
-                    ioBuffer.setAtIndex(ValueLayout.JAVA_BYTE, i, input.get());
-                }
+                writeToIOBuffer(input, length);
 
                 var message = arena.allocate(_WSABUF.layout());
                 message.set(_WSABUF.len$layout(), _WSABUF.len$offset(), length);
@@ -471,10 +500,7 @@ public final class SocketClient implements AutoCloseable {
                         return CompletableFuture.failedFuture(new SocketException("Cannot receive message from socket (socked closed)"));
                     }
 
-                    for (int i = 0; i < readLength; i++) {
-                        output.put(ioBuffer.getAtIndex(ValueLayout.JAVA_BYTE, i));
-                    }
-
+                    readFromIOBuffer(output, readLength);
                     return CompletableFuture.completedFuture(output);
                 });
             }
@@ -540,8 +566,19 @@ public final class SocketClient implements AutoCloseable {
                 private static CompletionPort instance;
                 private static final Object lock = new Object();
 
+                public static CompletionPort shared() {
+                    if(instance != null) {
+                        return instance;
+                    }
+
+                    synchronized (lock) {
+                        return Objects.requireNonNullElseGet(instance, () -> instance = new CompletionPort());
+                    }
+                }
+
+
                 private final Arena arena;
-                private final ConcurrentHashMap.KeySetView<Long, Boolean> handles;
+                private final Set<Long> handles;
                 private final ConcurrentMap<Long, CompletableFuture<Integer>> futures;
                 private MemorySegment completionPort;
                 private ExecutorService executor;
@@ -620,16 +657,6 @@ public final class SocketClient implements AutoCloseable {
                     return futures.compute(handle, (_, value) -> Objects.requireNonNullElseGet(value, CompletableFuture::new));
                 }
 
-                public static CompletionPort shared() {
-                    if(instance != null) {
-                        return instance;
-                    }
-
-                    synchronized (lock) {
-                        return Objects.requireNonNullElseGet(instance, () -> instance = new CompletionPort());
-                    }
-                }
-
                 @Override
                 public void run() {
                     var overlappedEntries = arena.allocate(OVERLAPPED_ENTRY.layout(), OVERLAPPED_CHUNK_SIZE);
@@ -663,35 +690,140 @@ public final class SocketClient implements AutoCloseable {
         }
 
         // Io_uring
-        private static final class Linux extends TransmissionLayer {
+        private static final class Linux extends TransmissionLayer<Integer> {
+            private IOUring ioUring;
+            private Linux() throws SocketException {
+                super(Arena.ofAuto(), createSocketHandle());
+            }
+
+            private static int createSocketHandle() throws SocketException {
+                var handle = LinuxSockets.socket(
+                        LinuxSockets.AF_INET(),
+                        LinuxSockets.SOCK_STREAM() | LinuxSockets.SOCK_NONBLOCK(),
+                        0
+                );
+                if(handle == -1) {
+                    throw new SocketException("Cannot create socket");
+                }
+                return handle;
+            }
+
             @Override
             CompletableFuture<Void> connect(InetSocketAddress address) {
-                return null;
+                if(connected.getAndSet(true)) {
+                    return CompletableFuture.failedFuture(new SocketException("Cannot connect to socket: already connected"));
+                }
+
+                var remoteAddress = createRemoteAddress(address);
+                if(remoteAddress.isEmpty()) {
+                    return CompletableFuture.failedFuture(new SocketException("Cannot connect to socket: unresolved host %s".formatted(address.getHostName())));
+                }
+
+                this.ioBuffer = arena.allocate(ValueLayout.JAVA_BYTE, IO_BUFFER_SIZE);
+                this.ioUring = IOUring.shared();
+                ioUring.registerHandle(handle);
+
+                return ioUring.prepareAsyncOperation(handle, sqe -> {
+                    io_uring_sqe.opcode(sqe, (byte) LinuxSockets.IORING_OP_CONNECT());
+                    io_uring_sqe.fd(sqe, handle);
+                    io_uring_sqe.addr(sqe, remoteAddress.get().address());
+                    io_uring_sqe.off(sqe, remoteAddress.get().byteSize());
+                    io_uring_sqe.user_data(sqe, handle);
+                }).thenCompose(result -> {
+                    if(result != 0) {
+                        return CompletableFuture.failedFuture(new SocketException("Cannot connect to socket: operation failed"));
+                    }
+
+                    return CompletableFuture.completedFuture(null);
+                });
             }
 
             @Override
-            boolean isConnected() {
-                return false;
+            CompletableFuture<Void> write(ByteBuffer input) {
+                if(!connected.get()) {
+                    return CompletableFuture.failedFuture(new SocketException("Cannot send message to socket (socket not connected)"));
+                }
+
+                if(!input.hasRemaining()) {
+                    return CompletableFuture.completedFuture(null);
+                }
+
+                ioLock.lock();
+                try {
+                    return writeUnchecked(input);
+                }finally {
+                    ioLock.unlock();
+                }
+            }
+
+            private CompletableFuture<Void> writeUnchecked(ByteBuffer data) {
+                return ioUring.prepareAsyncOperation(handle, sqe -> {
+                    var length = Math.min(data.remaining(), IO_BUFFER_SIZE);
+                    writeToIOBuffer(data, length);
+                    io_uring_sqe.fd(sqe, handle);
+                    io_uring_sqe.opcode(sqe, (byte) LinuxSockets.IORING_OP_WRITE());
+                    io_uring_sqe.addr(sqe, ioBuffer.address());
+                    io_uring_sqe.len(sqe, length);
+                    io_uring_sqe.user_data(sqe, handle);
+                }).thenCompose(result -> {
+                    if(result < 0) {
+                        return CompletableFuture.failedFuture(new SocketException("Cannot send message to socket (error code: %s)".formatted(result)));
+                    }
+
+                    if(!data.hasRemaining()) {
+                        return CompletableFuture.completedFuture(null);
+                    }
+
+                    return writeUnchecked(data);
+                });
             }
 
             @Override
-            CompletableFuture<Void> write(ByteBuffer data) {
-                return null;
+            CompletableFuture<ByteBuffer> read(ByteBuffer output) {
+                if(!connected.get()) {
+                    return CompletableFuture.failedFuture(new SocketException("Cannot read message from socket (socket not connected)"));
+                }
+
+                if(!output.hasRemaining()) {
+                    return CompletableFuture.completedFuture(output);
+                }
+
+                ioLock.lock();
+                try {
+                    return readUnchecked(output);
+                }finally {
+                    ioLock.unlock();
+                }
             }
 
-            @Override
-            CompletableFuture<ByteBuffer> read(ByteBuffer buffer) {
-                return null;
+            private CompletableFuture<ByteBuffer> readUnchecked(ByteBuffer data) {
+                return ioUring.prepareAsyncOperation(handle, sqe -> {
+                    var length = Math.min(data.remaining(), IO_BUFFER_SIZE);
+                    io_uring_sqe.opcode(sqe, (byte) LinuxSockets.IORING_OP_READ());
+                    io_uring_sqe.fd(sqe, handle);
+                    io_uring_sqe.addr(sqe, ioBuffer.address());
+                    io_uring_sqe.len(sqe, length);
+                    io_uring_sqe.off(sqe, 0);
+                    io_uring_sqe.user_data(sqe, handle);
+                }).thenCompose(readLength -> {
+                    if (readLength == 0) {
+                        close();
+                        return CompletableFuture.failedFuture(new SocketException("Cannot receive message from socket (socked closed)"));
+                    }
+
+                    readFromIOBuffer(data, readLength);
+                    return CompletableFuture.completedFuture(data);
+                });
             }
 
             @Override
             int sendBufferSize() {
-                return 0;
+                return DEFAULT_CONNECTION_TIMEOUT;
             }
 
             @Override
             int receiveBufferSize() {
-                return 0;
+                return DEFAULT_CONNECTION_TIMEOUT;
             }
 
             @Override
@@ -705,63 +837,283 @@ public final class SocketClient implements AutoCloseable {
             }
 
             @Override
-            public void close() throws IOException {
+            public void close() {
+                if(ioUring != null) {
+                    ioUring.unregisterHandle(handle);
+                }
 
-            }
-        }
-
-        // KQueue
-        private static final class Unix extends TransmissionLayer {
-            @Override
-            CompletableFuture<Void> connect(InetSocketAddress address) {
-                return null;
-            }
-
-            @Override
-            boolean isConnected() {
-                return false;
+                if(handle != null) {
+                    LinuxSockets.shutdown(handle, LinuxSockets.SHUT_RDWR());
+                    LinuxSockets.close(handle);
+                }
             }
 
-            @Override
-            CompletableFuture<Void> write(ByteBuffer data) {
-                return null;
-            }
+            private static class IOUring implements Runnable {
+                private static final int QUEUE_SIZE = 20_000;
 
-            @Override
-            CompletableFuture<ByteBuffer> read(ByteBuffer buffer) {
-                return null;
-            }
+                private static IOUring instance;
+                private static final Object lock = new Object();
 
-            @Override
-            int sendBufferSize() {
-                return 0;
-            }
+                public static IOUring shared() {
+                    if(instance != null) {
+                        return instance;
+                    }
 
-            @Override
-            int receiveBufferSize() {
-                return 0;
-            }
+                    synchronized (lock) {
+                        return Objects.requireNonNullElseGet(instance, () -> instance = new IOUring());
+                    }
+                }
 
-            @Override
-            boolean keepAlive() {
-                return false;
-            }
+                private final Arena arena;
+                private final ConcurrentMap<Integer, CompletableFuture<Integer>> futures;
+                private final Set<Integer> handles;
+                private final ReentrantLock queueLock;
+                private Integer ringHandle;
+                private MemorySegment ringSq;
+                private MemorySegment ringSqEntries;
+                private MemorySegment ringCq;
+                private MemorySegment ringCqEntries;
+                private MemorySegment ringParams;
+                private ExecutorService executor;
+                private IOUring() {
+                    this.arena = Arena.ofAuto();
+                    this.futures = new ConcurrentHashMap<>();
+                    this.handles = new CopyOnWriteArraySet<>();
+                    this.queueLock = new ReentrantLock(true);
+                }
+                
+                private void initRing() {
+                    if(ringHandle != null) {
+                        return;
+                    }
 
-            @Override
-            void setKeepAlive(boolean keepAlive) {
+                    synchronized (this) {
+                        if(ringHandle != null) {
+                            return;
+                        }
 
-            }
+                        ringParams = arena.allocate(io_uring_params.layout());
+                        this.ringHandle = setupRing();
+                        if(ringHandle < 0) {
+                            throw new RuntimeException("Io_uring bootstrap failed: invalid ring file descriptor");
+                        }
 
-            @Override
-            public void close() throws IOException {
+                        var sqRingSize = io_sqring_offsets.array(io_uring_params.sq_off(ringParams)) + io_uring_params.sq_entries(ringParams) * ValueLayout.JAVA_INT.byteSize();
+                        var cqRingSize = io_cqring_offsets.cqes(io_uring_params.cq_off(ringParams)) + io_uring_params.cq_entries(ringParams) * io_uring_cqe.sizeof();
+                        var singleMap = (io_uring_params.features(ringParams) & LinuxSockets.IORING_FEAT_SINGLE_MMAP()) == 0;
+                        if(singleMap) {
+                            if(cqRingSize > sqRingSize) {
+                                sqRingSize = cqRingSize;
+                            }
 
+                            cqRingSize = sqRingSize;
+                        }
+
+                        ringSq = LinuxSockets.mmap(
+                                MemorySegment.NULL,
+                                sqRingSize,
+                                LinuxSockets.PROT_READ() | LinuxSockets.PROT_WRITE(),
+                                LinuxSockets.MAP_SHARED() | LinuxSockets.MAP_POPULATE(),
+                                ringHandle,
+                                LinuxSockets.IORING_OFF_SQ_RING()
+                        );
+                        if(ringSq == LinuxSockets.MAP_FAILED()) {
+                            throw new RuntimeException("Io_uring bootstrap failed: invalid ringSq mmap result");
+                        }
+                        if(singleMap) {
+                            ringCq = ringCqEntries;
+                        }else {
+                            ringCq = LinuxSockets.mmap(
+                                    MemorySegment.NULL,
+                                    cqRingSize,
+                                    LinuxSockets.PROT_READ() | LinuxSockets.PROT_WRITE(),
+                                    LinuxSockets.MAP_SHARED() | LinuxSockets.MAP_POPULATE(),
+                                    ringHandle,
+                                    LinuxSockets.IORING_OFF_CQ_RING()
+                            );
+                            if(ringCq == LinuxSockets.MAP_FAILED()) {
+                                throw new RuntimeException("Io_uring bootstrap failed: invalid ringCq mmap result");
+                            }
+                        }
+
+                        ringSqEntries = LinuxSockets.mmap(
+                                MemorySegment.NULL,
+                                io_uring_params.sq_entries(ringParams) * io_uring_sqe.sizeof(),
+                                LinuxSockets.PROT_READ() | LinuxSockets.PROT_WRITE(),
+                                LinuxSockets.MAP_SHARED() | LinuxSockets.MAP_POPULATE(),
+                                ringHandle,
+                                LinuxSockets.IORING_OFF_SQES()
+                        );
+                        if(ringSqEntries == LinuxSockets.MAP_FAILED()) {
+                            throw new RuntimeException("Io_uring bootstrap failed: invalid ringSqEntries mmap result");
+                        }
+
+                        ringCqEntries = ringCq.asSlice(
+                                io_cqring_offsets.cqes(io_uring_params.cq_off(ringParams)),
+                                io_uring_params.cq_entries(ringParams) * io_uring_cqe.sizeof(),
+                                io_uring_cqe.layout().byteAlignment()
+                        );
+
+                        this.executor = Executors.newSingleThreadExecutor();
+                        executor.submit(this);
+                    }
+                }
+
+                public void registerHandle(int handle) {
+                    initRing();
+                    handles.add(handle);
+                }
+
+                public void unregisterHandle(int handle) {
+                    handles.remove(handle);
+                    futures.remove(handle);
+                    if (!handles.isEmpty()) {
+                        return;
+                    }
+
+                    close();
+                }
+
+                private void close() {
+                    if(ringHandle == null) {
+                        return;
+                    }
+
+                    try {
+                        queueLock.lock();
+                        int ringHandle = this.ringHandle;
+                        this.ringHandle = null;
+                        LinuxSockets.close(ringHandle);
+                        if (executor != null && !executor.isShutdown()) {
+                            executor.shutdownNow();
+                        }
+                    }finally {
+                        queueLock.unlock();
+                    }
+                }
+
+                public CompletableFuture<Integer> prepareAsyncOperation(int handle, Consumer<MemorySegment> configurator) {
+                    try {
+                        queueLock.lock();
+                        var sqOffset = io_uring_params.sq_off(ringParams);
+                        var head = atomicRead(ringSq, io_sqring_offsets.head(sqOffset));
+                        var tail = atomicRead(ringSq, io_sqring_offsets.tail(sqOffset));
+                        var size = atomicRead(ringSq, io_sqring_offsets.ring_entries(sqOffset));
+                        if(tail + 1 > size) {
+                            // TODO: How to handle this?
+                            throw new RuntimeException("Queue is full");
+                        }
+
+                        var mask = atomicRead(ringSq, io_sqring_offsets.ring_mask(sqOffset));
+                        var index = tail & mask;
+                        var entry = io_uring_sqe.asSlice(ringSqEntries, index);
+                        configurator.accept(entry);
+                        atomicWrite(
+                                ringSq,
+                                io_sqring_offsets.array(io_uring_params.sq_off(ringParams)) + (index * ValueLayout.JAVA_INT.byteSize()),
+                                index
+                        );
+
+                        atomicWrite(
+                                ringSq,
+                                io_sqring_offsets.tail(sqOffset),
+                                tail + 1
+                        );
+                        var future = new CompletableFuture<Integer>();
+                        futures.put(handle, future);
+                        enterRing(1, 0, 0);
+                        return future;
+                    }finally {
+                        queueLock.unlock();
+                    }
+                }
+
+                @Override
+                public void run() {
+                    while (!Thread.interrupted()) {
+                        var result = enterRing(0, 1, LinuxSockets.IORING_ENTER_GETEVENTS());
+                        if(!result) {
+                            break;
+                        }
+
+                        var cqOffset = io_uring_params.cq_off(ringParams);
+                        var head = atomicRead(ringCq, io_cqring_offsets.head(cqOffset));
+                        var tail = atomicRead(ringCq, io_cqring_offsets.tail(cqOffset));
+                        var mask = atomicRead(ringCq, io_cqring_offsets.ring_mask(cqOffset));
+                        while (head != tail) {
+                            var index = head & mask;
+                            var cqe = io_uring_cqe.asSlice(ringCqEntries, index);
+                            var identifier = (int) io_uring_cqe.user_data(cqe);
+                            var future = futures.remove(identifier);
+                            if(future != null) {
+                                future.complete(io_uring_cqe.res(cqe));
+                            }
+
+                            head++;
+                        }
+                        atomicWrite(
+                                ringCq,
+                                io_cqring_offsets.head(cqOffset),
+                                head
+                        );
+                    }
+                }
+
+                private int atomicRead(MemorySegment segment, int offset) {
+                    return (int) ValueLayout.JAVA_INT.varHandle()
+                            .getVolatile(segment, offset);
+                }
+
+                private void atomicWrite(MemorySegment segment, long offset, int value) {
+                    ValueLayout.JAVA_INT.varHandle()
+                            .setVolatile(segment, offset, value);
+                }
+
+                private int setupRing() {
+                    return (int) LinuxSockets.syscall
+                            .makeInvoker(
+                                    ValueLayout.JAVA_INT,
+                                    ValueLayout.ADDRESS.withTargetLayout(io_uring_params.layout())
+                            )
+                            .apply(
+                                    LinuxSockets.__NR_io_uring_setup(),
+                                    QUEUE_SIZE,
+                                    ringParams
+                            );
+                }
+
+                private boolean enterRing(int in, int out, int flags) {
+                    try {
+                        var result = LinuxSockets.syscall
+                                .makeInvoker(
+                                        ValueLayout.JAVA_INT,
+                                        ValueLayout.JAVA_INT,
+                                        ValueLayout.JAVA_INT,
+                                        ValueLayout.JAVA_INT,
+                                        ValueLayout.ADDRESS,
+                                        ValueLayout.JAVA_INT
+                                )
+                                .apply(
+                                        LinuxSockets.__NR_io_uring_enter(),
+                                        ringHandle,
+                                        in,
+                                        out,
+                                        flags,
+                                        MemorySegment.NULL,
+                                        0
+                                );
+                        return result == 0;
+                    }catch (Throwable throwable) {
+                        return false;
+                    }
+                }
             }
         }
     }
 
     static sealed abstract class SecurityLayer {
-        final TransmissionLayer channel;
-        private SecurityLayer(TransmissionLayer channel) {
+        final TransmissionLayer<?> channel;
+        private SecurityLayer(TransmissionLayer<?> channel) {
             this.channel = channel;
         }
 
@@ -807,7 +1159,7 @@ public final class SocketClient implements AutoCloseable {
         }
 
         private static final class Plain extends SecurityLayer {
-            private Plain(TransmissionLayer channel) {
+            private Plain(TransmissionLayer<?> channel) {
                 super(channel);
             }
 
@@ -840,7 +1192,7 @@ public final class SocketClient implements AutoCloseable {
             private SSLEngine sslEngine;
             private ByteBuffer sslReadBuffer, sslWriteBuffer, sslOutputBuffer;
             private CompletableFuture<Void> sslHandshake;
-            private Secure(TransmissionLayer channel, SSLContext sslContext, SSLParameters sslParameters) {
+            private Secure(TransmissionLayer<?> channel, SSLContext sslContext, SSLParameters sslParameters) {
                 super(channel);
                 this.sslHandshakeCompleted = new AtomicBoolean();
                 this.sslHandshakeLock = new Object();
@@ -1086,17 +1438,17 @@ public final class SocketClient implements AutoCloseable {
     }
 
     private sealed static abstract class TunnelLayer {
-        final TransmissionLayer channel;
+        final TransmissionLayer<?> channel;
         final SecurityLayer securityLayer;
         final URI proxy;
         InetSocketAddress address;
-        private TunnelLayer(TransmissionLayer channel, SecurityLayer securityLayer, URI proxy) {
+        private TunnelLayer(TransmissionLayer<?> channel, SecurityLayer securityLayer, URI proxy) {
             this.channel = channel;
             this.securityLayer = securityLayer;
             this.proxy = proxy;
         }
 
-        private static TunnelLayer of(TransmissionLayer channel, SecurityLayer securityLayer, URI proxy) {
+        private static TunnelLayer of(TransmissionLayer<?> channel, SecurityLayer securityLayer, URI proxy) {
             return switch (toProxy(proxy).type()) {
                 case DIRECT -> new Direct(channel);
                 case HTTP -> new HttpProxy(channel, securityLayer, proxy);
@@ -1145,7 +1497,7 @@ public final class SocketClient implements AutoCloseable {
         }
 
         private static final class Direct extends TunnelLayer {
-            private Direct(TransmissionLayer channel) {
+            private Direct(TransmissionLayer<?> channel) {
                 super(channel, null, null);
             }
 
@@ -1159,7 +1511,7 @@ public final class SocketClient implements AutoCloseable {
             private static final int DEFAULT_RCV_BUF = 8192;
             private static final int OK_STATUS_CODE = 200;
 
-            private HttpProxy(TransmissionLayer channel, SecurityLayer securityLayer, URI proxy) {
+            private HttpProxy(TransmissionLayer<?> channel, SecurityLayer securityLayer, URI proxy) {
                 super(channel, securityLayer, proxy);
             }
 
@@ -1243,7 +1595,7 @@ public final class SocketClient implements AutoCloseable {
             private static final int CMD_NOT_SUPPORTED = 7;
             private static final int ADDR_TYPE_NOT_SUP = 8;
 
-            private SocksProxy(TransmissionLayer channel, SecurityLayer securityLayer, URI proxy) {
+            private SocksProxy(TransmissionLayer<?> channel, SecurityLayer securityLayer, URI proxy) {
                 super(channel, securityLayer, proxy);
             }
 

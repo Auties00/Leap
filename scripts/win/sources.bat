@@ -12,7 +12,6 @@ jextract --library user32 -t it.auties.leap.impl.win --output ".\..\..\src\main\
 --include-struct _OVERLAPPED ^
 --include-struct _WSABUF ^
 --include-struct in_addr ^
---include-typedef LPWSAOVERLAPPED_COMPLETION_ROUTINE ^
 --include-struct OVERLAPPED ^
 --include-struct sockaddr_in ^
 --include-struct SOCKADDR ^
