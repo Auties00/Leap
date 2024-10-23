@@ -31,6 +31,11 @@ public class HttpTest {
                 .build();
         try(var client = new HttpClient()) {
             System.out.println(client.sendAsync(request, HttpResponse.Converter.ofString()).join());
+            System.out.println(client.sendAsync(request, HttpResponse.Converter.ofString()).join());
+        }
+        try(var client = new HttpClient()) {
+            System.out.println(client.sendAsync(request, HttpResponse.Converter.ofString()).join());
+            System.out.println(client.sendAsync(request, HttpResponse.Converter.ofString()).join());
         }
     }
 }

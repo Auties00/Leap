@@ -1,8 +1,8 @@
 package it.auties.leap;
 
-import it.auties.leap.impl.linux.*;
-import it.auties.leap.impl.shared.*;
-import it.auties.leap.impl.win.*;
+import it.auties.leap.socket.linux.*;
+import it.auties.leap.socket.shared.*;
+import it.auties.leap.socket.win.*;
 
 import javax.net.ssl.*;
 import javax.net.ssl.SSLEngineResult.Status;
@@ -442,7 +442,7 @@ public final class SocketClient implements AutoCloseable {
                 return future.thenCompose(writeValue -> {
                     if(writeValue == 0) {
                         close();
-                        return CompletableFuture.failedFuture(new SocketException("Cannot send message to socket (socked closed)"));
+                        return CompletableFuture.failedFuture(new SocketException("Cannot send message to socket (socket closed)"));
                     }
 
                     if (input.hasRemaining()) {
@@ -497,7 +497,7 @@ public final class SocketClient implements AutoCloseable {
                 return future.thenCompose(readLength -> {
                     if (readLength == 0) {
                         close();
-                        return CompletableFuture.failedFuture(new SocketException("Cannot receive message from socket (socked closed)"));
+                        return CompletableFuture.failedFuture(new SocketException("Cannot receive message from socket (socket closed)"));
                     }
 
                     readFromIOBuffer(output, readLength);
@@ -575,7 +575,6 @@ public final class SocketClient implements AutoCloseable {
                         return Objects.requireNonNullElseGet(instance, () -> instance = new CompletionPort());
                     }
                 }
-
 
                 private final Arena arena;
                 private final Set<Long> handles;
@@ -808,7 +807,7 @@ public final class SocketClient implements AutoCloseable {
                 }).thenCompose(readLength -> {
                     if (readLength == 0) {
                         close();
-                        return CompletableFuture.failedFuture(new SocketException("Cannot receive message from socket (socked closed)"));
+                        return CompletableFuture.failedFuture(new SocketException("Cannot receive message from socket (socket closed)"));
                     }
 
                     readFromIOBuffer(data, readLength);
@@ -818,12 +817,12 @@ public final class SocketClient implements AutoCloseable {
 
             @Override
             int sendBufferSize() {
-                return DEFAULT_CONNECTION_TIMEOUT;
+                return IO_BUFFER_SIZE;
             }
 
             @Override
             int receiveBufferSize() {
-                return DEFAULT_CONNECTION_TIMEOUT;
+                return IO_BUFFER_SIZE;
             }
 
             @Override
@@ -957,6 +956,10 @@ public final class SocketClient implements AutoCloseable {
                         this.executor = Executors.newSingleThreadExecutor();
                         executor.submit(this);
                     }
+                }
+
+                private void resizeRing() {
+
                 }
 
                 public void registerHandle(int handle) {

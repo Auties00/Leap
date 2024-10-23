@@ -12,7 +12,7 @@ import java.util.stream.Collectors;
 
 @SuppressWarnings("unused")
 public final class HttpRequest {
-    private static final Duration DEFAULT_TIMEOUT = Duration.ofSeconds(30);
+    private static final Duration DEFAULT_REQUEST_TIMEOUT = Duration.ofSeconds(300);
 
     private final String method;
     private final Body body;
@@ -24,7 +24,7 @@ public final class HttpRequest {
         this.body = body;
         this.uri = Objects.requireNonNull(uri, "Missing HTTP endpoint");
         this.headers = parseHeaders(headers);
-        this.timeout = Objects.requireNonNullElse(timeout, DEFAULT_TIMEOUT);
+        this.timeout = Objects.requireNonNullElse(timeout, DEFAULT_REQUEST_TIMEOUT);
     }
 
     private static Map<String, String> parseHeaders(Map<String, ?> headers) {
@@ -120,7 +120,7 @@ public final class HttpRequest {
             this.body = body;
             this.uri = uri;
             this.headers = new HashMap<>();
-            this.timeout = DEFAULT_TIMEOUT;
+            this.timeout = DEFAULT_REQUEST_TIMEOUT;
         }
 
         public OptionsBuilder headers(Map<String, ?> headers) {
