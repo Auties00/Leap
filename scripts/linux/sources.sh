@@ -1,4 +1,4 @@
-jextract -t it.auties.leap.socket.linux --output "./../../src/main/java" LinuxSockets.h --header-class-name LinuxSockets \
+jextract -t it.auties.leap.socketcclinux --output "./../../src/main/java" LinuxSockets.h --header-class-name LinuxSockets \
 --include-function socket \
 --include-function close \
 --include-function syscall \

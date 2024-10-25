@@ -1,4 +1,4 @@
-/Users/auties00/Downloads/jextract-22/bin/jextract -t it.auties.leap.socket.unix --output "./../../src/main/java" UnixSockets.h --header-class-name UnixSockets \
+jextract -t it.auties.leap.socket.platform.unix --output "./../../src/main/java" UnixSockets.h --header-class-name UnixSockets \
 --include-function fcntl \
 --include-function socket \
 --include-function connect \
