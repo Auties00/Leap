@@ -1,0 +1,37 @@
+jextract -t it.auties.leap.socket.linux --output "./../../src/main/java" LinuxSockets.h --header-class-name LinuxSockets \
+--include-function socket \
+--include-function close \
+--include-function syscall \
+--include-struct io_uring_params \
+--include-struct io_uring_cqe \
+--include-struct io_uring_sqe \
+--include-struct io_sqring_offsets \
+--include-struct io_cqring_offsets \
+--include-constant PROT_READ \
+--include-constant PROT_WRITE \
+--include-constant MAP_SHARED \
+--include-constant MAP_POPULATE \
+--include-function mmap \
+--include-constant IORING_ENTER_GETEVENTS \
+--include-constant IORING_OFF_SQES \
+--include-constant IORING_OFF_SQ_RING \
+--include-constant IORING_OFF_CQ_RING \
+--include-constant IORING_ENTER_GETEVENTS \
+--include-constant IORING_OP_CONNECT \
+--include-constant IORING_OP_SEND \
+--include-constant IORING_OP_RECV \
+--include-constant IORING_ENTER_GETEVENTS \
+--include-constant AF_INET \
+--include-constant SOCK_STREAM \
+--include-constant SOCK_NONBLOCK \
+--include-constant IO_URING_SETUP_SYSCALL \
+--include-constant MAP_FAILED \
+--include-constant __NR_io_uring_setup \
+--include-constant __NR_io_uring_enter \
+--include-constant IORING_FEAT_SINGLE_MMAP \
+--include-struct iovec \
+--include-constant IORING_OP_WRITEV \
+--include-constant IORING_OP_WRITE \
+--include-constant IORING_OP_READ \
+--include-constant SHUT_RDWR \
+--include-function shutdown

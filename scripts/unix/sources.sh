@@ -1,0 +1,30 @@
+/Users/auties00/Downloads/jextract-22/bin/jextract -t it.auties.leap.socket.unix --output "./../../src/main/java" UnixSockets.h --header-class-name UnixSockets \
+--include-function fcntl \
+--include-function socket \
+--include-function connect \
+--include-function close \
+--include-function dispatch_queue_create \
+--include-function dispatch_source_create \
+--include-function dispatch_source_set_event_handler \
+--include-function getsockopt \
+--include-function dispatch_source_cancel \
+--include-struct dispatch_queue_t \
+--include-constant F_GETFL \
+--include-constant F_SETFL \
+--include-constant O_NONBLOCK \
+--include-constant AF_INET \
+--include-constant EINPROGRESS \
+--include-constant ETIMEDOUT \
+--include-constant SOL_SOCKET \
+--include-constant SO_ERROR \
+--include-constant SOCK_STREAM \
+--include-function __error \
+--include-struct dispatch_block_t \
+--include-typedef dispatch_object_t \
+--include-typedef dispatch_block_t \
+--include-function dispatch_resume \
+--include-function read \
+--include-function write \
+--include-typedef dispatch_function_t \
+--include-struct __Block_byref_ND \
+--include-constant BLOCK_BYREF_LAYOUT_UNRETAINED
