@@ -1078,13 +1078,13 @@ public sealed abstract class SocketTransmissionLayer<HANDLE> implements AutoClos
         protected CompletableFuture<ByteBuffer> readUnchecked(ByteBuffer output) {
             return dispatch(DispatchEvent.READ).thenCompose(_ -> {
                 var length = Math.min(output.remaining(), readBufferSize);
-                var result = UnixSockets.read(handle, readBuffer, length);
-                if (result <= 0) {
+                var readLength = UnixSockets.read(handle, readBuffer, length);
+                if (readLength <= 0) {
                     close();
                     return CompletableFuture.failedFuture(new SocketException("Cannot receive message from socket (socket closed)"));
                 }
 
-                readFromIOBuffer(output, length);
+                readFromIOBuffer(output, Math.toIntExact(readLength));
                 return CompletableFuture.completedFuture(output);
             });
         }

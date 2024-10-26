@@ -239,11 +239,15 @@ public sealed abstract class SocketSecurityLayer implements HttpDecodable {
 
         @Override
         public CompletableFuture<ByteBuffer> read(ByteBuffer buffer, boolean lastRead) {
-            try {
-                if (!sslHandshakeCompleted.get()) {
-                    return readPlain(buffer, lastRead);
-                }
+            if (!sslHandshakeCompleted.get()) {
+                return readPlain(buffer, lastRead);
+            }
 
+            return readSecure(buffer, lastRead);
+        }
+
+        private CompletableFuture<ByteBuffer> readSecure(ByteBuffer buffer, boolean lastRead) {
+            try {
                 var bytesCopied = readFromBufferedOutput(buffer, lastRead);
                 if (bytesCopied != 0) {
                     return CompletableFuture.completedFuture(buffer);
@@ -252,7 +256,7 @@ public sealed abstract class SocketSecurityLayer implements HttpDecodable {
                 } else {
                     return fillSslBuffer(buffer, lastRead);
                 }
-            } catch (Throwable throwable) {
+            }catch (Throwable throwable) {
                 return CompletableFuture.failedFuture(throwable);
             }
         }
@@ -276,10 +280,12 @@ public sealed abstract class SocketSecurityLayer implements HttpDecodable {
                             yield CompletableFuture.completedFuture(buffer);
                         }
                     }
-                    case BUFFER_UNDERFLOW -> fillSslBuffer(buffer, lastRead);
+                    case BUFFER_UNDERFLOW ->
+                            fillSslBuffer(buffer, lastRead);
                     case BUFFER_OVERFLOW ->
                             CompletableFuture.failedFuture(new IllegalStateException("SSL output buffer overflow"));
-                    case CLOSED -> CompletableFuture.failedFuture(new EOFException());
+                    case CLOSED ->
+                            CompletableFuture.failedFuture(new EOFException());
                 };
             } catch (Throwable throwable) {
                 return CompletableFuture.failedFuture(throwable);
@@ -331,23 +337,23 @@ public sealed abstract class SocketSecurityLayer implements HttpDecodable {
         }
 
         private CompletableFuture<Void> writeSecure(ByteBuffer buffer) {
-            if (!buffer.hasRemaining()) {
-                return CompletableFuture.completedFuture(null);
-            }
-
             try {
+                if (!buffer.hasRemaining()) {
+                    return CompletableFuture.completedFuture(null);
+                }
+
                 sslWriteBuffer.clear();
                 var wrapResult = sslEngine.wrap(buffer, sslWriteBuffer);
                 var status = wrapResult.getStatus();
                 if (status != SSLEngineResult.Status.OK && status != SSLEngineResult.Status.BUFFER_OVERFLOW) {
-                    throw new IllegalStateException("SSL wrap failed with status: " + status);
+                    return CompletableFuture.failedFuture(new IllegalStateException("SSL wrap failed with status: " + status));
                 }
 
                 sslWriteBuffer.flip();
                 return writePlain(sslWriteBuffer)
                         .thenCompose(_ -> writeSecure(buffer));
-            } catch (SSLException exception) {
-                return CompletableFuture.failedFuture(exception);
+            } catch (Throwable throwable) {
+                return CompletableFuture.failedFuture(throwable);
             }
         }
     }
