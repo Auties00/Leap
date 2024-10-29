@@ -5,15 +5,12 @@ import it.auties.leap.socket.SocketClient;
 import it.auties.leap.http.decoder.HttpDecoder;
 import it.auties.leap.socket.SocketOption;
 
-import javax.net.ssl.SSLContext;
-import javax.net.ssl.SSLParameters;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.URI;
 import java.nio.ByteBuffer;
 import java.nio.CharBuffer;
 import java.nio.charset.StandardCharsets;
-import java.time.Duration;
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.*;
@@ -24,14 +21,14 @@ public final class HttpClient implements AutoCloseable {
     private static final String HTTPS_SCHEME = "https";
     private static final String HTTP_DELIMITER = "\r\n";
 
-    private final Configuration configuration;
+    private final HttpConfig configuration;
     private final Map<String, SocketClient> keepAlive;
     private final Executor keepAliveEnforcer;
     public HttpClient() {
-        this(Configuration.defaults());
+        this(HttpConfig.defaults());
     }
 
-    public HttpClient(Configuration configuration) {
+    public HttpClient(HttpConfig configuration) {
         Objects.requireNonNull(configuration, "Invalid configuration");
         this.configuration = configuration;
         this.keepAlive = new ConcurrentHashMap<>();
@@ -236,53 +233,6 @@ public final class HttpClient implements AutoCloseable {
         public void onComplete() {
             out.put(HTTP_END);
             future.complete(out);
-        }
-    }
-
-    public static final class Configuration {
-        private static final Configuration DEFAULT = new Configuration();
-
-        SSLContext sslContext;
-        SSLParameters sslParameters;
-        Duration keepAliveDuration;
-        URI proxy;
-        public Configuration() {
-            try {
-                this.sslContext = SSLContext.getInstance("TLSv1.3");
-                sslContext.init(null, null, null);
-                this.sslParameters = sslContext.getDefaultSSLParameters();
-                this.keepAliveDuration = Duration.ofSeconds(10);
-                this.proxy = null;
-            }catch (Throwable throwable) {
-                throw new RuntimeException("Cannot initialize config", throwable);
-            }
-        }
-
-        public static Configuration defaults() {
-            return DEFAULT;
-        }
-
-        public Configuration sslContext(SSLContext sslContext) {
-            Objects.requireNonNull(sslContext, "Invalid ssl context");
-            this.sslContext = sslContext;
-            return this;
-        }
-
-        public Configuration sslParameters(SSLParameters sslParameters) {
-            Objects.requireNonNull(sslParameters, "Invalid ssl parameters");
-            this.sslParameters = sslParameters;
-            return this;
-        }
-
-        public Configuration keepAliveDuration(Duration keepAliveDuration) {
-            Objects.requireNonNull(keepAliveDuration, "Invalid keep alive duration");
-            this.keepAliveDuration = keepAliveDuration;
-            return this;
-        }
-
-        public Configuration proxy(URI proxy) {
-            this.proxy = proxy;
-            return this;
         }
     }
 }

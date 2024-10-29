@@ -1,6 +1,7 @@
 package it.auties.leap;
 
 import it.auties.leap.http.HttpClient;
+import it.auties.leap.http.HttpConfig;
 import it.auties.leap.http.HttpRequest;
 import it.auties.leap.http.HttpResponse;
 
@@ -20,7 +21,7 @@ public class TestClient {
                 .uri(URI.create("http://api.ipify.org/"))
                 .build();
         for (int i = 0; i < val; i++) {
-            var config = new HttpClient.Configuration()
+            var config = new HttpConfig()
                     .proxy(URI.create("http://litease_%s-country-us:Sinan208@proxyus.rola.vip:1066/".formatted(ThreadLocalRandom.current().nextInt(1, 100_000))));
             var client = new HttpClient(config);
             client.send(request, HttpResponse.Converter.ofString()).whenCompleteAsync((result, error) -> {
