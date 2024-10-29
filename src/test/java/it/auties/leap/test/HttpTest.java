@@ -1,4 +1,4 @@
-package it.auties.leap;
+package it.auties.leap.test;
 
 import it.auties.leap.http.HttpClient;
 import it.auties.leap.http.HttpRequest;
