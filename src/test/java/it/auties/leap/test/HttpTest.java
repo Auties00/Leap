@@ -1,31 +1,27 @@
 package it.auties.leap.test;
 
 import it.auties.leap.http.HttpClient;
+import it.auties.leap.http.HttpConfig;
 import it.auties.leap.http.HttpRequest;
 import it.auties.leap.http.HttpResponse;
-import org.junit.jupiter.api.Test;
+import it.auties.leap.tls.TlsCipher;
 
 import java.net.URI;
+import java.util.List;
 
 public class HttpTest {
-    @Test
-    public void testPlainDirect() {
-        var request = HttpRequest.builder()
-                .get()
-                .uri(URI.create("http://api.ipify.org/"))
+    public static void main(String[] args) {
+        var tlsConfig = HttpConfig.defaultTlsConfigBuilder()
+                .ciphers(List.of(        TlsCipher.ecdheEcdsaWithAes256Ccm()))
                 .build();
-        try(var client = new HttpClient()) {
-            System.out.println(client.send(request, HttpResponse.Converter.ofString()).join());
-        }
-    }
-
-    @Test
-    public void testSecureDirect() {
+        var httpConfig = HttpConfig.builder()
+                .tlsConfig(tlsConfig)
+                .build();
         var request = HttpRequest.builder()
                 .get()
                 .uri(URI.create("https://api.ipify.org/"))
                 .build();
-        try(var client = new HttpClient()) {
+        try(var client = new HttpClient(httpConfig)) {
             System.out.println(client.send(request, HttpResponse.Converter.ofString()).join());
         }
     }

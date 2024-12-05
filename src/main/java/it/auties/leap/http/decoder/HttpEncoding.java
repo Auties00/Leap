@@ -9,7 +9,7 @@ enum HttpEncoding {
     DEFLATE,
     UNKNOWN;
 
-    private static final Map<String, HttpEncoding> CASES = Map.of(
+    private static final Map<String, HttpEncoding> VALUES = Map.of(
             "chunked", CHUNKED,
             "compress", COMPRESS,
             "gzip", GZIP,
@@ -17,6 +17,6 @@ enum HttpEncoding {
     );
 
     static HttpEncoding of(String value) {
-        return CASES.getOrDefault(value.toLowerCase().trim(), UNKNOWN);
+        return VALUES.getOrDefault(value.toLowerCase().trim(), UNKNOWN);
     }
 }

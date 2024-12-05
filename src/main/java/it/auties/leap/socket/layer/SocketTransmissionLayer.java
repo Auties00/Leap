@@ -1,6 +1,7 @@
 package it.auties.leap.socket.layer;
 
 import it.auties.leap.socket.SocketOption;
+import it.auties.leap.socket.SocketProtocol;
 import it.auties.leap.socket.platform.in_addr;
 import it.auties.leap.socket.platform.linux.*;
 import it.auties.leap.socket.platform.sockaddr_in;
@@ -29,6 +30,7 @@ import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Consumer;
 
 public sealed abstract class SocketTransmissionLayer<HANDLE> implements AutoCloseable {
+    final SocketProtocol protocol;
     final Arena arena;
     final HANDLE handle;
     final ReentrantLock ioLock;
@@ -40,7 +42,8 @@ public sealed abstract class SocketTransmissionLayer<HANDLE> implements AutoClos
     int writeBufferSize;
     boolean keepAlive;
 
-    private SocketTransmissionLayer() throws SocketException {
+    private SocketTransmissionLayer(SocketProtocol protocol) throws SocketException {
+        this.protocol = protocol;
         this.arena = Arena.ofAuto();
         this.handle = createHandle();
         this.ioLock = new ReentrantLock(true);
@@ -50,14 +53,14 @@ public sealed abstract class SocketTransmissionLayer<HANDLE> implements AutoClos
         this.keepAlive = SocketOption.keepAlive().defaultValue();
     }
 
-    public static SocketTransmissionLayer<?> ofPlatform() throws SocketException {
+    public static SocketTransmissionLayer<?> ofPlatform(SocketProtocol protocol) throws SocketException {
         var os = System.getProperty("os.name").toLowerCase();
         if(os.contains("win")) {
-            return new Windows();
+            return new Windows(protocol);
         }else if(os.contains("nix") || os.contains("nux") || os.contains("aix")) {
-            return new Linux();
+            return new Linux(protocol);
         }else if(os.contains("mac")) {
-            return new Unix();
+            return new Unix(protocol);
         }else {
             throw new IllegalArgumentException("Unsupported os: " + os);
         }
@@ -72,7 +75,7 @@ public sealed abstract class SocketTransmissionLayer<HANDLE> implements AutoClos
             return CompletableFuture.failedFuture(new SocketException("Cannot send message to socket (socket not connected)"));
         }
 
-        if (!input.hasRemaining()) {
+        if (input == null || !input.hasRemaining()) {
             return CompletableFuture.completedFuture(null);
         }
 
@@ -259,8 +262,8 @@ public sealed abstract class SocketTransmissionLayer<HANDLE> implements AutoClos
 
         private CompletionPort completionPort;
 
-        private Windows() throws SocketException {
-            super();
+        private Windows(SocketProtocol protocol) throws SocketException {
+            super(protocol);
         }
 
         @Override
@@ -592,8 +595,8 @@ public sealed abstract class SocketTransmissionLayer<HANDLE> implements AutoClos
     private static final class Linux extends SocketTransmissionLayer<Integer> {
         private IOUring ioUring;
 
-        private Linux() throws SocketException {
-            super();
+        private Linux(SocketProtocol protocol) throws SocketException {
+            super(protocol);
         }
 
         @Override
@@ -634,7 +637,7 @@ public sealed abstract class SocketTransmissionLayer<HANDLE> implements AutoClos
                 io_uring_sqe.user_data(sqe, handle);
             }).thenCompose(result -> {
                 if (result != 0) {
-                    return CompletableFuture.failedFuture(new SocketException("Cannot connect to socket: operation failed"));
+                    return CompletableFuture.failedFuture(new SocketException("Cannot connect to socket: operation failed with error code " + result));
                 }
 
                 return CompletableFuture.completedFuture(null);
@@ -666,6 +669,7 @@ public sealed abstract class SocketTransmissionLayer<HANDLE> implements AutoClos
 
         @Override
         protected CompletableFuture<ByteBuffer> readUnchecked(ByteBuffer data) {
+            var caller = new RuntimeException();
             return ioUring.prepareAsyncOperation(handle, sqe -> {
                 var length = Math.min(data.remaining(), readBufferSize);
                 io_uring_sqe.opcode(sqe, (byte) LinuxSockets.IORING_OP_READ());
@@ -677,7 +681,7 @@ public sealed abstract class SocketTransmissionLayer<HANDLE> implements AutoClos
             }).thenCompose(readLength -> {
                 if (readLength == 0) {
                     close();
-                    return CompletableFuture.failedFuture(new SocketException("Cannot receive message from socket (socket closed)"));
+                    return CompletableFuture.failedFuture(new SocketException("Cannot receive message from socket (socket closed)", caller));
                 }
 
                 readFromIOBuffer(data, readLength);
@@ -976,8 +980,8 @@ public sealed abstract class SocketTransmissionLayer<HANDLE> implements AutoClos
 
         private MemorySegment gcdQueue;
 
-        private Unix() throws SocketException {
-            super();
+        private Unix(SocketProtocol protocol) throws SocketException {
+            super(protocol);
         }
 
         @Override

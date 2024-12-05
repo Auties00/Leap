@@ -1,9 +1,10 @@
 package it.auties.leap.http;
 
+import it.auties.leap.http.decoder.HttpDecoder;
 import it.auties.leap.http.decoder.HttpResult;
 import it.auties.leap.socket.SocketClient;
-import it.auties.leap.http.decoder.HttpDecoder;
 import it.auties.leap.socket.SocketOption;
+import it.auties.leap.socket.SocketProtocol;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
@@ -33,7 +34,7 @@ public final class HttpClient implements AutoCloseable {
         this.configuration = configuration;
         this.keepAlive = new ConcurrentHashMap<>();
         this.keepAliveEnforcer = CompletableFuture.delayedExecutor(
-                configuration.keepAliveDuration.getSeconds(),
+                configuration.keepAlive().getSeconds(),
                 TimeUnit.SECONDS,
                 Thread::startVirtualThread
         );
@@ -152,7 +153,7 @@ public final class HttpClient implements AutoCloseable {
             case HTTP_SCHEME -> 80;
             default -> throw new IllegalArgumentException("Unexpected scheme: %s".formatted(uri.getScheme()));
         };
-        if (configuration.proxy == null) {
+        if (configuration.proxy().isEmpty()) {
             return new InetSocketAddress(hostname, port);
         }
 
@@ -168,15 +169,17 @@ public final class HttpClient implements AutoCloseable {
                 return CompletableFuture.completedFuture(keptAlive);
             }
 
+            var proxy = configuration.proxy()
+                    .orElse(null);
             var freshSocket = switch (uri.getScheme().toLowerCase()) {
                 case HTTP_SCHEME -> {
-                    var result = SocketClient.ofPlain(configuration.proxy);
+                    var result = SocketClient.ofPlain(SocketProtocol.TCP, proxy);
                     result.setOption(SocketOption.keepAlive(), true);
                     keepAlive.put(id, result);
                     yield result;
                 }
                 case HTTPS_SCHEME -> {
-                    var result = SocketClient.ofSecure(configuration.sslContext, configuration.sslParameters, configuration.proxy);
+                    var result = SocketClient.ofSecure(SocketProtocol.TCP, configuration.tlsConfig(), proxy);
                     result.setOption(SocketOption.keepAlive(), true);
                     keepAlive.put(id, result);
                     yield result;

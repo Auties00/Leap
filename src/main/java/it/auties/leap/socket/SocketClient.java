@@ -4,34 +4,37 @@ import it.auties.leap.http.decoder.HttpDecodable;
 import it.auties.leap.socket.layer.SocketSecurityLayer;
 import it.auties.leap.socket.layer.SocketTransmissionLayer;
 import it.auties.leap.socket.layer.SocketTunnelLayer;
+import it.auties.leap.tls.TlsConfig;
 
-import javax.net.ssl.*;
 import java.io.IOException;
-import java.net.*;
+import java.net.InetSocketAddress;
+import java.net.SocketException;
+import java.net.URI;
 import java.nio.ByteBuffer;
+import java.util.Objects;
 import java.util.Optional;
-import java.util.concurrent.*;
+import java.util.concurrent.CompletableFuture;
 
 @SuppressWarnings("unused")
 public final class SocketClient implements HttpDecodable, AutoCloseable {
-    public static SocketClient ofPlain() throws IOException {
-        return ofPlain(null);
+    public static SocketClient ofPlain(SocketProtocol protocol) throws IOException {
+        return ofPlain(protocol, null);
     }
 
-    public static SocketClient ofPlain(URI proxy) throws IOException {
-        var transmissionLayer = SocketTransmissionLayer.ofPlatform();
+    public static SocketClient ofPlain(SocketProtocol protocol, URI proxy) throws IOException {
+        var transmissionLayer = SocketTransmissionLayer.ofPlatform(protocol);
         var layerSupport = SocketSecurityLayer.ofPlain(transmissionLayer);
         var proxySupport = SocketTunnelLayer.of(transmissionLayer, layerSupport, proxy);
         return new SocketClient(transmissionLayer, proxySupport, layerSupport);
     }
 
-    public static SocketClient ofSecure(SSLContext sslContext, SSLParameters sslParameters) throws IOException {
-        return ofSecure(sslContext, sslParameters, null);
+    public static SocketClient ofSecure(SocketProtocol protocol, TlsConfig tlsConfig) throws IOException {
+        return ofSecure(protocol, tlsConfig, null);
     }
 
-    public static SocketClient ofSecure(SSLContext sslContext, SSLParameters sslParameters, URI proxy) throws IOException {
-        var transmissionLayer = SocketTransmissionLayer.ofPlatform();
-        var layerSupport = SocketSecurityLayer.ofSecure(transmissionLayer, sslContext, sslParameters);
+    public static SocketClient ofSecure(SocketProtocol protocol, TlsConfig tlsConfig, URI proxy) throws IOException {
+        var transmissionLayer = SocketTransmissionLayer.ofPlatform(protocol);
+        var layerSupport = SocketSecurityLayer.ofSecure(transmissionLayer, tlsConfig);
         var proxySupport = SocketTunnelLayer.of(transmissionLayer, layerSupport, proxy);
         return new SocketClient(transmissionLayer, proxySupport, layerSupport);
     }
@@ -51,7 +54,7 @@ public final class SocketClient implements HttpDecodable, AutoCloseable {
         }
 
         return tunnelLayer.connect(address)
-                .thenComposeAsync(ignored -> securityLayer.handshake(address.getHostName(), address.getPort()))
+                .thenComposeAsync(ignored -> securityLayer.handshake())
                 .exceptionallyComposeAsync(error -> {
                     try {
                         close();
@@ -63,7 +66,8 @@ public final class SocketClient implements HttpDecodable, AutoCloseable {
                 });
     }
 
-    public CompletableFuture<Void> upgrade(SSLContext sslContext, SSLParameters sslParameters) {
+    public CompletableFuture<Void> upgrade(TlsConfig tlsConfig) {
+        Objects.requireNonNull(tlsConfig, "Invalid TLS config");
         if(!isConnected()) {
             throw new IllegalArgumentException("The socket is not connected");
         }
@@ -72,10 +76,8 @@ public final class SocketClient implements HttpDecodable, AutoCloseable {
             throw new IllegalStateException("This socket is already using a secure connection");
         }
 
-        this.securityLayer = SocketSecurityLayer.ofSecure(transmissionLayer, sslContext, sslParameters);
-        var address = remoteSocketAddress()
-                .orElseThrow(() -> new InternalError("Socket is supposed to be connected, but no remote address was set"));
-        return securityLayer.handshake(address.getHostName(), address.getPort());
+        this.securityLayer = SocketSecurityLayer.ofSecure(transmissionLayer, tlsConfig);
+        return securityLayer.handshake();
     }
 
     @Override
