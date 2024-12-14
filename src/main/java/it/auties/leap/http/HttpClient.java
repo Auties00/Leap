@@ -16,6 +16,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.*;
 
+// TODO: Implement HTTP2/3
 @SuppressWarnings("unused")
 public final class HttpClient implements AutoCloseable {
     private static final String HTTP_SCHEME = "http";
