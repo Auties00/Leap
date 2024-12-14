@@ -5,14 +5,14 @@ import it.auties.leap.tls.TlsSignatureAlgorithm;
 import it.auties.leap.tls.TlsSpecificationException;
 import it.auties.leap.tls.TlsVersion;
 import it.auties.leap.tls.engine.TlsEngineMode;
-import it.auties.leap.tls.key.TlsServerKey;
+import it.auties.leap.tls.crypto.key.TlsServerKey;
 import it.auties.leap.tls.message.TlsHandshakeMessage;
 
 import java.net.URI;
 import java.nio.ByteBuffer;
 import java.util.List;
 
-import static it.auties.leap.tls.TlsRecord.*;
+import static it.auties.leap.tls.TlsBuffer.*;
 
 public final class ServerKeyExchangeMessage extends TlsHandshakeMessage {
     public static final byte ID = 0x0C;
@@ -33,14 +33,14 @@ public final class ServerKeyExchangeMessage extends TlsHandshakeMessage {
         }
 
         var parameters = TlsServerKey.of(cipher, buffer);
-        var signatureAlgorithmId = readInt16(buffer);
+        var signatureAlgorithmId = readLittleEndianInt16(buffer);
         var signatureAlgorithm = switch (version) {
-            case TLS13, DTLS13 -> TlsSignatureAlgorithm.newTlsV13Signature(signatureAlgorithmId);
+            case TLS13, DTLS13 -> TlsSignatureAlgorithm.ofTlsV13(signatureAlgorithmId);
             case TLS12, DTLS12 -> TlsSignatureAlgorithm.ofTlsV12(signatureAlgorithmId)
                     .orElseThrow(() -> new TlsSpecificationException("Malformed signature algorithm: " + signatureAlgorithmId, URI.create("https://www.ietf.org/rfc/rfc5246.txt"), "7.4.1.4.1"));
             default -> throw new UnsupportedOperationException(); // TODO: Support other tls versions
         };
-        var signature = readBytes16(buffer);
+        var signature = readBytesLittleEndian16(buffer);
         return new ServerKeyExchangeMessage(version, source, parameters, signatureAlgorithm, signature);
     }
 
@@ -89,8 +89,8 @@ public final class ServerKeyExchangeMessage extends TlsHandshakeMessage {
     @Override
     public void serializeHandshakePayload(ByteBuffer buffer) {
         parameters.serialize(buffer);
-        writeInt16(buffer, signatureAlgorithm.id());
-        writeBytes16(buffer, signature);
+        writeLittleEndianInt16(buffer, signatureAlgorithm.id());
+        writeBytesLittleEndian16(buffer, signature);
     }
 
     @Override

@@ -12,7 +12,7 @@ import java.security.cert.X509Certificate;
 import java.util.ArrayList;
 import java.util.List;
 
-import static it.auties.leap.tls.TlsRecord.*;
+import static it.auties.leap.tls.TlsBuffer.*;
 
 public final class ServerCertificateMessage extends TlsHandshakeMessage {
     public static final byte ID = 0x0B;
@@ -24,12 +24,12 @@ public final class ServerCertificateMessage extends TlsHandshakeMessage {
     }
 
     public static ServerCertificateMessage of(TlsVersion version, Source source, ByteBuffer buffer) {
-        var certificatesLength = readInt24(buffer);
+        var certificatesLength = readLittleEndianInt24(buffer);
         try(var _ = scopedRead(buffer, certificatesLength)) {
             var factory = CertificateFactory.getInstance("X.509");
             var certificates = new ArrayList<X509Certificate>();
             while (buffer.hasRemaining()) {
-                var certificateSource = readStream24(buffer);
+                var certificateSource = readStreamLittleEndian24(buffer);
                 var certificate = (X509Certificate) factory.generateCertificate(certificateSource);
                 certificates.add(certificate);
             }
@@ -71,9 +71,9 @@ public final class ServerCertificateMessage extends TlsHandshakeMessage {
 
     @Override
     public void serializeHandshakePayload(ByteBuffer buffer) {
-        writeInt24(buffer, getCertificatesLength());
+        writeLittleEndianInt24(buffer, getCertificatesLength());
         for(var certificate : certificates) {
-            writeBytes24(buffer, encodeCertificate(certificate));
+            writeBytesLittleEndian24(buffer, encodeCertificate(certificate));
         }
     }
 

@@ -8,7 +8,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Optional;
 
-import static it.auties.leap.tls.TlsRecord.*;
+import static it.auties.leap.tls.TlsBuffer.*;
 
 public final class ServerNextProtocolNegotiationExtension extends TlsConcreteExtension {
     public static final int EXTENSION_TYPE = 0x3374;
@@ -27,14 +27,14 @@ public final class ServerNextProtocolNegotiationExtension extends TlsConcreteExt
     }
 
     public static Optional<ServerNextProtocolNegotiationExtension> of(TlsVersion version, ByteBuffer buffer, int extensionLength) {
-        var selectedProtocol = readBytes8(buffer);
+        var selectedProtocol = readBytesLittleEndian8(buffer);
         var extension = new ServerNextProtocolNegotiationExtension(selectedProtocol);
         return Optional.of(extension);
     }
 
     @Override
     protected void serializeExtensionPayload(ByteBuffer buffer) {
-        writeBytes8(buffer, selectedProtocol);
+        writeBytesLittleEndian8(buffer, selectedProtocol);
     }
 
     @Override

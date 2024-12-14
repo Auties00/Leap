@@ -6,15 +6,15 @@ import it.auties.leap.tls.TlsExtension;
 import it.auties.leap.tls.TlsVersion;
 import it.auties.leap.tls.engine.TlsEngineMode;
 import it.auties.leap.tls.extension.TlsConcreteExtension;
-import it.auties.leap.tls.key.TlsRandomData;
-import it.auties.leap.tls.key.TlsSharedSecret;
+import it.auties.leap.tls.crypto.key.TlsRandomData;
+import it.auties.leap.tls.crypto.key.TlsSharedSecret;
 import it.auties.leap.tls.message.TlsHandshakeMessage;
 
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.List;
 
-import static it.auties.leap.tls.TlsRecord.*;
+import static it.auties.leap.tls.TlsBuffer.*;
 
 public final class ServerHelloMessage extends TlsHandshakeMessage {
     public static final byte ID = 0x02;
@@ -54,7 +54,7 @@ public final class ServerHelloMessage extends TlsHandshakeMessage {
     }
 
     public static ServerHelloMessage of(TlsVersion version, Source source, ByteBuffer buffer) {
-        var tlsVersionId = readInt16(buffer);
+        var tlsVersionId = readLittleEndianInt16(buffer);
         var tlsVersion = TlsVersion.of(tlsVersionId)
                 .orElseThrow(() -> new IllegalArgumentException("Cannot decode TLS message, unknown protocol version: " + tlsVersionId));
 
@@ -62,21 +62,21 @@ public final class ServerHelloMessage extends TlsHandshakeMessage {
 
         var sessionId = TlsSharedSecret.of(buffer);
 
-        var cipherId = readInt16(buffer);
+        var cipherId = readLittleEndianInt16(buffer);
         var cipher = TlsCipher.of(cipherId)
                 .orElseThrow(() -> new IllegalArgumentException("Cannot decode TLS message, unknown cipher id: " + cipherId));
 
-        var compressionMethodId = readInt8(buffer);
+        var compressionMethodId = readLittleEndianInt8(buffer);
         var compressionMethod = TlsCompression.of(compressionMethodId)
                 .orElseThrow(() -> new IllegalArgumentException("Cannot decode TLS message, unknown compression method id: " + compressionMethodId));
 
         var extensions = new ArrayList<TlsExtension>();
         if(buffer.remaining() >= INT16_LENGTH) {
-            var extensionsLength = readInt16(buffer);
+            var extensionsLength = readLittleEndianInt16(buffer);
             try (var _ = scopedRead(buffer, extensionsLength)) {
                 while (buffer.hasRemaining()) {
-                    var extensionType = readInt16(buffer);
-                    var extensionLength = readInt16(buffer);
+                    var extensionType = readLittleEndianInt16(buffer);
+                    var extensionLength = readLittleEndianInt16(buffer);
                     if (extensionLength == 0) {
                         continue;
                     }

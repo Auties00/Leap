@@ -20,7 +20,7 @@ import it.auties.leap.tls.message.client.ClientHelloMessage;
 import java.net.InetSocketAddress;
 import java.util.*;
 
-import static it.auties.leap.tls.TlsRecord.INT16_LENGTH;
+import static it.auties.leap.tls.TlsBuffer.INT16_LENGTH;
 
 public class TlsExtensionsProcessor {
     private final TlsEngine tlsEngine;

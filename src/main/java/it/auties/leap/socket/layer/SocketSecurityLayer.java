@@ -2,9 +2,9 @@ package it.auties.leap.socket.layer;
 
 import it.auties.leap.http.decoder.HttpDecodable;
 import it.auties.leap.tls.TlsConfig;
-import it.auties.leap.tls.TlsRecord;
+import it.auties.leap.tls.TlsBuffer;
 import it.auties.leap.tls.TlsSpecificationException;
-import it.auties.leap.tls.key.TlsPreMasterSecretKey;
+import it.auties.leap.tls.crypto.key.TlsPreMasterSecretKey;
 import it.auties.leap.tls.engine.TlsEngine;
 import it.auties.leap.tls.engine.TlsExtensionsProcessor;
 import it.auties.leap.tls.message.TlsMessage;
@@ -16,7 +16,7 @@ import java.util.HexFormat;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 
-import static it.auties.leap.tls.TlsRecord.*;
+import static it.auties.leap.tls.TlsBuffer.*;
 
 public sealed abstract class SocketSecurityLayer implements HttpDecodable {
     final SocketTransmissionLayer<?> transmissionLayer;
@@ -147,7 +147,7 @@ public sealed abstract class SocketSecurityLayer implements HttpDecodable {
                     }
 
                     this.tlsEngine = new TlsEngine(transmissionLayer.address, tlsConfig);
-                    this.tlsBuffer = ByteBuffer.allocate(TlsRecord.FRAGMENT_LENGTH);
+                    this.tlsBuffer = ByteBuffer.allocate(TlsBuffer.FRAGMENT_LENGTH);
                     return this.sslHandshake = sendClientHello()
                             .thenCompose(_ -> continueHandshake());
                 }
@@ -337,10 +337,10 @@ public sealed abstract class SocketSecurityLayer implements HttpDecodable {
             var encryptedMessagePosition = encryptedMessagePayloadBuffer.position() - TlsMessage.messageRecordHeaderLength();
             var encryptedMessageLength = encryptedMessagePayloadBuffer.remaining();
             encryptedMessagePayloadBuffer.position(encryptedMessagePosition);
-            writeInt8(encryptedMessagePayloadBuffer, finishedMessage.contentType().id());
-            writeInt8(encryptedMessagePayloadBuffer, finishedMessage.version().id().major());
-            writeInt8(encryptedMessagePayloadBuffer, finishedMessage.version().id().minor());
-            writeInt16(encryptedMessagePayloadBuffer, encryptedMessageLength);
+            writeLittleEndianInt8(encryptedMessagePayloadBuffer, finishedMessage.contentType().id());
+            writeLittleEndianInt8(encryptedMessagePayloadBuffer, finishedMessage.version().id().major());
+            writeLittleEndianInt8(encryptedMessagePayloadBuffer, finishedMessage.version().id().minor());
+            writeLittleEndianInt16(encryptedMessagePayloadBuffer, encryptedMessageLength);
             encryptedMessagePayloadBuffer.position(encryptedMessagePosition);
 
             return write(encryptedMessagePayloadBuffer)

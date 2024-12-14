@@ -10,7 +10,7 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.function.Predicate;
 
-import static it.auties.leap.tls.TlsRecord.*;
+import static it.auties.leap.tls.TlsBuffer.*;
 
 public final class SNIExtension extends TlsConcreteExtension {
     public static final int EXTENSION_TYPE = 0x0000;
@@ -23,16 +23,16 @@ public final class SNIExtension extends TlsConcreteExtension {
     }
 
     public static Optional<SNIExtension> of(TlsVersion version, ByteBuffer buffer, int extensionLength) {
-        var listLength = readInt16(buffer);
+        var listLength = readLittleEndianInt16(buffer);
         if(listLength == 0) {
             return Optional.empty();
         }
 
         try(var _ = scopedRead(buffer, listLength)) {
-            var nameTypeId = readInt8(buffer);
+            var nameTypeId = readLittleEndianInt8(buffer);
             var nameType = NameType.of(nameTypeId)
                     .orElseThrow(() -> new IllegalArgumentException("Unknown name type: " + nameTypeId));
-            var nameBytes = readBytes16(buffer);
+            var nameBytes = readBytesLittleEndian16(buffer);
             var extension = new SNIExtension(nameBytes, nameType);
             return Optional.of(extension);
         }
@@ -41,11 +41,11 @@ public final class SNIExtension extends TlsConcreteExtension {
     @Override
     protected void serializeExtensionPayload(ByteBuffer buffer) {
         var listLength = INT8_LENGTH + INT16_LENGTH + name.length;
-        writeInt16(buffer, listLength);
+        writeLittleEndianInt16(buffer, listLength);
 
-        writeInt8(buffer, nameType.id());
+        writeLittleEndianInt8(buffer, nameType.id());
 
-        writeBytes16(buffer, name);
+        writeBytesLittleEndian16(buffer, name);
     }
 
     @Override

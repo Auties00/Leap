@@ -13,7 +13,7 @@ import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
-import static it.auties.leap.tls.TlsRecord.*;
+import static it.auties.leap.tls.TlsBuffer.*;
 
 public sealed abstract class TlsMessage
         permits AlertMessage, ApplicationDataMessage, TlsHandshakeMessage {
@@ -68,10 +68,10 @@ public sealed abstract class TlsMessage
         var messagePayloadLength = messagePayloadLength();
         var recordLength = messageRecordHeaderLength() + messagePayloadLength;
         try(var _ = scopedWrite(payload, recordLength, true)) {
-            writeInt8(payload, contentType().id());
-            writeInt8(payload, version().id().major());
-            writeInt8(payload, version().id().minor());
-            writeInt16(payload, messagePayloadLength);
+            writeLittleEndianInt8(payload, contentType().id());
+            writeLittleEndianInt8(payload, version().id().major());
+            writeLittleEndianInt8(payload, version().id().minor());
+            writeLittleEndianInt16(payload, messagePayloadLength);
             serializeMessagePayload(payload);
         }
     }
@@ -155,14 +155,14 @@ public sealed abstract class TlsMessage
         }
 
         public static Metadata of(ByteBuffer buffer) {
-            var contentTypeId = readInt8(buffer);
+            var contentTypeId = readLittleEndianInt8(buffer);
             var contentType = ContentType.of(contentTypeId)
                     .orElseThrow(() -> new IllegalArgumentException("Cannot decode TLS message, unknown content type: " + contentTypeId));
-            var protocolVersionMajor = readInt8(buffer);
-            var protocolVersionMinor = readInt8(buffer);
+            var protocolVersionMajor = readLittleEndianInt8(buffer);
+            var protocolVersionMinor = readLittleEndianInt8(buffer);
             var protocolVersion = TlsVersion.of(protocolVersionMajor, protocolVersionMinor)
                     .orElseThrow(() -> new IllegalArgumentException("Cannot decode TLS message, unknown protocol version: major %s, minor %s".formatted(protocolVersionMajor, protocolVersionMinor)));
-            var messageLength = readInt16(buffer);
+            var messageLength = readLittleEndianInt16(buffer);
             return new Metadata(contentType, protocolVersion, messageLength);
         }
 

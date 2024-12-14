@@ -8,7 +8,7 @@ import java.nio.ByteBuffer;
 import java.util.List;
 import java.util.Optional;
 
-import static it.auties.leap.tls.TlsRecord.*;
+import static it.auties.leap.tls.TlsBuffer.*;
 
 public final class ServerSupportedVersionsExtension extends TlsConcreteExtension {
     public static final int EXTENSION_TYPE = 0x002B;
@@ -20,8 +20,8 @@ public final class ServerSupportedVersionsExtension extends TlsConcreteExtension
 
 
     public static Optional<ServerSupportedVersionsExtension> of(TlsVersion version, ByteBuffer buffer, int extensionLength) {
-        var major = readInt8(buffer);
-        var minor = readInt8(buffer);
+        var major = readLittleEndianInt8(buffer);
+        var minor = readLittleEndianInt8(buffer);
         var versionId = new TlsVersionId(major, minor);
         var extension = new ServerSupportedVersionsExtension(versionId);
         return Optional.of(extension);
@@ -29,8 +29,8 @@ public final class ServerSupportedVersionsExtension extends TlsConcreteExtension
 
     @Override
     protected void serializeExtensionPayload(ByteBuffer buffer) {
-        writeInt8(buffer, tlsVersion.major());
-        writeInt8(buffer, tlsVersion.minor());
+        writeLittleEndianInt8(buffer, tlsVersion.major());
+        writeLittleEndianInt8(buffer, tlsVersion.minor());
     }
 
     @Override

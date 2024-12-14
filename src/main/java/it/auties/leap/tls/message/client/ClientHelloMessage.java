@@ -6,9 +6,9 @@ import it.auties.leap.tls.TlsVersion;
 import it.auties.leap.tls.TlsVersionId;
 import it.auties.leap.tls.engine.TlsEngineMode;
 import it.auties.leap.tls.extension.TlsConcreteExtension;
-import it.auties.leap.tls.key.TlsCookie;
-import it.auties.leap.tls.key.TlsRandomData;
-import it.auties.leap.tls.key.TlsSharedSecret;
+import it.auties.leap.tls.crypto.key.TlsCookie;
+import it.auties.leap.tls.crypto.key.TlsRandomData;
+import it.auties.leap.tls.crypto.key.TlsSharedSecret;
 import it.auties.leap.tls.message.TlsMessage;
 import it.auties.leap.tls.message.TlsHandshakeMessage;
 
@@ -16,7 +16,7 @@ import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.List;
 
-import static it.auties.leap.tls.TlsRecord.*;
+import static it.auties.leap.tls.TlsBuffer.*;
 
 public final class ClientHelloMessage extends TlsHandshakeMessage {
     public static final int ID = 0x01;
@@ -46,18 +46,18 @@ public final class ClientHelloMessage extends TlsHandshakeMessage {
     }
 
     public static TlsMessage of(TlsVersion version, Source source, ByteBuffer buffer) {
-        var versionId = new TlsVersionId(readInt16(buffer));
+        var versionId = new TlsVersionId(readLittleEndianInt16(buffer));
         var tlsVersion = TlsVersion.of(versionId)
                 .orElseThrow(() -> new IllegalArgumentException("Unknown version: " + versionId));
         var clientRandom = TlsRandomData.of(buffer);
         var sessionId = TlsSharedSecret.of(buffer);
         var cookie = TlsCookie.of(version, buffer)
                 .orElse(null);
-        var ciphersLength = readInt16(buffer);
+        var ciphersLength = readLittleEndianInt16(buffer);
         var ciphers = new ArrayList<TlsCipher>();
         try(var _ = scopedRead(buffer, ciphersLength)) {
             while (buffer.hasRemaining()) {
-                var cipherId = readInt16(buffer);
+                var cipherId = readLittleEndianInt16(buffer);
                 var cipher = TlsCipher.of(cipherId);
                 if(cipher.isEmpty()) {
                     continue;
@@ -67,10 +67,10 @@ public final class ClientHelloMessage extends TlsHandshakeMessage {
             }
         }
         var compressions = new ArrayList<TlsCompression>();
-        var compressionsLength = readInt16(buffer);
+        var compressionsLength = readLittleEndianInt16(buffer);
         try(var _ = scopedRead(buffer, compressionsLength)) {
             while (buffer.hasRemaining()) {
-                var compressionId = readInt8(buffer);
+                var compressionId = readLittleEndianInt8(buffer);
                 var compression = TlsCompression.of(compressionId);
                 if(compression.isEmpty()) {
                     continue;
@@ -80,11 +80,11 @@ public final class ClientHelloMessage extends TlsHandshakeMessage {
             }
         }
         var extensions = new ArrayList<TlsConcreteExtension>();
-        var extensionsLength = readInt16(buffer);
+        var extensionsLength = readLittleEndianInt16(buffer);
         try(var _ = scopedRead(buffer, extensionsLength)) {
             while (buffer.hasRemaining()) {
-                var extensionType = readInt16(buffer);
-                var extensionLength = readInt16(buffer);
+                var extensionType = readLittleEndianInt16(buffer);
+                var extensionLength = readLittleEndianInt16(buffer);
                 if(extensionLength == 0) {
                     continue;
                 }
@@ -133,7 +133,7 @@ public final class ClientHelloMessage extends TlsHandshakeMessage {
             case DTLS13 -> TlsVersion.DTLS12;
             default -> version;
         };
-        writeInt16(payload, encodedVersion.id().value());
+        writeLittleEndianInt16(payload, encodedVersion.id().value());
 
         randomData.serialize(payload);
 
@@ -144,18 +144,18 @@ public final class ClientHelloMessage extends TlsHandshakeMessage {
         }
 
         var ciphersLength = ciphers.size() * INT16_LENGTH;
-        writeInt16(payload, ciphersLength);
+        writeLittleEndianInt16(payload, ciphersLength);
         for (var cipher : ciphers) {
-            writeInt16(payload, cipher.id());
+            writeLittleEndianInt16(payload, cipher.id());
         }
 
-        writeInt8(payload, compressions.size());
+        writeLittleEndianInt8(payload, compressions.size());
         for(var compression : compressions) {
-            writeInt8(payload, compression.id());
+            writeLittleEndianInt8(payload, compression.id());
         }
 
         if(!extensions.isEmpty()) {
-            writeInt16(payload, extensionsLength);
+            writeLittleEndianInt16(payload, extensionsLength);
             for (var extension : extensions) {
                 extension.serializeExtension(payload);
             }

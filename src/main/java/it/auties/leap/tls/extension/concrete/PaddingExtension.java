@@ -7,7 +7,7 @@ import java.nio.ByteBuffer;
 import java.util.List;
 import java.util.Optional;
 
-import static it.auties.leap.tls.TlsRecord.*;
+import static it.auties.leap.tls.TlsBuffer.*;
 
 public final class PaddingExtension extends TlsConcreteExtension {
     public static final int EXTENSION_TYPE = 0x0015;
@@ -18,14 +18,16 @@ public final class PaddingExtension extends TlsConcreteExtension {
     }
 
     public static Optional<PaddingExtension> of(TlsVersion version, ByteBuffer buffer, int extensionLength) {
-        var padding = readInt8(buffer);
+        var padding = readLittleEndianInt8(buffer);
         var extension = new PaddingExtension(padding);
         return Optional.of(extension);
     }
 
     @Override
     protected void serializeExtensionPayload(ByteBuffer buffer) {
-        writeInt8(buffer, 0, length);
+        for(var j = 0; j < length; j++) {
+            buffer.put((byte) 0);
+        }
     }
 
     @Override

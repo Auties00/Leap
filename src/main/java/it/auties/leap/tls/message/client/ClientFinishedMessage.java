@@ -2,15 +2,15 @@ package it.auties.leap.tls.message.client;
 
 import it.auties.leap.tls.TlsSpecificationException;
 import it.auties.leap.tls.TlsVersion;
-import it.auties.leap.tls.TlsRecord;
+import it.auties.leap.tls.TlsBuffer;
 import it.auties.leap.tls.engine.TlsEngineMode;
 import it.auties.leap.tls.message.TlsHandshakeMessage;
 
 import java.nio.ByteBuffer;
 import java.util.List;
 
-import static it.auties.leap.tls.TlsRecord.MIN_HASH_LENGTH;
-import static it.auties.leap.tls.TlsRecord.writeBytes;
+import static it.auties.leap.tls.TlsBuffer.MIN_HASH_LENGTH;
+import static it.auties.leap.tls.TlsBuffer.writeBytes;
 
 public final class ClientFinishedMessage extends TlsHandshakeMessage {
     public static final int ID = 0x14;
@@ -26,7 +26,7 @@ public final class ClientFinishedMessage extends TlsHandshakeMessage {
     }
 
     public static ClientFinishedMessage of(TlsVersion tlsVersion, Source source, ByteBuffer buffer) {
-        var hash = TlsRecord.readBytes(buffer, buffer.remaining());
+        var hash = TlsBuffer.readBytes(buffer, buffer.remaining());
         return new ClientFinishedMessage(tlsVersion, source, hash);
     }
 

@@ -7,7 +7,7 @@ import it.auties.leap.tls.message.TlsHandshakeMessage;
 import java.nio.ByteBuffer;
 import java.util.List;
 
-import static it.auties.leap.tls.TlsRecord.*;
+import static it.auties.leap.tls.TlsBuffer.*;
 
 public final class ServerChangeCipherSpecMessage extends TlsHandshakeMessage {
     private static final int ID = 0x01;
@@ -18,7 +18,7 @@ public final class ServerChangeCipherSpecMessage extends TlsHandshakeMessage {
     }
 
     public static ServerChangeCipherSpecMessage of(TlsVersion tlsVersion, Source source, ByteBuffer buffer) {
-        var messageId = readInt8(buffer);
+        var messageId = readLittleEndianInt8(buffer);
         if(messageId != ID) {
             throw new IllegalArgumentException("Cannot decode TLS message, invalid change cipher spec message id: " + messageId);
         }
@@ -64,7 +64,7 @@ public final class ServerChangeCipherSpecMessage extends TlsHandshakeMessage {
 
     @Override
     public void serializeHandshakePayload(ByteBuffer buffer) {
-        writeInt8(buffer, id());
+        writeLittleEndianInt8(buffer, id());
     }
 
     @Override

@@ -7,7 +7,7 @@ import it.auties.leap.tls.extension.TlsConcreteExtension;
 import java.nio.ByteBuffer;
 import java.util.*;
 
-import static it.auties.leap.tls.TlsRecord.*;
+import static it.auties.leap.tls.TlsBuffer.*;
 
 public final class SupportedGroupsExtension extends TlsConcreteExtension {
     public static final SupportedGroupsExtension RECOMMENDED = new SupportedGroupsExtension(TlsSupportedGroup.recommendedGroups());
@@ -24,10 +24,10 @@ public final class SupportedGroupsExtension extends TlsConcreteExtension {
     }
 
     public static Optional<SupportedGroupsExtension> of(TlsVersion version, ByteBuffer buffer, int extensionLength) {
-        var groupsSize = readInt16(buffer);
+        var groupsSize = readLittleEndianInt16(buffer);
         var groups = new ArrayList<TlsSupportedGroup>(groupsSize);
         for(var i = 0; i < groupsSize; i++) {
-            var groupId = readInt16(buffer);
+            var groupId = readLittleEndianInt16(buffer);
             var group = TlsSupportedGroup.of(groupId)
                     .orElseThrow(() -> new IllegalArgumentException("Unknown tls named group: " + groupId));
             groups.add(group);
@@ -47,9 +47,9 @@ public final class SupportedGroupsExtension extends TlsConcreteExtension {
     @Override
     protected void serializeExtensionPayload(ByteBuffer buffer) {
         var size = groups.size() * INT16_LENGTH;
-        writeInt16(buffer, size);
+        writeLittleEndianInt16(buffer, size);
         for(var ecPointFormat : groups) {
-            writeInt16(buffer, ecPointFormat.id());
+            writeLittleEndianInt16(buffer, ecPointFormat.id());
         }
     }
 

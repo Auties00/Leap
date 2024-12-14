@@ -1,7 +1,7 @@
 package it.auties.leap.tls.message.shared;
 
 import it.auties.leap.tls.TlsVersion;
-import it.auties.leap.tls.TlsRecord;
+import it.auties.leap.tls.TlsBuffer;
 import it.auties.leap.tls.engine.TlsEngineMode;
 import it.auties.leap.tls.message.TlsMessage;
 
@@ -9,7 +9,7 @@ import java.nio.BufferUnderflowException;
 import java.nio.ByteBuffer;
 import java.util.List;
 
-import static it.auties.leap.tls.TlsRecord.*;
+import static it.auties.leap.tls.TlsBuffer.*;
 
 public final class ApplicationDataMessage extends TlsMessage {
     private static final int ID = 0x17;
@@ -33,10 +33,10 @@ public final class ApplicationDataMessage extends TlsMessage {
 
         var newReadPosition = message.position() - messageRecordHeaderLength();
         message.position(newReadPosition);
-        writeInt8(message, ContentType.APPLICATION_DATA.id());
-        writeInt8(message, version.id().major());
-        writeInt8(message, version.id().minor());
-        writeInt16(message, messageLength);
+        writeLittleEndianInt8(message, ContentType.APPLICATION_DATA.id());
+        writeLittleEndianInt8(message, version.id().major());
+        writeLittleEndianInt8(message, version.id().minor());
+        writeLittleEndianInt16(message, messageLength);
         message.position(newReadPosition);
     }
 
@@ -80,7 +80,7 @@ public final class ApplicationDataMessage extends TlsMessage {
 
     @Override
     public void serializeMessagePayload(ByteBuffer buffer) {
-        TlsRecord.assertNotEquals(buffer, message);
+        TlsBuffer.assertNotEquals(buffer, message);
         writeBuffer(buffer, message);
     }
 

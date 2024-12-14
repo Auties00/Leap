@@ -9,10 +9,7 @@ import it.auties.leap.tls.TlsVersion;
 
 import java.io.IOException;
 import java.net.URI;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Locale;
-import java.util.Optional;
+import java.util.*;
 import java.util.stream.Collectors;
 
 public class GenerateCiphers {
@@ -31,7 +28,7 @@ public class GenerateCiphers {
             var cipherName = cipherEntry.getKey();
             var cipherValue = cipherEntry.getValue();
             System.out.printf(
-                    "private static final TlsCipher %s = newTlsCipher(%s, KeyExchange.%s(), Auth.%s(), Encryption.%s(), Hash.%s(), List.of(%s), %s);%n",
+                    "private static final TlsCipher %s = new TlsCipher(%s, TlsKeyExchangeType.%s(), TlsAuthType.%s(), Type.%s(), TlsHashType.%s(), List.of(%s), %s);%n",
                     cipherName.toUpperCase(),
                     cipherValue.id(),
                     snakeToCamel(cipherValue.keyExchange()),
@@ -46,20 +43,61 @@ public class GenerateCiphers {
             );
         }
         System.out.println();
+        var values = new ArrayList<String>();
+        var secure = new ArrayList<String>();
+        var cases = new ArrayList<String>();
         for(var cipherMap : parsedResponse.ciphers()) {
-            var cipherEntry = cipherMap.firstEntry();
-            var cipherName = cipherEntry.getKey();
-            System.out.printf(
-                    """
-                    public static TlsCipher %s() {
-                        return %s;
-                    }
-                    """,
-                    snakeToCamel(cipherName.toLowerCase().replaceFirst("tls_", "")),
-                    cipherName.toUpperCase()
-            );
-            System.out.println();
+            for(var cipherEntry : cipherMap.entrySet()) {
+                var cipherName = cipherEntry.getKey();
+                System.out.printf(
+                        """
+                        public static TlsCipher %s() {
+                            return %s;
+                        }
+                        """,
+                        snakeToCamel(cipherName.toLowerCase().replaceFirst("tls_", "")),
+                        cipherName.toUpperCase()
+                );
+                cases.add("         case %s -> Optional.of(%s);".formatted(
+                        cipherEntry.getValue().id(),
+                        cipherName.toUpperCase()
+                ));
+                values.add("    " + cipherName.toUpperCase());
+                if(cipherEntry.getValue().recommended()) {
+                    secure.add("    " + cipherName.toUpperCase());
+                }
+                System.out.println();
+            }
         }
+        System.out.printf(
+                """
+                public static Optional<TlsCipher> of(int id) {
+                    return switch(id) {
+                %s
+                        default -> Optional.empty();
+                    };
+                }
+                """,
+                String.join("\n", cases)
+        );
+        System.out.println();
+        System.out.printf(
+                """
+                private static final List<TlsCipher> ALL = List.of(
+                %s
+                );
+                """,
+                String.join(",\n", values)
+        );
+        System.out.println();
+        System.out.printf(
+                """
+                private static final List<TlsCipher> SECURE = List.of(
+                %s
+                );
+                """,
+                String.join(",\n", secure)
+        );
     }
 
     // https://stackoverflow.com/a/77849581/10180192

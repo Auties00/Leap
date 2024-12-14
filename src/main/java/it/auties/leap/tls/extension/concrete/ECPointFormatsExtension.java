@@ -10,7 +10,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 
-import static it.auties.leap.tls.TlsRecord.*;
+import static it.auties.leap.tls.TlsBuffer.*;
 
 public final class ECPointFormatsExtension extends TlsConcreteExtension {
     public static final ECPointFormatsExtension ALL = new ECPointFormatsExtension(Arrays.asList(TlsEcPointFormat.values()));
@@ -22,10 +22,10 @@ public final class ECPointFormatsExtension extends TlsConcreteExtension {
     }
 
     public static Optional<ECPointFormatsExtension> of(TlsVersion version, ByteBuffer buffer, int extensionLength) {
-        var ecPointFormatsSize = readInt8(buffer);
+        var ecPointFormatsSize = readLittleEndianInt8(buffer);
         var ecPointFormats = new ArrayList<TlsEcPointFormat>();
         for(var i = 0; i < ecPointFormatsSize; i++) {
-            var ecPointFormatId = readInt8(buffer);
+            var ecPointFormatId = readLittleEndianInt8(buffer);
             var ecPointFormat = TlsEcPointFormat.of(ecPointFormatId)
                     .orElseThrow(() -> new IllegalArgumentException("Unknown ec point format: " + ecPointFormatId));
             ecPointFormats.add(ecPointFormat);
@@ -36,9 +36,9 @@ public final class ECPointFormatsExtension extends TlsConcreteExtension {
 
     @Override
     protected void serializeExtensionPayload(ByteBuffer buffer) {
-        writeInt8(buffer, ecPointFormats.size());
+        writeLittleEndianInt8(buffer, ecPointFormats.size());
         for(var ecPointFormat : ecPointFormats) {
-            writeInt8(buffer, ecPointFormat.id());
+            writeLittleEndianInt8(buffer, ecPointFormat.id());
         }
     }
 

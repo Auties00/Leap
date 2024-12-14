@@ -9,7 +9,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
-import static it.auties.leap.tls.TlsRecord.*;
+import static it.auties.leap.tls.TlsBuffer.*;
 
 public final class SignatureAlgorithmsExtension extends TlsConcreteExtension {
     public static final SignatureAlgorithmsExtension RECOMMENDED = new SignatureAlgorithmsExtension(List.of(
@@ -27,12 +27,12 @@ public final class SignatureAlgorithmsExtension extends TlsConcreteExtension {
             TlsSignatureAlgorithm.rsaPkcs1Sha256(),
             TlsSignatureAlgorithm.rsaPkcs1Sha384(),
             TlsSignatureAlgorithm.rsaPkcs1Sha512(),
-            TlsSignatureAlgorithm.newTlsV12Signature(TlsSignatureAlgorithm.Signature.ECDSA, TlsSignatureAlgorithm.Hash.SHA224),
-            TlsSignatureAlgorithm.newTlsV12Signature(TlsSignatureAlgorithm.Signature.RSA, TlsSignatureAlgorithm.Hash.SHA224),
-            TlsSignatureAlgorithm.newTlsV12Signature(TlsSignatureAlgorithm.Signature.DSA, TlsSignatureAlgorithm.Hash.SHA224),
-            TlsSignatureAlgorithm.newTlsV12Signature(TlsSignatureAlgorithm.Signature.DSA, TlsSignatureAlgorithm.Hash.SHA256),
-            TlsSignatureAlgorithm.newTlsV12Signature(TlsSignatureAlgorithm.Signature.DSA, TlsSignatureAlgorithm.Hash.SHA384),
-            TlsSignatureAlgorithm.newTlsV12Signature(TlsSignatureAlgorithm.Signature.DSA, TlsSignatureAlgorithm.Hash.SHA512)
+            TlsSignatureAlgorithm.ofTlsV12(TlsSignatureAlgorithm.Signature.ECDSA, TlsSignatureAlgorithm.Hash.SHA224),
+            TlsSignatureAlgorithm.ofTlsV12(TlsSignatureAlgorithm.Signature.RSA, TlsSignatureAlgorithm.Hash.SHA224),
+            TlsSignatureAlgorithm.ofTlsV12(TlsSignatureAlgorithm.Signature.DSA, TlsSignatureAlgorithm.Hash.SHA224),
+            TlsSignatureAlgorithm.ofTlsV12(TlsSignatureAlgorithm.Signature.DSA, TlsSignatureAlgorithm.Hash.SHA256),
+            TlsSignatureAlgorithm.ofTlsV12(TlsSignatureAlgorithm.Signature.DSA, TlsSignatureAlgorithm.Hash.SHA384),
+            TlsSignatureAlgorithm.ofTlsV12(TlsSignatureAlgorithm.Signature.DSA, TlsSignatureAlgorithm.Hash.SHA512)
     ));
     public static final int EXTENSION_TYPE = 0x000D;
 
@@ -43,12 +43,12 @@ public final class SignatureAlgorithmsExtension extends TlsConcreteExtension {
     }
 
     public static Optional<SignatureAlgorithmsExtension> of(TlsVersion version, ByteBuffer buffer, int extensionLength) {
-        var algorithmsSize = readInt16(buffer);
+        var algorithmsSize = readLittleEndianInt16(buffer);
         var algorithms = new ArrayList<TlsSignatureAlgorithm>(algorithmsSize);
         for(var i = 0; i < algorithmsSize; i++) {
-            var algorithmId = readInt16(buffer);
+            var algorithmId = readLittleEndianInt16(buffer);
             var algorithm = switch (version) {
-                case TLS13, DTLS13 -> TlsSignatureAlgorithm.newTlsV13Signature(algorithmId);
+                case TLS13, DTLS13 -> TlsSignatureAlgorithm.ofTlsV13(algorithmId);
                 case TLS12, DTLS12 -> TlsSignatureAlgorithm.ofTlsV12(algorithmId)
                         .orElseThrow(() -> new IllegalArgumentException("Unknown tls algorithm: " + algorithmId));
                 default -> throw new IllegalArgumentException("Unsupported TLS version: " + version);
@@ -62,9 +62,9 @@ public final class SignatureAlgorithmsExtension extends TlsConcreteExtension {
     @Override
     protected void serializeExtensionPayload(ByteBuffer buffer) {
         var size = algorithms.size() * INT16_LENGTH;
-        writeInt16(buffer, size);
+        writeLittleEndianInt16(buffer, size);
         for (var ecPointFormat : algorithms) {
-            writeInt16(buffer, ecPointFormat.id());
+            writeLittleEndianInt16(buffer, ecPointFormat.id());
         }
     }
 

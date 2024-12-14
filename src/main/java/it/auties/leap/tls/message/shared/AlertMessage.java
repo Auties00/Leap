@@ -12,7 +12,7 @@ import java.util.Optional;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
-import static it.auties.leap.tls.TlsRecord.*;
+import static it.auties.leap.tls.TlsBuffer.*;
 
 public final class AlertMessage extends TlsMessage {
     private static final int LENGTH = INT8_LENGTH + INT8_LENGTH;
@@ -27,10 +27,10 @@ public final class AlertMessage extends TlsMessage {
     }
 
     public static AlertMessage of(TlsVersion version, Source source, ByteBuffer buffer) {
-        var levelId = readInt8(buffer);
+        var levelId = readLittleEndianInt8(buffer);
         var level = AlertMessage.Level.of(levelId)
                 .orElseThrow(() -> new IllegalArgumentException("Cannot decode TLS message, unknown alert level: " + levelId));
-        var typeId = readInt8(buffer);
+        var typeId = readLittleEndianInt8(buffer);
         var type = AlertMessage.Type.of(typeId)
                 .orElseThrow(() -> new IllegalArgumentException("Cannot decode TLS message, unknown alert type: " + typeId));
         return new AlertMessage(version, source, level, type);
@@ -64,8 +64,8 @@ public final class AlertMessage extends TlsMessage {
 
     @Override
     public void serializeMessagePayload(ByteBuffer buffer) {
-        writeInt8(buffer, level.id());
-        writeInt8(buffer, type.id());
+        writeLittleEndianInt8(buffer, level.id());
+        writeLittleEndianInt8(buffer, type.id());
     }
 
     @Override

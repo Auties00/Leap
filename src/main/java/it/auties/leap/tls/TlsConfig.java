@@ -12,7 +12,6 @@ public final class TlsConfig {
     private final List<TlsCompression> compressions;
     private final TlsCertificatesProvider certificatesProvider;
     private final TlsCertificatesHandler certificatesHandler;
-    private final TlsRenegotiateConnectionHandler renegotiateConnectionHandler;
 
     public TlsConfig(
             TlsVersion version,
@@ -20,8 +19,7 @@ public final class TlsConfig {
             List<TlsExtension> extensions,
             List<TlsCompression> compressions,
             TlsCertificatesProvider certificatesProvider,
-            TlsCertificatesHandler certificatesHandler,
-            TlsRenegotiateConnectionHandler renegotiateConnectionHandler
+            TlsCertificatesHandler certificatesHandler
     ) {
         this.version = version;
         this.ciphers = ciphers;
@@ -29,7 +27,6 @@ public final class TlsConfig {
         this.compressions = compressions;
         this.certificatesProvider = certificatesProvider;
         this.certificatesHandler = certificatesHandler;
-        this.renegotiateConnectionHandler = renegotiateConnectionHandler;
     }
 
     public TlsVersion version() {
@@ -56,10 +53,6 @@ public final class TlsConfig {
         return certificatesHandler;
     }
 
-    public Optional<TlsRenegotiateConnectionHandler> renegotiateConnectionHandler() {
-        return Optional.ofNullable(renegotiateConnectionHandler);
-    }
-
     public static Builder builder() {
         return new Builder();
     }
@@ -71,7 +64,6 @@ public final class TlsConfig {
         private List<TlsCompression> compressions;
         private TlsCertificatesProvider certificatesProvider;
         private TlsCertificatesHandler certificatesHandler;
-        private TlsRenegotiateConnectionHandler renegotiateConnectionHandler;
         private Builder() {
 
         }
@@ -106,20 +98,14 @@ public final class TlsConfig {
             return this;
         }
 
-        public Builder renegotiateConnectionHandler(TlsRenegotiateConnectionHandler renegotiateConnectionHandler) {
-            this.renegotiateConnectionHandler = renegotiateConnectionHandler;
-            return this;
-        }
-
         public TlsConfig build() {
             return new TlsConfig(
                     Objects.requireNonNull(this.version, "Missing tls version"),
-                    Objects.requireNonNullElseGet(ciphers, TlsCipher::recommendedCiphers),
+                    Objects.requireNonNullElseGet(ciphers, TlsCipher::secureCiphers),
                     Objects.requireNonNull(extensions, "Missing tls extensions"),
                     Objects.requireNonNullElseGet(compressions, () -> List.of(TlsCompression.none())),
                     certificatesProvider,
-                    Objects.requireNonNullElseGet(certificatesHandler, TlsCertificatesHandler::validate),
-                    renegotiateConnectionHandler
+                    Objects.requireNonNullElseGet(certificatesHandler, TlsCertificatesHandler::validate)
             );
         }
     }

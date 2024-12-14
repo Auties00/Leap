@@ -79,7 +79,7 @@ public final class HttpConfig {
                 TlsExtension.ecPointFormats(),
                 TlsExtension.supportedGroups(),
                 TlsExtension.nextProtocolNegotiation(),
-                TlsExtension.applicationLayerProtocolNegotiation(List.of("http/1.1")),
+                TlsExtension.alpn(List.of("http/1.1")),
                 TlsExtension.encryptThenMac(),
                 TlsExtension.extendedMasterSecret(),
                 // TlsExtension.postHandshakeAuth(),

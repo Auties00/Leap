@@ -7,10 +7,6 @@ import java.util.Optional;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
-// https://timtaubert.de/blog/2016/07/the-evolution-of-signatures-in-tls/
-// https://github.com/quictls/openssl/blob/b2b058549fa166f691a67dac08f72f610245a7d3/ssl/ssl_local.h#L2205C1-L2230C71
-// https://datatracker.ietf.org/doc/html/rfc8446
-// https://www.iana.org/assignments/tls-parameters/tls-parameters.xhtml
 public sealed abstract class TlsSignatureAlgorithm {
     public abstract int id();
 
@@ -33,12 +29,12 @@ public sealed abstract class TlsSignatureAlgorithm {
         return Optional.of(algorithm);
     }
 
-    public static TlsSignatureAlgorithm newTlsV13Signature(int id) {
-        return new TlsV13Signature(id);
+    public static TlsSignatureAlgorithm ofTlsV12(Signature signature, Hash hash) {
+        return new TlsV12Signature(signature, hash);
     }
 
-    public static TlsSignatureAlgorithm newTlsV12Signature(Signature signature, Hash hash) {
-        return new TlsV12Signature(signature, hash);
+    public static TlsSignatureAlgorithm ofTlsV13(int id) {
+        return new TlsV13Signature(id);
     }
 
     public static TlsSignatureAlgorithm ecdsaSecp256r1Sha256() {

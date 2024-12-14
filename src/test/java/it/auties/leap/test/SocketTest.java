@@ -3,21 +3,19 @@ package it.auties.leap.test;
 import it.auties.leap.http.HttpConfig;
 import it.auties.leap.socket.SocketClient;
 import it.auties.leap.socket.SocketProtocol;
-import it.auties.leap.tls.TlsCipher;
 import it.auties.leap.tls.TlsVersion;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
-import java.util.List;
 
 public class SocketTest {
     public static void main(String[] args) throws IOException {
         // ECDHE-ECDSA-AES256-CCM
         var tlsConfig = HttpConfig.defaultTlsConfigBuilder()
                 .version(TlsVersion.TLS12)
-                .ciphers(List.of(TlsCipher.ecdheEcdsaWithAes256Ccm()))
+
                 .certificatesHandler((address, certificates, source) -> {
 
                 })

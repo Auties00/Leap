@@ -8,7 +8,7 @@ import java.nio.ByteBuffer;
 import java.util.List;
 import java.util.Optional;
 
-import static it.auties.leap.tls.TlsRecord.*;
+import static it.auties.leap.tls.TlsBuffer.*;
 
 public final class KeyShareExtension extends TlsConcreteExtension {
     public static final int EXTENSION_TYPE = 0x0033;
@@ -21,10 +21,10 @@ public final class KeyShareExtension extends TlsConcreteExtension {
     }
 
     public static Optional<KeyShareExtension> of(TlsVersion version, ByteBuffer buffer, int extensionSize) {
-        var namedGroupId = readInt16(buffer);
+        var namedGroupId = readLittleEndianInt16(buffer);
         var namedGroup = TlsSupportedGroup.of(namedGroupId)
                 .orElseThrow(() -> new IllegalArgumentException("Unknown tls named group: " + namedGroupId));
-        var publicKey = readBytes16(buffer);
+        var publicKey = readBytesLittleEndian16(buffer);
         var extension = new KeyShareExtension(publicKey, namedGroup);
         return Optional.of(extension);
     }
@@ -32,9 +32,9 @@ public final class KeyShareExtension extends TlsConcreteExtension {
     @Override
     protected void serializeExtensionPayload(ByteBuffer buffer) {
         var size = INT16_LENGTH + INT16_LENGTH + publicKey.length;
-        writeInt16(buffer, size);
-        writeInt16(buffer, namedGroup.id());
-        writeBytes16(buffer, publicKey);
+        writeLittleEndianInt16(buffer, size);
+        writeLittleEndianInt16(buffer, namedGroup.id());
+        writeBytesLittleEndian16(buffer, publicKey);
     }
 
     @Override

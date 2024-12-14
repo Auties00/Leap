@@ -9,7 +9,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
-import static it.auties.leap.tls.TlsRecord.*;
+import static it.auties.leap.tls.TlsBuffer.*;
 
 public final class PskExchangeModesExtension extends TlsConcreteExtension {
     public static final int EXTENSION_TYPE = 0x002D;
@@ -20,10 +20,10 @@ public final class PskExchangeModesExtension extends TlsConcreteExtension {
     }
 
     public static Optional<PskExchangeModesExtension> of(TlsVersion version, ByteBuffer buffer, int extensionLength) {
-        var modesSize = readInt16(buffer);
+        var modesSize = readLittleEndianInt16(buffer);
         var modes = new ArrayList<TlsPskKeyExchangeMode>(modesSize);
         for(var i = 0; i < modesSize; i++) {
-            var modeId = readInt8(buffer);
+            var modeId = readLittleEndianInt8(buffer);
             var mode = TlsPskKeyExchangeMode.of(modeId)
                     .orElseThrow(() -> new IllegalArgumentException("Unknown tls psk key exchange mode: " + modeId));
             modes.add(mode);
@@ -34,9 +34,9 @@ public final class PskExchangeModesExtension extends TlsConcreteExtension {
 
     @Override
     protected void serializeExtensionPayload(ByteBuffer buffer) {
-        writeInt8(buffer, modes.size());
+        writeLittleEndianInt8(buffer, modes.size());
         for(var mode : modes) {
-            writeInt8(buffer, mode.id());
+            writeLittleEndianInt8(buffer, mode.id());
         }
     }
 

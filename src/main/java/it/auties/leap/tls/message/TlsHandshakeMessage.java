@@ -7,11 +7,11 @@ import it.auties.leap.tls.message.server.*;
 
 import java.nio.ByteBuffer;
 
-import static it.auties.leap.tls.TlsRecord.*;
+import static it.auties.leap.tls.TlsBuffer.*;
 
 public abstract sealed class TlsHandshakeMessage extends TlsMessage
         permits ClientCertificateMessage, ClientCertificateVerifyMessage, ClientChangeCipherSpecMessage,
-                ClientFinishedMessage, ClientHelloMessage, ClientKeyExchangeMessage, ServerCertificateMessage,
+        ClientFinishedMessage, ClientHelloMessage, ClientKeyExchangeMessage, ServerCertificateMessage,
                 ServerCertificateRequestMessage, ServerChangeCipherSpecMessage, ServerFinishedMessage, ServerHelloDoneMessage,
                 ServerHelloMessage, ServerHelloRequestMessage, ServerKeyExchangeMessage {
     protected TlsHandshakeMessage(TlsVersion version, Source source) {
@@ -21,8 +21,8 @@ public abstract sealed class TlsHandshakeMessage extends TlsMessage
     public static TlsMessage ofServer(TlsCipher cipher, ByteBuffer buffer, Metadata metadata) {
         var version = metadata.version();
         var source = metadata.source();
-        var id = readInt8(buffer);
-        var messageLength = readInt24(buffer);
+        var id = readLittleEndianInt8(buffer);
+        var messageLength = readLittleEndianInt24(buffer);
         try(var _ = scopedRead(buffer, messageLength)) {
             return switch (id) {
                 case ServerHelloRequestMessage.ID -> ServerHelloRequestMessage.of(version, source, messageLength);
@@ -40,8 +40,8 @@ public abstract sealed class TlsHandshakeMessage extends TlsMessage
     public static TlsMessage ofClient(TlsCipher cipher, ByteBuffer buffer, Metadata metadata) {
         var version = metadata.version();
         var source = metadata.source();
-        var id = readInt8(buffer);
-        var messageLength = readInt24(buffer);
+        var id = readLittleEndianInt8(buffer);
+        var messageLength = readLittleEndianInt24(buffer);
         try(var _ = scopedRead(buffer, messageLength)) {
             return switch (id) {
                 case ClientHelloMessage.ID -> ClientHelloMessage.of(version, source, buffer);
@@ -68,10 +68,10 @@ public abstract sealed class TlsHandshakeMessage extends TlsMessage
 
     @Override
     public void serializeMessagePayload(ByteBuffer buffer) {
-        writeInt8(buffer, id());
+        writeLittleEndianInt8(buffer, id());
         var handshakePayloadLength = handshakePayloadLength();
         if(handshakePayloadLength > 0) {
-            writeInt24(buffer, handshakePayloadLength);
+            writeLittleEndianInt24(buffer, handshakePayloadLength);
             serializeHandshakePayload(buffer);
         }
     }

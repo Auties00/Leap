@@ -1,7 +1,7 @@
 package it.auties.leap;
 
 import it.auties.leap.tls.TlsHmacType;
-import it.auties.leap.tls.hash.TlsHmac;
+import it.auties.leap.tls.crypto.hash.TlsHMAC;
 
 import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
@@ -36,7 +36,7 @@ public class Ci {
         }catch (Throwable _) {
 
         }
-        var cmd = TlsHmac.of(tlsHmacType);
+        var cmd = TlsHMAC.of(tlsHmacType);
         cmd.init(key);
         cmd.update(message);
         cmd.update(message1);

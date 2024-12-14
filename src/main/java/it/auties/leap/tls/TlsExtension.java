@@ -40,8 +40,8 @@ public sealed interface TlsExtension permits TlsConcreteExtension, TlsModelExten
         return new ClientSupportedVersionsExtension(tlsVersions);
     }
 
-    static TlsExtension applicationLayerProtocolNegotiation(List<String> supportedProtocols) {
-        return new APLNExtension(supportedProtocols);
+    static TlsExtension alpn(List<String> supportedProtocols) {
+        return new ALPNExtension(supportedProtocols);
     }
 
     static TlsExtension padding(int targetLength) {

@@ -3,7 +3,7 @@ package it.auties.leap.tls.message.server;
 import it.auties.leap.tls.TlsClientCertificateType;
 import it.auties.leap.tls.TlsSignatureAlgorithm;
 import it.auties.leap.tls.TlsVersion;
-import it.auties.leap.tls.TlsRecord;
+import it.auties.leap.tls.TlsBuffer;
 import it.auties.leap.tls.engine.TlsEngineMode;
 import it.auties.leap.tls.message.TlsHandshakeMessage;
 
@@ -12,7 +12,7 @@ import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.List;
 
-import static it.auties.leap.tls.TlsRecord.*;
+import static it.auties.leap.tls.TlsBuffer.*;
 
 public final class ServerCertificateRequestMessage extends TlsHandshakeMessage {
     public static final byte ID = 0x0D;
@@ -28,24 +28,24 @@ public final class ServerCertificateRequestMessage extends TlsHandshakeMessage {
     }
 
     public static ServerCertificateRequestMessage of(TlsVersion version, Source source, ByteBuffer buffer) {
-        var certificatesLength = TlsRecord.readInt8(buffer);
+        var certificatesLength = TlsBuffer.readLittleEndianInt8(buffer);
         var certificateTypes = new ArrayList<TlsClientCertificateType>();
         try(var _ = scopedRead(buffer, certificatesLength)) {
             while (buffer.hasRemaining()) {
-                var certificateTypeId = readInt8(buffer);
+                var certificateTypeId = readLittleEndianInt8(buffer);
                 var certificateType = TlsClientCertificateType.of(certificateTypeId)
                         .orElseThrow(() -> new IllegalArgumentException("Unknown tls certificate type: " + certificateTypeId));
                 certificateTypes.add(certificateType);
             }
         }
 
-        var algorithmsLength = readInt16(buffer);
+        var algorithmsLength = readLittleEndianInt16(buffer);
         var algorithms = new ArrayList<TlsSignatureAlgorithm>();
         try(var _ = scopedRead(buffer, algorithmsLength)) {
             while (buffer.hasRemaining()) {
-                var algorithmId = readInt16(buffer);
+                var algorithmId = readLittleEndianInt16(buffer);
                 var algorithm = switch (version) {
-                    case TLS13, DTLS13 -> TlsSignatureAlgorithm.newTlsV13Signature(algorithmId);
+                    case TLS13, DTLS13 -> TlsSignatureAlgorithm.ofTlsV13(algorithmId);
                     case TLS12, DTLS12 -> TlsSignatureAlgorithm.ofTlsV12(algorithmId)
                             .orElseThrow(() -> new IllegalArgumentException("Unknown tls algorithm: " + algorithmId));
                     default -> throw new IllegalArgumentException("Unsupported TLS version: " + version);
@@ -54,11 +54,11 @@ public final class ServerCertificateRequestMessage extends TlsHandshakeMessage {
             }
         }
 
-        var authoritiesLength = readInt16(buffer);
+        var authoritiesLength = readLittleEndianInt16(buffer);
         var authorities = new ArrayList<String>();
         try(var _ = scopedRead(buffer, authoritiesLength)) {
             while (buffer.hasRemaining()) {
-                var authority = new X500Principal(readStream16(buffer));
+                var authority = new X500Principal(readStreamLittleEndian16(buffer));
                 authorities.add(authority.getName(X500Principal.CANONICAL));
             }
         }

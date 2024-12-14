@@ -3,14 +3,14 @@ package it.auties.leap.tls.message.client;
 import it.auties.leap.tls.TlsCipher;
 import it.auties.leap.tls.TlsVersion;
 import it.auties.leap.tls.engine.TlsEngineMode;
-import it.auties.leap.tls.key.TlsPreMasterSecretKey;
+import it.auties.leap.tls.crypto.key.TlsPreMasterSecretKey;
 import it.auties.leap.tls.message.TlsHandshakeMessage;
 
 import java.nio.ByteBuffer;
 import java.util.List;
 
-import static it.auties.leap.tls.TlsRecord.readInt24;
-import static it.auties.leap.tls.TlsRecord.scopedRead;
+import static it.auties.leap.tls.TlsBuffer.readLittleEndianInt24;
+import static it.auties.leap.tls.TlsBuffer.scopedRead;
 
 public final class ClientKeyExchangeMessage extends TlsHandshakeMessage {
     public static final byte ID = 0x10;
@@ -25,7 +25,7 @@ public final class ClientKeyExchangeMessage extends TlsHandshakeMessage {
             throw new IllegalArgumentException("ServerKeyExchangeMessage was received before ServerHelloMessage, so no cipher was negotiated");
         }
 
-        var messageLength = readInt24(buffer);
+        var messageLength = readLittleEndianInt24(buffer);
         try(var _ = scopedRead(buffer, messageLength)) {
             var parameters = TlsPreMasterSecretKey.of(cipher, buffer);
             return new ClientKeyExchangeMessage(version, source, parameters);

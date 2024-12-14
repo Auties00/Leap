@@ -1,10 +1,10 @@
 package it.auties.leap.tls.engine;
 
 import it.auties.leap.tls.*;
-import it.auties.leap.tls.auth.TlsAuthenticator;
-import it.auties.leap.tls.encryption.TlsEncryption;
-import it.auties.leap.tls.hash.TlsHandshakeHash;
-import it.auties.leap.tls.key.*;
+import it.auties.leap.tls.crypto.hash.TlsExchangeAuthenticator;
+import it.auties.leap.tls.crypto.cipher.wrap.TlsCipherWrapper;
+import it.auties.leap.tls.crypto.hash.TlsHandshakeHash;
+import it.auties.leap.tls.crypto.key.*;
 import it.auties.leap.tls.message.TlsMessage;
 import it.auties.leap.tls.message.TlsMessage.ContentType;
 import it.auties.leap.tls.message.client.ClientCertificateMessage;
@@ -30,6 +30,7 @@ import java.security.spec.XECPublicKeySpec;
 import java.util.*;
 import java.util.concurrent.CopyOnWriteArrayList;
 
+// TODO: Inline this class once it's organized well in SocketSecurityLayer
 public class TlsEngine {
     private final TlsConfig localConfig;
     private final TlsRandomData localRandomData;
@@ -48,11 +49,11 @@ public class TlsEngine {
     private volatile TlsHandshakeHash handshakeHash;
     private volatile TlsCompression negotiatedCompression;
 
-    private volatile TlsEncryption localCipher;
-    private volatile TlsEncryption remoteCipher;
+    private volatile TlsCipherWrapper localCipher;
+    private volatile TlsCipherWrapper remoteCipher;
 
-    private volatile TlsAuthenticator localAuthenticator;
-    private volatile TlsAuthenticator remoteAuthenticator;
+    private volatile TlsExchangeAuthenticator localAuthenticator;
+    private volatile TlsExchangeAuthenticator remoteAuthenticator;
 
     private volatile List<TlsClientCertificateType> remoteCertificateTypes;
     private volatile List<TlsSignatureAlgorithm> remoteCertificateAlgorithms;
@@ -199,24 +200,24 @@ public class TlsEngine {
                         localRandomData,
                         remoteRandomData
                 );
-                this.localAuthenticator = TlsAuthenticator.of(
+                this.localAuthenticator = TlsExchangeAuthenticator.of(
                         localConfig.version(),
                         negotiatedCipher,
                         sessionKeys.localMacKey()
                 );
-                this.remoteAuthenticator = TlsAuthenticator.of(
+                this.remoteAuthenticator = TlsExchangeAuthenticator.of(
                         localConfig.version(),
                         negotiatedCipher,
                         sessionKeys.remoteMacKey()
                 );
-                this.localCipher = TlsEncryption.of(
+                this.localCipher = TlsCipherWrapper.of(
                         localConfig.version(),
                         negotiatedCipher,
                         localAuthenticator,
                         sessionKeys,
                         mode
                 );
-                this.remoteCipher = TlsEncryption.of(
+                this.remoteCipher = TlsCipherWrapper.of(
                         localConfig.version(),
                         negotiatedCipher,
                         remoteAuthenticator,

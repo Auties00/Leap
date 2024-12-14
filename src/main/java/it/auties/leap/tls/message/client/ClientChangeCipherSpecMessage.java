@@ -1,13 +1,12 @@
 package it.auties.leap.tls.message.client;
 
+import it.auties.leap.tls.TlsBuffer;
 import it.auties.leap.tls.TlsVersion;
 import it.auties.leap.tls.engine.TlsEngineMode;
 import it.auties.leap.tls.message.TlsHandshakeMessage;
 
 import java.nio.ByteBuffer;
 import java.util.List;
-
-import static it.auties.leap.tls.TlsRecord.writeInt8;
 
 public final class ClientChangeCipherSpecMessage extends TlsHandshakeMessage {
     private static final int ID = 0x01;
@@ -57,7 +56,7 @@ public final class ClientChangeCipherSpecMessage extends TlsHandshakeMessage {
 
     @Override
     public void serializeHandshakePayload(ByteBuffer buffer) {
-        writeInt8(buffer, id());
+        TlsBuffer.writeLittleEndianInt8(buffer, id());
     }
 
     @Override

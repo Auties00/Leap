@@ -8,10 +8,10 @@ import java.nio.ByteBuffer;
 import java.util.List;
 import java.util.Optional;
 
-import static it.auties.leap.tls.TlsRecord.*;
+import static it.auties.leap.tls.TlsBuffer.*;
 
 public sealed abstract class TlsConcreteExtension implements TlsExtension
-        permits APLNExtension, ClientNextProtocolNegotiationExtension, ClientSupportedVersionsExtension, ECPointFormatsExtension, EncryptThenMacExtension, ExtendedMasterSecretExtension, GreaseExtension, KeyShareExtension, PaddingExtension, PostHandshakeAuthExtension, PskExchangeModesExtension, SNIExtension, ServerNextProtocolNegotiationExtension, ServerSupportedVersionsExtension, SignatureAlgorithmsExtension, SupportedGroupsExtension {
+        permits ALPNExtension, ClientNextProtocolNegotiationExtension, ClientSupportedVersionsExtension, ECPointFormatsExtension, EncryptThenMacExtension, ExtendedMasterSecretExtension, GreaseExtension, KeyShareExtension, PaddingExtension, PostHandshakeAuthExtension, PskExchangeModesExtension, SNIExtension, ServerNextProtocolNegotiationExtension, ServerSupportedVersionsExtension, SignatureAlgorithmsExtension, SupportedGroupsExtension {
     public static Optional<? extends TlsConcreteExtension> ofServer(TlsVersion version, int type, ByteBuffer buffer, int extensionLength) {
         try(var _ = scopedRead(buffer, extensionLength)) {
             if(GreaseExtension.isGrease(type)) {
@@ -19,7 +19,7 @@ public sealed abstract class TlsConcreteExtension implements TlsExtension
             }
 
             return switch (type) {
-                case APLNExtension.EXTENSION_TYPE -> APLNExtension.of(version, buffer, extensionLength);
+                case ALPNExtension.EXTENSION_TYPE -> ALPNExtension.of(version, buffer, extensionLength);
                 case ECPointFormatsExtension.EXTENSION_TYPE -> ECPointFormatsExtension.of(version, buffer, extensionLength);
                 case EncryptThenMacExtension.EXTENSION_TYPE -> EncryptThenMacExtension.of(version, buffer, extensionLength);
                 case ExtendedMasterSecretExtension.EXTENSION_TYPE -> ExtendedMasterSecretExtension.of(version, buffer, extensionLength);
@@ -44,7 +44,7 @@ public sealed abstract class TlsConcreteExtension implements TlsExtension
             }
 
             return switch (type) {
-                case APLNExtension.EXTENSION_TYPE -> APLNExtension.of(version, buffer, extensionLength);
+                case ALPNExtension.EXTENSION_TYPE -> ALPNExtension.of(version, buffer, extensionLength);
                 case ECPointFormatsExtension.EXTENSION_TYPE -> ECPointFormatsExtension.of(version, buffer, extensionLength);
                 case EncryptThenMacExtension.EXTENSION_TYPE -> EncryptThenMacExtension.of(version, buffer, extensionLength);
                 case ExtendedMasterSecretExtension.EXTENSION_TYPE -> ExtendedMasterSecretExtension.of(version, buffer, extensionLength);
