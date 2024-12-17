@@ -1,7 +1,7 @@
 package it.auties.leap.tls.message.server;
 
-import it.auties.leap.tls.TlsVersion;
-import it.auties.leap.tls.engine.TlsEngineMode;
+import it.auties.leap.tls.config.TlsVersion;
+import it.auties.leap.tls.config.TlsMode;
 import it.auties.leap.tls.message.TlsHandshakeMessage;
 
 import java.nio.ByteBuffer;
@@ -12,7 +12,7 @@ import java.security.cert.X509Certificate;
 import java.util.ArrayList;
 import java.util.List;
 
-import static it.auties.leap.tls.TlsBuffer.*;
+import static it.auties.leap.tls.BufferHelper.*;
 
 public final class ServerCertificateMessage extends TlsHandshakeMessage {
     public static final byte ID = 0x0B;
@@ -50,15 +50,15 @@ public final class ServerCertificateMessage extends TlsHandshakeMessage {
     }
 
     @Override
-    public boolean isSupported(TlsVersion version, TlsEngineMode mode, Source source, List<Type> precedingMessages) {
+    public boolean isSupported(TlsVersion version, TlsMode mode, Source source, List<Type> precedingMessages) {
         if(precedingMessages.isEmpty() || precedingMessages.getLast() != Type.SERVER_HELLO) {
             return false;
         }
 
         return switch (version.protocol()) {
             case TCP -> switch (source) {
-                case LOCAL -> mode == TlsEngineMode.SERVER;
-                case REMOTE -> mode == TlsEngineMode.CLIENT;
+                case LOCAL -> mode == TlsMode.SERVER;
+                case REMOTE -> mode == TlsMode.CLIENT;
             };
             case UDP -> false;
         };

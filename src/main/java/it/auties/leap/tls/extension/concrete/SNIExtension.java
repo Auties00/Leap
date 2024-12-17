@@ -1,7 +1,7 @@
 package it.auties.leap.tls.extension.concrete;
 
-import it.auties.leap.tls.TlsVersion;
-import it.auties.leap.tls.extension.TlsConcreteExtension;
+import it.auties.leap.tls.config.TlsVersion;
+import it.auties.leap.tls.extension.TlsExtension;
 
 import java.nio.ByteBuffer;
 import java.util.List;
@@ -10,9 +10,9 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.function.Predicate;
 
-import static it.auties.leap.tls.TlsBuffer.*;
+import static it.auties.leap.tls.BufferHelper.*;
 
-public final class SNIExtension extends TlsConcreteExtension {
+public final class SNIExtension extends TlsExtension.Concrete {
     public static final int EXTENSION_TYPE = 0x0000;
 
     private final byte[] name;

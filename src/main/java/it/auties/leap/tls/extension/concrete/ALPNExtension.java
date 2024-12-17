@@ -1,40 +1,25 @@
 package it.auties.leap.tls.extension.concrete;
 
-import it.auties.leap.tls.TlsVersion;
-import it.auties.leap.tls.extension.TlsConcreteExtension;
+import it.auties.leap.tls.config.TlsVersion;
+import it.auties.leap.tls.extension.TlsExtension;
 
 import java.nio.ByteBuffer;
-import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
-import static it.auties.leap.tls.TlsBuffer.*;
+import static it.auties.leap.tls.BufferHelper.*;
 
-public final class ALPNExtension extends TlsConcreteExtension {
+public final class ALPNExtension extends TlsExtension.Concrete {
     public static final int EXTENSION_TYPE = 0x0010;
 
     private final List<byte[]> supportedProtocols;
     private final int supportedProtocolsSize;
-    public ALPNExtension(List<?> supportedProtocols) {
-        var list = new ArrayList<byte[]>();
-        var supportedProtocolsSize = 0;
-        for (var entry : supportedProtocols) {
-            switch (entry) {
-                case String string -> {
-                    var bytes = string.getBytes(StandardCharsets.US_ASCII);
-                    supportedProtocolsSize += INT8_LENGTH + bytes.length;
-                    list.add(bytes);
-                }
-                case byte[] bytes -> {
-                    list.add(bytes);
-                    supportedProtocolsSize += INT8_LENGTH + bytes.length;
-                }
-                default -> throw new IllegalArgumentException("Unexpected value: " + entry);
-            }
-        }
-        this.supportedProtocols = list;
-        this.supportedProtocolsSize = supportedProtocolsSize;
+    public ALPNExtension(List<byte[]> supportedProtocols) {
+        this.supportedProtocols = supportedProtocols;
+        this.supportedProtocolsSize = supportedProtocols.stream()
+                .mapToInt(entry -> INT8_LENGTH + entry.length)
+                .sum();
     }
 
     public static Optional<ALPNExtension> of(TlsVersion version, ByteBuffer buffer, int extensionLength) {

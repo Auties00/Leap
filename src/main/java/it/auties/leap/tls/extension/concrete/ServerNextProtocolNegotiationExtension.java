@@ -1,16 +1,16 @@
 package it.auties.leap.tls.extension.concrete;
 
-import it.auties.leap.tls.TlsVersion;
-import it.auties.leap.tls.extension.TlsConcreteExtension;
+import it.auties.leap.tls.config.TlsVersion;
+import it.auties.leap.tls.extension.TlsExtension;
 
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Optional;
 
-import static it.auties.leap.tls.TlsBuffer.*;
+import static it.auties.leap.tls.BufferHelper.*;
 
-public final class ServerNextProtocolNegotiationExtension extends TlsConcreteExtension {
+public final class ServerNextProtocolNegotiationExtension extends TlsExtension.Concrete {
     public static final int EXTENSION_TYPE = 0x3374;
 
     private final byte[] selectedProtocol;

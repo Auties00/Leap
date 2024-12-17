@@ -1,13 +1,13 @@
 package it.auties.leap.tls.extension.concrete;
 
-import it.auties.leap.tls.TlsVersion;
-import it.auties.leap.tls.extension.TlsConcreteExtension;
+import it.auties.leap.tls.config.TlsVersion;
+import it.auties.leap.tls.extension.TlsExtension;
 
 import java.nio.ByteBuffer;
 import java.util.List;
 import java.util.Optional;
 
-public final class ClientNextProtocolNegotiationExtension extends TlsConcreteExtension {
+public final class ClientNextProtocolNegotiationExtension extends TlsExtension.Concrete {
     public static final ClientNextProtocolNegotiationExtension INSTANCE = new ClientNextProtocolNegotiationExtension();
     public static final int EXTENSION_TYPE = 0x3374;
 

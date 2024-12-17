@@ -1,15 +1,15 @@
 package it.auties.leap.tls.extension.model;
 
-import it.auties.leap.tls.TlsVersion;
-import it.auties.leap.tls.TlsVersionId;
-import it.auties.leap.tls.extension.TlsModelExtension;
+import it.auties.leap.tls.config.TlsVersion;
+import it.auties.leap.tls.config.TlsVersionId;
+import it.auties.leap.tls.extension.TlsExtension;
 import it.auties.leap.tls.extension.concrete.ClientSupportedVersionsExtension;
 import it.auties.leap.tls.extension.concrete.GreaseExtension;
 
 import java.util.List;
 import java.util.Optional;
 
-public final class ClientSupportedVersionsModel extends TlsModelExtension<ClientSupportedVersionsModel.Config, ClientSupportedVersionsExtension> {
+public final class ClientSupportedVersionsModel extends TlsExtension.Model<ClientSupportedVersionsModel, ClientSupportedVersionsModel.Config, ClientSupportedVersionsExtension> {
     public static final ClientSupportedVersionsModel INSTANCE = new ClientSupportedVersionsModel();
     private ClientSupportedVersionsModel() {
 
@@ -35,7 +35,7 @@ public final class ClientSupportedVersionsModel extends TlsModelExtension<Client
         return Dependencies.some(GreaseExtension.class, ClientSupportedVersionsExtension.class);
     }
 
-    public record Config(List<TlsVersionId> tlsVersions) implements TlsModelExtension.Config {
+    public record Config(List<TlsVersionId> tlsVersions) implements Model.Config<ClientSupportedVersionsModel> {
 
     }
 

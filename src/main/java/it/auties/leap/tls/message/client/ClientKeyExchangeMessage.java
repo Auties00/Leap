@@ -1,16 +1,15 @@
 package it.auties.leap.tls.message.client;
 
-import it.auties.leap.tls.TlsCipher;
-import it.auties.leap.tls.TlsVersion;
-import it.auties.leap.tls.engine.TlsEngineMode;
-import it.auties.leap.tls.crypto.key.TlsPreMasterSecretKey;
+import it.auties.leap.tls.cipher.TlsCipher;
+import it.auties.leap.tls.config.TlsVersion;
+import it.auties.leap.tls.config.TlsMode;
 import it.auties.leap.tls.message.TlsHandshakeMessage;
 
 import java.nio.ByteBuffer;
 import java.util.List;
 
-import static it.auties.leap.tls.TlsBuffer.readLittleEndianInt24;
-import static it.auties.leap.tls.TlsBuffer.scopedRead;
+import static it.auties.leap.tls.BufferHelper.readLittleEndianInt24;
+import static it.auties.leap.tls.BufferHelper.scopedRead;
 
 public final class ClientKeyExchangeMessage extends TlsHandshakeMessage {
     public static final byte ID = 0x10;
@@ -42,13 +41,13 @@ public final class ClientKeyExchangeMessage extends TlsHandshakeMessage {
     }
 
     @Override
-    public boolean isSupported(TlsVersion version, TlsEngineMode mode, Source source, List<Type> precedingMessages) {
+    public boolean isSupported(TlsVersion version, TlsMode mode, Source source, List<Type> precedingMessages) {
         return switch (version.protocol()) {
             case TCP -> switch (source) {
-                case LOCAL -> mode == TlsEngineMode.CLIENT
+                case LOCAL -> mode == TlsMode.CLIENT
                         && !precedingMessages.isEmpty()
                         && (precedingMessages.getLast() == Type.CLIENT_CERTIFICATE || precedingMessages.getLast() == Type.SERVER_HELLO_DONE);
-                case REMOTE -> mode == TlsEngineMode.SERVER;
+                case REMOTE -> mode == TlsMode.SERVER;
             };
             case UDP -> false;
         };
@@ -73,5 +72,4 @@ public final class ClientKeyExchangeMessage extends TlsHandshakeMessage {
     public int handshakePayloadLength() {
         return parameters.length();
     }
-
 }

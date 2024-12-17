@@ -1,10 +1,8 @@
 package it.auties.leap.tls.message.server;
 
-import it.auties.leap.tls.TlsClientCertificateType;
-import it.auties.leap.tls.TlsSignatureAlgorithm;
-import it.auties.leap.tls.TlsVersion;
-import it.auties.leap.tls.TlsBuffer;
-import it.auties.leap.tls.engine.TlsEngineMode;
+import it.auties.leap.tls.BufferHelper;
+import it.auties.leap.tls.config.TlsVersion;
+import it.auties.leap.tls.config.TlsMode;
 import it.auties.leap.tls.message.TlsHandshakeMessage;
 
 import javax.security.auth.x500.X500Principal;
@@ -12,15 +10,15 @@ import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.List;
 
-import static it.auties.leap.tls.TlsBuffer.*;
+import static it.auties.leap.tls.BufferHelper.*;
 
 public final class ServerCertificateRequestMessage extends TlsHandshakeMessage {
     public static final byte ID = 0x0D;
 
-    private final List<TlsClientCertificateType> types;
-    private final List<TlsSignatureAlgorithm> algorithms;
+    private final List<Byte> types;
+    private final List<Integer> algorithms;
     private final List<String> authorities;
-    public ServerCertificateRequestMessage(TlsVersion tlsVersion, Source source, List<TlsClientCertificateType> types, List<TlsSignatureAlgorithm> algorithms, List<String> authorities) {
+    public ServerCertificateRequestMessage(TlsVersion tlsVersion, Source source, List<Byte> types, List<Integer> algorithms, List<String> authorities) {
         super(tlsVersion, source);
         this.types = types;
         this.algorithms = algorithms;
@@ -28,29 +26,21 @@ public final class ServerCertificateRequestMessage extends TlsHandshakeMessage {
     }
 
     public static ServerCertificateRequestMessage of(TlsVersion version, Source source, ByteBuffer buffer) {
-        var certificatesLength = TlsBuffer.readLittleEndianInt8(buffer);
-        var certificateTypes = new ArrayList<TlsClientCertificateType>();
+        var certificatesLength = BufferHelper.readLittleEndianInt8(buffer);
+        var certificateTypes = new ArrayList<Byte>();
         try(var _ = scopedRead(buffer, certificatesLength)) {
             while (buffer.hasRemaining()) {
                 var certificateTypeId = readLittleEndianInt8(buffer);
-                var certificateType = TlsClientCertificateType.of(certificateTypeId)
-                        .orElseThrow(() -> new IllegalArgumentException("Unknown tls certificate type: " + certificateTypeId));
-                certificateTypes.add(certificateType);
+                certificateTypes.add(certificateTypeId);
             }
         }
 
         var algorithmsLength = readLittleEndianInt16(buffer);
-        var algorithms = new ArrayList<TlsSignatureAlgorithm>();
+        var algorithms = new ArrayList<Integer>();
         try(var _ = scopedRead(buffer, algorithmsLength)) {
             while (buffer.hasRemaining()) {
                 var algorithmId = readLittleEndianInt16(buffer);
-                var algorithm = switch (version) {
-                    case TLS13, DTLS13 -> TlsSignatureAlgorithm.ofTlsV13(algorithmId);
-                    case TLS12, DTLS12 -> TlsSignatureAlgorithm.ofTlsV12(algorithmId)
-                            .orElseThrow(() -> new IllegalArgumentException("Unknown tls algorithm: " + algorithmId));
-                    default -> throw new IllegalArgumentException("Unsupported TLS version: " + version);
-                };
-                algorithms.add(algorithm);
+                algorithms.add(algorithmId);
             }
         }
 
@@ -77,25 +67,25 @@ public final class ServerCertificateRequestMessage extends TlsHandshakeMessage {
     }
 
     @Override
-    public boolean isSupported(TlsVersion version, TlsEngineMode mode, Source source, List<Type> precedingMessages) {
+    public boolean isSupported(TlsVersion version, TlsMode mode, Source source, List<Type> precedingMessages) {
         if(precedingMessages.isEmpty() || precedingMessages.getLast() != Type.SERVER_KEY_EXCHANGE) {
             return false;
         }
 
         return switch (version.protocol()) {
             case TCP -> switch (source) {
-                case LOCAL -> mode == TlsEngineMode.SERVER;
-                case REMOTE -> mode == TlsEngineMode.CLIENT;
+                case LOCAL -> mode == TlsMode.SERVER;
+                case REMOTE -> mode == TlsMode.CLIENT;
             };
             case UDP -> false;
         };
     }
 
-    public List<TlsClientCertificateType> types() {
+    public List<Byte> types() {
         return types;
     }
 
-    public List<TlsSignatureAlgorithm> algorithms() {
+    public List<Integer> algorithms() {
         return algorithms;
     }
 

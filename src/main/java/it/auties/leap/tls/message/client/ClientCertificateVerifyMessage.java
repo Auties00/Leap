@@ -1,7 +1,7 @@
 package it.auties.leap.tls.message.client;
 
-import it.auties.leap.tls.TlsVersion;
-import it.auties.leap.tls.engine.TlsEngineMode;
+import it.auties.leap.tls.config.TlsVersion;
+import it.auties.leap.tls.config.TlsMode;
 import it.auties.leap.tls.message.TlsHandshakeMessage;
 
 import java.nio.ByteBuffer;
@@ -20,15 +20,15 @@ public final class ClientCertificateVerifyMessage extends TlsHandshakeMessage {
     }
 
     @Override
-    public boolean isSupported(TlsVersion version, TlsEngineMode mode, Source source, List<Type> precedingMessages) {
+    public boolean isSupported(TlsVersion version, TlsMode mode, Source source, List<Type> precedingMessages) {
         if(precedingMessages.isEmpty() || precedingMessages.getLast() != Type.CLIENT_KEY_EXCHANGE) {
             return false;
         }
 
         return switch (version.protocol()) {
             case TCP -> switch (source) {
-                case LOCAL -> mode == TlsEngineMode.CLIENT;
-                case REMOTE -> mode == TlsEngineMode.SERVER;
+                case LOCAL -> mode == TlsMode.CLIENT;
+                case REMOTE -> mode == TlsMode.SERVER;
             };
             case UDP -> false;
         };

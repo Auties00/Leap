@@ -1,13 +1,13 @@
 package it.auties.leap.tls.extension.concrete;
 
-import it.auties.leap.tls.TlsVersion;
-import it.auties.leap.tls.extension.TlsConcreteExtension;
+import it.auties.leap.tls.config.TlsVersion;
+import it.auties.leap.tls.extension.TlsExtension;
 
 import java.nio.ByteBuffer;
 import java.util.List;
 import java.util.Optional;
 
-public final class EncryptThenMacExtension extends TlsConcreteExtension {
+public final class EncryptThenMacExtension extends TlsExtension.Concrete {
     public static final EncryptThenMacExtension INSTANCE = new EncryptThenMacExtension();
     public static final int EXTENSION_TYPE = 0x0016;
 

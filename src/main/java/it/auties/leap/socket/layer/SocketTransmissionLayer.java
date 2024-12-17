@@ -29,7 +29,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Consumer;
 
-public sealed abstract class SocketTransmissionLayer<HANDLE> implements AutoCloseable {
+public sealed abstract class SocketTransmissionLayer<HANDLE extends Number> implements AutoCloseable {
     final SocketProtocol protocol;
     final Arena arena;
     final HANDLE handle;

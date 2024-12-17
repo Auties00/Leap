@@ -1,8 +1,8 @@
 package it.auties.leap.tls.message;
 
-import it.auties.leap.tls.TlsCipher;
-import it.auties.leap.tls.TlsVersion;
-import it.auties.leap.tls.engine.TlsEngineMode;
+import it.auties.leap.tls.cipher.TlsCipher;
+import it.auties.leap.tls.config.TlsVersion;
+import it.auties.leap.tls.config.TlsMode;
 import it.auties.leap.tls.message.client.ClientChangeCipherSpecMessage;
 import it.auties.leap.tls.message.shared.AlertMessage;
 import it.auties.leap.tls.message.shared.ApplicationDataMessage;
@@ -13,7 +13,7 @@ import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
-import static it.auties.leap.tls.TlsBuffer.*;
+import static it.auties.leap.tls.BufferHelper.*;
 
 public sealed abstract class TlsMessage
         permits AlertMessage, ApplicationDataMessage, TlsHandshakeMessage {
@@ -58,7 +58,7 @@ public sealed abstract class TlsMessage
     }
 
     public abstract byte id();
-    public abstract boolean isSupported(TlsVersion version, TlsEngineMode mode, Source source, List<Type> precedingMessages);
+    public abstract boolean isSupported(TlsVersion version, TlsMode mode, Source source, List<Type> precedingMessages);
     public abstract Type type();
     public abstract ContentType contentType();
     public abstract void serializeMessagePayload(ByteBuffer buffer);
@@ -174,9 +174,8 @@ public sealed abstract class TlsMessage
             return LENGTH;
         }
 
-        public Metadata setMessageLength(int messageLength) {
+        public void setMessageLength(int messageLength) {
             this.messageLength = messageLength;
-            return this;
         }
 
         public ContentType contentType() {

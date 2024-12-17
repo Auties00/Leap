@@ -1,17 +1,17 @@
 package it.auties.leap.tls.extension.concrete;
 
-import it.auties.leap.tls.TlsVersion;
-import it.auties.leap.tls.TlsVersionId;
-import it.auties.leap.tls.extension.TlsConcreteExtension;
+import it.auties.leap.tls.config.TlsVersion;
+import it.auties.leap.tls.config.TlsVersionId;
+import it.auties.leap.tls.extension.TlsExtension;
 
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
-import static it.auties.leap.tls.TlsBuffer.*;
+import static it.auties.leap.tls.BufferHelper.*;
 
-public final class ClientSupportedVersionsExtension extends TlsConcreteExtension {
+public final class ClientSupportedVersionsExtension extends TlsExtension.Concrete {
     public static final int EXTENSION_TYPE = 0x002B;
 
     private final List<TlsVersionId> tlsVersions;
@@ -25,7 +25,7 @@ public final class ClientSupportedVersionsExtension extends TlsConcreteExtension
         try(var _ = scopedRead(buffer, payloadSize)) {
             var versionsSize = payloadSize / INT16_LENGTH;
             for(var i = 0; i < versionsSize; i++) {
-                var versionId = new TlsVersionId(readLittleEndianInt8(buffer), readLittleEndianInt8(buffer));
+                var versionId = TlsVersionId.of(readLittleEndianInt8(buffer), readLittleEndianInt8(buffer));
                 versions.add(versionId);
             }
         }

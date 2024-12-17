@@ -5,7 +5,7 @@ import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import it.auties.leap.tls.TlsVersion;
+import it.auties.leap.tls.config.TlsVersion;
 
 import java.io.IOException;
 import java.net.URI;

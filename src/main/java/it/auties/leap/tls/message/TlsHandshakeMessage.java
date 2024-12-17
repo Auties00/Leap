@@ -1,19 +1,21 @@
 package it.auties.leap.tls.message;
 
-import it.auties.leap.tls.TlsCipher;
-import it.auties.leap.tls.TlsVersion;
+import it.auties.leap.tls.cipher.TlsCipher;
+import it.auties.leap.tls.config.TlsVersion;
 import it.auties.leap.tls.message.client.*;
 import it.auties.leap.tls.message.server.*;
 
 import java.nio.ByteBuffer;
 
-import static it.auties.leap.tls.TlsBuffer.*;
+import static it.auties.leap.tls.BufferHelper.*;
 
 public abstract sealed class TlsHandshakeMessage extends TlsMessage
         permits ClientCertificateMessage, ClientCertificateVerifyMessage, ClientChangeCipherSpecMessage,
         ClientFinishedMessage, ClientHelloMessage, ClientKeyExchangeMessage, ServerCertificateMessage,
                 ServerCertificateRequestMessage, ServerChangeCipherSpecMessage, ServerFinishedMessage, ServerHelloDoneMessage,
                 ServerHelloMessage, ServerHelloRequestMessage, ServerKeyExchangeMessage {
+    protected static final int MIN_HASH_LENGTH = 12;
+
     protected TlsHandshakeMessage(TlsVersion version, Source source) {
         super(version, source);
     }

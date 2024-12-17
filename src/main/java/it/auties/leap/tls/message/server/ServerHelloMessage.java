@@ -1,30 +1,27 @@
 package it.auties.leap.tls.message.server;
 
-import it.auties.leap.tls.TlsCipher;
-import it.auties.leap.tls.TlsCompression;
-import it.auties.leap.tls.TlsExtension;
-import it.auties.leap.tls.TlsVersion;
-import it.auties.leap.tls.engine.TlsEngineMode;
-import it.auties.leap.tls.extension.TlsConcreteExtension;
-import it.auties.leap.tls.crypto.key.TlsRandomData;
-import it.auties.leap.tls.crypto.key.TlsSharedSecret;
+import it.auties.leap.tls.extension.TlsExtension;
+import it.auties.leap.tls.config.TlsVersion;
+import it.auties.leap.tls.key.TlsRandomData;
+import it.auties.leap.tls.key.TlsSharedSecret;
+import it.auties.leap.tls.config.TlsMode;
 import it.auties.leap.tls.message.TlsHandshakeMessage;
 
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.List;
 
-import static it.auties.leap.tls.TlsBuffer.*;
+import static it.auties.leap.tls.BufferHelper.*;
 
 public final class ServerHelloMessage extends TlsHandshakeMessage {
     public static final byte ID = 0x02;
 
     private final TlsRandomData randomData;
     private final TlsSharedSecret sessionId;
-    private final TlsCipher cipher;
-    private final TlsCompression compression;
+    private final int cipher;
+    private final int compression;
     private final List<TlsExtension> extensions;
-    public ServerHelloMessage(TlsVersion version, Source source, TlsRandomData randomData, TlsSharedSecret sessionId, TlsCipher cipher, List<TlsExtension> extensions, TlsCompression compression) {
+    public ServerHelloMessage(TlsVersion version, Source source, TlsRandomData randomData, TlsSharedSecret sessionId, int cipher, List<TlsExtension> extensions, int compression) {
         super(version, source);
         this.randomData = randomData;
         this.sessionId = sessionId;
@@ -41,11 +38,11 @@ public final class ServerHelloMessage extends TlsHandshakeMessage {
         return sessionId;
     }
 
-    public TlsCipher cipher() {
+    public int cipher() {
         return cipher;
     }
 
-    public TlsCompression compression() {
+    public int compression() {
         return compression;
     }
 
@@ -63,12 +60,8 @@ public final class ServerHelloMessage extends TlsHandshakeMessage {
         var sessionId = TlsSharedSecret.of(buffer);
 
         var cipherId = readLittleEndianInt16(buffer);
-        var cipher = TlsCipher.of(cipherId)
-                .orElseThrow(() -> new IllegalArgumentException("Cannot decode TLS message, unknown cipher id: " + cipherId));
 
         var compressionMethodId = readLittleEndianInt8(buffer);
-        var compressionMethod = TlsCompression.of(compressionMethodId)
-                .orElseThrow(() -> new IllegalArgumentException("Cannot decode TLS message, unknown compression method id: " + compressionMethodId));
 
         var extensions = new ArrayList<TlsExtension>();
         if(buffer.remaining() >= INT16_LENGTH) {
@@ -81,7 +74,7 @@ public final class ServerHelloMessage extends TlsHandshakeMessage {
                         continue;
                     }
 
-                    var extension = TlsConcreteExtension.ofServer(tlsVersion, extensionType, buffer, extensionLength);
+                    var extension = TlsExtension.Concrete.ofServer(tlsVersion, extensionType, buffer, extensionLength);
                     if (extension.isEmpty()) {
                         continue;
                     }
@@ -89,7 +82,7 @@ public final class ServerHelloMessage extends TlsHandshakeMessage {
                 }
             }
         }
-        return new ServerHelloMessage(tlsVersion, source, serverRandom, sessionId, cipher, extensions, compressionMethod);
+        return new ServerHelloMessage(tlsVersion, source, serverRandom, sessionId, cipherId, extensions, compressionMethodId);
     }
 
     @Override
@@ -103,11 +96,11 @@ public final class ServerHelloMessage extends TlsHandshakeMessage {
     }
 
     @Override
-    public boolean isSupported(TlsVersion version, TlsEngineMode mode, Source source, List<Type> precedingMessages) {
+    public boolean isSupported(TlsVersion version, TlsMode mode, Source source, List<Type> precedingMessages) {
         return switch (version.protocol()) {
             case TCP -> switch (source) {
                 case LOCAL -> precedingMessages.isEmpty();
-                case REMOTE -> mode == TlsEngineMode.CLIENT;
+                case REMOTE -> mode == TlsMode.CLIENT;
             };
             case UDP -> false;
         };

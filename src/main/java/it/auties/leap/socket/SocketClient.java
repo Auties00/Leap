@@ -4,7 +4,7 @@ import it.auties.leap.http.decoder.HttpDecodable;
 import it.auties.leap.socket.layer.SocketSecurityLayer;
 import it.auties.leap.socket.layer.SocketTransmissionLayer;
 import it.auties.leap.socket.layer.SocketTunnelLayer;
-import it.auties.leap.tls.TlsConfig;
+import it.auties.leap.tls.config.TlsConfig;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;

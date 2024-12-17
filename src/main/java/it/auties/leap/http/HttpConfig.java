@@ -1,6 +1,11 @@
 package it.auties.leap.http;
 
-import it.auties.leap.tls.*;
+import it.auties.leap.tls.config.TlsCompression;
+import it.auties.leap.tls.config.TlsConfig;
+import it.auties.leap.tls.cipher.TlsCipher;
+import it.auties.leap.tls.key.TlsPskKeyExchangeMode;
+import it.auties.leap.tls.config.TlsVersion;
+import it.auties.leap.tls.extension.TlsExtension;
 
 import java.net.URI;
 import java.time.Duration;

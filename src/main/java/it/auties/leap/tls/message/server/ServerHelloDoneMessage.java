@@ -1,8 +1,8 @@
 package it.auties.leap.tls.message.server;
 
-import it.auties.leap.tls.TlsSpecificationException;
-import it.auties.leap.tls.TlsVersion;
-import it.auties.leap.tls.engine.TlsEngineMode;
+import it.auties.leap.tls.exception.TlsException;
+import it.auties.leap.tls.config.TlsVersion;
+import it.auties.leap.tls.config.TlsMode;
 import it.auties.leap.tls.message.TlsHandshakeMessage;
 
 import java.net.URI;
@@ -18,7 +18,7 @@ public final class ServerHelloDoneMessage extends TlsHandshakeMessage {
 
     public static ServerHelloDoneMessage of(TlsVersion version, Source source, int messageLength) {
         if(messageLength != 0) {
-            throw new TlsSpecificationException("Expected server hello done message to have an empty payload", URI.create("https://datatracker.ietf.org/doc/html/rfc5246"), "7.4.5");
+            throw new TlsException("Expected server hello done message to have an empty payload", URI.create("https://datatracker.ietf.org/doc/html/rfc5246"), "7.4.5");
         }
 
         return new ServerHelloDoneMessage(version, source);
@@ -35,7 +35,7 @@ public final class ServerHelloDoneMessage extends TlsHandshakeMessage {
     }
 
     @Override
-    public boolean isSupported(TlsVersion version, TlsEngineMode mode, Source source, List<Type> precedingMessages) {
+    public boolean isSupported(TlsVersion version, TlsMode mode, Source source, List<Type> precedingMessages) {
         if(version == TlsVersion.TLS13 || version == TlsVersion.DTLS13) {
             return false;
         }
@@ -48,8 +48,8 @@ public final class ServerHelloDoneMessage extends TlsHandshakeMessage {
 
         return switch (version.protocol()) {
             case TCP -> switch (source) {
-                case LOCAL -> mode == TlsEngineMode.SERVER;
-                case REMOTE -> mode == TlsEngineMode.CLIENT;
+                case LOCAL -> mode == TlsMode.SERVER;
+                case REMOTE -> mode == TlsMode.CLIENT;
             };
             case UDP -> false;
         };

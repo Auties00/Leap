@@ -1,15 +1,15 @@
 package it.auties.leap.tls.message.shared;
 
-import it.auties.leap.tls.TlsVersion;
-import it.auties.leap.tls.TlsBuffer;
-import it.auties.leap.tls.engine.TlsEngineMode;
+import it.auties.leap.tls.config.TlsVersion;
+import it.auties.leap.tls.BufferHelper;
+import it.auties.leap.tls.config.TlsMode;
 import it.auties.leap.tls.message.TlsMessage;
 
 import java.nio.BufferUnderflowException;
 import java.nio.ByteBuffer;
 import java.util.List;
 
-import static it.auties.leap.tls.TlsBuffer.*;
+import static it.auties.leap.tls.BufferHelper.*;
 
 public final class ApplicationDataMessage extends TlsMessage {
     private static final int ID = 0x17;
@@ -46,7 +46,7 @@ public final class ApplicationDataMessage extends TlsMessage {
     }
 
     @Override
-    public boolean isSupported(TlsVersion version, TlsEngineMode mode, Source source, List<Type> precedingMessages) {
+    public boolean isSupported(TlsVersion version, TlsMode mode, Source source, List<Type> precedingMessages) {
         return switch (version.protocol()) {
             case TCP -> switch (mode) {
                 case CLIENT -> {
@@ -80,7 +80,7 @@ public final class ApplicationDataMessage extends TlsMessage {
 
     @Override
     public void serializeMessagePayload(ByteBuffer buffer) {
-        TlsBuffer.assertNotEquals(buffer, message);
+        BufferHelper.assertNotEquals(buffer, message);
         writeBuffer(buffer, message);
     }
 

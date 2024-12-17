@@ -1,14 +1,14 @@
 package it.auties.leap.tls.extension.model;
 
-import it.auties.leap.tls.TlsVersion;
-import it.auties.leap.tls.extension.TlsModelExtension;
+import it.auties.leap.tls.config.TlsVersion;
+import it.auties.leap.tls.extension.TlsExtension;
 import it.auties.leap.tls.extension.concrete.SNIExtension;
 
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Optional;
 
-public final class SNIExtensionModel extends TlsModelExtension<SNIExtensionModel.Config, SNIExtension> {
+public final class SNIExtensionModel extends TlsExtension.Model<SNIExtensionModel, SNIExtensionModel.Config, SNIExtension> {
     public static final SNIExtensionModel INSTANCE = new SNIExtensionModel();
     private SNIExtensionModel() {
 
@@ -24,7 +24,7 @@ public final class SNIExtensionModel extends TlsModelExtension<SNIExtensionModel
         return Optional.of(result);
     }
 
-    public record Config(String name, SNIExtension.NameType type) implements TlsModelExtension.Config {
+    public record Config(String name, SNIExtension.NameType type) implements Model.Config<SNIExtensionModel> {
 
     }
 

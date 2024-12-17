@@ -1,34 +1,37 @@
 package it.auties.leap.tls.extension.concrete;
 
-import it.auties.leap.tls.TlsEcPointFormat;
-import it.auties.leap.tls.TlsVersion;
-import it.auties.leap.tls.extension.TlsConcreteExtension;
+import it.auties.leap.tls.config.TlsEcPointFormat;
+import it.auties.leap.tls.config.TlsIdentifiableUnion;
+import it.auties.leap.tls.config.TlsVersion;
+import it.auties.leap.tls.extension.TlsExtension;
 
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 
-import static it.auties.leap.tls.TlsBuffer.*;
+import static it.auties.leap.tls.BufferHelper.*;
 
-public final class ECPointFormatsExtension extends TlsConcreteExtension {
-    public static final ECPointFormatsExtension ALL = new ECPointFormatsExtension(Arrays.asList(TlsEcPointFormat.values()));
+public final class ECPointFormatsExtension extends TlsExtension.Concrete {
+    public static final ECPointFormatsExtension ALL = new ECPointFormatsExtension(List.of(
+            TlsIdentifiableUnion.of(TlsEcPointFormat.uncompressed()),
+            TlsIdentifiableUnion.of(TlsEcPointFormat.ansix962CompressedPrime()),
+            TlsIdentifiableUnion.of(TlsEcPointFormat.ansix962CompressedChar2()))
+    );
     public static final int EXTENSION_TYPE = 0x000B;
 
-    private final List<TlsEcPointFormat> ecPointFormats;
-    public ECPointFormatsExtension(List<TlsEcPointFormat> ecPointFormats) {
+    private final List<? extends TlsIdentifiableUnion<TlsEcPointFormat, Byte>> ecPointFormats;
+    public ECPointFormatsExtension(List<? extends TlsIdentifiableUnion<TlsEcPointFormat, Byte>> ecPointFormats) {
         this.ecPointFormats = ecPointFormats;
     }
 
+
     public static Optional<ECPointFormatsExtension> of(TlsVersion version, ByteBuffer buffer, int extensionLength) {
         var ecPointFormatsSize = readLittleEndianInt8(buffer);
-        var ecPointFormats = new ArrayList<TlsEcPointFormat>();
+        var ecPointFormats = new ArrayList<TlsIdentifiableUnion<TlsEcPointFormat, Byte>>();
         for(var i = 0; i < ecPointFormatsSize; i++) {
             var ecPointFormatId = readLittleEndianInt8(buffer);
-            var ecPointFormat = TlsEcPointFormat.of(ecPointFormatId)
-                    .orElseThrow(() -> new IllegalArgumentException("Unknown ec point format: " + ecPointFormatId));
-            ecPointFormats.add(ecPointFormat);
+            ecPointFormats.add(TlsIdentifiableUnion.of(ecPointFormatId));
         }
         var extension = new ECPointFormatsExtension(ecPointFormats);
         return Optional.of(extension);

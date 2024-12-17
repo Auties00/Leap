@@ -1,47 +1,40 @@
 package it.auties.leap.tls.extension.concrete;
 
-import it.auties.leap.tls.TlsSupportedGroup;
-import it.auties.leap.tls.TlsVersion;
-import it.auties.leap.tls.extension.TlsConcreteExtension;
+import it.auties.leap.tls.config.TlsIdentifiableUnion;
+import it.auties.leap.tls.extension.TlsExtension;
+import it.auties.leap.tls.key.TlsSupportedGroup;
+import it.auties.leap.tls.config.TlsVersion;
 
 import java.nio.ByteBuffer;
 import java.util.*;
 
-import static it.auties.leap.tls.TlsBuffer.*;
+import static it.auties.leap.tls.BufferHelper.*;
 
-public final class SupportedGroupsExtension extends TlsConcreteExtension {
-    public static final SupportedGroupsExtension RECOMMENDED = new SupportedGroupsExtension(TlsSupportedGroup.recommendedGroups());
+public final class SupportedGroupsExtension extends TlsExtension.Concrete {
+    public static final SupportedGroupsExtension RECOMMENDED = new SupportedGroupsExtension(List.of(
+            TlsIdentifiableUnion.of(TlsSupportedGroup.x25519())
+    ));
     public static final int EXTENSION_TYPE = 0x000A;
 
-    private final List<TlsSupportedGroup> groups;
-    public SupportedGroupsExtension(List<TlsSupportedGroup> groups) {
-        this.groups = groups.stream()
-                .filter(Objects::nonNull)
-                .toList();
-        if(this.groups.isEmpty()) {
-            throw new IllegalArgumentException("Named groups cannot be empty");
-        }
+    private final List<? extends TlsIdentifiableUnion<TlsSupportedGroup, Integer>> groups;
+    public SupportedGroupsExtension(List<? extends TlsIdentifiableUnion<TlsSupportedGroup, Integer>> groups) {
+        this.groups = groups;
     }
+
 
     public static Optional<SupportedGroupsExtension> of(TlsVersion version, ByteBuffer buffer, int extensionLength) {
         var groupsSize = readLittleEndianInt16(buffer);
-        var groups = new ArrayList<TlsSupportedGroup>(groupsSize);
+        var groups = new ArrayList<TlsIdentifiableUnion<TlsSupportedGroup, Integer>>(groupsSize);
         for(var i = 0; i < groupsSize; i++) {
             var groupId = readLittleEndianInt16(buffer);
-            var group = TlsSupportedGroup.of(groupId)
-                    .orElseThrow(() -> new IllegalArgumentException("Unknown tls named group: " + groupId));
-            groups.add(group);
+            groups.add(TlsIdentifiableUnion.of(groupId));
         }
         var extension = new SupportedGroupsExtension(groups);
         return Optional.of(extension);
     }
 
-    public List<TlsSupportedGroup> groups() {
+    public List<? extends TlsIdentifiableUnion<TlsSupportedGroup, Integer>> groups() {
         return groups;
-    }
-
-    public Optional<TlsSupportedGroup> preferredGroup() {
-        return groups.isEmpty() ? Optional.empty() : Optional.ofNullable(groups.getFirst());
     }
 
     @Override

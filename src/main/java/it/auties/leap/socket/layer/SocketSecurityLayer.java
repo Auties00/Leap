@@ -1,22 +1,38 @@
 package it.auties.leap.socket.layer;
 
 import it.auties.leap.http.decoder.HttpDecodable;
-import it.auties.leap.tls.TlsConfig;
-import it.auties.leap.tls.TlsBuffer;
-import it.auties.leap.tls.TlsSpecificationException;
-import it.auties.leap.tls.crypto.key.TlsPreMasterSecretKey;
+import it.auties.leap.tls.certificate.TlsCertificatesHandler;
+import it.auties.leap.tls.certificate.TlsClientCertificateType;
+import it.auties.leap.tls.cipher.TlsCipher;
+import it.auties.leap.tls.cipher.exchange.TlsKeyExchange;
+import it.auties.leap.tls.cipher.wrapper.TlsCipherWrapper;
+import it.auties.leap.tls.config.TlsCompression;
+import it.auties.leap.tls.config.TlsConfig;
+import it.auties.leap.tls.config.TlsIdentifiableUnion;
+import it.auties.leap.tls.config.TlsMode;
+import it.auties.leap.tls.exception.TlsException;
 import it.auties.leap.tls.engine.TlsEngine;
-import it.auties.leap.tls.engine.TlsExtensionsProcessor;
+import it.auties.leap.tls.extension.TlsExtensionsProcessor;
+import it.auties.leap.tls.hash.TlsExchangeAuthenticator;
+import it.auties.leap.tls.hash.TlsHandshakeHash;
+import it.auties.leap.tls.key.*;
 import it.auties.leap.tls.message.TlsMessage;
 import it.auties.leap.tls.message.client.*;
+import it.auties.leap.tls.message.server.*;
+import it.auties.leap.tls.message.shared.AlertMessage;
 import it.auties.leap.tls.message.shared.ApplicationDataMessage;
 
+import java.io.ByteArrayOutputStream;
+import java.math.BigInteger;
+import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
-import java.util.HexFormat;
+import java.security.GeneralSecurityException;
+import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
+import java.util.concurrent.CopyOnWriteArrayList;
 
-import static it.auties.leap.tls.TlsBuffer.*;
+import static it.auties.leap.tls.BufferHelper.*;
 
 public sealed abstract class SocketSecurityLayer implements HttpDecodable {
     final SocketTransmissionLayer<?> transmissionLayer;
@@ -120,10 +136,385 @@ public sealed abstract class SocketSecurityLayer implements HttpDecodable {
     }
 
     private static final class Secure extends SocketSecurityLayer {
+        private static final int FRAGMENT_LENGTH = 18432;
+
         private final TlsConfig tlsConfig;
         private CompletableFuture<Void> sslHandshake;
-        private TlsEngine tlsEngine;
         private ByteBuffer tlsBuffer;
+
+        private final TlsConfig localConfig;
+        private final TlsRandomData localRandomData;
+        private final TlsSharedSecret localSessionId;
+
+        private final ByteArrayOutputStream messageDigestBuffer;
+        private final CopyOnWriteArrayList<TlsMessage.Type> processedMessageTypes;
+
+        private volatile TlsMode mode;
+
+        private final InetSocketAddress remoteAddress;
+        private volatile TlsRandomData remoteRandomData;
+        private volatile TlsSharedSecret remoteSessionId;
+
+        private volatile TlsCipher negotiatedCipher;
+        private volatile TlsHandshakeHash handshakeHash;
+        private volatile TlsCompression negotiatedCompression;
+
+        private volatile TlsCipherWrapper localCipher;
+        private volatile TlsCipherWrapper remoteCipher;
+
+        private volatile TlsExchangeAuthenticator localAuthenticator;
+        private volatile TlsExchangeAuthenticator remoteAuthenticator;
+
+        private volatile List<TlsClientCertificateType> remoteCertificateTypes;
+        private volatile List<TlsSignatureAndHashAlgorithm> remoteCertificateAlgorithms;
+        private volatile List<String> remoteCertificateAuthorities;
+
+        private volatile TlsKeyExchange remoteKeyParameters;
+        private volatile TlsIdentifiableUnion<TlsSignatureAndHashAlgorithm, Integer> remoteKeySignatureAlgorithm;
+        private volatile byte[] remoteKeySignature;
+
+        private volatile TlsKeyPair localKeyPair;
+
+        private volatile TlsCookie dtlsCookie;
+
+        private volatile List<TlsSupportedGroup> supportedGroups;
+        private volatile boolean extendedMasterSecret;
+
+        private volatile TlsSessionKeys sessionKeys;
+        private final Queue<ByteBuffer> bufferedMessages;
+
+        public TlsEngine(InetSocketAddress address, TlsConfig config) {
+            this.remoteAddress = address;
+            this.localConfig = config;
+            this.localRandomData = TlsRandomData.random();
+            this.localSessionId = TlsSharedSecret.random();
+            this.processedMessageTypes = new CopyOnWriteArrayList<>();
+            this.dtlsCookie = switch (config.version().protocol()) {
+                case TCP -> null;
+                case UDP -> TlsCookie.empty();
+            };
+            this.supportedGroups = TlsSupportedGroup.supportedGroups();
+            this.messageDigestBuffer = new ByteArrayOutputStream(); // TODO: Calculate optimal space
+            this.bufferedMessages = new LinkedList<>();
+        }
+
+        public TlsConfig config() {
+            return localConfig;
+        }
+
+        public Optional<TlsCipher> negotiatedCipher() {
+            return Optional.ofNullable(negotiatedCipher);
+        }
+
+        public Optional<TlsMode> selectedMode() {
+            return Optional.ofNullable(mode);
+        }
+
+        public void handleMessage(TlsMessage message) {
+            if(!message.isSupported(localConfig.version(), mode, message.source(), processedMessageTypes)) {
+                throw new TlsException("Unexpected message %s after %s".formatted(message.type(), processedMessageTypes.isEmpty() ? "null " : processedMessageTypes.getLast()));
+            }
+
+            processedMessageTypes.add(message.type());
+            System.out.println("Handling " + message.getClass().getName());
+            switch (message) {
+                case ServerHelloRequestMessage _ -> {
+                    // This message will be ignored by the client if the client is currently negotiating a session.
+                    // TODO: Implement logic
+                }
+
+                case ClientHelloMessage clientHelloMessage -> {
+                    switch (message.source()) {
+                        case LOCAL -> {
+                            if (!Arrays.equals(clientHelloMessage.randomData().data(), localRandomData.data())) {
+                                throw new TlsException("Local random data mismatch");
+                            }
+
+                            if (!Arrays.equals(clientHelloMessage.sessionId().data(), localSessionId.data())) {
+                                throw new TlsException("Local session id mismatch");
+                            }
+
+                            this.mode = TlsMode.CLIENT;
+                        }
+                        case REMOTE -> {
+                            this.remoteRandomData = clientHelloMessage.randomData();
+                            this.remoteSessionId = clientHelloMessage.sessionId();
+                        }
+                    }
+                }
+
+                case ServerHelloMessage serverHelloMessage -> {
+                    switch (message.source()) {
+                        case LOCAL -> {
+                            if (!Arrays.equals(serverHelloMessage.randomData().data(), localRandomData.data())) {
+                                throw new TlsException("Local random data mismatch");
+                            }
+
+                            if (!Arrays.equals(serverHelloMessage.sessionId().data(), localSessionId.data())) {
+                                throw new TlsException("Local session id mismatch");
+                            }
+
+                            this.mode = TlsMode.SERVER;
+                        }
+                        case REMOTE -> {
+                            this.remoteRandomData = serverHelloMessage.randomData();
+                            this.remoteSessionId = serverHelloMessage.sessionId();
+                        }
+                    }
+                    System.out.println("Selected cipher: " + serverHelloMessage.cipher());
+                    this.negotiatedCipher = serverHelloMessage.cipher();
+                    this.handshakeHash = TlsHandshakeHash.of(localConfig.version(), negotiatedCipher.hash());
+                    this.negotiatedCompression = serverHelloMessage.compression();
+                }
+
+                case ServerCertificateMessage certificateMessage -> {
+                    var certificates = certificateMessage.certificates();
+                    localConfig.certificatesHandler()
+                            .accept(remoteAddress, certificates, TlsCertificatesHandler.Source.SERVER);
+                }
+
+                case ServerCertificateRequestMessage certificateRequestMessage -> {
+                    this.remoteCertificateTypes = certificateRequestMessage.types();
+                    this.remoteCertificateAlgorithms = certificateRequestMessage.algorithms();
+                    this.remoteCertificateAuthorities = certificateRequestMessage.authorities();
+                }
+
+                case ServerKeyExchangeMessage serverKeyExchangeMessage -> {
+                    this.remoteKeyParameters = serverKeyExchangeMessage.keyExchange();
+                    this.remoteKeySignatureAlgorithm = serverKeyExchangeMessage.signatureAlgorithm();
+                    this.remoteKeySignature = serverKeyExchangeMessage.signature();
+                }
+
+                case ServerFinishedMessage serverFinishedMessage -> {
+                    if(mode == TlsMode.CLIENT) {
+                        // TODO: Validate
+                    }
+                }
+
+                case ClientKeyExchangeMessage _ -> {
+                    var preMasterSecret = createPreMasterSecret();
+                    var masterSecret = TlsMasterSecretKey.of(
+                            mode,
+                            localConfig.version(),
+                            negotiatedCipher,
+                            preMasterSecret,
+                            extendedMasterSecret ? handshakeHash().orElse(null) : null,
+                            localRandomData,
+                            remoteRandomData
+                    );
+                    this.sessionKeys = TlsSessionKeys.of(
+                            mode,
+                            localConfig.version(),
+                            negotiatedCipher,
+                            masterSecret,
+                            localRandomData,
+                            remoteRandomData
+                    );
+                    this.localAuthenticator = TlsExchangeAuthenticator.of(
+                            localConfig.version(),
+                            negotiatedCipher,
+                            sessionKeys.localMacKey()
+                    );
+                    this.remoteAuthenticator = TlsExchangeAuthenticator.of(
+                            localConfig.version(),
+                            negotiatedCipher,
+                            sessionKeys.remoteMacKey()
+                    );
+                    this.localCipher = TlsCipherWrapper.of(
+                            localConfig.version(),
+                            negotiatedCipher,
+                            localAuthenticator,
+                            sessionKeys,
+                            mode
+                    );
+                    this.remoteCipher = TlsCipherWrapper.of(
+                            localConfig.version(),
+                            negotiatedCipher,
+                            remoteAuthenticator,
+                            sessionKeys,
+                            mode
+                    );
+                }
+
+                case ClientCertificateMessage certificateMessage -> {
+                    var certificates = certificateMessage.certificates();
+                    localConfig.certificatesHandler()
+                            .accept(remoteAddress, certificates, TlsCertificatesHandler.Source.CLIENT);
+                }
+
+                case ClientFinishedMessage clientFinishedMessage -> {
+                    if(mode == TlsMode.SERVER) {
+                        // TODO: Validate
+                    }
+                }
+
+                case ApplicationDataMessage applicationDataMessage -> {
+                    if(message.source() == TlsMessage.Source.REMOTE) {
+                        bufferedMessages.add(applicationDataMessage.message());
+                    }
+                }
+
+                case AlertMessage alertMessage -> throw new IllegalArgumentException("Received alert: " + alertMessage);
+
+                default -> {}
+            }
+        }
+
+        private byte[] createPreMasterSecret() {
+            try {
+                if(((TlsKeyExchange.Server) remoteKeyParameters) == null) {
+                    throw new TlsException("Missing remote key parameters");
+                }
+
+                return (TlsKeyExchange.Server) remoteKeyParameters);
+            }catch (GeneralSecurityException exception) {
+                exception.printStackTrace();
+                return null;
+            }
+        }
+
+        private static BigInteger convertKeyToJca(byte[] arr) {
+            var result = new byte[32];
+            var padding = result.length - arr.length;
+            for(var i = 0; i < arr.length; i++) {
+                result[i + padding] = arr[arr.length - (i + 1)];
+            }
+
+            return new BigInteger(result);
+        }
+
+        public boolean isHandshakeComplete() {
+            return hasProcessedHandshakeMessage(TlsMessage.Type.SERVER_FINISHED);
+        }
+
+        public boolean isLocalCipherEnabled() {
+            return switch (mode) {
+                case CLIENT -> hasProcessedHandshakeMessage(TlsMessage.Type.CLIENT_CHANGE_CIPHER_SPEC) && hasProcessedHandshakeMessage(TlsMessage.Type.CLIENT_FINISHED);
+                case SERVER -> hasProcessedHandshakeMessage(TlsMessage.Type.SERVER_CHANGE_CIPHER_SPEC) && hasProcessedHandshakeMessage(TlsMessage.Type.SERVER_HELLO_DONE);
+                case null -> false;
+            };
+        }
+
+        public boolean isRemoteCipherEnabled() {
+            return switch (mode) {
+                case CLIENT -> hasProcessedHandshakeMessage(TlsMessage.Type.SERVER_CHANGE_CIPHER_SPEC) && hasProcessedHandshakeMessage(TlsMessage.Type.SERVER_HELLO_DONE);
+                case SERVER -> hasProcessedHandshakeMessage(TlsMessage.Type.CLIENT_CHANGE_CIPHER_SPEC) && hasProcessedHandshakeMessage(TlsMessage.Type.CLIENT_FINISHED);
+                case null -> false;
+            };
+        }
+
+        public boolean hasReceivedFragments() {
+            return hasProcessedHandshakeMessage(TlsMessage.Type.APPLICATION_DATA);
+        }
+
+        public boolean hasProcessedHandshakeMessage(TlsMessage.Type type) {
+            return processedMessageTypes.contains(type);
+        }
+
+        public TlsRandomData localRandomData() {
+            return localRandomData;
+        }
+
+        public TlsSharedSecret localSessionId() {
+            return localSessionId;
+        }
+
+        public Optional<InetSocketAddress> remoteAddress() {
+            return Optional.ofNullable(remoteAddress);
+        }
+
+        public TlsKeyPair createKeyPair() {
+            if(localKeyPair != null) {
+                throw new TlsException("Cannot generate keypair: a keypair is already linked to this engine");
+            }
+
+            var preferredGroup = supportedGroups.isEmpty() ? null : supportedGroups.getFirst();
+            if(preferredGroup == null) {
+                throw new TlsException("Cannot generate keypair, no supported groups found: make sure that you are not providing an empty list for TlsExtension.supportedGroups(...)");
+            }
+
+            this.localKeyPair = TlsKeyPair.random(supportedGroups.getFirst());
+            return localKeyPair;
+        }
+
+        public Optional<TlsKeyPair> localKeyPair() {
+            return Optional.ofNullable(localKeyPair);
+        }
+
+        public Optional<TlsCookie> dtlsCookie() {
+            return Optional.ofNullable(dtlsCookie);
+        }
+
+        public void setSupportedGroups(List<TlsSupportedGroup> supportedGroups) {
+            this.supportedGroups = supportedGroups;
+        }
+
+        public void enableExtendedMasterSecret() {
+            this.extendedMasterSecret = true;
+        }
+
+        public Optional<byte[]> handshakeHash() {
+            if(handshakeHash == null) {
+                return Optional.empty();
+            }else {
+                return Optional.ofNullable(handshakeHash.digest());
+            }
+        }
+
+        public Optional<byte[]> handshakeVerificationData(TlsMessage.Source source) {
+            if(handshakeHash == null) {
+                return Optional.empty();
+            }else {
+                return Optional.ofNullable(handshakeHash.finish(this, source));
+            }
+        }
+
+        public void updateHandshakeHash(ByteBuffer buffer, int offset) {
+            var length = buffer.remaining() - offset;
+            for(var i = 0; i < length; i++) {
+                messageDigestBuffer.write(buffer.get(buffer.position() + offset + i));
+            }
+        }
+
+        public void digestHandshakeHash() {
+            if(handshakeHash != null) {
+                handshakeHash.update(messageDigestBuffer.toByteArray());
+                messageDigestBuffer.reset();
+            }
+        }
+
+        public Optional<TlsSessionKeys> sessionKeys() {
+            return Optional.ofNullable(sessionKeys);
+        }
+
+        public OptionalInt explicitNonceLength() {
+            return localCipher != null ? OptionalInt.of(localCipher.nonceLength()) : OptionalInt.empty();
+        }
+
+        public void encrypt(TlsMessage.ContentType contentType, ByteBuffer input, ByteBuffer output) {
+            if(localCipher == null) {
+                throw new TlsException("Cannot encrypt a message before enabling the local cipher");
+            }
+
+            localCipher.encrypt(contentType, input, output);
+        }
+
+        public void decrypt(TlsMessage.ContentType contentType, ByteBuffer input, ByteBuffer output) {
+            if(remoteCipher == null) {
+                throw new TlsException("Cannot decrypt a message before enabling the remote cipher");
+            }
+
+            remoteCipher.decrypt(contentType, input, output, null);
+        }
+
+        public Optional<ByteBuffer> lastBufferedMessage() {
+            return bufferedMessages.isEmpty() ? Optional.empty() : Optional.ofNullable(bufferedMessages.poll());
+        }
+
+        public void pollBufferedMessage() {
+            bufferedMessages.poll();
+        }
+
         private Secure(SocketTransmissionLayer<?> channel, TlsConfig tlsConfig) {
             super(channel);
             this.tlsConfig = tlsConfig;
@@ -147,7 +538,7 @@ public sealed abstract class SocketSecurityLayer implements HttpDecodable {
                     }
 
                     this.tlsEngine = new TlsEngine(transmissionLayer.address, tlsConfig);
-                    this.tlsBuffer = ByteBuffer.allocate(TlsBuffer.FRAGMENT_LENGTH);
+                    this.tlsBuffer = ByteBuffer.allocate(FRAGMENT_LENGTH);
                     return this.sslHandshake = sendClientHello()
                             .thenCompose(_ -> continueHandshake());
                 }
@@ -227,43 +618,6 @@ public sealed abstract class SocketSecurityLayer implements HttpDecodable {
             System.out.println("Sending client key exchange");
             var cipher = tlsEngine.negotiatedCipher()
                     .orElseThrow(() -> new IllegalStateException("Expected a cipher to be already negotiated"));
-            var parameters = switch (cipher.keyExchange()) {
-                case DH -> {
-                    var keyPair = tlsEngine.createKeyPair();
-                    yield new TlsPreMasterSecretKey.DH(keyPair.rawPublicKey());
-                }
-                case DHE -> {
-                    var keyPair = tlsEngine.createKeyPair();
-                    yield new TlsPreMasterSecretKey.DHE(keyPair.rawPublicKey());
-                }
-                case ECCPWD -> null;
-                case ECDH -> {
-                    var keyPair = tlsEngine.localKeyPair()
-                            .orElseThrow(() -> new TlsSpecificationException("Cannot send key pair as it wasn't generated"));
-                    yield new TlsPreMasterSecretKey.ECDH(keyPair.rawPublicKey());
-                }
-                case ECDHE -> {
-                    var keyPair = tlsEngine.createKeyPair();
-                    yield new TlsPreMasterSecretKey.ECDHE(keyPair.rawPublicKey());
-                }
-                case GOSTR341112_256 -> null;
-                case KRB5 -> null;
-                case NULL -> new TlsPreMasterSecretKey.NULL();
-                case PSK -> null;
-                case RSA -> {
-                    /*
-                    var psk = new byte[0];
-                    var data = localRandomData.data();
-                    var digest = TlsHashFactory.of(negotiatedCipher.hash());
-                    digest.update(psk);
-                    digest.update(data);
-                    this.localPreMasterSecret = digest.digest();
-                    return localPreMasterSecret;
-                     */
-                    yield null;
-                }
-                case SRP -> null;
-            };
             var keyExchangeMessage = new ClientKeyExchangeMessage(
                     tlsEngine.config().version(),
                     TlsMessage.Source.LOCAL,
@@ -309,7 +663,7 @@ public sealed abstract class SocketSecurityLayer implements HttpDecodable {
 
         private CompletableFuture<Void> sendClientFinish() {
             var handshakeHash = tlsEngine.handshakeVerificationData(TlsMessage.Source.LOCAL)
-                    .orElseThrow(() -> new TlsSpecificationException("Missing handshake"));
+                    .orElseThrow(() -> new TlsException("Missing handshake"));
             var finishedMessage = new ClientFinishedMessage(
                     tlsEngine.config().version(),
                     TlsMessage.Source.LOCAL,

@@ -1,32 +1,31 @@
 package it.auties.leap.tls.extension.concrete;
 
-import it.auties.leap.tls.TlsPskKeyExchangeMode;
-import it.auties.leap.tls.TlsVersion;
-import it.auties.leap.tls.extension.TlsConcreteExtension;
+import it.auties.leap.tls.config.TlsIdentifiableUnion;
+import it.auties.leap.tls.extension.TlsExtension;
+import it.auties.leap.tls.key.TlsPskKeyExchangeMode;
+import it.auties.leap.tls.config.TlsVersion;
 
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
-import static it.auties.leap.tls.TlsBuffer.*;
+import static it.auties.leap.tls.BufferHelper.*;
 
-public final class PskExchangeModesExtension extends TlsConcreteExtension {
+public final class PskExchangeModesExtension extends TlsExtension.Concrete {
     public static final int EXTENSION_TYPE = 0x002D;
 
-    private final List<TlsPskKeyExchangeMode> modes;
-    public PskExchangeModesExtension(List<TlsPskKeyExchangeMode> modes) {
+    private final List<? extends TlsIdentifiableUnion<TlsPskKeyExchangeMode, Byte>> modes;
+    public PskExchangeModesExtension(List<? extends TlsIdentifiableUnion<TlsPskKeyExchangeMode, Byte>> modes) {
        this.modes = modes;
     }
 
     public static Optional<PskExchangeModesExtension> of(TlsVersion version, ByteBuffer buffer, int extensionLength) {
         var modesSize = readLittleEndianInt16(buffer);
-        var modes = new ArrayList<TlsPskKeyExchangeMode>(modesSize);
+        var modes = new ArrayList<TlsIdentifiableUnion<TlsPskKeyExchangeMode, Byte>>(modesSize);
         for(var i = 0; i < modesSize; i++) {
             var modeId = readLittleEndianInt8(buffer);
-            var mode = TlsPskKeyExchangeMode.of(modeId)
-                    .orElseThrow(() -> new IllegalArgumentException("Unknown tls psk key exchange mode: " + modeId));
-            modes.add(mode);
+            modes.add(TlsIdentifiableUnion.of(modeId));
         }
         var extension = new PskExchangeModesExtension(modes);
         return Optional.of(extension);

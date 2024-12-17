@@ -1,8 +1,8 @@
 package it.auties.leap.tls.message.client;
 
-import it.auties.leap.tls.TlsBuffer;
-import it.auties.leap.tls.TlsVersion;
-import it.auties.leap.tls.engine.TlsEngineMode;
+import it.auties.leap.tls.BufferHelper;
+import it.auties.leap.tls.config.TlsVersion;
+import it.auties.leap.tls.config.TlsMode;
 import it.auties.leap.tls.message.TlsHandshakeMessage;
 
 import java.nio.ByteBuffer;
@@ -25,15 +25,15 @@ public final class ClientChangeCipherSpecMessage extends TlsHandshakeMessage {
     }
 
     @Override
-    public boolean isSupported(TlsVersion version, TlsEngineMode mode, Source source, List<Type> precedingMessages) {
+    public boolean isSupported(TlsVersion version, TlsMode mode, Source source, List<Type> precedingMessages) {
         if(precedingMessages.isEmpty() || (precedingMessages.getLast() != Type.CLIENT_KEY_EXCHANGE && precedingMessages.getLast() != Type.CLIENT_CERTIFICATE_VERIFY)) {
             return false;
         }
 
         return switch (version.protocol()) {
             case TCP -> switch (source) {
-                case LOCAL -> mode == TlsEngineMode.CLIENT;
-                case REMOTE -> mode == TlsEngineMode.SERVER;
+                case LOCAL -> mode == TlsMode.CLIENT;
+                case REMOTE -> mode == TlsMode.SERVER;
             };
             case UDP -> false;
         };
@@ -56,7 +56,7 @@ public final class ClientChangeCipherSpecMessage extends TlsHandshakeMessage {
 
     @Override
     public void serializeHandshakePayload(ByteBuffer buffer) {
-        TlsBuffer.writeLittleEndianInt8(buffer, id());
+        BufferHelper.writeLittleEndianInt8(buffer, id());
     }
 
     @Override

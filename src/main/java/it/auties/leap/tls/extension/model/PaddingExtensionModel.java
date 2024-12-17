@@ -1,15 +1,15 @@
 package it.auties.leap.tls.extension.model;
 
-import it.auties.leap.tls.TlsVersion;
-import it.auties.leap.tls.extension.TlsModelExtension;
+import it.auties.leap.tls.config.TlsVersion;
+import it.auties.leap.tls.extension.TlsExtension;
 import it.auties.leap.tls.extension.concrete.PaddingExtension;
 
 import java.util.List;
 import java.util.Optional;
 
-import static it.auties.leap.tls.TlsBuffer.INT16_LENGTH;
+import static it.auties.leap.tls.BufferHelper.INT16_LENGTH;
 
-public final class PaddingExtensionModel extends TlsModelExtension<PaddingExtensionModel.Config, PaddingExtension> {
+public final class PaddingExtensionModel extends TlsExtension.Model<PaddingExtensionModel, PaddingExtensionModel.Config, PaddingExtension> {
     private final int targetLength;
     public PaddingExtensionModel(int targetLength) {
         this.targetLength = targetLength;
@@ -26,7 +26,7 @@ public final class PaddingExtensionModel extends TlsModelExtension<PaddingExtens
         return Optional.of(result);
     }
 
-    public record Config(int actualLength) implements TlsModelExtension.Config {
+    public record Config(int actualLength) implements Model.Config<PaddingExtensionModel> {
 
     }
 

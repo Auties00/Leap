@@ -1,22 +1,20 @@
 package it.auties.leap.tls.message.client;
 
-import it.auties.leap.tls.TlsCipher;
-import it.auties.leap.tls.TlsCompression;
-import it.auties.leap.tls.TlsVersion;
-import it.auties.leap.tls.TlsVersionId;
-import it.auties.leap.tls.engine.TlsEngineMode;
-import it.auties.leap.tls.extension.TlsConcreteExtension;
-import it.auties.leap.tls.crypto.key.TlsCookie;
-import it.auties.leap.tls.crypto.key.TlsRandomData;
-import it.auties.leap.tls.crypto.key.TlsSharedSecret;
-import it.auties.leap.tls.message.TlsMessage;
+import it.auties.leap.tls.config.TlsVersion;
+import it.auties.leap.tls.config.TlsVersionId;
+import it.auties.leap.tls.extension.TlsExtension;
+import it.auties.leap.tls.key.TlsCookie;
+import it.auties.leap.tls.key.TlsRandomData;
+import it.auties.leap.tls.key.TlsSharedSecret;
+import it.auties.leap.tls.config.TlsMode;
 import it.auties.leap.tls.message.TlsHandshakeMessage;
+import it.auties.leap.tls.message.TlsMessage;
 
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.List;
 
-import static it.auties.leap.tls.TlsBuffer.*;
+import static it.auties.leap.tls.BufferHelper.*;
 
 public final class ClientHelloMessage extends TlsHandshakeMessage {
     public static final int ID = 0x01;
@@ -24,29 +22,24 @@ public final class ClientHelloMessage extends TlsHandshakeMessage {
     private final TlsRandomData randomData;
     private final TlsSharedSecret sessionId;
     private final TlsCookie cookie;
-    private final List<TlsCipher> ciphers;
-    private final List<TlsCompression> compressions;
-    private final List<TlsConcreteExtension> extensions;
+    private final List<Integer> ciphers;
+    private final List<Byte> compressions;
+    private final List<TlsExtension.Concrete> extensions;
     private final int extensionsLength;
 
-    public ClientHelloMessage(TlsVersion tlsVersion, Source source, TlsRandomData randomData, TlsSharedSecret sessionId, TlsCookie cookie, List<TlsCipher> ciphers, List<TlsCompression> compressions, List<TlsConcreteExtension> extensions, int extensionsLength) {
+    public ClientHelloMessage(TlsVersion tlsVersion, Source source, TlsRandomData randomData, TlsSharedSecret sessionId, TlsCookie cookie, List<Integer> ciphers, List<Byte> compressions, List<TlsExtension.Concrete> extensions, int extensionsLength) {
         super(tlsVersion, source);
         this.randomData = randomData;
         this.sessionId = sessionId;
         this.cookie = cookie;
         this.ciphers = ciphers;
         this.compressions = compressions;
-        this.extensions = new ArrayList<>();
-        for(var extension : extensions) {
-            if(extension instanceof TlsConcreteExtension concreteExtension) {
-                this.extensions.add(concreteExtension);
-            }
-        }
+        this.extensions = extensions;
         this.extensionsLength = extensionsLength;
     }
 
     public static TlsMessage of(TlsVersion version, Source source, ByteBuffer buffer) {
-        var versionId = new TlsVersionId(readLittleEndianInt16(buffer));
+        var versionId = TlsVersionId.of(readLittleEndianInt16(buffer));
         var tlsVersion = TlsVersion.of(versionId)
                 .orElseThrow(() -> new IllegalArgumentException("Unknown version: " + versionId));
         var clientRandom = TlsRandomData.of(buffer);
@@ -54,32 +47,22 @@ public final class ClientHelloMessage extends TlsHandshakeMessage {
         var cookie = TlsCookie.of(version, buffer)
                 .orElse(null);
         var ciphersLength = readLittleEndianInt16(buffer);
-        var ciphers = new ArrayList<TlsCipher>();
+        var ciphers = new ArrayList<Integer>();
         try(var _ = scopedRead(buffer, ciphersLength)) {
             while (buffer.hasRemaining()) {
                 var cipherId = readLittleEndianInt16(buffer);
-                var cipher = TlsCipher.of(cipherId);
-                if(cipher.isEmpty()) {
-                    continue;
-                }
-
-                ciphers.add(cipher.get());
+                ciphers.add(cipherId);
             }
         }
-        var compressions = new ArrayList<TlsCompression>();
+        var compressions = new ArrayList<Byte>();
         var compressionsLength = readLittleEndianInt16(buffer);
         try(var _ = scopedRead(buffer, compressionsLength)) {
             while (buffer.hasRemaining()) {
                 var compressionId = readLittleEndianInt8(buffer);
-                var compression = TlsCompression.of(compressionId);
-                if(compression.isEmpty()) {
-                    continue;
-                }
-
-                compressions.add(compression.get());
+                compressions.add(compressionId);
             }
         }
-        var extensions = new ArrayList<TlsConcreteExtension>();
+        var extensions = new ArrayList<TlsExtension.Concrete>();
         var extensionsLength = readLittleEndianInt16(buffer);
         try(var _ = scopedRead(buffer, extensionsLength)) {
             while (buffer.hasRemaining()) {
@@ -89,7 +72,7 @@ public final class ClientHelloMessage extends TlsHandshakeMessage {
                     continue;
                 }
 
-                var extension = TlsConcreteExtension.ofServer(tlsVersion, extensionType, buffer, extensionLength);
+                var extension = TlsExtension.Concrete.ofServer(tlsVersion, extensionType, buffer, extensionLength);
                 if (extension.isEmpty()) {
                     continue;
                 }
@@ -111,11 +94,11 @@ public final class ClientHelloMessage extends TlsHandshakeMessage {
     }
 
     @Override
-    public boolean isSupported(TlsVersion version, TlsEngineMode mode, Source source, List<Type> precedingMessages) {
+    public boolean isSupported(TlsVersion version, TlsMode mode, Source source, List<Type> precedingMessages) {
         return switch (version.protocol()) {
             case TCP -> switch (source) {
                 case LOCAL -> precedingMessages.isEmpty();
-                case REMOTE -> mode == TlsEngineMode.SERVER;
+                case REMOTE -> mode == TlsMode.SERVER;
             };
             case UDP -> false;
         };
@@ -146,12 +129,12 @@ public final class ClientHelloMessage extends TlsHandshakeMessage {
         var ciphersLength = ciphers.size() * INT16_LENGTH;
         writeLittleEndianInt16(payload, ciphersLength);
         for (var cipher : ciphers) {
-            writeLittleEndianInt16(payload, cipher.id());
+            writeLittleEndianInt16(payload, cipher);
         }
 
         writeLittleEndianInt8(payload, compressions.size());
         for(var compression : compressions) {
-            writeLittleEndianInt8(payload, compression.id());
+            writeLittleEndianInt8(payload, compression);
         }
 
         if(!extensions.isEmpty()) {
@@ -169,7 +152,7 @@ public final class ClientHelloMessage extends TlsHandshakeMessage {
                 + INT16_LENGTH + extensionsLength;
     }
 
-    public static int getMessagePayloadLength(TlsCookie cookie, List<TlsCipher> ciphers, List<TlsCompression> compressions) {
+    public static int getMessagePayloadLength(TlsCookie cookie, List<Integer> ciphers, List<Byte> compressions) {
         return INT16_LENGTH
                 + TlsRandomData.length()
                 + INT8_LENGTH + TlsSharedSecret.length()
