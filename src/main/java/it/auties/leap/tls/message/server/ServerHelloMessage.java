@@ -1,10 +1,10 @@
 package it.auties.leap.tls.message.server;
 
-import it.auties.leap.tls.extension.TlsExtension;
+import it.auties.leap.tls.config.TlsSource;
 import it.auties.leap.tls.config.TlsVersion;
+import it.auties.leap.tls.extension.TlsExtension;
 import it.auties.leap.tls.key.TlsRandomData;
 import it.auties.leap.tls.key.TlsSharedSecret;
-import it.auties.leap.tls.config.TlsMode;
 import it.auties.leap.tls.message.TlsHandshakeMessage;
 
 import java.nio.ByteBuffer;
@@ -21,7 +21,7 @@ public final class ServerHelloMessage extends TlsHandshakeMessage {
     private final int cipher;
     private final int compression;
     private final List<TlsExtension> extensions;
-    public ServerHelloMessage(TlsVersion version, Source source, TlsRandomData randomData, TlsSharedSecret sessionId, int cipher, List<TlsExtension> extensions, int compression) {
+    public ServerHelloMessage(TlsVersion version, TlsSource source, TlsRandomData randomData, TlsSharedSecret sessionId, int cipher, List<TlsExtension> extensions, int compression) {
         super(version, source);
         this.randomData = randomData;
         this.sessionId = sessionId;
@@ -50,7 +50,7 @@ public final class ServerHelloMessage extends TlsHandshakeMessage {
         return extensions;
     }
 
-    public static ServerHelloMessage of(TlsVersion version, Source source, ByteBuffer buffer) {
+    public static ServerHelloMessage of(TlsVersion version, List<TlsExtension.Concrete.Decoder> decoders, TlsSource source, ByteBuffer buffer) {
         var tlsVersionId = readLittleEndianInt16(buffer);
         var tlsVersion = TlsVersion.of(tlsVersionId)
                 .orElseThrow(() -> new IllegalArgumentException("Cannot decode TLS message, unknown protocol version: " + tlsVersionId));
@@ -74,11 +74,13 @@ public final class ServerHelloMessage extends TlsHandshakeMessage {
                         continue;
                     }
 
-                    var extension = TlsExtension.Concrete.ofServer(tlsVersion, extensionType, buffer, extensionLength);
-                    if (extension.isEmpty()) {
-                        continue;
+                    for(var decoder : decoders) {
+                        var extension = decoder.decodeServer(tlsVersion, extensionType, buffer, extensionLength);
+                        if (extension.isPresent()) {
+                            extensions.add(extension.get());
+                            break;
+                        }
                     }
-                    extensions.add(extension.get());
                 }
             }
         }
@@ -93,17 +95,6 @@ public final class ServerHelloMessage extends TlsHandshakeMessage {
     @Override
     public Type type() {
         return Type.SERVER_HELLO;
-    }
-
-    @Override
-    public boolean isSupported(TlsVersion version, TlsMode mode, Source source, List<Type> precedingMessages) {
-        return switch (version.protocol()) {
-            case TCP -> switch (source) {
-                case LOCAL -> precedingMessages.isEmpty();
-                case REMOTE -> mode == TlsMode.CLIENT;
-            };
-            case UDP -> false;
-        };
     }
 
     @Override

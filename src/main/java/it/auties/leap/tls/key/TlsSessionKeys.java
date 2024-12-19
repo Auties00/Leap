@@ -2,7 +2,6 @@ package it.auties.leap.tls.key;
 
 import it.auties.leap.tls.cipher.TlsCipher;
 import it.auties.leap.tls.BufferHelper;
-import it.auties.leap.tls.hash.TlsHashType;
 import it.auties.leap.tls.config.TlsVersion;
 import it.auties.leap.tls.hash.TlsPRF;
 import it.auties.leap.tls.hash.TlsHash;
@@ -19,11 +18,11 @@ import static it.auties.leap.tls.BufferHelper.*;
 public record TlsSessionKeys(
         TlsMasterSecretKey masterSecretKey,
 
-        SecretKey localMacKey,
-        SecretKey remoteMacKey,
+        byte[] localMacKey,
+        byte[] remoteMacKey,
 
-        SecretKey localCipherKey,
-        SecretKey remoteCipherKey,
+        byte[] localCipherKey,
+        byte[] remoteCipherKey,
 
         byte[] localIv,
         byte[] remoteIv
@@ -66,8 +65,8 @@ public record TlsSessionKeys(
         var keyBlockLen = (macLength + keyLength + (expandedKeyLength != -1 ? 0 : ivLength)) << 2;
         var keyBlock = generateBlock(version, cipher, masterSecret.data(), clientRandom, serverRandom, keyBlockLen);
 
-        var clientMacKey = macLength != 0 ? new SecretKeySpec(readBytes(keyBlock, macLength), "RAW") : null;
-        var serverMacKey = macLength != 0 ? new SecretKeySpec(readBytes(keyBlock, macLength), "RAW") : null;
+        var clientMacKey = macLength != 0 ? readBytes(keyBlock, macLength) : null;
+        var serverMacKey = macLength != 0 ? readBytes(keyBlock, macLength) : null;
 
         if (cipher.type() == TlsCipher.Type.NULL) {
             return new TlsSessionKeys(
@@ -82,9 +81,9 @@ public record TlsSessionKeys(
         }
 
         var clientKeyBytes = readBytes(keyBlock, keyLength);
-        var clientKey = new SecretKeySpec(clientKeyBytes, "AES");
+        var clientKey = clientKeyBytes;
         var serverKeyBytes = readBytes(keyBlock, keyLength);
-        var serverKey = new SecretKeySpec(serverKeyBytes, "AES");
+        var serverKey = serverKeyBytes;
 
         if (expandedKeyLength == -1) {
             var clientIv = BufferHelper.readBytes(keyBlock, ivLength);
@@ -101,16 +100,16 @@ public record TlsSessionKeys(
         }
 
         if(version == TlsVersion.SSL30) {
-            var md5 = TlsHash.of(TlsHashType.MD5);
+            var md5 = TlsHash.md5();
             md5.update(clientKeyBytes);
             md5.update(clientRandom);
             md5.update(serverRandom);
-            var clientCipherKey = new SecretKeySpec(md5.digest(true, 0, expandedKeyLength), "AES");
+            var clientCipherKey = md5.digest(true, 0, expandedKeyLength);
 
             md5.update(serverKeyBytes);
             md5.update(serverRandom);
             md5.update(clientRandom);
-            var serverCipherKey = new SecretKeySpec(md5.digest(true, 0, expandedKeyLength), "AES");
+            var serverCipherKey = md5.digest(true, 0, expandedKeyLength);
 
             if (ivLength == 0) {
                 return new TlsSessionKeys(
@@ -145,8 +144,8 @@ public record TlsSessionKeys(
 
         if(version == TlsVersion.TLS10) {
             var seed = TlsPRF.seed(clientRandom, serverRandom);
-            var clientCipherKey = new SecretKeySpec(TlsPRF.tls10Prf(clientKeyBytes, LABEL_CLIENT_WRITE_KEY, seed, expandedKeyLength), "AES");
-            var serverCipherKey = new SecretKeySpec(TlsPRF.tls10Prf(serverKeyBytes, LABEL_SERVER_WRITE_KEY, seed, expandedKeyLength), "AES");
+            var clientCipherKey = TlsPRF.tls10Prf(clientKeyBytes, LABEL_CLIENT_WRITE_KEY, seed, expandedKeyLength);
+            var serverCipherKey = TlsPRF.tls10Prf(serverKeyBytes, LABEL_SERVER_WRITE_KEY, seed, expandedKeyLength);
 
             if (ivLength == 0) {
                 return new TlsSessionKeys(
@@ -180,8 +179,8 @@ public record TlsSessionKeys(
     private static ByteBuffer generateBlock(TlsVersion version, TlsCipher cipher, byte[] masterSecret, byte[] clientRandom, byte[] serverRandom, int keyBlockLen) {
         return switch (version) {
             case SSL30 -> {
-                var md5 = TlsHash.of(TlsHashType.MD5);
-                var sha = TlsHash.of(TlsHashType.SHA1);
+                var md5 = TlsHash.md5();
+                var sha = TlsHash.sha1();
                 var keyBlock = new byte[keyBlockLen];
                 var tmp = new byte[20];
                 for (int i = 0, remaining = keyBlockLen; remaining > 0; i++, remaining -= 16) {
@@ -220,7 +219,7 @@ public record TlsSessionKeys(
                         LABEL_KEY_EXPANSION,
                         seed,
                         keyBlockLen,
-                        cipher.hash()
+                        cipher.hashSupplier().get()
                 );
                 yield ByteBuffer.wrap(result);
             }

@@ -1,9 +1,10 @@
 package it.auties.leap.tls.extension;
 
+import it.auties.leap.tls.config.TlsConfig;
 import it.auties.leap.tls.config.TlsEcPointFormat;
-import it.auties.leap.tls.config.TlsIdentifiableUnion;
 import it.auties.leap.tls.config.TlsVersion;
 import it.auties.leap.tls.config.TlsVersionId;
+import it.auties.leap.tls.extension.concrete.ALPNExtension;
 import it.auties.leap.tls.extension.concrete.*;
 import it.auties.leap.tls.extension.model.ClientSupportedVersionsModel;
 import it.auties.leap.tls.extension.model.KeyShareExtensionModel;
@@ -13,13 +14,12 @@ import it.auties.leap.tls.key.TlsPskKeyExchangeMode;
 import it.auties.leap.tls.key.TlsSignatureAndHashAlgorithm;
 import it.auties.leap.tls.key.TlsSupportedGroup;
 
+import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
-import java.util.List;
-import java.util.Optional;
-import java.util.Set;
+import java.util.*;
+import java.util.function.Predicate;
 
 import static it.auties.leap.tls.BufferHelper.INT16_LENGTH;
-import static it.auties.leap.tls.BufferHelper.scopedRead;
 
 public sealed interface TlsExtension permits TlsExtension.Concrete, TlsExtension.Model {
     static TlsExtension extendedMasterSecret() {
@@ -67,7 +67,7 @@ public sealed interface TlsExtension permits TlsExtension.Concrete, TlsExtension
 
     static TlsExtension ecPointFormats(List<TlsEcPointFormat> formats) {
         var wrappedFormats = formats.stream()
-                .map(TlsIdentifiableUnion::of)
+                .map(TlsEcPointFormat::id)
                 .toList();
         return new ECPointFormatsExtension(wrappedFormats);
     }
@@ -78,7 +78,7 @@ public sealed interface TlsExtension permits TlsExtension.Concrete, TlsExtension
 
     static TlsExtension supportedGroups(List<TlsSupportedGroup> groups) {
         var wrappedGroups = groups.stream()
-                .map(TlsIdentifiableUnion::of)
+                .map(TlsSupportedGroup::id)
                 .toList();
         return new SupportedGroupsExtension(wrappedGroups);
     }
@@ -89,14 +89,14 @@ public sealed interface TlsExtension permits TlsExtension.Concrete, TlsExtension
 
     static TlsExtension signatureAlgorithms(List<TlsSignatureAndHashAlgorithm> algorithms) {
         var wrappedAlgorithms = algorithms.stream()
-                .map(TlsIdentifiableUnion::of)
+                .map(TlsSignatureAndHashAlgorithm::id)
                 .toList();
         return new SignatureAlgorithmsExtension(wrappedAlgorithms);
     }
 
     static TlsExtension pskExchangeModes(List<TlsPskKeyExchangeMode> modes) {
         var wrappedModes = modes.stream()
-                .map(TlsIdentifiableUnion::of)
+                .map(TlsPskKeyExchangeMode::id)
                 .toList();
         return new PskExchangeModesExtension(wrappedModes);
     }
@@ -175,17 +175,13 @@ public sealed interface TlsExtension permits TlsExtension.Concrete, TlsExtension
 
     List<TlsVersion> versions();
 
-    non-sealed abstract class Model<S extends Model<S, C, R>, C extends Model.Config<S>, R extends Concrete> implements TlsExtension {
-        public abstract Optional<R> create(C config);
-        public abstract List<TlsVersion> versions();
-        public abstract Class<R> resultType();
-        public abstract Dependencies dependencies();
+    non-sealed interface Model<P extends Concrete> extends TlsExtension {
+        Optional<P> create(Context context);
+        List<TlsVersion> versions();
+        Class<P> resultType();
+        Dependencies dependencies();
 
-        public interface Config<S> {
-
-        }
-
-        public sealed interface Dependencies {
+        sealed interface Dependencies {
             static None none() {
                 return None.INSTANCE;
             }
@@ -224,61 +220,58 @@ public sealed interface TlsExtension permits TlsExtension.Concrete, TlsExtension
                 }
             }
         }
+
+        final class Context {
+            public static Context of(InetSocketAddress address, TlsConfig config) {
+                return new Context(address, config);
+            }
+
+            private final InetSocketAddress address;
+            private final TlsConfig config;
+            private final List<TlsExtension.Concrete> processedExtensions;
+            private final Set<Integer> processedExtensionTypes;
+            private int processedExtensionsLength;
+            private Context(InetSocketAddress address, TlsConfig config) {
+                this.address = address;
+                this.config = config;
+                this.processedExtensionTypes = new HashSet<>();
+                this.processedExtensions = new ArrayList<>();
+            }
+
+            public InetSocketAddress address() {
+                return address;
+            }
+
+            public TlsConfig config() {
+                return config;
+            }
+
+            public List<Concrete> processedExtensions() {
+                return Collections.unmodifiableList(processedExtensions);
+            }
+
+            public int processedExtensionsLength() {
+                return processedExtensionsLength;
+            }
+
+            public boolean hasExtension(int extensionType) {
+                return processedExtensionTypes.contains(extensionType);
+            }
+
+            public boolean hasExtension(Predicate<Integer> extension) {
+                return processedExtensionTypes.stream().anyMatch(extension);
+            }
+
+            public void putExtension(Concrete concrete) {
+                processedExtensions.add(concrete);
+                processedExtensionTypes.add(concrete.extensionType());
+                processedExtensionsLength += concrete.extensionLength();
+            }
+        }
     }
 
-    // TODO: Drop ofServer and ofClient and use stored extensions for deserialization
-    non-sealed abstract class Concrete implements TlsExtension {
-        public static Optional<? extends Concrete> ofServer(TlsVersion version, int type, ByteBuffer buffer, int extensionLength) {
-            try(var _ = scopedRead(buffer, extensionLength)) {
-                if(GreaseExtension.isGrease(type)) {
-                    return GreaseExtension.of(version, type);
-                }
-
-                return switch (type) {
-                    case ALPNExtension.EXTENSION_TYPE -> ALPNExtension.of(version, buffer, extensionLength);
-                    case ECPointFormatsExtension.EXTENSION_TYPE -> ECPointFormatsExtension.of(version, buffer, extensionLength);
-                    case EncryptThenMacExtension.EXTENSION_TYPE -> EncryptThenMacExtension.of(version, buffer, extensionLength);
-                    case ExtendedMasterSecretExtension.EXTENSION_TYPE -> ExtendedMasterSecretExtension.of(version, buffer, extensionLength);
-                    case KeyShareExtension.EXTENSION_TYPE -> KeyShareExtension.of(version, buffer, extensionLength);
-                    case ServerNextProtocolNegotiationExtension.EXTENSION_TYPE -> ServerNextProtocolNegotiationExtension.of(version, buffer, extensionLength);
-                    case PaddingExtension.EXTENSION_TYPE -> PaddingExtension.of(version, buffer, extensionLength);
-                    case PostHandshakeAuthExtension.EXTENSION_TYPE -> PostHandshakeAuthExtension.of(version, buffer, extensionLength);
-                    case PskExchangeModesExtension.EXTENSION_TYPE -> PskExchangeModesExtension.of(version, buffer, extensionLength);
-                    case SignatureAlgorithmsExtension.EXTENSION_TYPE -> SignatureAlgorithmsExtension.of(version, buffer, extensionLength);
-                    case SNIExtension.EXTENSION_TYPE -> SNIExtension.of(version, buffer, extensionLength);
-                    case SupportedGroupsExtension.EXTENSION_TYPE -> SupportedGroupsExtension.of(version, buffer, extensionLength);
-                    case ServerSupportedVersionsExtension.EXTENSION_TYPE -> ServerSupportedVersionsExtension.of(version, buffer, extensionLength);
-                    default -> Optional.empty();
-                };
-            }
-        }
-
-        public static Optional<? extends Concrete> ofClient(TlsVersion version, int type, ByteBuffer buffer, int extensionLength) {
-            try(var _ = scopedRead(buffer, extensionLength)) {
-                if(GreaseExtension.isGrease(type)) {
-                    return GreaseExtension.of(version, type);
-                }
-
-                return switch (type) {
-                    case ALPNExtension.EXTENSION_TYPE -> ALPNExtension.of(version, buffer, extensionLength);
-                    case ECPointFormatsExtension.EXTENSION_TYPE -> ECPointFormatsExtension.of(version, buffer, extensionLength);
-                    case EncryptThenMacExtension.EXTENSION_TYPE -> EncryptThenMacExtension.of(version, buffer, extensionLength);
-                    case ExtendedMasterSecretExtension.EXTENSION_TYPE -> ExtendedMasterSecretExtension.of(version, buffer, extensionLength);
-                    case KeyShareExtension.EXTENSION_TYPE -> KeyShareExtension.of(version, buffer, extensionLength);
-                    case ClientNextProtocolNegotiationExtension.EXTENSION_TYPE -> ClientNextProtocolNegotiationExtension.of(version, buffer, extensionLength);
-                    case PaddingExtension.EXTENSION_TYPE -> PaddingExtension.of(version, buffer, extensionLength);
-                    case PostHandshakeAuthExtension.EXTENSION_TYPE -> PostHandshakeAuthExtension.of(version, buffer, extensionLength);
-                    case PskExchangeModesExtension.EXTENSION_TYPE -> PskExchangeModesExtension.of(version, buffer, extensionLength);
-                    case SignatureAlgorithmsExtension.EXTENSION_TYPE -> SignatureAlgorithmsExtension.of(version, buffer, extensionLength);
-                    case SNIExtension.EXTENSION_TYPE -> SNIExtension.of(version, buffer, extensionLength);
-                    case SupportedGroupsExtension.EXTENSION_TYPE -> SupportedGroupsExtension.of(version, buffer, extensionLength);
-                    case ClientSupportedVersionsExtension.EXTENSION_TYPE -> ClientSupportedVersionsExtension.of(version, buffer, extensionLength);
-                    default -> Optional.empty();
-                };
-            }
-        }
-
-        public void serializeExtension(ByteBuffer buffer) {
+    non-sealed interface Concrete extends TlsExtension {
+        default void serializeExtension(ByteBuffer buffer) {
             var extensionType = extensionType();
             buffer.put((byte) (extensionType >> 8));
             buffer.put((byte) (extensionType));
@@ -288,16 +281,25 @@ public sealed interface TlsExtension permits TlsExtension.Concrete, TlsExtension
             serializeExtensionPayload(buffer);
         }
 
-        public int extensionLength() {
+        default int extensionLength() {
             return INT16_LENGTH + INT16_LENGTH + extensionPayloadLength();
         }
 
-        protected abstract void serializeExtensionPayload(ByteBuffer buffer);
+        void serializeExtensionPayload(ByteBuffer buffer);
 
-        public abstract int extensionPayloadLength();
+        int extensionPayloadLength();
 
-        public abstract int extensionType();
+        int extensionType();
 
-        public abstract List<TlsVersion> versions();
+        List<TlsVersion> versions();
+
+        interface Decoder {
+            static Decoder standard() {
+                return TlsDefaultExtensionDecoder.INSTANCE;
+            }
+
+            Optional<? extends Concrete> decodeServer(TlsVersion version, int type, ByteBuffer buffer, int extensionLength);
+            Optional<? extends Concrete> decodeClient(TlsVersion version, int type, ByteBuffer buffer, int extensionLength);
+        }
     }
 }

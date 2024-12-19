@@ -7,13 +7,9 @@ import java.nio.ByteBuffer;
 import java.util.List;
 import java.util.Optional;
 
-public final class PostHandshakeAuthExtension extends TlsExtension.Concrete {
+public record PostHandshakeAuthExtension() implements TlsExtension.Concrete {
     public static final PostHandshakeAuthExtension INSTANCE = new PostHandshakeAuthExtension();
     public static final int EXTENSION_TYPE = 0x0031;
-
-    private PostHandshakeAuthExtension() {
-
-    }
 
     public static Optional<PostHandshakeAuthExtension> of(TlsVersion version, ByteBuffer buffer, int extensionLength) {
         if(extensionLength != 0) {
@@ -24,7 +20,7 @@ public final class PostHandshakeAuthExtension extends TlsExtension.Concrete {
     }
 
     @Override
-    protected void serializeExtensionPayload(ByteBuffer buffer) {
+    public void serializeExtensionPayload(ByteBuffer buffer) {
 
     }
 

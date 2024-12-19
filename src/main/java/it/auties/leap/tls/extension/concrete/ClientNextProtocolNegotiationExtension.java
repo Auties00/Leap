@@ -7,13 +7,9 @@ import java.nio.ByteBuffer;
 import java.util.List;
 import java.util.Optional;
 
-public final class ClientNextProtocolNegotiationExtension extends TlsExtension.Concrete {
+public record ClientNextProtocolNegotiationExtension() implements TlsExtension.Concrete {
     public static final ClientNextProtocolNegotiationExtension INSTANCE = new ClientNextProtocolNegotiationExtension();
     public static final int EXTENSION_TYPE = 0x3374;
-
-    private ClientNextProtocolNegotiationExtension() {
-
-    }
 
     public static Optional<ClientNextProtocolNegotiationExtension> of(TlsVersion version, ByteBuffer buffer, int extensionLength) {
         if(extensionLength != 0) {
@@ -24,7 +20,7 @@ public final class ClientNextProtocolNegotiationExtension extends TlsExtension.C
     }
 
     @Override
-    protected void serializeExtensionPayload(ByteBuffer buffer) {
+    public void serializeExtensionPayload(ByteBuffer buffer) {
 
     }
 

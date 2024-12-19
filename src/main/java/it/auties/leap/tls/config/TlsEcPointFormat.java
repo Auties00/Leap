@@ -4,8 +4,7 @@ import it.auties.leap.tls.exception.TlsException;
 
 import java.net.URI;
 
-// TODO: Do we need this?
-public sealed interface TlsEcPointFormat extends TlsIdentifiable.Int8<TlsEcPointFormat> {
+public sealed interface TlsEcPointFormat {
     static TlsEcPointFormat uncompressed() {
         return Uncompressed.INSTANCE;
     }
@@ -30,11 +29,13 @@ public sealed interface TlsEcPointFormat extends TlsIdentifiable.Int8<TlsEcPoint
         return new Reserved(id);
     }
 
+    byte id();
+
     final class Uncompressed implements TlsEcPointFormat {
         private static final Uncompressed INSTANCE = new Uncompressed();
 
         @Override
-        public Byte id() {
+        public byte id() {
             return 0;
         }
     }
@@ -43,7 +44,7 @@ public sealed interface TlsEcPointFormat extends TlsIdentifiable.Int8<TlsEcPoint
         private static final Ansix962CompressedPrime INSTANCE = new Ansix962CompressedPrime();
 
         @Override
-        public Byte id() {
+        public byte id() {
             return 1;
         }
     }
@@ -52,7 +53,7 @@ public sealed interface TlsEcPointFormat extends TlsIdentifiable.Int8<TlsEcPoint
         private static final Ansix962CompressedChar2 INSTANCE = new Ansix962CompressedChar2();
 
         @Override
-        public Byte id() {
+        public byte id() {
             return 2;
         }
     }
@@ -64,7 +65,7 @@ public sealed interface TlsEcPointFormat extends TlsIdentifiable.Int8<TlsEcPoint
         }
 
         @Override
-        public Byte id() {
+        public byte id() {
             return id;
         }
     }

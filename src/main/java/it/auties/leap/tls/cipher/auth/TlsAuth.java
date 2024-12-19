@@ -5,7 +5,7 @@ public interface TlsAuth {
         return null;
     }
 
-    static TlsAuth anon() {
+    static TlsAuth anonymous() {
         return null;
     }
 
@@ -13,11 +13,11 @@ public interface TlsAuth {
         return null;
     }
 
-    static TlsAuth eccpwd() {
+    static TlsAuth eccPwd() {
         return null;
     }
 
-    static TlsAuth ecdsa() {
+    static TlsAuth ecDsa() {
         return null;
     }
 

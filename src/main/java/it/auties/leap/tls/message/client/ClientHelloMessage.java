@@ -1,12 +1,12 @@
 package it.auties.leap.tls.message.client;
 
+import it.auties.leap.tls.config.TlsSource;
 import it.auties.leap.tls.config.TlsVersion;
 import it.auties.leap.tls.config.TlsVersionId;
 import it.auties.leap.tls.extension.TlsExtension;
 import it.auties.leap.tls.key.TlsCookie;
 import it.auties.leap.tls.key.TlsRandomData;
 import it.auties.leap.tls.key.TlsSharedSecret;
-import it.auties.leap.tls.config.TlsMode;
 import it.auties.leap.tls.message.TlsHandshakeMessage;
 import it.auties.leap.tls.message.TlsMessage;
 
@@ -27,7 +27,7 @@ public final class ClientHelloMessage extends TlsHandshakeMessage {
     private final List<TlsExtension.Concrete> extensions;
     private final int extensionsLength;
 
-    public ClientHelloMessage(TlsVersion tlsVersion, Source source, TlsRandomData randomData, TlsSharedSecret sessionId, TlsCookie cookie, List<Integer> ciphers, List<Byte> compressions, List<TlsExtension.Concrete> extensions, int extensionsLength) {
+    public ClientHelloMessage(TlsVersion tlsVersion, TlsSource source, TlsRandomData randomData, TlsSharedSecret sessionId, TlsCookie cookie, List<Integer> ciphers, List<Byte> compressions, List<TlsExtension.Concrete> extensions, int extensionsLength) {
         super(tlsVersion, source);
         this.randomData = randomData;
         this.sessionId = sessionId;
@@ -38,7 +38,7 @@ public final class ClientHelloMessage extends TlsHandshakeMessage {
         this.extensionsLength = extensionsLength;
     }
 
-    public static TlsMessage of(TlsVersion version, Source source, ByteBuffer buffer) {
+    public static TlsMessage of(TlsVersion version, List<TlsExtension.Concrete.Decoder> decoders, TlsSource source, ByteBuffer buffer) {
         var versionId = TlsVersionId.of(readLittleEndianInt16(buffer));
         var tlsVersion = TlsVersion.of(versionId)
                 .orElseThrow(() -> new IllegalArgumentException("Unknown version: " + versionId));
@@ -72,12 +72,13 @@ public final class ClientHelloMessage extends TlsHandshakeMessage {
                     continue;
                 }
 
-                var extension = TlsExtension.Concrete.ofServer(tlsVersion, extensionType, buffer, extensionLength);
-                if (extension.isEmpty()) {
-                    continue;
+                for(var decoder : decoders) {
+                    var extension = decoder.decodeClient(tlsVersion, extensionType, buffer, extensionLength);
+                    if (extension.isPresent()) {
+                        extensions.add(extension.get());
+                        break;
+                    }
                 }
-
-                extensions.add(extension.get());
             }
         }
         return new ClientHelloMessage(tlsVersion, source, clientRandom, sessionId, cookie, ciphers, compressions, extensions, extensionsLength);
@@ -91,17 +92,6 @@ public final class ClientHelloMessage extends TlsHandshakeMessage {
     @Override
     public Type type() {
         return Type.CLIENT_HELLO;
-    }
-
-    @Override
-    public boolean isSupported(TlsVersion version, TlsMode mode, Source source, List<Type> precedingMessages) {
-        return switch (version.protocol()) {
-            case TCP -> switch (source) {
-                case LOCAL -> precedingMessages.isEmpty();
-                case REMOTE -> mode == TlsMode.SERVER;
-            };
-            case UDP -> false;
-        };
     }
 
     @Override

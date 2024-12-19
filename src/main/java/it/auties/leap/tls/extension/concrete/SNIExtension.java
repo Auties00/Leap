@@ -12,15 +12,8 @@ import java.util.function.Predicate;
 
 import static it.auties.leap.tls.BufferHelper.*;
 
-public final class SNIExtension extends TlsExtension.Concrete {
+public record SNIExtension(byte[] name, NameType nameType)  implements TlsExtension.Concrete {
     public static final int EXTENSION_TYPE = 0x0000;
-
-    private final byte[] name;
-    private final NameType nameType;
-    public SNIExtension(byte[] name, NameType nameType) {
-        this.name = name;
-        this.nameType = nameType;
-    }
 
     public static Optional<SNIExtension> of(TlsVersion version, ByteBuffer buffer, int extensionLength) {
         var listLength = readLittleEndianInt16(buffer);
@@ -39,7 +32,7 @@ public final class SNIExtension extends TlsExtension.Concrete {
     }
 
     @Override
-    protected void serializeExtensionPayload(ByteBuffer buffer) {
+    public void serializeExtensionPayload(ByteBuffer buffer) {
         var listLength = INT8_LENGTH + INT16_LENGTH + name.length;
         writeLittleEndianInt16(buffer, listLength);
 

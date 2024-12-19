@@ -1,9 +1,7 @@
 package it.auties.leap.tls.extension.concrete;
 
-import it.auties.leap.tls.config.TlsIdentifiableUnion;
-import it.auties.leap.tls.extension.TlsExtension;
-import it.auties.leap.tls.key.TlsPskKeyExchangeMode;
 import it.auties.leap.tls.config.TlsVersion;
+import it.auties.leap.tls.extension.TlsExtension;
 
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
@@ -12,30 +10,25 @@ import java.util.Optional;
 
 import static it.auties.leap.tls.BufferHelper.*;
 
-public final class PskExchangeModesExtension extends TlsExtension.Concrete {
+public record PskExchangeModesExtension(List<Byte> modes) implements TlsExtension.Concrete {
     public static final int EXTENSION_TYPE = 0x002D;
-
-    private final List<? extends TlsIdentifiableUnion<TlsPskKeyExchangeMode, Byte>> modes;
-    public PskExchangeModesExtension(List<? extends TlsIdentifiableUnion<TlsPskKeyExchangeMode, Byte>> modes) {
-       this.modes = modes;
-    }
 
     public static Optional<PskExchangeModesExtension> of(TlsVersion version, ByteBuffer buffer, int extensionLength) {
         var modesSize = readLittleEndianInt16(buffer);
-        var modes = new ArrayList<TlsIdentifiableUnion<TlsPskKeyExchangeMode, Byte>>(modesSize);
+        var modes = new ArrayList<Byte>(modesSize);
         for(var i = 0; i < modesSize; i++) {
             var modeId = readLittleEndianInt8(buffer);
-            modes.add(TlsIdentifiableUnion.of(modeId));
+            modes.add(modeId);
         }
         var extension = new PskExchangeModesExtension(modes);
         return Optional.of(extension);
     }
 
     @Override
-    protected void serializeExtensionPayload(ByteBuffer buffer) {
+    public void serializeExtensionPayload(ByteBuffer buffer) {
         writeLittleEndianInt8(buffer, modes.size());
         for(var mode : modes) {
-            writeLittleEndianInt8(buffer, mode.id());
+            writeLittleEndianInt8(buffer, mode);
         }
     }
 

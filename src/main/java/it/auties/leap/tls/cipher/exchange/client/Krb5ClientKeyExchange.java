@@ -1,6 +1,6 @@
 package it.auties.leap.tls.cipher.exchange.client;
 
-import it.auties.leap.tls.cipher.exchange.TlsKeyExchangeType;
+import it.auties.leap.tls.cipher.exchange.TlsKeyExchange;
 import it.auties.leap.tls.config.TlsVersion;
 import it.auties.leap.tls.key.TlsSupportedGroup;
 
@@ -8,7 +8,7 @@ import java.nio.ByteBuffer;
 
 import static it.auties.leap.tls.BufferHelper.*;
 
-final class Krb5ClientKeyExchange extends TlsKeyExchangeType.TlsClientKeyExchange {
+final class Krb5ClientKeyExchange extends TlsKeyExchange.Client {
     private final byte[] ticket;
     private final byte[] additionalData;
 

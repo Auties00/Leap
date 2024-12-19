@@ -1,6 +1,5 @@
 package it.auties.leap.tls.key;
 
-import it.auties.leap.tls.config.TlsIdentifiable;
 import it.auties.leap.tls.config.TlsVersion;
 import it.auties.leap.tls.exception.TlsException;
 import org.bouncycastle.jce.ECNamedCurveTable;
@@ -9,15 +8,13 @@ import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import javax.crypto.spec.DHParameterSpec;
 import java.math.BigInteger;
 import java.security.GeneralSecurityException;
-import java.security.KeyPair;
 import java.security.KeyPairGenerator;
 import java.security.Security;
 import java.security.spec.NamedParameterSpec;
 import java.util.Objects;
-import java.util.Optional;
 
 // https://www.iana.org/assignments/tls-parameters/tls-parameters-8.csv
-public sealed abstract class TlsSupportedGroup implements TlsIdentifiable.Int32<TlsSupportedGroup> {
+public sealed abstract class TlsSupportedGroup {
     public static TlsSupportedGroup x25519() {
         return Xdh.X25519;
     }
@@ -251,8 +248,7 @@ public sealed abstract class TlsSupportedGroup implements TlsIdentifiable.Int32<
 
     public abstract TlsKeyPair generateKeyPair(TlsVersion version);
 
-    @Override
-    public Integer id() {
+    public int id() {
         return id;
     }
 
@@ -279,9 +275,9 @@ public sealed abstract class TlsSupportedGroup implements TlsIdentifiable.Int32<
             try {
                 var keyPairGenerator = KeyPairGenerator.getInstance("XDH");
                 keyPairGenerator.initialize(spec);
-                return Optional.ofNullable(keyPairGenerator.genKeyPair());
+                return TlsKeyPair.of(null, keyPairGenerator.genKeyPair());
             } catch (GeneralSecurityException exception) {
-                return Optional.empty();
+                throw new TlsException("Cannot generate XDH keypair", exception);
             }
         }
     }
@@ -346,9 +342,9 @@ public sealed abstract class TlsSupportedGroup implements TlsIdentifiable.Int32<
                 var ecSpec = ECNamedCurveTable.getParameterSpec(name);
                 var keyPairGenerator = KeyPairGenerator.getInstance("ECDSA", "BC");
                 keyPairGenerator.initialize(ecSpec);
-                return keyPairGenerator.generateKeyPair();
+                return TlsKeyPair.of(null, keyPairGenerator.generateKeyPair());
             } catch (GeneralSecurityException exception) {
-                return Optional.empty();
+                throw new TlsException("Cannot generate EC keypair", exception);
             }
         }
     }
@@ -382,9 +378,9 @@ public sealed abstract class TlsSupportedGroup implements TlsIdentifiable.Int32<
             try {
                 var keyPairGenerator = KeyPairGenerator.getInstance("DH");
                 keyPairGenerator.initialize(spec);
-                return keyPairGenerator.generateKeyPair();
+                return TlsKeyPair.of(null, keyPairGenerator.generateKeyPair());
             } catch (GeneralSecurityException exception) {
-                return Optional.empty();
+                throw new TlsException("Cannot generate DHE keypair", exception);
             }
         }
     }
@@ -411,9 +407,9 @@ public sealed abstract class TlsSupportedGroup implements TlsIdentifiable.Int32<
             try {
                 var keyPairGenerator = KeyPairGenerator.getInstance("ML-KEM");
                 keyPairGenerator.initialize(spec);
-                return keyPairGenerator.generateKeyPair();
+                return TlsKeyPair.of(null, keyPairGenerator.generateKeyPair());
             } catch (GeneralSecurityException exception) {
-                return Optional.empty();
+                throw new TlsException("Cannot generate ML-KEM keypair", exception);
             }
         }
     }
@@ -432,7 +428,7 @@ public sealed abstract class TlsSupportedGroup implements TlsIdentifiable.Int32<
 
         @Override
         public TlsKeyPair generateKeyPair(TlsVersion version) {
-            return Optional.empty();
+            throw new UnsupportedOperationException();
         }
     }
 
@@ -453,20 +449,20 @@ public sealed abstract class TlsSupportedGroup implements TlsIdentifiable.Int32<
             TlsKeyPair generate(TlsVersion version);
 
             static Generator unsupported() {
-                final class Unsupported implements Generator {
-                    private static final Unsupported INSTANCE = new Unsupported();
-
-                    private Unsupported() {
-
-                    }
-
-                    @Override
-                    public TlsKeyPair generate(TlsVersion version) {
-                        return Optional.empty();
-                    }
-                }
-
                 return Unsupported.INSTANCE;
+            }
+        }
+
+        private static final class Unsupported implements Generator {
+            private static final Unsupported INSTANCE = new Unsupported();
+
+            private Unsupported() {
+
+            }
+
+            @Override
+            public TlsKeyPair generate(TlsVersion version) {
+                throw new UnsupportedOperationException();
             }
         }
     }

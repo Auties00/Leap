@@ -1,6 +1,6 @@
 package it.auties.leap.tls.cipher.exchange.server;
 
-import it.auties.leap.tls.cipher.exchange.TlsKeyExchangeType;
+import it.auties.leap.tls.cipher.exchange.TlsKeyExchange;
 import it.auties.leap.tls.cipher.exchange.client.DhClientKeyExchange;
 import it.auties.leap.tls.config.TlsVersion;
 import it.auties.leap.tls.exception.TlsException;
@@ -17,7 +17,7 @@ import java.security.KeyFactory;
 
 import static it.auties.leap.tls.BufferHelper.*;
 
-final class DheServerKeyExchange extends TlsKeyExchangeType.TlsServerKeyExchange {
+final class DheServerKeyExchange extends TlsKeyExchange.Server {
     private static final int COMPONENT_LENGTH = 32;
 
     private final TlsKeyPair keyPair;
@@ -66,7 +66,7 @@ final class DheServerKeyExchange extends TlsKeyExchangeType.TlsServerKeyExchange
     }
 
     @Override
-    public byte[] generatePreMasterSecret(TlsKeyExchangeType.TlsClientKeyExchange clientKeyExchange) {
+    public byte[] generatePreMasterSecret(TlsKeyExchange.Client clientKeyExchange) {
         if(!(clientKeyExchange instanceof DhClientKeyExchange dhClientKeyExchange)) {
             throw new TlsException("Key share mismatch");
         }

@@ -1,9 +1,9 @@
 package it.auties.leap.socket;
 
 import it.auties.leap.http.decoder.HttpDecodable;
-import it.auties.leap.socket.layer.SocketSecurityLayer;
-import it.auties.leap.socket.layer.SocketTransmissionLayer;
-import it.auties.leap.socket.layer.SocketTunnelLayer;
+import it.auties.leap.socket.security.SocketSecurityLayer;
+import it.auties.leap.socket.transmission.SocketTransmissionLayer;
+import it.auties.leap.socket.tunnel.SocketTunnelLayer;
 import it.auties.leap.tls.config.TlsConfig;
 
 import java.io.IOException;

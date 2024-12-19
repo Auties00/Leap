@@ -3,7 +3,7 @@ package it.auties.leap.tls.hash;
 import java.util.Arrays;
 
 // Adapted from JDK com.sun.crypto.provider.PrfGenerator
-public public final class TlsPRF {
+public final class TlsPRF {
     private static final byte[] EMPTY_BUFFER = new byte[0];
     private static final byte[] HMAC_IPAD_64 = genPad((byte) 0x36, 64);
     private static final byte[] HMAC_IPAD_128 = genPad((byte) 0x36, 128);
@@ -23,22 +23,21 @@ public public final class TlsPRF {
         return seed;
     }
 
-    public static byte[] tls12Prf(byte[] secret, byte[] labelBytes, byte[] seed, int outputLength, TlsHashType hashType) {
-        var mdPRF = TlsHash.of(hashType);
-        var mdPRFLen = hashType.length();
-        var mdPRFBlockSize = hashType.blockLength();
+    public static byte[] tls12Prf(byte[] secret, byte[] labelBytes, byte[] seed, int outputLength, TlsHash hash) {
+        var mdPRFLen = hash.length();
+        var mdPRFBlockSize = hash.blockLength();
 
         if (secret == null) {
             secret = EMPTY_BUFFER;
         }
 
         if (secret.length > mdPRFBlockSize) {
-            mdPRF.update(secret);
-            secret = mdPRF.digest(true);
+            hash.update(secret);
+            secret = hash.digest(true);
         }
 
         var output = new byte[outputLength];
-        expand(mdPRF, mdPRFLen, secret, 0, secret.length, labelBytes, seed, output, getIpad(mdPRFBlockSize), getOpad(mdPRFBlockSize));
+        expand(hash, mdPRFLen, secret, 0, secret.length, labelBytes, seed, output, getIpad(mdPRFBlockSize), getOpad(mdPRFBlockSize));
         return output;
     }
 
@@ -59,9 +58,7 @@ public public final class TlsPRF {
     }
 
     public static byte[] tls10Prf(byte[] secret, byte[] labelBytes, byte[] seed, int outputLength) {
-        var md5 = TlsHash.of(TlsHashType.MD5);
-        var sha = TlsHash.of(TlsHashType.SHA1);
-        return tls10Prf(secret, labelBytes, seed, outputLength, md5, sha);
+        return tls10Prf(secret, labelBytes, seed, outputLength, TlsHash.md5(), TlsHash.sha1());
     }
 
     public static byte[] tls10Prf(byte[] secret, byte[] labelBytes, byte[] seed, int outputLength, TlsHash md5, TlsHash sha) {

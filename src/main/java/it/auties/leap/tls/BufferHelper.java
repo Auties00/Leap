@@ -66,6 +66,17 @@ public final class BufferHelper {
                 | ((long) (input.get() & 0xFF));
     }
 
+    public static long readBigEndianInt64(byte[] bs, int off) {
+        return ((long) (bs[off] & 0xFF) << 56)
+                | ((long) (bs[++off] & 0xFF) << 48)
+                | ((long) (bs[++off] & 0xFF) << 40)
+                | ((long) (bs[++off] & 0xFF) << 32)
+                | ((long) (bs[++off] & 0xFF) << 24)
+                | ((long) (bs[++off] & 0xFF) << 16)
+                | ((long) (bs[++off] & 0xFF) << 8)
+                | ((long) (bs[++off] & 0xFF));
+    }
+    
     public static ByteBuffer readBuffer(ByteBuffer buffer, int length) {
         var sliced = buffer.slice(buffer.position(), length);
         buffer.position(buffer.position() + length);
@@ -350,14 +361,14 @@ public final class BufferHelper {
         }
     }
 
-    public static void longToBigEndian(long n, byte[] bs, int off) {
+    public static void writeBigEndianInt64(long n, byte[] bs, int off) {
         writeBigEndianInt32((int) (n >>> 32), bs, off);
         writeBigEndianInt32((int) (n & 0xffffffffL), bs, off + 4);
     }
 
-    public static void longToBigEndian(long[] ns, int nsOff, int nsLen, byte[] bs, int bsOff) {
+    public static void writeBigEndianInt64(long[] ns, int nsOff, int nsLen, byte[] bs, int bsOff) {
         for (int i = 0; i < nsLen; ++i) {
-            longToBigEndian(ns[nsOff + i], bs, bsOff);
+            writeBigEndianInt64(ns[nsOff + i], bs, bsOff);
             bsOff += 8;
         }
     }
@@ -404,18 +415,17 @@ public final class BufferHelper {
         bs[++off] = (byte) (n >>> 24);
     }
 
-    public static void writeLittleEndianInt32(int[] ns, byte[] bs, int off) {
-        for (int n : ns) {
-            writeLittleEndianInt32(n, bs, off);
-            off += 4;
-        }
+    public static void writeLittleEndianInt64(long n, byte[] bs, int off) {
+        bs[off] = ((byte) (n >> 56));
+        bs[++off] = ((byte) (n >> 48));
+        bs[++off] = ((byte) (n >> 40));
+        bs[++off] = ((byte) (n >> 32));
+        bs[++off] = ((byte) (n >> 24));
+        bs[++off] = ((byte) (n >> 16));
+        bs[++off] = ((byte) (n >> 8));
+        bs[++off] = ((byte) n);
     }
-
-    public static void longToLittleEndian(long n, byte[] bs, int off) {
-        writeLittleEndianInt32((int) (n & 0xffffffffL), bs, off);
-        writeLittleEndianInt32((int) (n >>> 32), bs, off + 4);
-    }
-
+    
     public record ScopedWrite(ByteBuffer buffer, int limit, int position) implements AutoCloseable {
         @Override
         public void close() {

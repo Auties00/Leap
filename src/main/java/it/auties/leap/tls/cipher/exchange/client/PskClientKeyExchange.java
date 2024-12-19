@@ -1,6 +1,6 @@
 package it.auties.leap.tls.cipher.exchange.client;
 
-import it.auties.leap.tls.cipher.exchange.TlsKeyExchangeType;
+import it.auties.leap.tls.cipher.exchange.TlsKeyExchange;
 import it.auties.leap.tls.config.TlsVersion;
 import it.auties.leap.tls.key.TlsSupportedGroup;
 
@@ -8,7 +8,7 @@ import java.nio.ByteBuffer;
 
 import static it.auties.leap.tls.BufferHelper.*;
 
-final class PskClientKeyExchange extends TlsKeyExchangeType.TlsClientKeyExchange {
+final class PskClientKeyExchange extends TlsKeyExchange.Client {
     private final byte[] pskIdentity;
 
     PskClientKeyExchange(TlsVersion version, TlsSupportedGroup group) {

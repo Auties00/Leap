@@ -10,14 +10,15 @@ import java.util.Optional;
 
 import static it.auties.leap.tls.BufferHelper.*;
 
-public final class ALPNExtension extends TlsExtension.Concrete {
+public record ALPNExtension(List<byte[]> supportedProtocols, int supportedProtocolsSize)  implements TlsExtension.Concrete {
     public static final int EXTENSION_TYPE = 0x0010;
 
-    private final List<byte[]> supportedProtocols;
-    private final int supportedProtocolsSize;
     public ALPNExtension(List<byte[]> supportedProtocols) {
-        this.supportedProtocols = supportedProtocols;
-        this.supportedProtocolsSize = supportedProtocols.stream()
+        this(supportedProtocols, lengthOf(supportedProtocols));
+    }
+
+    private static int lengthOf(List<byte[]> supportedProtocols) {
+        return supportedProtocols.stream()
                 .mapToInt(entry -> INT8_LENGTH + entry.length)
                 .sum();
     }
@@ -30,12 +31,12 @@ public final class ALPNExtension extends TlsExtension.Concrete {
                 supportedProtocols.add(readBytesLittleEndian8(buffer));
             }
         }
-        var extension = new ALPNExtension(supportedProtocols);
+        var extension = new ALPNExtension(supportedProtocols, supportedProtocolsSize);
         return Optional.of(extension);
     }
 
     @Override
-    protected void serializeExtensionPayload(ByteBuffer buffer) {
+    public void serializeExtensionPayload(ByteBuffer buffer) {
         writeLittleEndianInt16(buffer, supportedProtocolsSize);
         for(var protocolName : supportedProtocols) {
             writeBytesLittleEndian8(buffer, protocolName);

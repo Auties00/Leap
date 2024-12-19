@@ -1,30 +1,51 @@
 package it.auties.leap.tls.cipher.mode;
 
-import it.auties.leap.tls.cipher.engine.TlsCipherEngine;
+import it.auties.leap.tls.message.TlsMessage;
 
 import java.nio.ByteBuffer;
 
 final class CTRMode extends TlsCipherMode.Block {
+    @Override
+    public void update(TlsMessage.ContentType contentType, ByteBuffer input, ByteBuffer output, byte[] sequence) {
+
+    }
+
+    @Override
+    public void doFinal(TlsMessage.ContentType contentType, ByteBuffer input, ByteBuffer output) {
+
+    }
+
+    @Override
+    public void reset() {
+
+    }
+
+    @Override
+    public int nonceLength() {
+        return 0;
+    }
+
+   /*
     private final TlsCipherEngine.Block cipher;
     private final ByteBuffer counter;
     private final ByteBuffer counterOut;
-    
+
     CTRMode(TlsCipherEngine.Block cipher, byte[] iv) {
         super(cipher, iv);
         this.cipher = cipher;
-        this.counter = ByteBuffer.allocate(cipher.blockSize());
-        this.counterOut = ByteBuffer.allocate(cipher.blockSize());
+        this.counter = ByteBuffer.allocate(cipher.blockLength());
+        this.counterOut = ByteBuffer.allocate(cipher.blockLength());
         reset();
     }
 
     @Override
-    public int blockSize() {
-        return cipher.blockSize();
+    public int blockLength() {
+        return cipher.blockLength();
     }
 
     @Override
     public void update(ByteBuffer input, ByteBuffer output, boolean last) {
-        if(last) {
+        if (last) {
             return;
         }
 
@@ -44,7 +65,7 @@ final class CTRMode extends TlsCipherMode.Block {
                 }
                 output.put(next);
             }
-        }else {
+        } else {
             counter.clear();
             counterOut.clear();
             cipher.process(counter, counterOut);
@@ -71,8 +92,9 @@ final class CTRMode extends TlsCipherMode.Block {
     @Override
     public void reset() {
         counter.clear();
-        counter.put(iv);
+        counter.put(fixedIv);
         counterOut.clear();
         cipher.reset();
     }
+    */
 }

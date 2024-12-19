@@ -1,6 +1,6 @@
 package it.auties.leap.tls.cipher.exchange.client;
 
-import it.auties.leap.tls.cipher.exchange.TlsKeyExchangeType;
+import it.auties.leap.tls.cipher.exchange.TlsKeyExchange;
 import it.auties.leap.tls.config.TlsVersion;
 import it.auties.leap.tls.key.TlsKeyPair;
 import it.auties.leap.tls.key.TlsSupportedGroup;
@@ -9,7 +9,7 @@ import java.nio.ByteBuffer;
 
 import static it.auties.leap.tls.BufferHelper.*;
 
-public final class DhClientKeyExchange extends TlsKeyExchangeType.TlsClientKeyExchange {
+public final class DhClientKeyExchange extends TlsKeyExchange.Client {
     private final TlsKeyPair keyPair;
 
     DhClientKeyExchange(TlsVersion version, TlsSupportedGroup group) {

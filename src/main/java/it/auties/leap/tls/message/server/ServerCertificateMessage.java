@@ -1,7 +1,7 @@
 package it.auties.leap.tls.message.server;
 
+import it.auties.leap.tls.config.TlsSource;
 import it.auties.leap.tls.config.TlsVersion;
-import it.auties.leap.tls.config.TlsMode;
 import it.auties.leap.tls.message.TlsHandshakeMessage;
 
 import java.nio.ByteBuffer;
@@ -18,12 +18,12 @@ public final class ServerCertificateMessage extends TlsHandshakeMessage {
     public static final byte ID = 0x0B;
 
     private final List<X509Certificate> certificates;
-    public ServerCertificateMessage(TlsVersion version, Source source, List<X509Certificate> certificates) {
+    public ServerCertificateMessage(TlsVersion version, TlsSource source, List<X509Certificate> certificates) {
         super(version, source);
         this.certificates = certificates;
     }
 
-    public static ServerCertificateMessage of(TlsVersion version, Source source, ByteBuffer buffer) {
+    public static ServerCertificateMessage of(TlsVersion version, TlsSource source, ByteBuffer buffer) {
         var certificatesLength = readLittleEndianInt24(buffer);
         try(var _ = scopedRead(buffer, certificatesLength)) {
             var factory = CertificateFactory.getInstance("X.509");
@@ -47,21 +47,6 @@ public final class ServerCertificateMessage extends TlsHandshakeMessage {
     @Override
     public Type type() {
         return Type.SERVER_CERTIFICATE;
-    }
-
-    @Override
-    public boolean isSupported(TlsVersion version, TlsMode mode, Source source, List<Type> precedingMessages) {
-        if(precedingMessages.isEmpty() || precedingMessages.getLast() != Type.SERVER_HELLO) {
-            return false;
-        }
-
-        return switch (version.protocol()) {
-            case TCP -> switch (source) {
-                case LOCAL -> mode == TlsMode.SERVER;
-                case REMOTE -> mode == TlsMode.CLIENT;
-            };
-            case UDP -> false;
-        };
     }
 
     @Override

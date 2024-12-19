@@ -1,6 +1,6 @@
 package it.auties.leap.tls.cipher.exchange.client;
 
-import it.auties.leap.tls.cipher.exchange.TlsKeyExchangeType;
+import it.auties.leap.tls.cipher.exchange.TlsKeyExchange;
 import it.auties.leap.tls.config.TlsVersion;
 import it.auties.leap.tls.key.TlsSupportedGroup;
 
@@ -8,7 +8,7 @@ import java.nio.ByteBuffer;
 
 import static it.auties.leap.tls.BufferHelper.*;
 
-final class RsaClientKeyExchange extends TlsKeyExchangeType.TlsClientKeyExchange {
+final class RsaClientKeyExchange extends TlsKeyExchange.Client {
     private final byte[] extendedPreMasterSecret;
 
     RsaClientKeyExchange(TlsVersion version, TlsSupportedGroup group) {

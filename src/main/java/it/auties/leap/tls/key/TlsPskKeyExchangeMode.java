@@ -1,6 +1,5 @@
 package it.auties.leap.tls.key;
 
-import it.auties.leap.tls.config.TlsIdentifiable;
 import it.auties.leap.tls.config.TlsVersion;
 import it.auties.leap.tls.exception.TlsException;
 
@@ -9,7 +8,7 @@ import java.util.Objects;
 import java.util.Optional;
 
 // https://www.iana.org/assignments/tls-parameters/tls-pskkeyexchangemode.csv
-public sealed interface TlsPskKeyExchangeMode extends TlsIdentifiable.Int8<TlsPskKeyExchangeMode> {
+public sealed interface TlsPskKeyExchangeMode {
     static TlsPskKeyExchangeMode pskKe() {
         return PskKe.INSTANCE;
     }
@@ -32,13 +31,13 @@ public sealed interface TlsPskKeyExchangeMode extends TlsIdentifiable.Int8<TlsPs
 
     Optional<byte[]> generate(TlsVersion version);
 
-    Byte id();
+    byte id();
 
     final class PskKe implements TlsPskKeyExchangeMode {
         private static final PskKe INSTANCE = new PskKe();
 
         @Override
-        public Byte id() {
+        public byte id() {
             return 0;
         }
 
@@ -52,7 +51,7 @@ public sealed interface TlsPskKeyExchangeMode extends TlsIdentifiable.Int8<TlsPs
         private static final PskDheKe INSTANCE = new PskDheKe();
 
         @Override
-        public Byte id() {
+        public byte id() {
             return 1;
         }
 
@@ -71,7 +70,7 @@ public sealed interface TlsPskKeyExchangeMode extends TlsIdentifiable.Int8<TlsPs
         }
 
         @Override
-        public Byte id() {
+        public byte id() {
             return id;
         }
 
@@ -85,20 +84,20 @@ public sealed interface TlsPskKeyExchangeMode extends TlsIdentifiable.Int8<TlsPs
             Optional<byte[]> generate(TlsVersion version);
 
             static Generator unsupported() {
-                final class Unsupported implements Generator {
-                    private static final Unsupported INSTANCE = new Unsupported();
-
-                    private Unsupported() {
-
-                    }
-
-                    @Override
-                    public Optional<byte[]> generate(TlsVersion version) {
-                        return Optional.empty();
-                    }
-                }
-
                 return Unsupported.INSTANCE;
+            }
+        }
+
+        private static final class Unsupported implements Generator {
+            private static final Unsupported INSTANCE = new Unsupported();
+
+            private Unsupported() {
+
+            }
+
+            @Override
+            public Optional<byte[]> generate(TlsVersion version) {
+                return Optional.empty();
             }
         }
     }

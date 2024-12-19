@@ -9,23 +9,32 @@ final class IDEAEngine extends TlsCipherEngine.Block {
     private static final int MASK = 0xffff;
     private static final int BASE = 0x10001;
 
-    private final int[] workingKey;
-    IDEAEngine(boolean forEncryption, byte[] key) {
-        super(forEncryption, key);
-        this.workingKey = generateWorkingKey(forEncryption, key);
+    private int[] workingKey;
+    IDEAEngine() {
+        super(16);
     }
 
-    private int[] generateWorkingKey(boolean forEncryption, byte[] userKey) {
+    @Override
+    public void init(boolean forEncryption, byte[] key) {
+        if(workingKey != null) {
+            throw new IllegalStateException();
+        }
+
+        if(key.length != keyLength) {
+            throw new IllegalArgumentException();
+        }
+
+        this.forEncryption = forEncryption;
         if (forEncryption) {
-            return expandKey(userKey);
+            this.workingKey = expandKey(key);
         } else {
-            return invertKey(expandKey(userKey));
+            this.workingKey = invertKey(expandKey(key));
         }
     }
 
     private int[] invertKey(int[] inKey) {
         int t1, t2, t3, t4;
-        int p = 52;                 
+        int p = 52;
         int[] key = new int[52];
         int inOff = 0;
 
@@ -49,7 +58,7 @@ final class IDEAEngine extends TlsCipherEngine.Block {
             t3 = addInv(inKey[inOff++]);
             t4 = mulInv(inKey[inOff++]);
             key[--p] = t4;
-            key[--p] = t2; 
+            key[--p] = t2;
             key[--p] = t3;
             key[--p] = t1;
         }
@@ -74,14 +83,6 @@ final class IDEAEngine extends TlsCipherEngine.Block {
     private int[] expandKey(byte[] userKey) {
         var key = new int[52];
 
-        if (userKey.length < 16) {
-            var tmp = new byte[16];
-
-            System.arraycopy(userKey, 0, tmp, tmp.length - userKey.length, userKey.length);
-
-            userKey = tmp;
-        }
-
         for (var i = 0; i < 8; i++) {
             key[i] = BufferHelper.readBigEndianInt16(userKey, i * 2);
         }
@@ -101,17 +102,16 @@ final class IDEAEngine extends TlsCipherEngine.Block {
 
 
     @Override
-    public int blockSize() {
+    public int blockLength() {
         return BLOCK_SIZE;
     }
 
     @Override
-    public boolean forEncryption() {
-        return forEncryption;
-    }
-
-    @Override
     public void process(ByteBuffer input, ByteBuffer output) {
+        if(workingKey == null) {
+            throw new IllegalStateException();
+        }
+
         var keyOff = 0;
         var x0 = BufferHelper.readBigEndianInt16(input);
         var x1 = BufferHelper.readBigEndianInt16(input);
@@ -147,11 +147,6 @@ final class IDEAEngine extends TlsCipherEngine.Block {
         BufferHelper.writeBigEndianInt16(output, x2 + workingKey[keyOff++]);
         BufferHelper.writeBigEndianInt16(output, x1 + workingKey[keyOff++]);
         BufferHelper.writeBigEndianInt16(output, mul(x3, workingKey[keyOff]));
-    }
-
-    @Override
-    public void reset() {
-
     }
 
     private int mul(int x, int y) {
@@ -194,5 +189,12 @@ final class IDEAEngine extends TlsCipherEngine.Block {
 
     private int addInv(int x) {
         return (-x) & MASK;
+    }
+
+    @Override
+    public void reset() {
+        if(workingKey == null) {
+            throw new IllegalStateException();
+        }
     }
 }

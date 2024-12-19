@@ -1,12 +1,13 @@
 package it.auties.leap.tls.message;
 
 import it.auties.leap.tls.cipher.TlsCipher;
+import it.auties.leap.tls.config.TlsSource;
 import it.auties.leap.tls.config.TlsVersion;
-import it.auties.leap.tls.config.TlsMode;
+import it.auties.leap.tls.extension.TlsExtension;
 import it.auties.leap.tls.message.client.ClientChangeCipherSpecMessage;
+import it.auties.leap.tls.message.server.ServerChangeCipherSpecMessage;
 import it.auties.leap.tls.message.shared.AlertMessage;
 import it.auties.leap.tls.message.shared.ApplicationDataMessage;
-import it.auties.leap.tls.message.server.ServerChangeCipherSpecMessage;
 
 import java.nio.ByteBuffer;
 import java.util.*;
@@ -17,12 +18,12 @@ import static it.auties.leap.tls.BufferHelper.*;
 
 public sealed abstract class TlsMessage
         permits AlertMessage, ApplicationDataMessage, TlsHandshakeMessage {
-    public static TlsMessage ofServer(TlsCipher cipher, ByteBuffer buffer, Metadata metadata) {
+    public static TlsMessage ofServer(TlsCipher cipher, List<TlsExtension.Concrete.Decoder> decoders, ByteBuffer buffer, Metadata metadata) {
         var version = metadata.version();
         var source = metadata.source();
         try(var _ = scopedRead(buffer, metadata.messageLength())) {
             return switch (metadata.contentType()) {
-                case HANDSHAKE -> TlsHandshakeMessage.ofServer(cipher, buffer, metadata);
+                case HANDSHAKE -> TlsHandshakeMessage.ofServer(cipher, decoders, buffer, metadata);
                 case CHANGE_CIPHER_SPEC -> ServerChangeCipherSpecMessage.of(version, source, buffer);
                 case ALERT -> AlertMessage.of(version, source, buffer);
                 case APPLICATION_DATA -> ApplicationDataMessage.of(version, source, buffer);
@@ -30,12 +31,12 @@ public sealed abstract class TlsMessage
         }
     }
 
-    public static TlsMessage ofClient(TlsCipher cipher, ByteBuffer buffer, Metadata metadata) {
+    public static TlsMessage ofClient(TlsCipher cipher, List<TlsExtension.Concrete.Decoder> decoders, ByteBuffer buffer, Metadata metadata) {
         var version = metadata.version();
         var source = metadata.source();
         try(var _ = scopedRead(buffer, metadata.messageLength())) {
             return switch (metadata.contentType()) {
-                case HANDSHAKE -> TlsHandshakeMessage.ofClient(cipher, buffer, metadata);
+                case HANDSHAKE -> TlsHandshakeMessage.ofClient(cipher, decoders, buffer, metadata);
                 case CHANGE_CIPHER_SPEC -> ClientChangeCipherSpecMessage.of(version, source, metadata.messageLength());
                 case ALERT -> AlertMessage.of(version, source, buffer);
                 case APPLICATION_DATA -> ApplicationDataMessage.of(version, source, buffer);
@@ -44,8 +45,8 @@ public sealed abstract class TlsMessage
     }
 
     protected final TlsVersion version;
-    protected final Source source;
-    protected TlsMessage(TlsVersion version, Source source) {
+    protected final TlsSource source;
+    protected TlsMessage(TlsVersion version, TlsSource source) {
         this.version = version;
         this.source = source;
     }
@@ -53,12 +54,11 @@ public sealed abstract class TlsMessage
     public TlsVersion version() {
         return version;
     }
-    public Source source() {
+    public TlsSource source() {
         return source;
     }
 
     public abstract byte id();
-    public abstract boolean isSupported(TlsVersion version, TlsMode mode, Source source, List<Type> precedingMessages);
     public abstract Type type();
     public abstract ContentType contentType();
     public abstract void serializeMessagePayload(ByteBuffer buffer);
@@ -133,12 +133,9 @@ public sealed abstract class TlsMessage
         CLIENT_KEY_EXCHANGE,
         CLIENT_CERTIFICATE_VERIFY,
         CLIENT_CHANGE_CIPHER_SPEC,
-        CLIENT_FINISHED
-    }
+        CLIENT_FINISHED,
 
-    public enum Source {
-        REMOTE,
-        LOCAL
+        RESERVED
     }
 
     public static final class Metadata {
@@ -166,8 +163,8 @@ public sealed abstract class TlsMessage
             return new Metadata(contentType, protocolVersion, messageLength);
         }
 
-        public Source source() {
-            return Source.REMOTE;
+        public TlsSource source() {
+            return TlsSource.REMOTE;
         }
 
         public static int length() {
@@ -207,7 +204,7 @@ public sealed abstract class TlsMessage
 
         @Override
         public String toString() {
-            return "DeserializedMetadata[" +
+            return "Metadata[" +
                     "contentType=" + contentType + ", " +
                     "version=" + version + ", " +
                     "messageLength=" + messageLength + ']';

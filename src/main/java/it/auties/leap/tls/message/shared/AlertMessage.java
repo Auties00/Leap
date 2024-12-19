@@ -1,12 +1,11 @@
 package it.auties.leap.tls.message.shared;
 
+import it.auties.leap.tls.config.TlsSource;
 import it.auties.leap.tls.config.TlsVersion;
-import it.auties.leap.tls.config.TlsMode;
 import it.auties.leap.tls.message.TlsMessage;
 
 import java.nio.ByteBuffer;
 import java.util.Arrays;
-import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.function.Function;
@@ -20,13 +19,13 @@ public final class AlertMessage extends TlsMessage {
     private final Level level;
     private final Type type;
 
-    public AlertMessage(TlsVersion tlsVersion, Source source, Level level, Type type) {
+    public AlertMessage(TlsVersion tlsVersion, TlsSource source, Level level, Type type) {
         super(tlsVersion, source);
         this.level = level;
         this.type = type;
     }
 
-    public static AlertMessage of(TlsVersion version, Source source, ByteBuffer buffer) {
+    public static AlertMessage of(TlsVersion version, TlsSource source, ByteBuffer buffer) {
         var levelId = readLittleEndianInt8(buffer);
         var level = AlertMessage.Level.of(levelId)
                 .orElseThrow(() -> new IllegalArgumentException("Cannot decode TLS message, unknown alert level: " + levelId));
@@ -44,17 +43,6 @@ public final class AlertMessage extends TlsMessage {
     @Override
     public TlsMessage.Type type() {
         return TlsMessage.Type.ALERT;
-    }
-
-    @Override
-    public boolean isSupported(TlsVersion version, TlsMode mode, Source source, List<TlsMessage.Type> precedingMessages) {
-        return switch (version.protocol()) {
-            case TCP -> switch (mode) {
-                case CLIENT -> precedingMessages.contains(TlsMessage.Type.CLIENT_HELLO);
-                case SERVER -> precedingMessages.contains(TlsMessage.Type.SERVER_HELLO);
-            };
-            case UDP -> false;
-        };
     }
 
     @Override

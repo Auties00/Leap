@@ -7,13 +7,9 @@ import java.nio.ByteBuffer;
 import java.util.List;
 import java.util.Optional;
 
-public final class EncryptThenMacExtension extends TlsExtension.Concrete {
+public record EncryptThenMacExtension() implements TlsExtension.Concrete {
     public static final EncryptThenMacExtension INSTANCE = new EncryptThenMacExtension();
     public static final int EXTENSION_TYPE = 0x0016;
-
-    private EncryptThenMacExtension() {
-
-    }
 
     public static Optional<EncryptThenMacExtension> of(TlsVersion version, ByteBuffer buffer, int extensionLength) {
         if(extensionLength != 0) {
@@ -24,7 +20,7 @@ public final class EncryptThenMacExtension extends TlsExtension.Concrete {
     }
 
     @Override
-    protected void serializeExtensionPayload(ByteBuffer buffer) {
+    public void serializeExtensionPayload(ByteBuffer buffer) {
 
     }
 

@@ -8,24 +8,22 @@ import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Optional;
 
-public final class SNIExtensionModel extends TlsExtension.Model<SNIExtensionModel, SNIExtensionModel.Config, SNIExtension> {
+public final class SNIExtensionModel implements TlsExtension.Model<SNIExtension> {
     public static final SNIExtensionModel INSTANCE = new SNIExtensionModel();
     private SNIExtensionModel() {
 
     }
 
     @Override
-    public Optional<SNIExtension> create(Config config) {
-        if(!config.type().isValid(config.name())) {
+    public Optional<SNIExtension> create(Context context) {
+        var hostname = context.address().getHostName();
+        var type = SNIExtension.NameType.HOST_NAME;
+        if(!type.isValid(hostname)) {
             return Optional.empty();
         }
 
-        var result = new SNIExtension(config.name().getBytes(StandardCharsets.US_ASCII), config.type());
+        var result = new SNIExtension(hostname.getBytes(StandardCharsets.US_ASCII), type);
         return Optional.of(result);
-    }
-
-    public record Config(String name, SNIExtension.NameType type) implements Model.Config<SNIExtensionModel> {
-
     }
 
     @Override

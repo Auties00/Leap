@@ -7,13 +7,9 @@ import java.nio.ByteBuffer;
 import java.util.List;
 import java.util.Optional;
 
-public final class ExtendedMasterSecretExtension extends TlsExtension.Concrete {
+public record ExtendedMasterSecretExtension() implements TlsExtension.Concrete {
     public static final ExtendedMasterSecretExtension INSTANCE = new ExtendedMasterSecretExtension();
     public static final int EXTENSION_TYPE = 0x0017;
-
-    private ExtendedMasterSecretExtension() {
-
-    }
 
     public static Optional<ExtendedMasterSecretExtension> of(TlsVersion version, ByteBuffer buffer, int extensionLength) {
         if(extensionLength != 0) {
@@ -24,7 +20,7 @@ public final class ExtendedMasterSecretExtension extends TlsExtension.Concrete {
     }
 
     @Override
-    protected void serializeExtensionPayload(ByteBuffer buffer) {
+    public void serializeExtensionPayload(ByteBuffer buffer) {
 
     }
 

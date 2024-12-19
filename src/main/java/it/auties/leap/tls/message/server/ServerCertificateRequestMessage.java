@@ -1,8 +1,8 @@
 package it.auties.leap.tls.message.server;
 
 import it.auties.leap.tls.BufferHelper;
+import it.auties.leap.tls.config.TlsSource;
 import it.auties.leap.tls.config.TlsVersion;
-import it.auties.leap.tls.config.TlsMode;
 import it.auties.leap.tls.message.TlsHandshakeMessage;
 
 import javax.security.auth.x500.X500Principal;
@@ -18,14 +18,14 @@ public final class ServerCertificateRequestMessage extends TlsHandshakeMessage {
     private final List<Byte> types;
     private final List<Integer> algorithms;
     private final List<String> authorities;
-    public ServerCertificateRequestMessage(TlsVersion tlsVersion, Source source, List<Byte> types, List<Integer> algorithms, List<String> authorities) {
+    public ServerCertificateRequestMessage(TlsVersion tlsVersion, TlsSource source, List<Byte> types, List<Integer> algorithms, List<String> authorities) {
         super(tlsVersion, source);
         this.types = types;
         this.algorithms = algorithms;
         this.authorities = authorities;
     }
 
-    public static ServerCertificateRequestMessage of(TlsVersion version, Source source, ByteBuffer buffer) {
+    public static ServerCertificateRequestMessage of(TlsVersion version, TlsSource source, ByteBuffer buffer) {
         var certificatesLength = BufferHelper.readLittleEndianInt8(buffer);
         var certificateTypes = new ArrayList<Byte>();
         try(var _ = scopedRead(buffer, certificatesLength)) {
@@ -64,21 +64,6 @@ public final class ServerCertificateRequestMessage extends TlsHandshakeMessage {
     @Override
     public Type type() {
         return Type.SERVER_CERTIFICATE_REQUEST;
-    }
-
-    @Override
-    public boolean isSupported(TlsVersion version, TlsMode mode, Source source, List<Type> precedingMessages) {
-        if(precedingMessages.isEmpty() || precedingMessages.getLast() != Type.SERVER_KEY_EXCHANGE) {
-            return false;
-        }
-
-        return switch (version.protocol()) {
-            case TCP -> switch (source) {
-                case LOCAL -> mode == TlsMode.SERVER;
-                case REMOTE -> mode == TlsMode.CLIENT;
-            };
-            case UDP -> false;
-        };
     }
 
     public List<Byte> types() {

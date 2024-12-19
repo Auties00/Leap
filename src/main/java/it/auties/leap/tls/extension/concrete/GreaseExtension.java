@@ -10,7 +10,7 @@ import java.util.Optional;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
-public final class GreaseExtension extends TlsExtension.Concrete {
+public record GreaseExtension(int extensionType) implements TlsExtension.Concrete {
     public static final GreaseExtension GREASE_0A = new GreaseExtension(0x0A0A);
     public static final GreaseExtension GREASE_1A = new GreaseExtension(0x1A1A);
     public static final GreaseExtension GREASE_2A = new GreaseExtension(0x2A2A);
@@ -44,17 +44,12 @@ public final class GreaseExtension extends TlsExtension.Concrete {
         return Optional.of(grease);
     }
 
-    private final int extensionType;
-    private GreaseExtension(int extensionType) {
-        this.extensionType = extensionType;
-    }
-
     public static boolean isGrease(int extensionType) {
         return (extensionType & 0x0f0f) == 0x0a0a;
     }
 
     @Override
-    protected void serializeExtensionPayload(ByteBuffer buffer) {
+    public void serializeExtensionPayload(ByteBuffer buffer) {
 
     }
 

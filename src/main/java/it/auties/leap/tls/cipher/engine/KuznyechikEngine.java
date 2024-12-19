@@ -30,21 +30,34 @@ final class KuznyechikEngine extends TlsCipherEngine.Block {
             hi_bit_set = (byte) (a & 0x80);
             a <<= 1;
             if (hi_bit_set != 0) {
-                a ^= (byte) 0xc3; 
+                a ^= (byte) 0xc3;
             }
             b >>= 1;
         }
         return p;
     }
 
-    private final byte[][] subKeys;
-    KuznyechikEngine(boolean forEncryption, byte[] key) {
-        super(forEncryption, key);
+    private byte[][] subKeys;
+    KuznyechikEngine() {
+        super(32);
+    }
+
+    @Override
+    public void init(boolean forEncryption, byte[] key) {
+        if(subKeys != null) {
+            throw new IllegalStateException();
+        }
+
+        if(key.length != keyLength) {
+            throw new IllegalArgumentException();
+        }
+
+        this.forEncryption = forEncryption;
         this.subKeys = generateSubKeys(key);
     }
 
     @Override
-    public int blockSize() {
+    public int blockLength() {
         return BLOCK_SIZE;
     }
 
@@ -91,6 +104,10 @@ final class KuznyechikEngine extends TlsCipherEngine.Block {
 
     @Override
     public void process(ByteBuffer input, ByteBuffer output) {
+        if(subKeys == null) {
+            throw new IllegalStateException();
+        }
+
         var block = new byte[BLOCK_SIZE];
         input.get(block);
 
@@ -182,6 +199,8 @@ final class KuznyechikEngine extends TlsCipherEngine.Block {
 
     @Override
     public void reset() {
-
+        if(subKeys == null) {
+            throw new IllegalStateException();
+        }
     }
 }

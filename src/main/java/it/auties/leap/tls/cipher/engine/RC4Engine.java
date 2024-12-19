@@ -5,11 +5,27 @@ import java.nio.ByteBuffer;
 final class RC4Engine extends TlsCipherEngine.Stream {
     private final static int STATE_LENGTH = 256;
 
-    private final byte[] engineState;
+    private byte[] engineState;
+    private byte[] key;
     private int x;
     private int y;
-    RC4Engine(boolean forEncryption, byte[] key) {
-        super(forEncryption, key);
+
+    RC4Engine() {
+        super(16);
+    }
+
+    @Override
+    public void init(boolean forEncryption, byte[] key) {
+        if(engineState != null) {
+            throw new IllegalStateException();
+        }
+
+        if(key.length != keyLength) {
+            throw new IllegalArgumentException();
+        }
+
+        this.forEncryption = forEncryption;
+        this.key = key;
         this.engineState = new byte[STATE_LENGTH];
         reset();
     }
@@ -31,6 +47,10 @@ final class RC4Engine extends TlsCipherEngine.Stream {
 
     @Override
     public void reset() {
+        if(engineState == null) {
+            throw new IllegalStateException();
+        }
+
         for (int i = 0; i < STATE_LENGTH; i++) {
             engineState[i] = (byte) i;
         }

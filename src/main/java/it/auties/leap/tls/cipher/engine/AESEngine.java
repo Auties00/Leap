@@ -18,23 +18,35 @@ final class AESEngine extends TlsCipherEngine.Block {
     private static final int M5 = 0x3f3f3f3f;
 
     private final int rounds;
-    private final int[][] workingKey;
-    private final byte[] s;
-    AESEngine(boolean forEncryption, byte[] key) {
-        super(forEncryption, key);
-        var wordsCount = key.length >>> 2;
-        this.rounds = wordsCount + 6;
-        this.workingKey = workingKey(forEncryption, key, wordsCount);
+    private int[][] workingKey;
+    private byte[] s;
+    AESEngine(int keyLength) {
+        super(keyLength);
+        this.rounds = keyLength >>> 2 + 6;
+    }
+
+    @Override
+    public void init(boolean forEncryption, byte[] key) {
+        if(workingKey != null) {
+            throw new IllegalStateException();
+        }
+
+        if(key.length != keyLength) {
+            throw new IllegalArgumentException();
+        }
+
+        this.forEncryption = forEncryption;
+        this.workingKey = workingKey(key);
         this.s = forEncryption ? S_BOX.clone() : S_BOX_INVERSE.clone();
     }
 
-    private int[][] workingKey(boolean forEncryption, byte[] key, int wordsCount) {
+    private int[][] workingKey(byte[] key) {
         var blocks = new int[rounds + 1][4];
-        switch (wordsCount) {
-            case 4 -> handle128BitsKey(key, blocks);
-            case 6 -> handle192BitsKey(key, blocks);
-            case 8 -> handle256BitsKey(key, blocks);
-            default -> throw new InternalError("Unexpected words count: " + wordsCount);
+
+        if (keyLength == 16) {
+            handle128BitsKey(key, blocks);
+        } else {
+            handle256BitsKey(key, blocks);
         }
 
         if (!forEncryption) {
@@ -48,7 +60,7 @@ final class AESEngine extends TlsCipherEngine.Block {
         return blocks;
     }
 
-    private static void handle128BitsKey(byte[] key, int[][] blocks) {
+    private void handle128BitsKey(byte[] key, int[][] blocks) {
         var col0 = BufferHelper.readLittleEndianInt32(key, 0);
         blocks[0][0] = col0;
 
@@ -73,65 +85,8 @@ final class AESEngine extends TlsCipherEngine.Block {
             blocks[i][3] = col3;
         }
     }
-
-    private static void handle192BitsKey(byte[] key, int[][] blocks) {
-        var col0 = BufferHelper.readLittleEndianInt32(key, 0);
-        blocks[0][0] = col0;
-
-        var col1 = BufferHelper.readLittleEndianInt32(key, 4);
-        blocks[0][1] = col1;
-
-        var col2 = BufferHelper.readLittleEndianInt32(key, 8);
-        blocks[0][2] = col2;
-
-        var col3 = BufferHelper.readLittleEndianInt32(key, 12);
-        blocks[0][3] = col3;
-
-        var col4 = BufferHelper.readLittleEndianInt32(key, 16);
-        var col5 = BufferHelper.readLittleEndianInt32(key, 20);
-
-        var i = 1;
-        var rcon = 1;
-        while (true) {
-            blocks[i][0] = col4;
-            blocks[i][1] = col5;
-            var colx = subWord(shift(col5, 8)) ^ rcon;
-            rcon <<= 1;
-            col0 ^= colx;
-            blocks[i][2] = col0;
-            col1 ^= col0;
-            blocks[i][3] = col1;
-
-            col2 ^= col1;
-            blocks[i + 1][0] = col2;
-            col3 ^= col2;
-            blocks[i + 1][1] = col3;
-            col4 ^= col3;
-            blocks[i + 1][2] = col4;
-            col5 ^= col4;
-            blocks[i + 1][3] = col5;
-
-            colx = subWord(shift(col5, 8)) ^ rcon;
-            rcon <<= 1;
-            col0 ^= colx;
-            blocks[i + 2][0] = col0;
-            col1 ^= col0;
-            blocks[i + 2][1] = col1;
-            col2 ^= col1;
-            blocks[i + 2][2] = col2;
-            col3 ^= col2;
-            blocks[i + 2][3] = col3;
-
-            if ((i += 3) >= 13) {
-                break;
-            }
-
-            col4 ^= col3;
-            col5 ^= col4;
-        }
-    }
-
-    private static void handle256BitsKey(byte[] key, int[][] blocks) {
+    
+    private void handle256BitsKey(byte[] key, int[][] blocks) {
         var col0 = BufferHelper.readLittleEndianInt32(key, 0);
         blocks[0][0] = col0;
 
@@ -188,22 +143,22 @@ final class AESEngine extends TlsCipherEngine.Block {
         }
     }
 
-    private static int shift(int r, int shift) {
+    private int shift(int r, int shift) {
         return (r >>> shift) | (r << -shift);
     }
 
-    private static int ffMulX(int x) {
+    private int ffMulX(int x) {
         return (((x & M2) << 1) ^ (((x & M1) >>> 7) * M3));
     }
 
-    private static int ffMulX2(int x) {
+    private int ffMulX2(int x) {
         int t0 = (x & M5) << 2;
         int t1 = (x & M4);
         t1 ^= (t1 >>> 1);
         return t0 ^ (t1 >>> 2) ^ (t1 >>> 5);
     }
 
-    private static int invMCol(int x) {
+    private int invMCol(int x) {
         int t0, t1;
         t0 = x;
         t1 = t0 ^ shift(t0, 8);
@@ -213,17 +168,21 @@ final class AESEngine extends TlsCipherEngine.Block {
         return t0;
     }
 
-    private static int subWord(int x) {
+    private int subWord(int x) {
         return (S_BOX[x & 255] & 255 | ((S_BOX[(x >> 8) & 255] & 255) << 8) | ((S_BOX[(x >> 16) & 255] & 255) << 16) | S_BOX[(x >> 24) & 255] << 24);
     }
 
     @Override
-    public int blockSize() {
+    public int blockLength() {
         return BLOCK_SIZE;
     }
 
     @Override
     public void process(ByteBuffer input, ByteBuffer output) {
+        if(workingKey == null) {
+            throw new IllegalStateException();
+        }
+
         if (forEncryption) {
             encryptBlock(input, output);
         } else {
@@ -309,6 +268,8 @@ final class AESEngine extends TlsCipherEngine.Block {
 
     @Override
     public void reset() {
-
+        if(workingKey == null) {
+            throw new IllegalStateException();
+        }
     }
 }

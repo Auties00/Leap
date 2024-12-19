@@ -5,7 +5,7 @@ import it.auties.leap.tls.exception.TlsException;
 import java.net.URI;
 import java.nio.ByteBuffer;
 
-public sealed interface TlsCompression extends TlsIdentifiable<TlsCompression, Byte> {
+public sealed interface TlsCompression {
     static TlsCompression none() {
         return None.INSTANCE;
     }
@@ -26,13 +26,14 @@ public sealed interface TlsCompression extends TlsIdentifiable<TlsCompression, B
         return new Reserved(id, consumer);
     }
 
+    byte id();
     boolean accept(ByteBuffer input, ByteBuffer output, boolean forCompression);
 
     final class None implements TlsCompression {
         private static final None INSTANCE = new None();
 
         @Override
-        public Byte id() {
+        public byte id() {
             return 0;
         }
 
@@ -46,7 +47,7 @@ public sealed interface TlsCompression extends TlsIdentifiable<TlsCompression, B
         private static final Deflate INSTANCE = new Deflate();
 
         @Override
-        public Byte id() {
+        public byte id() {
             return 1;
         }
 
@@ -65,7 +66,7 @@ public sealed interface TlsCompression extends TlsIdentifiable<TlsCompression, B
         }
 
         @Override
-        public Byte id() {
+        public byte id() {
             return id;
         }
 
@@ -79,20 +80,20 @@ public sealed interface TlsCompression extends TlsIdentifiable<TlsCompression, B
             boolean accept(ByteBuffer input, ByteBuffer output, boolean forCompression);
 
             static Handler unsupported() {
-                final class Unsupported implements Handler {
-                    private static final Handler INSTANCE = new Unsupported();
-
-                    private Unsupported() {
-
-                    }
-
-                    @Override
-                    public boolean accept(ByteBuffer input, ByteBuffer output, boolean forCompression) {
-                        return false;
-                    }
-                }
-
                 return Unsupported.INSTANCE;
+            }
+        }
+
+        private static final class Unsupported implements Handler {
+            private static final Handler INSTANCE = new Unsupported();
+
+            private Unsupported() {
+
+            }
+
+            @Override
+            public boolean accept(ByteBuffer input, ByteBuffer output, boolean forCompression) {
+                return false;
             }
         }
     }

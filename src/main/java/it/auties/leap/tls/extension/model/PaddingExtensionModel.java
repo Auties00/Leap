@@ -9,25 +9,21 @@ import java.util.Optional;
 
 import static it.auties.leap.tls.BufferHelper.INT16_LENGTH;
 
-public final class PaddingExtensionModel extends TlsExtension.Model<PaddingExtensionModel, PaddingExtensionModel.Config, PaddingExtension> {
+public final class PaddingExtensionModel implements TlsExtension.Model<PaddingExtension> {
     private final int targetLength;
     public PaddingExtensionModel(int targetLength) {
         this.targetLength = targetLength;
     }
 
     @Override
-    public Optional<PaddingExtension> create(Config config) {
-        var actualLength = config.actualLength() + INT16_LENGTH + INT16_LENGTH;
-        if(config.actualLength() > targetLength) {
+    public Optional<PaddingExtension> create(Context context) {
+        var actualLength = context.processedExtensionsLength() + INT16_LENGTH + INT16_LENGTH;
+        if(actualLength > targetLength) {
             return Optional.empty();
         }
 
         var result = new PaddingExtension(targetLength - actualLength);
         return Optional.of(result);
-    }
-
-    public record Config(int actualLength) implements Model.Config<PaddingExtensionModel> {
-
     }
 
     @Override

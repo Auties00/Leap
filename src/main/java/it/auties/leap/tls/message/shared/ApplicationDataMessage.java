@@ -1,13 +1,12 @@
 package it.auties.leap.tls.message.shared;
 
-import it.auties.leap.tls.config.TlsVersion;
 import it.auties.leap.tls.BufferHelper;
-import it.auties.leap.tls.config.TlsMode;
+import it.auties.leap.tls.config.TlsSource;
+import it.auties.leap.tls.config.TlsVersion;
 import it.auties.leap.tls.message.TlsMessage;
 
 import java.nio.BufferUnderflowException;
 import java.nio.ByteBuffer;
-import java.util.List;
 
 import static it.auties.leap.tls.BufferHelper.*;
 
@@ -15,12 +14,12 @@ public final class ApplicationDataMessage extends TlsMessage {
     private static final int ID = 0x17;
 
     private final ByteBuffer message;
-    public ApplicationDataMessage(TlsVersion tlsVersion, Source source, ByteBuffer message) {
+    public ApplicationDataMessage(TlsVersion tlsVersion, TlsSource source, ByteBuffer message) {
         super(tlsVersion, source);
         this.message = message;
     }
 
-    public static ApplicationDataMessage of(TlsVersion version, Source source, ByteBuffer buffer) {
+    public static ApplicationDataMessage of(TlsVersion version, TlsSource source, ByteBuffer buffer) {
         var message = readBuffer(buffer, buffer.remaining());
         return new ApplicationDataMessage(version, source, message);
     }
@@ -43,29 +42,6 @@ public final class ApplicationDataMessage extends TlsMessage {
     @Override
     public byte id() {
         return ID;
-    }
-
-    @Override
-    public boolean isSupported(TlsVersion version, TlsMode mode, Source source, List<Type> precedingMessages) {
-        return switch (version.protocol()) {
-            case TCP -> switch (mode) {
-                case CLIENT -> {
-                    var marker = switch (source) {
-                        case REMOTE -> Type.SERVER_CHANGE_CIPHER_SPEC;
-                        case LOCAL -> Type.CLIENT_CHANGE_CIPHER_SPEC;
-                    };
-                    yield precedingMessages.contains(marker);
-                }
-                case SERVER -> {
-                    var marker = switch (source) {
-                        case REMOTE -> Type.CLIENT_CHANGE_CIPHER_SPEC;
-                        case LOCAL -> Type.SERVER_CHANGE_CIPHER_SPEC;
-                    };
-                    yield precedingMessages.contains(marker);
-                }
-            };
-            case UDP -> false;
-        };
     }
 
     @Override

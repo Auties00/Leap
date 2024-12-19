@@ -9,13 +9,8 @@ import java.util.Optional;
 
 import static it.auties.leap.tls.BufferHelper.*;
 
-public final class PaddingExtension extends TlsExtension.Concrete {
+public record PaddingExtension(int length) implements TlsExtension.Concrete {
     public static final int EXTENSION_TYPE = 0x0015;
-
-    private final int length;
-    public PaddingExtension(int length) {
-        this.length = length;
-    }
 
     public static Optional<PaddingExtension> of(TlsVersion version, ByteBuffer buffer, int extensionLength) {
         var padding = readLittleEndianInt8(buffer);
@@ -24,7 +19,7 @@ public final class PaddingExtension extends TlsExtension.Concrete {
     }
 
     @Override
-    protected void serializeExtensionPayload(ByteBuffer buffer) {
+    public void serializeExtensionPayload(ByteBuffer buffer) {
         for(var j = 0; j < length; j++) {
             buffer.put((byte) 0);
         }

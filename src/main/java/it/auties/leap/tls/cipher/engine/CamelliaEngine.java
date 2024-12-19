@@ -12,11 +12,24 @@ final class CamelliaEngine extends TlsCipherEngine.Block {
     private static final int[] S_BOX_3 = {0x38003838, 0x41004141, 0x16001616, 0x76007676, 0xd900d9d9, 0x93009393, 0x60006060, 0xf200f2f2, 0x72007272, 0xc200c2c2, 0xab00abab, 0x9a009a9a, 0x75007575, 0x06000606, 0x57005757, 0xa000a0a0, 0x91009191, 0xf700f7f7, 0xb500b5b5, 0xc900c9c9, 0xa200a2a2, 0x8c008c8c, 0xd200d2d2, 0x90009090, 0xf600f6f6, 0x07000707, 0xa700a7a7, 0x27002727, 0x8e008e8e, 0xb200b2b2, 0x49004949, 0xde00dede, 0x43004343, 0x5c005c5c, 0xd700d7d7, 0xc700c7c7, 0x3e003e3e, 0xf500f5f5, 0x8f008f8f, 0x67006767, 0x1f001f1f, 0x18001818, 0x6e006e6e, 0xaf00afaf, 0x2f002f2f, 0xe200e2e2, 0x85008585, 0x0d000d0d, 0x53005353, 0xf000f0f0, 0x9c009c9c, 0x65006565, 0xea00eaea, 0xa300a3a3, 0xae00aeae, 0x9e009e9e, 0xec00ecec, 0x80008080, 0x2d002d2d, 0x6b006b6b, 0xa800a8a8, 0x2b002b2b, 0x36003636, 0xa600a6a6, 0xc500c5c5, 0x86008686, 0x4d004d4d, 0x33003333, 0xfd00fdfd, 0x66006666, 0x58005858, 0x96009696, 0x3a003a3a, 0x09000909, 0x95009595, 0x10001010, 0x78007878, 0xd800d8d8, 0x42004242, 0xcc00cccc, 0xef00efef, 0x26002626, 0xe500e5e5, 0x61006161, 0x1a001a1a, 0x3f003f3f, 0x3b003b3b, 0x82008282, 0xb600b6b6, 0xdb00dbdb, 0xd400d4d4, 0x98009898, 0xe800e8e8, 0x8b008b8b, 0x02000202, 0xeb00ebeb, 0x0a000a0a, 0x2c002c2c, 0x1d001d1d, 0xb000b0b0, 0x6f006f6f, 0x8d008d8d, 0x88008888, 0x0e000e0e, 0x19001919, 0x87008787, 0x4e004e4e, 0x0b000b0b, 0xa900a9a9, 0x0c000c0c, 0x79007979, 0x11001111, 0x7f007f7f, 0x22002222, 0xe700e7e7, 0x59005959, 0xe100e1e1, 0xda00dada, 0x3d003d3d, 0xc800c8c8, 0x12001212, 0x04000404, 0x74007474, 0x54005454, 0x30003030, 0x7e007e7e, 0xb400b4b4, 0x28002828, 0x55005555, 0x68006868, 0x50005050, 0xbe00bebe, 0xd000d0d0, 0xc400c4c4, 0x31003131, 0xcb00cbcb, 0x2a002a2a, 0xad00adad, 0x0f000f0f, 0xca00caca, 0x70007070, 0xff00ffff, 0x32003232, 0x69006969, 0x08000808, 0x62006262, 0x00000000, 0x24002424, 0xd100d1d1, 0xfb00fbfb, 0xba00baba, 0xed00eded, 0x45004545, 0x81008181, 0x73007373, 0x6d006d6d, 0x84008484, 0x9f009f9f, 0xee00eeee, 0x4a004a4a, 0xc300c3c3, 0x2e002e2e, 0xc100c1c1, 0x01000101, 0xe600e6e6, 0x25002525, 0x48004848, 0x99009999, 0xb900b9b9, 0xb300b3b3, 0x7b007b7b, 0xf900f9f9, 0xce00cece, 0xbf00bfbf, 0xdf00dfdf, 0x71007171, 0x29002929, 0xcd00cdcd, 0x6c006c6c, 0x13001313, 0x64006464, 0x9b009b9b, 0x63006363, 0x9d009d9d, 0xc000c0c0, 0x4b004b4b, 0xb700b7b7, 0xa500a5a5, 0x89008989, 0x5f005f5f, 0xb100b1b1, 0x17001717, 0xf400f4f4, 0xbc00bcbc, 0xd300d3d3, 0x46004646, 0xcf00cfcf, 0x37003737, 0x5e005e5e, 0x47004747, 0x94009494, 0xfa00fafa, 0xfc00fcfc, 0x5b005b5b, 0x97009797, 0xfe00fefe, 0x5a005a5a, 0xac00acac, 0x3c003c3c, 0x4c004c4c, 0x03000303, 0x35003535, 0xf300f3f3, 0x23002323, 0xb800b8b8, 0x5d005d5d, 0x6a006a6a, 0x92009292, 0xd500d5d5, 0x21002121, 0x44004444, 0x51005151, 0xc600c6c6, 0x7d007d7d, 0x39003939, 0x83008383, 0xdc00dcdc, 0xaa00aaaa, 0x7c007c7c, 0x77007777, 0x56005656, 0x05000505, 0x1b001b1b, 0xa400a4a4, 0x15001515, 0x34003434, 0x1e001e1e, 0x1c001c1c, 0xf800f8f8, 0x52005252, 0x20002020, 0x14001414, 0xe900e9e9, 0xbd00bdbd, 0xdd00dddd, 0xe400e4e4, 0xa100a1a1, 0xe000e0e0, 0x8a008a8a, 0xf100f1f1, 0xd600d6d6, 0x7a007a7a, 0xbb00bbbb, 0xe300e3e3, 0x40004040, 0x4f004f4f};
     private static final int[] S_BOX_4 = {0x70700070, 0x2c2c002c, 0xb3b300b3, 0xc0c000c0, 0xe4e400e4, 0x57570057, 0xeaea00ea, 0xaeae00ae, 0x23230023, 0x6b6b006b, 0x45450045, 0xa5a500a5, 0xeded00ed, 0x4f4f004f, 0x1d1d001d, 0x92920092, 0x86860086, 0xafaf00af, 0x7c7c007c, 0x1f1f001f, 0x3e3e003e, 0xdcdc00dc, 0x5e5e005e, 0x0b0b000b, 0xa6a600a6, 0x39390039, 0xd5d500d5, 0x5d5d005d, 0xd9d900d9, 0x5a5a005a, 0x51510051, 0x6c6c006c, 0x8b8b008b, 0x9a9a009a, 0xfbfb00fb, 0xb0b000b0, 0x74740074, 0x2b2b002b, 0xf0f000f0, 0x84840084, 0xdfdf00df, 0xcbcb00cb, 0x34340034, 0x76760076, 0x6d6d006d, 0xa9a900a9, 0xd1d100d1, 0x04040004, 0x14140014, 0x3a3a003a, 0xdede00de, 0x11110011, 0x32320032, 0x9c9c009c, 0x53530053, 0xf2f200f2, 0xfefe00fe, 0xcfcf00cf, 0xc3c300c3, 0x7a7a007a, 0x24240024, 0xe8e800e8, 0x60600060, 0x69690069, 0xaaaa00aa, 0xa0a000a0, 0xa1a100a1, 0x62620062, 0x54540054, 0x1e1e001e, 0xe0e000e0, 0x64640064, 0x10100010, 0x00000000, 0xa3a300a3, 0x75750075, 0x8a8a008a, 0xe6e600e6, 0x09090009, 0xdddd00dd, 0x87870087, 0x83830083, 0xcdcd00cd, 0x90900090, 0x73730073, 0xf6f600f6, 0x9d9d009d, 0xbfbf00bf, 0x52520052, 0xd8d800d8, 0xc8c800c8, 0xc6c600c6, 0x81810081, 0x6f6f006f, 0x13130013, 0x63630063, 0xe9e900e9, 0xa7a700a7, 0x9f9f009f, 0xbcbc00bc, 0x29290029, 0xf9f900f9, 0x2f2f002f, 0xb4b400b4, 0x78780078, 0x06060006, 0xe7e700e7, 0x71710071, 0xd4d400d4, 0xabab00ab, 0x88880088, 0x8d8d008d, 0x72720072, 0xb9b900b9, 0xf8f800f8, 0xacac00ac, 0x36360036, 0x2a2a002a, 0x3c3c003c, 0xf1f100f1, 0x40400040, 0xd3d300d3, 0xbbbb00bb, 0x43430043, 0x15150015, 0xadad00ad, 0x77770077, 0x80800080, 0x82820082, 0xecec00ec, 0x27270027, 0xe5e500e5, 0x85850085, 0x35350035, 0x0c0c000c, 0x41410041, 0xefef00ef, 0x93930093, 0x19190019, 0x21210021, 0x0e0e000e, 0x4e4e004e, 0x65650065, 0xbdbd00bd, 0xb8b800b8, 0x8f8f008f, 0xebeb00eb, 0xcece00ce, 0x30300030, 0x5f5f005f, 0xc5c500c5, 0x1a1a001a, 0xe1e100e1, 0xcaca00ca, 0x47470047, 0x3d3d003d, 0x01010001, 0xd6d600d6, 0x56560056, 0x4d4d004d, 0x0d0d000d, 0x66660066, 0xcccc00cc, 0x2d2d002d, 0x12120012, 0x20200020, 0xb1b100b1, 0x99990099, 0x4c4c004c, 0xc2c200c2, 0x7e7e007e, 0x05050005, 0xb7b700b7, 0x31310031, 0x17170017, 0xd7d700d7, 0x58580058, 0x61610061, 0x1b1b001b, 0x1c1c001c, 0x0f0f000f, 0x16160016, 0x18180018, 0x22220022, 0x44440044, 0xb2b200b2, 0xb5b500b5, 0x91910091, 0x08080008, 0xa8a800a8, 0xfcfc00fc, 0x50500050, 0xd0d000d0, 0x7d7d007d, 0x89890089, 0x97970097, 0x5b5b005b, 0x95950095, 0xffff00ff, 0xd2d200d2, 0xc4c400c4, 0x48480048, 0xf7f700f7, 0xdbdb00db, 0x03030003, 0xdada00da, 0x3f3f003f, 0x94940094, 0x5c5c005c, 0x02020002, 0x4a4a004a, 0x33330033, 0x67670067, 0xf3f300f3, 0x7f7f007f, 0xe2e200e2, 0x9b9b009b, 0x26260026, 0x37370037, 0x3b3b003b, 0x96960096, 0x4b4b004b, 0xbebe00be, 0x2e2e002e, 0x79790079, 0x8c8c008c, 0x6e6e006e, 0x8e8e008e, 0xf5f500f5, 0xb6b600b6, 0xfdfd00fd, 0x59590059, 0x98980098, 0x6a6a006a, 0x46460046, 0xbaba00ba, 0x25250025, 0x42420042, 0xa2a200a2, 0xfafa00fa, 0x07070007, 0x55550055, 0xeeee00ee, 0x0a0a000a, 0x49490049, 0x68680068, 0x38380038, 0xa4a400a4, 0x28280028, 0x7b7b007b, 0xc9c900c9, 0xc1c100c1, 0xe3e300e3, 0xf4f400f4, 0xc7c700c7, 0x9e9e009e};
 
-    private final int[] subkey ;
-    private final int[] kw ;
-    private final int[] ke ;
-    CamelliaEngine(boolean forEncryption, byte[] key) {
-        super(forEncryption, key);
+    private int[] subkey;
+    private int[] kw;
+    private int[] ke;
+    CamelliaEngine(int keyLength) {
+        super(keyLength);
+    }
+
+    @Override
+    public void init(boolean forEncryption, byte[] key) {
+        if(subkey != null) {
+            throw new IllegalStateException();
+        }
+
+        if(key.length != keyLength) {
+            throw new IllegalArgumentException();
+        }
+
+        this.forEncryption = forEncryption;
         this.subkey = new int[96];
         this.kw = new int[8];
         this.ke = new int[12];
@@ -29,159 +42,30 @@ final class CamelliaEngine extends TlsCipherEngine.Block {
         var kb = new int[4];
         var t = new int[4];
 
-        switch (key.length) {
-            case 16 -> handle128BitsKey(key, k);
-            case 24 -> handle192BitsKey(key, k);
-            case 32 -> handle256BitsKey(key, k);
-            default -> throw new InternalError("Unexpected bits count: " + key.length);
+        if (keyLength == 16) {
+            read128BitKey(key, k);
+        } else {
+            read256BitKey(key, k);
         }
 
         for (int i = 0; i < 4; i++) {
             ka[i] = k[i] ^ k[i + 4];
         }
- 
+
         camelliaF2(ka, SIGMA, 0);
         for (int i = 0; i < 4; i++) {
             ka[i] ^= k[i];
         }
         camelliaF2(ka, SIGMA, 4);
 
-        if (key.length == 16) {
-            if (forEncryption) {
-                
-                kw[0] = k[0];
-                kw[1] = k[1];
-                kw[2] = k[2];
-                kw[3] = k[3];
-                roldq(15, k, 0, subkey, 4);
-                roldq(30, k, 0, subkey, 12);
-                roldq(15, k, 0, t, 0);
-                subkey[18] = t[2];
-                subkey[19] = t[3];
-                roldq(17, k, 0, ke, 4);
-                roldq(17, k, 0, subkey, 24);
-                roldq(17, k, 0, subkey, 32);
-                
-                subkey[0] = ka[0];
-                subkey[1] = ka[1];
-                subkey[2] = ka[2];
-                subkey[3] = ka[3];
-                roldq(15, ka, 0, subkey, 8);
-                roldq(15, ka, 0, ke, 0);
-                roldq(15, ka, 0, t, 0);
-                subkey[16] = t[0];
-                subkey[17] = t[1];
-                roldq(15, ka, 0, subkey, 20);
-                roldqo32(34, ka, 0, subkey, 28);
-                roldq(17, ka, 0, kw, 4);
-
-            } else { // decryption
-                
-                kw[4] = k[0];
-                kw[5] = k[1];
-                kw[6] = k[2];
-                kw[7] = k[3];
-                decroldq(15, k, 0, subkey, 28);
-                decroldq(30, k, 0, subkey, 20);
-                decroldq(15, k, 0, t, 0);
-                subkey[16] = t[0];
-                subkey[17] = t[1];
-                decroldq(17, k, 0, ke, 0);
-                decroldq(17, k, 0, subkey, 8);
-                decroldq(17, k, 0, subkey, 0);
-                
-                subkey[34] = ka[0];
-                subkey[35] = ka[1];
-                subkey[32] = ka[2];
-                subkey[33] = ka[3];
-                decroldq(15, ka, 0, subkey, 24);
-                decroldq(15, ka, 0, ke, 4);
-                decroldq(15, ka, 0, t, 0);
-                subkey[18] = t[2];
-                subkey[19] = t[3];
-                decroldq(15, ka, 0, subkey, 12);
-                decroldqo32(34, ka, 0, subkey, 4);
-                roldq(17, ka, 0, kw, 0);
-            }
-        } else { // 192bit or 256bit
-            
-            for (int i = 0; i < 4; i++) {
-                kb[i] = ka[i] ^ k[i + 4];
-            }
-            camelliaF2(kb, SIGMA, 8);
-
-            if (forEncryption) {
-                
-                kw[0] = k[0];
-                kw[1] = k[1];
-                kw[2] = k[2];
-                kw[3] = k[3];
-                roldqo32(45, k, 0, subkey, 16);
-                roldq(15, k, 0, ke, 4);
-                roldq(17, k, 0, subkey, 32);
-                roldqo32(34, k, 0, subkey, 44);
-                
-                roldq(15, k, 4, subkey, 4);
-                roldq(15, k, 4, ke, 0);
-                roldq(30, k, 4, subkey, 24);
-                roldqo32(34, k, 4, subkey, 36);
-                
-                roldq(15, ka, 0, subkey, 8);
-                roldq(30, ka, 0, subkey, 20);
-                
-                ke[8] = ka[1];
-                ke[9] = ka[2];
-                ke[10] = ka[3];
-                ke[11] = ka[0];
-                roldqo32(49, ka, 0, subkey, 40);
-
-                
-                subkey[0] = kb[0];
-                subkey[1] = kb[1];
-                subkey[2] = kb[2];
-                subkey[3] = kb[3];
-                roldq(30, kb, 0, subkey, 12);
-                roldq(30, kb, 0, subkey, 28);
-                roldqo32(51, kb, 0, kw, 4);
-
-            } else { // decryption
-                
-                kw[4] = k[0];
-                kw[5] = k[1];
-                kw[6] = k[2];
-                kw[7] = k[3];
-                decroldqo32(45, k, 0, subkey, 28);
-                decroldq(15, k, 0, ke, 4);
-                decroldq(17, k, 0, subkey, 12);
-                decroldqo32(34, k, 0, subkey, 0);
-                
-                decroldq(15, k, 4, subkey, 40);
-                decroldq(15, k, 4, ke, 8);
-                decroldq(30, k, 4, subkey, 20);
-                decroldqo32(34, k, 4, subkey, 8);
-                
-                decroldq(15, ka, 0, subkey, 36);
-                decroldq(30, ka, 0, subkey, 24);
-                
-                ke[2] = ka[1];
-                ke[3] = ka[2];
-                ke[0] = ka[3];
-                ke[1] = ka[0];
-                decroldqo32(49, ka, 0, subkey, 4);
-
-                
-                subkey[46] = kb[0];
-                subkey[47] = kb[1];
-                subkey[44] = kb[2];
-                subkey[45] = kb[3];
-                decroldq(30, kb, 0, subkey, 32);
-                decroldq(30, kb, 0, subkey, 16);
-                roldqo32(51, kb, 0, kw, 0);
-            }
+        if (keyLength == 16) {
+            write128BitKey(forEncryption, k, t, ka);
+        } else {
+            write256BitKey(forEncryption, kb, ka, k);
         }
     }
 
-    private static void handle128BitsKey(byte[] key, int[] k) {
+    private void read128BitKey(byte[] key, int[] k) {
         k[0] = BufferHelper.readBigEndianInt32(key, 0);
         k[1] = BufferHelper.readBigEndianInt32(key, 4);
         k[2] = BufferHelper.readBigEndianInt32(key, 8);
@@ -189,18 +73,7 @@ final class CamelliaEngine extends TlsCipherEngine.Block {
         k[4] = k[5] = k[6] = k[7] = 0;
     }
 
-    private static void handle192BitsKey(byte[] key, int[] k) {
-        k[0] = BufferHelper.readBigEndianInt32(key, 0);
-        k[1] = BufferHelper.readBigEndianInt32(key, 4);
-        k[2] = BufferHelper.readBigEndianInt32(key, 8);
-        k[3] = BufferHelper.readBigEndianInt32(key, 12);
-        k[4] = BufferHelper.readBigEndianInt32(key, 16);
-        k[5] = BufferHelper.readBigEndianInt32(key, 20);
-        k[6] = ~k[4];
-        k[7] = ~k[5];
-    }
-
-    private static void handle256BitsKey(byte[] key, int[] k) {
+    private void read256BitKey(byte[] key, int[] k) {
         k[0] = BufferHelper.readBigEndianInt32(key, 0);
         k[1] = BufferHelper.readBigEndianInt32(key, 4);
         k[2] = BufferHelper.readBigEndianInt32(key, 8);
@@ -211,16 +84,150 @@ final class CamelliaEngine extends TlsCipherEngine.Block {
         k[7] = BufferHelper.readBigEndianInt32(key, 28);
     }
 
+    private void write128BitKey(boolean forEncryption, int[] k, int[] t, int[] ka) {
+        if (forEncryption) {
 
-    private static int rightRotate(int x) {
+            kw[0] = k[0];
+            kw[1] = k[1];
+            kw[2] = k[2];
+            kw[3] = k[3];
+            roldq(15, k, 0, subkey, 4);
+            roldq(30, k, 0, subkey, 12);
+            roldq(15, k, 0, t, 0);
+            subkey[18] = t[2];
+            subkey[19] = t[3];
+            roldq(17, k, 0, ke, 4);
+            roldq(17, k, 0, subkey, 24);
+            roldq(17, k, 0, subkey, 32);
+
+            subkey[0] = ka[0];
+            subkey[1] = ka[1];
+            subkey[2] = ka[2];
+            subkey[3] = ka[3];
+            roldq(15, ka, 0, subkey, 8);
+            roldq(15, ka, 0, ke, 0);
+            roldq(15, ka, 0, t, 0);
+            subkey[16] = t[0];
+            subkey[17] = t[1];
+            roldq(15, ka, 0, subkey, 20);
+            roldqo32(34, ka, 0, subkey, 28);
+            roldq(17, ka, 0, kw, 4);
+
+        } else { // decryption
+
+            kw[4] = k[0];
+            kw[5] = k[1];
+            kw[6] = k[2];
+            kw[7] = k[3];
+            decroldq(15, k, 0, subkey, 28);
+            decroldq(30, k, 0, subkey, 20);
+            decroldq(15, k, 0, t, 0);
+            subkey[16] = t[0];
+            subkey[17] = t[1];
+            decroldq(17, k, 0, ke, 0);
+            decroldq(17, k, 0, subkey, 8);
+            decroldq(17, k, 0, subkey, 0);
+
+            subkey[34] = ka[0];
+            subkey[35] = ka[1];
+            subkey[32] = ka[2];
+            subkey[33] = ka[3];
+            decroldq(15, ka, 0, subkey, 24);
+            decroldq(15, ka, 0, ke, 4);
+            decroldq(15, ka, 0, t, 0);
+            subkey[18] = t[2];
+            subkey[19] = t[3];
+            decroldq(15, ka, 0, subkey, 12);
+            decroldqo32(34, ka, 0, subkey, 4);
+            roldq(17, ka, 0, kw, 0);
+        }
+    }
+
+    private void write256BitKey(boolean forEncryption, int[] kb, int[] ka, int[] k) {
+        for (int i = 0; i < 4; i++) {
+            kb[i] = ka[i] ^ k[i + 4];
+        }
+        camelliaF2(kb, SIGMA, 8);
+
+        if (forEncryption) {
+
+            kw[0] = k[0];
+            kw[1] = k[1];
+            kw[2] = k[2];
+            kw[3] = k[3];
+            roldqo32(45, k, 0, subkey, 16);
+            roldq(15, k, 0, ke, 4);
+            roldq(17, k, 0, subkey, 32);
+            roldqo32(34, k, 0, subkey, 44);
+
+            roldq(15, k, 4, subkey, 4);
+            roldq(15, k, 4, ke, 0);
+            roldq(30, k, 4, subkey, 24);
+            roldqo32(34, k, 4, subkey, 36);
+
+            roldq(15, ka, 0, subkey, 8);
+            roldq(30, ka, 0, subkey, 20);
+
+            ke[8] = ka[1];
+            ke[9] = ka[2];
+            ke[10] = ka[3];
+            ke[11] = ka[0];
+            roldqo32(49, ka, 0, subkey, 40);
+
+
+            subkey[0] = kb[0];
+            subkey[1] = kb[1];
+            subkey[2] = kb[2];
+            subkey[3] = kb[3];
+            roldq(30, kb, 0, subkey, 12);
+            roldq(30, kb, 0, subkey, 28);
+            roldqo32(51, kb, 0, kw, 4);
+
+        } else { // decryption
+
+            kw[4] = k[0];
+            kw[5] = k[1];
+            kw[6] = k[2];
+            kw[7] = k[3];
+            decroldqo32(45, k, 0, subkey, 28);
+            decroldq(15, k, 0, ke, 4);
+            decroldq(17, k, 0, subkey, 12);
+            decroldqo32(34, k, 0, subkey, 0);
+
+            decroldq(15, k, 4, subkey, 40);
+            decroldq(15, k, 4, ke, 8);
+            decroldq(30, k, 4, subkey, 20);
+            decroldqo32(34, k, 4, subkey, 8);
+
+            decroldq(15, ka, 0, subkey, 36);
+            decroldq(30, ka, 0, subkey, 24);
+
+            ke[2] = ka[1];
+            ke[3] = ka[2];
+            ke[0] = ka[3];
+            ke[1] = ka[0];
+            decroldqo32(49, ka, 0, subkey, 4);
+
+
+            subkey[46] = kb[0];
+            subkey[47] = kb[1];
+            subkey[44] = kb[2];
+            subkey[45] = kb[3];
+            decroldq(30, kb, 0, subkey, 32);
+            decroldq(30, kb, 0, subkey, 16);
+            roldqo32(51, kb, 0, kw, 0);
+        }
+    }
+
+    private int rightRotate(int x) {
         return (x >>> 8) + (x << 24);
     }
 
-    private static int leftRotate(int x) {
+    private int leftRotate(int x) {
         return (x << 1) + (x >>> 31);
     }
 
-    private static void roldq(int rot, int[] ki, int ioff, int[] ko, int ooff) {
+    private void roldq(int rot, int[] ki, int ioff, int[] ko, int ooff) {
         ko[ooff] = (ki[ioff] << rot) | (ki[1 + ioff] >>> (32 - rot));
         ko[1 + ooff] = (ki[1 + ioff] << rot) | (ki[2 + ioff] >>> (32 - rot));
         ko[2 + ooff] = (ki[2 + ioff] << rot) | (ki[3 + ioff] >>> (32 - rot));
@@ -231,7 +238,7 @@ final class CamelliaEngine extends TlsCipherEngine.Block {
         ki[3 + ioff] = ko[3 + ooff];
     }
 
-    private static void decroldq(int rot, int[] ki, int ioff, int[] ko, int ooff) {
+    private void decroldq(int rot, int[] ki, int ioff, int[] ko, int ooff) {
         ko[2 + ooff] = (ki[ioff] << rot) | (ki[1 + ioff] >>> (32 - rot));
         ko[3 + ooff] = (ki[1 + ioff] << rot) | (ki[2 + ioff] >>> (32 - rot));
         ko[ooff] = (ki[2 + ioff] << rot) | (ki[3 + ioff] >>> (32 - rot));
@@ -242,7 +249,7 @@ final class CamelliaEngine extends TlsCipherEngine.Block {
         ki[3 + ioff] = ko[1 + ooff];
     }
 
-    private static void roldqo32(int rot, int[] ki, int ioff, int[] ko, int ooff) {
+    private void roldqo32(int rot, int[] ki, int ioff, int[] ko, int ooff) {
         ko[ooff] = (ki[1 + ioff] << (rot - 32)) | (ki[2 + ioff] >>> (64 - rot));
         ko[1 + ooff] = (ki[2 + ioff] << (rot - 32)) | (ki[3 + ioff] >>> (64 - rot));
         ko[2 + ooff] = (ki[3 + ioff] << (rot - 32)) | (ki[ioff] >>> (64 - rot));
@@ -253,7 +260,7 @@ final class CamelliaEngine extends TlsCipherEngine.Block {
         ki[3 + ioff] = ko[3 + ooff];
     }
 
-    private static void decroldqo32(int rot, int[] ki, int ioff, int[] ko, int ooff) {
+    private void decroldqo32(int rot, int[] ki, int ioff, int[] ko, int ooff) {
         ko[2 + ooff] = (ki[1 + ioff] << (rot - 32)) | (ki[2 + ioff] >>> (64 - rot));
         ko[3 + ooff] = (ki[2 + ioff] << (rot - 32)) | (ki[3 + ioff] >>> (64 - rot));
         ko[ooff] = (ki[3 + ioff] << (rot - 32)) | (ki[ioff] >>> (64 - rot));
@@ -263,7 +270,7 @@ final class CamelliaEngine extends TlsCipherEngine.Block {
         ki[2 + ioff] = ko[ooff];
         ki[3 + ioff] = ko[1 + ooff];
     }
-    
+
     private void camelliaF2(int[] s, int[] skey, int keyoff) {
         int t1, t2, u, v;
 
@@ -303,18 +310,22 @@ final class CamelliaEngine extends TlsCipherEngine.Block {
         s[2] ^= fkey[3 + keyoff] | s[3];
         s[3] ^= leftRotate(fkey[2 + keyoff] & s[2]);
     }
-    
+
     @Override
-    public int blockSize() {
+    public int blockLength() {
         return BLOCK_SIZE;
     }
 
     @Override
     public void process(ByteBuffer input, ByteBuffer output) {
-        if (key.length == 16) {
+        if(subkey == null) {
+            throw new IllegalStateException();
+        }
+
+        if (keyLength == 16) {
             processBlock128(input, output);
         } else {
-            processBlock192or256(input, output);
+            processBlock256(input, output);
         }
     }
 
@@ -347,7 +358,7 @@ final class CamelliaEngine extends TlsCipherEngine.Block {
         BufferHelper.writeBigEndianInt32(output, state[1]);
     }
 
-    private void processBlock192or256(ByteBuffer input, ByteBuffer output) {
+    private void processBlock256(ByteBuffer input, ByteBuffer output) {
         var state = new int[4];
         for (int i = 0; i < 4; i++) {
             state[i] = BufferHelper.readBigEndianInt32(input) ^ kw[i];
@@ -382,6 +393,8 @@ final class CamelliaEngine extends TlsCipherEngine.Block {
 
     @Override
     public void reset() {
-      
+        if(subkey == null) {
+            throw new IllegalStateException();
+        }
     }
 }

@@ -4,27 +4,14 @@ import it.auties.leap.tls.config.TlsVersion;
 import it.auties.leap.tls.extension.TlsExtension;
 
 import java.nio.ByteBuffer;
-import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Optional;
 
-import static it.auties.leap.tls.BufferHelper.*;
+import static it.auties.leap.tls.BufferHelper.readBytesLittleEndian8;
+import static it.auties.leap.tls.BufferHelper.writeBytesLittleEndian8;
 
-public final class ServerNextProtocolNegotiationExtension extends TlsExtension.Concrete {
+public record ServerNextProtocolNegotiationExtension(byte[] selectedProtocol) implements TlsExtension.Concrete {
     public static final int EXTENSION_TYPE = 0x3374;
-
-    private final byte[] selectedProtocol;
-    public ServerNextProtocolNegotiationExtension(String selectedProtocol) {
-        this.selectedProtocol = selectedProtocol.getBytes(StandardCharsets.US_ASCII);
-    }
-
-    public ServerNextProtocolNegotiationExtension(byte[] selectedProtocol) {
-        this.selectedProtocol = selectedProtocol;
-    }
-
-    public byte[] selectedProtocol() {
-        return selectedProtocol;
-    }
 
     public static Optional<ServerNextProtocolNegotiationExtension> of(TlsVersion version, ByteBuffer buffer, int extensionLength) {
         var selectedProtocol = readBytesLittleEndian8(buffer);
@@ -33,7 +20,7 @@ public final class ServerNextProtocolNegotiationExtension extends TlsExtension.C
     }
 
     @Override
-    protected void serializeExtensionPayload(ByteBuffer buffer) {
+    public void serializeExtensionPayload(ByteBuffer buffer) {
         writeBytesLittleEndian8(buffer, selectedProtocol);
     }
 

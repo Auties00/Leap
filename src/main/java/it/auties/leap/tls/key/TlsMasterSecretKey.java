@@ -2,7 +2,7 @@ package it.auties.leap.tls.key;
 
 import it.auties.leap.tls.cipher.TlsCipher;
 import it.auties.leap.tls.config.TlsVersion;
-import it.auties.leap.tls.hash.TlsHashType;
+import it.auties.leap.tls.hash.TlsHash;
 import it.auties.leap.tls.hash.TlsPRF;
 import it.auties.leap.tls.config.TlsMode;
 
@@ -34,10 +34,8 @@ public record TlsMasterSecretKey(byte[] data) {
         };
         if (version == TlsVersion.SSL30) {
             var master = new byte[length()];
-            var md5 = TlsHashType.md5()
-                    .newHash();
-            var sha = TlsHashType.sha1()
-                    .newHash();
+            var md5 = TlsHash.md5();
+            var sha = TlsHash.sha1();
             var tmp = new byte[20];
             for (var i = 0; i < 3; i++) {
                 sha.update(SSL3_CONSTANT[i]);
@@ -69,7 +67,7 @@ public record TlsMasterSecretKey(byte[] data) {
                 label,
                 seed,
                 length(),
-                cipher.hash()
+                cipher.hashSupplier().get()
         );
         return new TlsMasterSecretKey(result);
     }

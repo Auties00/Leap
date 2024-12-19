@@ -1,30 +1,49 @@
 package it.auties.leap.tls.cipher.mode;
 
-import it.auties.leap.tls.cipher.engine.TlsCipherEngine;
+import it.auties.leap.tls.message.TlsMessage;
 
-import java.io.ByteArrayOutputStream;
 import java.nio.ByteBuffer;
 
 final class CCMMode extends TlsCipherMode.Block implements TlsCipherMode.AEAD {
+    @Override
+    public void update(TlsMessage.ContentType contentType, ByteBuffer input, ByteBuffer output, byte[] sequence) {
+
+    }
+
+    @Override
+    public void doFinal(TlsMessage.ContentType contentType, ByteBuffer input, ByteBuffer output) {
+
+    }
+
+    @Override
+    public void reset() {
+
+    }
+
+    @Override
+    public int nonceLength() {
+        return 0;
+    }
+
+   /*
     private static final int MAC_SIZE = 8;
 
     private final TlsCipherEngine.Block cipher;
     private final ByteBuffer macBlock;
-    private final byte[] aad;
+    private byte[] aad;
     private final ByteArrayOutputStream data;
 
-    CCMMode(TlsCipherEngine.Block cipher, byte[] iv, byte[] aad) {
+    CCMMode(TlsCipherEngine.Block cipher, byte[] iv) {
         super(cipher, iv);
         this.cipher = cipher;
-        this.macBlock = ByteBuffer.allocate(cipher.blockSize());
-        this.aad = aad;
+        this.macBlock = ByteBuffer.allocate(cipher.blockLength());
         this.data = new ByteArrayOutputStream();
         reset();
     }
 
     @Override
-    public int blockSize() {
-        return cipher.blockSize();
+    public int blockLength() {
+        return cipher.blockLength();
     }
 
     @Override
@@ -43,10 +62,10 @@ final class CCMMode extends TlsCipherMode.Block implements TlsCipherMode.AEAD {
     }
 
     private void doFinal(ByteBuffer input, ByteBuffer output) {
-        var q = 15 - iv.length;
-        var iv = new byte[cipher.blockSize()];
+        var q = 15 - fixedIv.length;
+        var iv = new byte[cipher.blockLength()];
         iv[0] = (byte) ((q - 1) & 0x7);
-        System.arraycopy(this.iv, 0, iv, 1, this.iv.length);
+        System.arraycopy(this.fixedIv, 0, iv, 1, this.fixedIv.length);
         var ctrCipher = new CTRMode(cipher, iv);
         if (cipher.forEncryption()) {
             encryptBlock(input, output, ctrCipher);
@@ -59,15 +78,15 @@ final class CCMMode extends TlsCipherMode.Block implements TlsCipherMode.AEAD {
     private void encryptBlock(ByteBuffer input, ByteBuffer output, CTRMode ctrCipher) {
         calculateMac(input, macBlock);
 
-        var encMac = ByteBuffer.allocate(cipher.blockSize());
+        var encMac = ByteBuffer.allocate(cipher.blockLength());
 
         ctrCipher.update(macBlock, encMac, false);
 
-        while (input.remaining() >= cipher.blockSize()) {
+        while (input.remaining() >= cipher.blockLength()) {
             ctrCipher.update(input, output, false);
         }
 
-        var block = ByteBuffer.allocate(cipher.blockSize());
+        var block = ByteBuffer.allocate(cipher.blockLength());
         block.put(input);
         block.position(0);
 
@@ -86,17 +105,17 @@ final class CCMMode extends TlsCipherMode.Block implements TlsCipherMode.AEAD {
             macBlock.put(i, (byte) 0);
         }
 
-        while (input.remaining() >= cipher.blockSize()) {
+        while (input.remaining() >= cipher.blockLength()) {
             ctrCipher.update(input, output, false);
         }
 
-        var block = ByteBuffer.allocate(cipher.blockSize());
+        var block = ByteBuffer.allocate(cipher.blockLength());
         block.put(input);
         ctrCipher.update(block, block, false);
 
         output.put(block);
 
-        var calculatedMacBlock = ByteBuffer.allocate(cipher.blockSize());
+        var calculatedMacBlock = ByteBuffer.allocate(cipher.blockLength());
 
         calculateMac(output, calculatedMacBlock);
 
@@ -112,18 +131,18 @@ final class CCMMode extends TlsCipherMode.Block implements TlsCipherMode.AEAD {
     }
 
     private void calculateMac(ByteBuffer data, ByteBuffer macBlock) {
-        var cMac = new CBCBlockCipherMac(cipher, iv);
+        var cMac = new CBCBlockCipherMac(cipher, fixedIv);
 
         var b0 = ByteBuffer.allocate(16);
 
-        var first = (byte) ((((cipher.blockSize() / 2 - 2) / 2) & 0x7) << 3);
-        var second = (byte) (((15 - iv.length) - 1) & 0x7);
+        var first = (byte) ((((cipher.blockLength() / 2 - 2) / 2) & 0x7) << 3);
+        var second = (byte) (((15 - fixedIv.length) - 1) & 0x7);
         if (aad != null) {
             b0.put((byte) (0x40 | first | second));
         } else {
             b0.put((byte) (first | second));
         }
-        b0.put(iv);
+        b0.put(fixedIv);
 
         var q = data.remaining();
         var count = 1;
@@ -174,12 +193,12 @@ final class CCMMode extends TlsCipherMode.Block implements TlsCipherMode.AEAD {
     private static final class CBCBlockCipherMac {
         private final ByteBuffer mac;
         private final ByteBuffer buf;
-        private final CBCMode cipher;
+        private final TlsCipherMode.Block cipher;
 
         private CBCBlockCipherMac(TlsCipherEngine.Block cipher, byte[] iv) {
-            this.cipher = new CBCMode(cipher, iv);
-            this.mac = ByteBuffer.allocate(cipher.blockSize());
-            this.buf = ByteBuffer.allocate(cipher.blockSize());
+            this.cipher = TlsCipherMode.cbc().newCipherMode(cipher, iv);
+            this.mac = ByteBuffer.allocate(cipher.blockLength());
+            this.buf = ByteBuffer.allocate(cipher.blockLength());
         }
 
         private void update(byte input) {
@@ -192,9 +211,9 @@ final class CCMMode extends TlsCipherMode.Block implements TlsCipherMode.AEAD {
                 while (buf.hasRemaining()) {
                     buf.put((byte) 0);
                 }
-                cipher.update(buf, mac.clear(), true);
+                cipher.update(buf, mac.clear(), true, );
                 buf.position(0)
-                        .limit(cipher.blockSize() / 2);
+                        .limit(cipher.blockLength() / 2);
             } else {
                 while (input.hasRemaining()) {
                     buf.put(input);
@@ -208,8 +227,9 @@ final class CCMMode extends TlsCipherMode.Block implements TlsCipherMode.AEAD {
                 return;
             }
 
-            cipher.update(buf, mac.clear(), false);
+            cipher.update(buf, mac.clear(), false, );
             buf.clear();
         }
     }
+    */
 }

@@ -90,7 +90,7 @@ public final class HttpConfig {
                 // TlsExtension.postHandshakeAuth(),
                 TlsExtension.signatureAlgorithms(),
                 TlsExtension.supportedVersions(),
-                TlsExtension.pskExchangeModes(List.of(TlsPskKeyExchangeMode.PSK_DHE_KE)),
+                TlsExtension.pskExchangeModes(List.of(TlsPskKeyExchangeMode.pskDheKe())),
                 TlsExtension.keyShare(),
                 TlsExtension.padding(517)
         );

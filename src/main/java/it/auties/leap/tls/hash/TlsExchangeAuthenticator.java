@@ -1,11 +1,9 @@
 package it.auties.leap.tls.hash;
 
-import it.auties.leap.tls.cipher.TlsCipher;
-import it.auties.leap.tls.exception.TlsException;
 import it.auties.leap.tls.config.TlsVersion;
+import it.auties.leap.tls.exception.TlsException;
 
 import java.nio.ByteBuffer;
-import java.security.Key;
 import java.util.Arrays;
 import java.util.Optional;
 
@@ -13,34 +11,36 @@ public abstract sealed class TlsExchangeAuthenticator {
     private static final int BLOCK_LENGTH = 8;
     private static final byte[] EMPTY_BUFFER = new byte[0];
 
-    public static TlsExchangeAuthenticator of(TlsVersion version, TlsCipher cipher, Key key) {
-        if (cipher.type().category() == TlsCipher.Type.Category.AEAD) {
-            return switch (version) {
-                case TLS13 -> new TLS13();
-                case TLS12, TLS11, TLS10 -> new TLS10(version, null, null);
-                case SSL30 -> new SSL30(null, null);
-                case DTLS13 -> new DTLS13();
-                case DTLS12, DTLS10 -> new DTLS10(version, null, null);
-            };
-        } else {
-            return switch (version) {
-                case TLS13 -> throw new TlsException("No MacAlg used in TLS 1.3");
-                case TLS12, TLS11, TLS10 -> new TLS10(version, cipher.hmac(), key);
-                case SSL30 -> new SSL30(cipher.hmac(), key);
-                case DTLS13 -> throw new TlsException("No MacAlg used in DTLS 1.3");
-                case DTLS12, DTLS10 -> new DTLS10(version, cipher.hmac(), key);
-            };
-        }
+    public static TlsExchangeAuthenticator of(TlsVersion version, TlsHmac hmac, byte[] hmacKey) {
+        return switch (version) {
+            case TLS13 -> {
+                if(hmac != null) {
+                    throw new TlsException("No MacAlg used in TLS 1.3");
+                }
+
+                yield new TLS13();
+            }
+            case TLS12, TLS11, TLS10 -> new TLS10(version, hmac, hmacKey);
+            case SSL30 -> new SSL30(hmac, hmacKey);
+            case DTLS13 -> {
+                if(hmac != null) {
+                    throw new TlsException("No MacAlg used in DTLS 1.3");
+                }
+
+                yield new DTLS13();
+            }
+            case DTLS12, DTLS10 -> new DTLS10(version, hmac, hmacKey);
+        };
     }
 
     final byte[] block;
     final boolean dtls;
     final TlsHmac mac;
-    private TlsExchangeAuthenticator(TlsCipher.Hmac hmac, Key hmacKey, byte[] block, boolean dtls) {
+    private TlsExchangeAuthenticator(TlsHmac hmac, byte[] hmacKey, byte[] block, boolean dtls) {
         this.block = block;
         this.dtls = dtls;
         if(hmac != null) {
-            this.mac = TlsHmac.of(hmac);
+            this.mac = hmac;
             mac.init(hmacKey);
         }else {
             this.mac = null;
@@ -50,13 +50,11 @@ public abstract sealed class TlsExchangeAuthenticator {
     public abstract byte[] createAuthenticationBlock(byte type, int length, byte[] sequence);
 
     public Optional<byte[]> createAuthenticationHmacBlock(byte type, ByteBuffer buffer, byte[] sequence, boolean isSimulated) {
-        var hashType = hmacType()
-                .orElse(null);
-        if(hashType == null) {
+        if(mac == null) {
             return Optional.empty();
         }
 
-        if (hashType == TlsCipher.Hmac.NULL) {
+        if (mac.blockLength() == 0) {
             return Optional.of(EMPTY_BUFFER);
         }
 
@@ -69,8 +67,8 @@ public abstract sealed class TlsExchangeAuthenticator {
         return Optional.of(mac.doFinal());
     }
 
-    public final Optional<TlsCipher.Hmac> hmacType() {
-        return mac != null ? Optional.ofNullable(mac.type()) : Optional.empty();
+    public final Optional<TlsHmac> hmac() {
+        return Optional.ofNullable(mac);
     }
 
     // Approach copied from JDK internals
@@ -106,10 +104,10 @@ public abstract sealed class TlsExchangeAuthenticator {
         }
     }
 
-    private static public final class SSL30 extends TlsExchangeAuthenticator {
+    private static final class SSL30 extends TlsExchangeAuthenticator {
         private static final int BLOCK_SIZE = 11;
 
-        private SSL30(TlsCipher.Hmac hmac, Key hmacKey) {
+        private SSL30(TlsHmac hmac, byte[] hmacKey) {
             super(hmac, hmacKey, new byte[BLOCK_SIZE], false);
         }
 
@@ -127,10 +125,10 @@ public abstract sealed class TlsExchangeAuthenticator {
         }
     }
 
-    private static public final class TLS10 extends TlsExchangeAuthenticator {
+    private static final class TLS10 extends TlsExchangeAuthenticator {
         private static final int BLOCK_SIZE = 13;
 
-        private TLS10(TlsVersion protocolVersion, TlsCipher.Hmac hmac, Key hmacKey) {
+        private TLS10(TlsVersion protocolVersion, TlsHmac hmac, byte[] hmacKey) {
             super(hmac, hmacKey, new byte[BLOCK_SIZE], false);
             block[9] = protocolVersion.id().major();
             block[10] = protocolVersion.id().minor();
@@ -157,7 +155,7 @@ public abstract sealed class TlsExchangeAuthenticator {
         }
     }
 
-    private static public final class TLS13 extends TlsExchangeAuthenticator {
+    private static final class TLS13 extends TlsExchangeAuthenticator {
         private static final int BLOCK_SIZE = 13;
 
         private TLS13() {
@@ -180,10 +178,10 @@ public abstract sealed class TlsExchangeAuthenticator {
         }
     }
 
-    private static public final class DTLS10 extends TlsExchangeAuthenticator {
+    private static final class DTLS10 extends TlsExchangeAuthenticator {
         private static final int BLOCK_SIZE = 13;
 
-        private DTLS10(TlsVersion protocolVersion, TlsCipher.Hmac hmac, Key hmacKey) {
+        private DTLS10(TlsVersion protocolVersion, TlsHmac hmac, byte[] hmacKey) {
             super(hmac, hmacKey, new byte[BLOCK_SIZE], true);
             block[9] = protocolVersion.id().major();
             block[10] = protocolVersion.id().minor();
@@ -211,7 +209,7 @@ public abstract sealed class TlsExchangeAuthenticator {
         }
     }
 
-    private static public final class DTLS13 extends TlsExchangeAuthenticator {
+    private static final class DTLS13 extends TlsExchangeAuthenticator {
         private static final int BLOCK_SIZE = 13;
 
         private DTLS13() {

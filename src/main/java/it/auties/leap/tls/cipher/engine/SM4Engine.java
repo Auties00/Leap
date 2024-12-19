@@ -10,10 +10,23 @@ final class SM4Engine extends TlsCipherEngine.Block {
     private final static int[] CK = {0x00070e15, 0x1c232a31, 0x383f464d, 0x545b6269, 0x70777e85, 0x8c939aa1, 0xa8afb6bd, 0xc4cbd2d9, 0xe0e7eef5, 0xfc030a11, 0x181f262d, 0x343b4249, 0x50575e65, 0x6c737a81, 0x888f969d, 0xa4abb2b9, 0xc0c7ced5, 0xdce3eaf1, 0xf8ff060d, 0x141b2229, 0x30373e45, 0x4c535a61, 0x686f767d, 0x848b9299, 0xa0a7aeb5, 0xbcc3cad1, 0xd8dfe6ed, 0xf4fb0209, 0x10171e25, 0x2c333a41, 0x484f565d, 0x646b7279};
     private final static int[] FK = {0xa3b1bac6, 0x56aa3350, 0x677d9197, 0xb27022dc};
 
-    private final int[] x;
-    private final int[] rk;
-    SM4Engine(boolean forEncryption, byte[] key) {
-        super(forEncryption, key);
+    private int[] x;
+    private int[] rk;
+    SM4Engine() {
+        super(16);
+    }
+
+    @Override
+    public void init(boolean forEncryption, byte[] key) {
+        if(rk != null) {
+            throw new IllegalStateException();
+        }
+
+        if(key.length != keyLength) {
+            throw new IllegalArgumentException();
+        }
+
+        this.forEncryption = forEncryption;
         this.x = new int[4];
         this.rk = expandKey(forEncryption, key);
     }
@@ -71,12 +84,16 @@ final class SM4Engine extends TlsCipherEngine.Block {
     }
 
     @Override
-    public int blockSize() {
+    public int blockLength() {
         return BLOCK_SIZE;
     }
 
     @Override
     public void process(ByteBuffer input, ByteBuffer output) {
+        if(rk == null) {
+            throw new IllegalStateException();
+        }
+
         x[0] = BufferHelper.readBigEndianInt32(input);
         x[1] = BufferHelper.readBigEndianInt32(input);
         x[2] = BufferHelper.readBigEndianInt32(input);
@@ -126,6 +143,8 @@ final class SM4Engine extends TlsCipherEngine.Block {
 
     @Override
     public void reset() {
-
+        if(x != null) {
+            throw new IllegalStateException();
+        }
     }
 }

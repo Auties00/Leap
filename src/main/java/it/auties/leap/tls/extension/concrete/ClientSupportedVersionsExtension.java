@@ -11,20 +11,15 @@ import java.util.Optional;
 
 import static it.auties.leap.tls.BufferHelper.*;
 
-public final class ClientSupportedVersionsExtension extends TlsExtension.Concrete {
+public record ClientSupportedVersionsExtension(List<TlsVersionId> tlsVersions) implements TlsExtension.Concrete {
     public static final int EXTENSION_TYPE = 0x002B;
-
-    private final List<TlsVersionId> tlsVersions;
-    public ClientSupportedVersionsExtension(List<TlsVersionId> tlsVersions) {
-        this.tlsVersions = tlsVersions;
-    }
 
     public static Optional<ClientSupportedVersionsExtension> of(TlsVersion version, ByteBuffer buffer, int extensionLength) {
         var payloadSize = readLittleEndianInt8(buffer);
         var versions = new ArrayList<TlsVersionId>();
-        try(var _ = scopedRead(buffer, payloadSize)) {
+        try (var _ = scopedRead(buffer, payloadSize)) {
             var versionsSize = payloadSize / INT16_LENGTH;
-            for(var i = 0; i < versionsSize; i++) {
+            for (var i = 0; i < versionsSize; i++) {
                 var versionId = TlsVersionId.of(readLittleEndianInt8(buffer), readLittleEndianInt8(buffer));
                 versions.add(versionId);
             }
@@ -34,10 +29,10 @@ public final class ClientSupportedVersionsExtension extends TlsExtension.Concret
     }
 
     @Override
-    protected void serializeExtensionPayload(ByteBuffer buffer) {
+    public void serializeExtensionPayload(ByteBuffer buffer) {
         var payloadSize = tlsVersions.size() * INT16_LENGTH;
         writeLittleEndianInt8(buffer, payloadSize);
-        for(var tlsVersion : tlsVersions) {
+        for (var tlsVersion : tlsVersions) {
             writeLittleEndianInt8(buffer, tlsVersion.major());
             writeLittleEndianInt8(buffer, tlsVersion.minor());
         }

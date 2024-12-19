@@ -1,11 +1,10 @@
 package it.auties.leap.tls.certificate;
 
-import it.auties.leap.tls.config.TlsIdentifiable;
 import it.auties.leap.tls.exception.TlsException;
 
 import java.net.URI;
 
-public sealed interface TlsClientCertificateType extends TlsIdentifiable<TlsClientCertificateType, Byte> {
+public sealed interface TlsClientCertificateType {
     static RsaSign rsaSign() {
         return RsaSign.INSTANCE;
     }
@@ -65,12 +64,14 @@ public sealed interface TlsClientCertificateType extends TlsIdentifiable<TlsClie
 
         return new Reserved(id);
     }
+    
+    byte id();
 
     final class RsaSign implements TlsClientCertificateType {
         private static final RsaSign INSTANCE = new RsaSign();
 
         @Override
-        public Byte id() {
+        public byte id() {
             return 1;
         }
     }
@@ -79,7 +80,7 @@ public sealed interface TlsClientCertificateType extends TlsIdentifiable<TlsClie
         private static final DssSign INSTANCE = new DssSign();
 
         @Override
-        public Byte id() {
+        public byte id() {
             return 2;
         }
     }
@@ -88,7 +89,7 @@ public sealed interface TlsClientCertificateType extends TlsIdentifiable<TlsClie
         private static final RsaFixedDh INSTANCE = new RsaFixedDh();
 
         @Override
-        public Byte id() {
+        public byte id() {
             return 3;
         }
     }
@@ -97,7 +98,7 @@ public sealed interface TlsClientCertificateType extends TlsIdentifiable<TlsClie
         private static final DssFixedDh INSTANCE = new DssFixedDh();
 
         @Override
-        public Byte id() {
+        public byte id() {
             return 4;
         }
     }
@@ -106,7 +107,7 @@ public sealed interface TlsClientCertificateType extends TlsIdentifiable<TlsClie
         private static final RsaEphemeralDh INSTANCE = new RsaEphemeralDh();
 
         @Override
-        public Byte id() {
+        public byte id() {
             return 5;
         }
     }
@@ -115,7 +116,7 @@ public sealed interface TlsClientCertificateType extends TlsIdentifiable<TlsClie
         private static final DssEphemeralDh INSTANCE = new DssEphemeralDh();
 
         @Override
-        public Byte id() {
+        public byte id() {
             return 6;
         }
     }
@@ -124,7 +125,7 @@ public sealed interface TlsClientCertificateType extends TlsIdentifiable<TlsClie
         private static final FortezzaDms INSTANCE = new FortezzaDms();
 
         @Override
-        public Byte id() {
+        public byte id() {
             return 20;
         }
     }
@@ -133,7 +134,7 @@ public sealed interface TlsClientCertificateType extends TlsIdentifiable<TlsClie
         private static final EcdsaSign INSTANCE = new EcdsaSign();
 
         @Override
-        public Byte id() {
+        public byte id() {
             return 64;
         }
     }
@@ -142,7 +143,7 @@ public sealed interface TlsClientCertificateType extends TlsIdentifiable<TlsClie
         private static final RsaFixedEcdh INSTANCE = new RsaFixedEcdh();
 
         @Override
-        public Byte id() {
+        public byte id() {
             return 65;
         }
     }
@@ -151,7 +152,7 @@ public sealed interface TlsClientCertificateType extends TlsIdentifiable<TlsClie
         private static final EcdsaFixedEcdh INSTANCE = new EcdsaFixedEcdh();
 
         @Override
-        public Byte id() {
+        public byte id() {
             return 66;
         }
     }
@@ -160,7 +161,7 @@ public sealed interface TlsClientCertificateType extends TlsIdentifiable<TlsClie
         private static final FalconSign INSTANCE = new FalconSign();
 
         @Override
-        public Byte id() {
+        public byte id() {
             return 67;
         }
     }
@@ -169,7 +170,7 @@ public sealed interface TlsClientCertificateType extends TlsIdentifiable<TlsClie
         private static final DilithiumSign INSTANCE = new DilithiumSign();
 
         @Override
-        public Byte id() {
+        public byte id() {
             return 68;
         }
     }
@@ -181,7 +182,7 @@ public sealed interface TlsClientCertificateType extends TlsIdentifiable<TlsClie
         }
 
         @Override
-        public Byte id() {
+        public byte id() {
             return id;
         }
     }

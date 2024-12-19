@@ -1,6 +1,6 @@
 package it.auties.leap.tls.cipher.exchange.server;
 
-import it.auties.leap.tls.cipher.exchange.TlsKeyExchangeType;
+import it.auties.leap.tls.cipher.exchange.TlsKeyExchange;
 import it.auties.leap.tls.key.TlsSupportedGroup;
 
 import java.nio.ByteBuffer;
@@ -8,7 +8,7 @@ import java.nio.ByteOrder;
 
 import static it.auties.leap.tls.BufferHelper.*;
 
-public final class EcDheServerKeyExchange extends TlsKeyExchangeType.TlsServerKeyExchange {
+public final class EcDheServerKeyExchange extends TlsKeyExchange.Server {
     private final ECDHEParameters parameters;
     private final byte[] rawPublicKey;
 

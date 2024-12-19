@@ -4,7 +4,7 @@ import it.auties.leap.tls.BufferHelper;
 
 import java.nio.ByteBuffer;
 
-public class DESEngine extends TlsCipherEngine.Block {
+class DESEngine extends TlsCipherEngine.Block {
     private static final int BLOCK_SIZE = 8;
     private static final byte[] PC1 = {56, 48, 40, 32, 24, 16, 8, 0, 57, 49, 41, 33, 25, 17, 9, 1, 58, 50, 42, 34, 26, 18, 10, 2, 59, 51, 43, 35, 62, 54, 46, 38, 30, 22, 14, 6, 61, 53, 45, 37, 29, 21, 13, 5, 60, 52, 44, 36, 28, 20, 12, 4, 27, 19, 11, 3};
     private static final byte[] PC2 = {13, 16, 10, 23, 0, 4, 2, 27, 14, 5, 20, 9, 22, 18, 11, 3, 25, 7, 15, 6, 26, 19, 12, 1, 40, 51, 30, 36, 46, 54, 29, 39, 50, 44, 32, 47, 43, 48, 38, 55, 33, 52, 45, 41, 49, 35, 28, 31};
@@ -20,13 +20,26 @@ public class DESEngine extends TlsCipherEngine.Block {
     private static final int[] SP7 = {0x00200000, 0x04200002, 0x04000802, 0x00000000, 0x00000800, 0x04000802, 0x00200802, 0x04200800, 0x04200802, 0x00200000, 0x00000000, 0x04000002, 0x00000002, 0x04000000, 0x04200002, 0x00000802, 0x04000800, 0x00200802, 0x00200002, 0x04000800, 0x04000002, 0x04200000, 0x04200800, 0x00200002, 0x04200000, 0x00000800, 0x00000802, 0x04200802, 0x00200800, 0x00000002, 0x04000000, 0x00200800, 0x04000000, 0x00200800, 0x00200000, 0x04000802, 0x04000802, 0x04200002, 0x04200002, 0x00000002, 0x00200002, 0x04000000, 0x04000800, 0x00200000, 0x04200800, 0x00000802, 0x00200802, 0x04200800, 0x00000802, 0x04000002, 0x04200802, 0x04200000, 0x00200800, 0x00000000, 0x00000002, 0x04200802, 0x00000000, 0x00200802, 0x04200000, 0x00000800, 0x04000002, 0x04000800, 0x00000800, 0x00200002};
     private static final int[] SP8 = {0x10001040, 0x00001000, 0x00040000, 0x10041040, 0x10000000, 0x10001040, 0x00000040, 0x10000000, 0x00040040, 0x10040000, 0x10041040, 0x00041000, 0x10041000, 0x00041040, 0x00001000, 0x00000040, 0x10040000, 0x10000040, 0x10001000, 0x00001040, 0x00041000, 0x00040040, 0x10040040, 0x10041000, 0x00001040, 0x00000000, 0x00000000, 0x10040040, 0x10000040, 0x10001000, 0x00041040, 0x00040000, 0x00041040, 0x00040000, 0x10041000, 0x00001000, 0x00000040, 0x10040040, 0x00001000, 0x00041040, 0x10001000, 0x00000040, 0x10000040, 0x10040000, 0x10040040, 0x10000000, 0x00040000, 0x10001040, 0x00000000, 0x10041040, 0x00040040, 0x10000040, 0x10040000, 0x10001000, 0x10001040, 0x00000000, 0x10041040, 0x00041000, 0x00041000, 0x00001040, 0x00001040, 0x00040040, 0x10000000, 0x10041000};
 
-    private final int[] workingKey;
-    DESEngine(boolean forEncryption, byte[] key) {
-        super(forEncryption, key);
-        workingKey = generateWorkingKey(forEncryption, key);
+    private int[] workingKey;
+    DESEngine(int keyLength) {
+        super(keyLength);
     }
 
-    static int[] generateWorkingKey(boolean encrypting, byte[] key) {
+    @Override
+    public void init(boolean forEncryption, byte[] key) {
+        if(workingKey != null) {
+            throw new IllegalStateException();
+        }
+
+        if(key.length != keyLength) {
+            throw new IllegalArgumentException();
+        }
+
+        this.forEncryption = forEncryption;
+        this.workingKey = generateWorkingKey(forEncryption, key);
+    }
+
+    protected int[] generateWorkingKey(boolean encrypting, byte[] key) {
         var newKey = new int[32];
         var pc1m = new boolean[56];
         var pcr = new boolean[56];
@@ -92,12 +105,16 @@ public class DESEngine extends TlsCipherEngine.Block {
     }
 
     @Override
-    public int blockSize() {
+    public int blockLength() {
         return BLOCK_SIZE;
     }
 
     @Override
     public void process(ByteBuffer input, ByteBuffer output) {
+        if(workingKey == null) {
+            throw new IllegalStateException();
+        }
+
         desFunc(input, output, workingKey);
     }
 
@@ -174,6 +191,8 @@ public class DESEngine extends TlsCipherEngine.Block {
 
     @Override
     public void reset() {
-
+        if(workingKey == null) {
+            throw new IllegalStateException();
+        }
     }
 }
