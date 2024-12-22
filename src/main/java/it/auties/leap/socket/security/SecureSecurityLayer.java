@@ -28,6 +28,8 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.CopyOnWriteArrayList;
 
+import static it.auties.leap.tls.util.BufferHelper.*;
+
 final class SecureSecurityLayer extends SocketSecurityLayer {
     private static final int FRAGMENT_LENGTH = 18432;
 
