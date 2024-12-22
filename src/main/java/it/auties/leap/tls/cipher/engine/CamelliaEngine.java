@@ -1,6 +1,6 @@
 package it.auties.leap.tls.cipher.engine;
 
-import it.auties.leap.tls.BufferHelper;
+import it.auties.leap.tls.util.BufferHelper;
 
 import java.nio.ByteBuffer;
 
@@ -16,7 +16,7 @@ final class CamelliaEngine extends TlsCipherEngine.Block {
     private int[] kw;
     private int[] ke;
     CamelliaEngine(int keyLength) {
-        super(keyLength);
+        super(16, keyLength);
     }
 
     @Override

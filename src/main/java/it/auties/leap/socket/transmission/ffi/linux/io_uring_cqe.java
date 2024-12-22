@@ -24,9 +24,9 @@ public class io_uring_cqe {
     }
 
     private static final GroupLayout $LAYOUT = MemoryLayout.structLayout(
-        LinuxSockets.C_LONG_LONG.withName("user_data"),
-        LinuxSockets.C_INT.withName("res"),
-        LinuxSockets.C_INT.withName("flags")
+        LinuxKernel.C_LONG_LONG.withName("user_data"),
+        LinuxKernel.C_INT.withName("res"),
+        LinuxKernel.C_INT.withName("flags")
     ).withName("io_uring_cqe");
 
     /**

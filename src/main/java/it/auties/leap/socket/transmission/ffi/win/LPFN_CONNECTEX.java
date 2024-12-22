@@ -27,14 +27,14 @@ public class LPFN_CONNECTEX {
     }
 
     private static final FunctionDescriptor $DESC = FunctionDescriptor.of(
-        WindowsSockets.C_INT,
-        WindowsSockets.C_LONG_LONG,
-        WindowsSockets.C_POINTER,
-        WindowsSockets.C_INT,
-        WindowsSockets.C_POINTER,
-        WindowsSockets.C_LONG,
-        WindowsSockets.C_POINTER,
-        WindowsSockets.C_POINTER
+        WindowsKernel.C_INT,
+        WindowsKernel.C_LONG_LONG,
+        WindowsKernel.C_POINTER,
+        WindowsKernel.C_INT,
+        WindowsKernel.C_POINTER,
+        WindowsKernel.C_LONG,
+        WindowsKernel.C_POINTER,
+        WindowsKernel.C_POINTER
     );
 
     /**
@@ -44,7 +44,7 @@ public class LPFN_CONNECTEX {
         return $DESC;
     }
 
-    private static final MethodHandle UP$MH = WindowsSockets.upcallHandle(LPFN_CONNECTEX.Function.class, "apply", $DESC);
+    private static final MethodHandle UP$MH = WindowsKernel.upcallHandle(LPFN_CONNECTEX.Function.class, "apply", $DESC);
 
     /**
      * Allocates a new upcall stub, whose implementation is defined by {@code fi}.

@@ -4,8 +4,6 @@ import java.nio.ByteBuffer;
 import java.security.SecureRandom;
 import java.util.Arrays;
 
-import static it.auties.leap.tls.BufferHelper.*;
-
 public final class TlsRandomData {
     private static final int LENGTH = 32;
 

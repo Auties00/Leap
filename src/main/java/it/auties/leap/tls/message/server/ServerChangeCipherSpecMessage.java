@@ -6,8 +6,6 @@ import it.auties.leap.tls.message.TlsHandshakeMessage;
 
 import java.nio.ByteBuffer;
 
-import static it.auties.leap.tls.BufferHelper.*;
-
 public final class ServerChangeCipherSpecMessage extends TlsHandshakeMessage {
     private static final int ID = 0x01;
     private static final int LENGTH = INT8_LENGTH;

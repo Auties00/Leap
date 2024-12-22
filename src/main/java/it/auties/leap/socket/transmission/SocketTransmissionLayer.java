@@ -2,8 +2,8 @@ package it.auties.leap.socket.transmission;
 
 import it.auties.leap.socket.SocketOption;
 import it.auties.leap.socket.SocketProtocol;
-import it.auties.leap.socket.transmission.ffi.in_addr;
-import it.auties.leap.socket.transmission.ffi.sockaddr_in;
+import it.auties.leap.socket.transmission.ffi.shared.in_addr;
+import it.auties.leap.socket.transmission.ffi.shared.sockaddr_in;
 import it.auties.leap.socket.transmission.ffi.win.*;
 
 import java.io.IOException;
@@ -124,7 +124,7 @@ public sealed abstract class SocketTransmissionLayer<HANDLE extends Number> impl
 
     Optional<MemorySegment> createRemoteAddress(InetSocketAddress address) {
         var remoteAddress = arena.allocate(sockaddr_in.layout());
-        sockaddr_in.sin_family(remoteAddress, (short) WindowsSockets.AF_INET());
+        sockaddr_in.sin_family(remoteAddress, (short) WindowsKernel.AF_INET());
         sockaddr_in.sin_port(remoteAddress, Short.reverseBytes((short) address.getPort()));
         var inAddr = arena.allocate(in_addr.layout());
         var ipv4Host = getLittleEndianIPV4Host(address);
@@ -132,7 +132,7 @@ public sealed abstract class SocketTransmissionLayer<HANDLE extends Number> impl
             return Optional.empty();
         }
 
-        in_addr.S_un(inAddr, arena.allocateFrom(WindowsSockets.ULONG, ipv4Host.getAsInt()));
+        in_addr.S_un(inAddr, arena.allocateFrom(WindowsKernel.ULONG, ipv4Host.getAsInt()));
         sockaddr_in.sin_addr(remoteAddress, inAddr);
         return Optional.of(remoteAddress);
     }

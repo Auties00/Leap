@@ -1,12 +1,11 @@
 package it.auties.leap.tls.hash;
 
-import it.auties.leap.tls.BufferHelper;
+import it.auties.leap.tls.util.BufferHelper;
 
 import java.nio.ByteBuffer;
 import java.util.Arrays;
 
 final class SHA384Hash implements TlsHash {
-
     private static final int BLOCK_LENGTH = 8;
 
     private long h1;

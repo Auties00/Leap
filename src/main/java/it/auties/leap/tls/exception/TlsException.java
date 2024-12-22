@@ -12,6 +12,10 @@ public class TlsException extends RuntimeException {
         super(message, cause);
     }
 
+    public TlsException(String message, URI source) {
+        super("%s (source at %s)".formatted(message, source));
+    }
+
     public TlsException(String message, URI source, String section) {
         super("%s (section %s at %s)".formatted(message, section, source));
     }

@@ -11,7 +11,7 @@ final class RC4Engine extends TlsCipherEngine.Stream {
     private int y;
 
     RC4Engine() {
-        super(16);
+        super(0, 16);
     }
 
     @Override

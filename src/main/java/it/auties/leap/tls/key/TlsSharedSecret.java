@@ -6,8 +6,8 @@ import java.nio.ByteBuffer;
 import java.security.SecureRandom;
 import java.util.Arrays;
 
-import static it.auties.leap.tls.BufferHelper.readBytesLittleEndian8;
-import static it.auties.leap.tls.BufferHelper.writeBytesLittleEndian8;
+import static it.auties.leap.tls.util.BufferHelper.readBytesLittleEndian8;
+import static it.auties.leap.tls.util.BufferHelper.writeBytesLittleEndian8;
 
 public final class TlsSharedSecret {
     private static final int LENGTH = 32;

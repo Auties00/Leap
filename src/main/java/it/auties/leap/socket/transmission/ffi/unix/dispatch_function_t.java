@@ -24,7 +24,7 @@ public class dispatch_function_t {
     }
 
     private static final FunctionDescriptor $DESC = FunctionDescriptor.ofVoid(
-        UnixSockets.C_POINTER
+        UnixKernel.C_POINTER
     );
 
     /**
@@ -34,7 +34,7 @@ public class dispatch_function_t {
         return $DESC;
     }
 
-    private static final MethodHandle UP$MH = UnixSockets.upcallHandle(dispatch_function_t.Function.class, "apply", $DESC);
+    private static final MethodHandle UP$MH = UnixKernel.upcallHandle(dispatch_function_t.Function.class, "apply", $DESC);
 
     /**
      * Allocates a new upcall stub, whose implementation is defined by {@code fi}.

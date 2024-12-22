@@ -4,7 +4,7 @@ import java.nio.ByteBuffer;
 
 final class NoneEngine extends TlsCipherEngine.Block {
     NoneEngine() {
-        super(0);
+        super(0, 0);
     }
 
     @Override

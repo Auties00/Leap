@@ -25,10 +25,10 @@ public class _OVERLAPPED_ENTRY {
     }
 
     private static final GroupLayout $LAYOUT = MemoryLayout.structLayout(
-        WindowsSockets.C_LONG_LONG.withName("lpCompletionKey"),
-        WindowsSockets.C_POINTER.withName("lpOverlapped"),
-        WindowsSockets.C_LONG_LONG.withName("Internal"),
-        WindowsSockets.C_LONG.withName("dwNumberOfBytesTransferred"),
+        WindowsKernel.C_LONG_LONG.withName("lpCompletionKey"),
+        WindowsKernel.C_POINTER.withName("lpOverlapped"),
+        WindowsKernel.C_LONG_LONG.withName("Internal"),
+        WindowsKernel.C_LONG.withName("dwNumberOfBytesTransferred"),
         MemoryLayout.paddingLayout(4)
     ).withName("_OVERLAPPED_ENTRY");
 

@@ -1,6 +1,6 @@
 package it.auties.leap.tls.cipher.engine;
 
-import it.auties.leap.tls.BufferHelper;
+import it.auties.leap.tls.util.BufferHelper;
 
 import java.nio.ByteBuffer;
 
@@ -10,7 +10,7 @@ final class RC2Engine extends TlsCipherEngine.Block {
 
     private int[] workingKey;
     RC2Engine() {
-        super(5);
+        super(8, 5);
     }
 
     @Override

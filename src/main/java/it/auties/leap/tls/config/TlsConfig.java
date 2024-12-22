@@ -4,7 +4,7 @@ import it.auties.leap.tls.certificate.TlsCertificatesHandler;
 import it.auties.leap.tls.certificate.TlsCertificatesProvider;
 import it.auties.leap.tls.cipher.TlsCipher;
 import it.auties.leap.tls.extension.TlsExtension;
-import it.auties.leap.tls.extension.TlsExtension.Concrete.Decoder;
+import it.auties.leap.tls.extension.TlsExtension.Implementation.Decoder;
 
 import java.util.Collections;
 import java.util.List;

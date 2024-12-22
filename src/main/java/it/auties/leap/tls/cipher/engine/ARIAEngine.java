@@ -12,7 +12,7 @@ final class ARIAEngine extends TlsCipherEngine.Block {
 
     private byte[][] roundKeys;
     ARIAEngine(int keyLength) {
-        super(keyLength);
+        super(16, keyLength);
     }
 
     @Override

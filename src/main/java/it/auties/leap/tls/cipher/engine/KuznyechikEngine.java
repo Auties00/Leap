@@ -39,7 +39,7 @@ final class KuznyechikEngine extends TlsCipherEngine.Block {
 
     private byte[][] subKeys;
     KuznyechikEngine() {
-        super(32);
+        super(16, 32);
     }
 
     @Override

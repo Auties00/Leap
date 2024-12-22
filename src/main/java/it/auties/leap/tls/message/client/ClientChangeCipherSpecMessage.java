@@ -1,6 +1,6 @@
 package it.auties.leap.tls.message.client;
 
-import it.auties.leap.tls.BufferHelper;
+import it.auties.leap.tls.util.BufferHelper;
 import it.auties.leap.tls.config.TlsSource;
 import it.auties.leap.tls.config.TlsVersion;
 import it.auties.leap.tls.message.TlsHandshakeMessage;

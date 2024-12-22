@@ -2,7 +2,7 @@ package it.auties.leap.tls.hash;
 
 import java.nio.ByteBuffer;
 
-public interface TlsHash {
+public sealed interface TlsHash permits GOSTR256Hash, MD5Hash, NoneHash, SHA1Hash, SHA256Hash, SHA384Hash, SM3Hash {
     static TlsHash none() {
         return NoneHash.INSTANCE;
     }

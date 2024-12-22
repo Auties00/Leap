@@ -2,8 +2,8 @@ package it.auties.leap.socket.transmission;
 
 import it.auties.leap.socket.SocketOption;
 import it.auties.leap.socket.SocketProtocol;
-import it.auties.leap.socket.transmission.ffi.in_addr;
-import it.auties.leap.socket.transmission.ffi.sockaddr_in;
+import it.auties.leap.socket.transmission.ffi.shared.in_addr;
+import it.auties.leap.socket.transmission.ffi.shared.sockaddr_in;
 import it.auties.leap.socket.transmission.ffi.win.*;
 
 import java.lang.foreign.Arena;
@@ -25,12 +25,12 @@ final class WindowsTransmissionLayer extends SocketTransmissionLayer<Long> {
         System.loadLibrary("Kernel32");
 
         var data = Arena.global().allocate(WSAData.layout());
-        var startupResult = WindowsSockets.WSAStartup(
+        var startupResult = WindowsKernel.WSAStartup(
                 makeWord(2, 2),
                 data
         );
         if (startupResult != 0) {
-            WindowsSockets.WSACleanup();
+            WindowsKernel.WSACleanup();
             throw new RuntimeException("Cannot initialize Windows Sockets: bootstrap failed");
         }
 
@@ -38,22 +38,22 @@ final class WindowsTransmissionLayer extends SocketTransmissionLayer<Long> {
         var lowVersion = (byte) version;
         var highVersion = version >> 8;
         if (lowVersion != 2 || highVersion != 2) {
-            WindowsSockets.WSACleanup();
+            WindowsKernel.WSACleanup();
             throw new RuntimeException("Cannot initialize Windows Sockets: unsupported platform");
         }
 
-        var socket = WindowsSockets.socket(WindowsSockets.AF_INET(), WindowsSockets.SOCK_STREAM(), 0);
-        if (socket == WindowsSockets.INVALID_SOCKET()) {
-            WindowsSockets.WSACleanup();
+        var socket = WindowsKernel.socket(WindowsKernel.AF_INET(), WindowsKernel.SOCK_STREAM(), 0);
+        if (socket == WindowsKernel.INVALID_SOCKET()) {
+            WindowsKernel.WSACleanup();
             throw new RuntimeException("Cannot create bootstrap socket");
         }
 
         var connectExOpCode = getConnectEx();
         var connectEx = Arena.global().allocate(ValueLayout.ADDRESS, 8);
-        var connectExBytes = Arena.global().allocate(WindowsSockets.LPDWORD);
-        var connectExResult = WindowsSockets.WSAIoctl(
+        var connectExBytes = Arena.global().allocate(WindowsKernel.LPDWORD);
+        var connectExResult = WindowsKernel.WSAIoctl(
                 socket,
-                WindowsSockets.SIO_GET_EXTENSION_FUNCTION_POINTER(),
+                WindowsKernel.SIO_GET_EXTENSION_FUNCTION_POINTER(),
                 connectExOpCode,
                 (int) connectExOpCode.byteSize(),
                 connectEx,
@@ -63,13 +63,13 @@ final class WindowsTransmissionLayer extends SocketTransmissionLayer<Long> {
                 MemorySegment.NULL
         );
         if (connectExResult != 0) {
-            var error = WindowsSockets.WSAGetLastError();
-            WindowsSockets.WSACleanup();
-            WindowsSockets.closesocket(socket);
+            var error = WindowsKernel.WSAGetLastError();
+            WindowsKernel.WSACleanup();
+            WindowsKernel.closesocket(socket);
             throw new RuntimeException("Cannot get ConnectEx pointer, error code " + error);
         }
 
-        WindowsSockets.closesocket(socket);
+        WindowsKernel.closesocket(socket);
         CONNECT_EX_FUNCTION = connectEx.get(ValueLayout.ADDRESS, 0);
     }
 
@@ -84,7 +84,7 @@ final class WindowsTransmissionLayer extends SocketTransmissionLayer<Long> {
         _GUID.Data1(connectExGuid, 0x25a207b9);
         _GUID.Data2(connectExGuid, (short) 0xddf3);
         _GUID.Data3(connectExGuid, (short) 0x4660);
-        var data4 = Arena.global().allocate(WindowsSockets.C_CHAR, 8);
+        var data4 = Arena.global().allocate(WindowsKernel.C_CHAR, 8);
         _GUID.Data4(data4, 0, (byte) 0x8e);
         _GUID.Data4(data4, 1, (byte) 0xe9);
         _GUID.Data4(data4, 2, (byte) 0x76);
@@ -105,15 +105,15 @@ final class WindowsTransmissionLayer extends SocketTransmissionLayer<Long> {
 
     @Override
     Long createHandle() throws SocketException {
-        var handle = WindowsSockets.WSASocketA(
-                WindowsSockets.AF_INET(),
-                WindowsSockets.SOCK_STREAM(),
-                WindowsSockets.IPPROTO_TCP(),
+        var handle = WindowsKernel.WSASocketA(
+                WindowsKernel.AF_INET(),
+                WindowsKernel.SOCK_STREAM(),
+                WindowsKernel.IPPROTO_TCP(),
                 MemorySegment.NULL,
                 0,
-                WindowsSockets.WSA_FLAG_OVERLAPPED()
+                WindowsKernel.WSA_FLAG_OVERLAPPED()
         );
-        if (handle == WindowsSockets.INVALID_SOCKET()) {
+        if (handle == WindowsKernel.INVALID_SOCKET()) {
             throw new SocketException("Cannot create socket");
         }
         return handle;
@@ -127,8 +127,8 @@ final class WindowsTransmissionLayer extends SocketTransmissionLayer<Long> {
 
         this.address = address;
         var localAddress = createLocalAddress();
-        var bindResult = WindowsSockets.bind(handle, localAddress, (int) localAddress.byteSize());
-        if (bindResult == WindowsSockets.SOCKET_ERROR()) {
+        var bindResult = WindowsKernel.bind(handle, localAddress, (int) localAddress.byteSize());
+        if (bindResult == WindowsKernel.SOCKET_ERROR()) {
             return CompletableFuture.failedFuture(new SocketException("Cannot connect to socket: local bind failed"));
         }
 
@@ -155,17 +155,17 @@ final class WindowsTransmissionLayer extends SocketTransmissionLayer<Long> {
                 overlapped
         );
         if (connectResult != 1) {
-            var errorCode = WindowsSockets.WSAGetLastError();
-            if (errorCode != 0 && errorCode != WindowsSockets.WSA_IO_PENDING()) {
+            var errorCode = WindowsKernel.WSAGetLastError();
+            if (errorCode != 0 && errorCode != WindowsKernel.WSA_IO_PENDING()) {
                 return CompletableFuture.failedFuture(new SocketException("Cannot connect to socket: remote connection failure (error code %s)".formatted(errorCode)));
             }
         }
 
         return future.thenComposeAsync(_ -> {
-            var updateOptions = WindowsSockets.setsockopt(
+            var updateOptions = WindowsKernel.setsockopt(
                     handle,
-                    WindowsSockets.SOL_SOCKET(),
-                    WindowsSockets.SO_UPDATE_CONNECT_CONTEXT(),
+                    WindowsKernel.SOL_SOCKET(),
+                    WindowsKernel.SO_UPDATE_CONNECT_CONTEXT(),
                     MemorySegment.NULL,
                     0
             );
@@ -179,10 +179,10 @@ final class WindowsTransmissionLayer extends SocketTransmissionLayer<Long> {
 
     private MemorySegment createLocalAddress() {
         var remoteAddress = arena.allocate(sockaddr_in.layout());
-        sockaddr_in.sin_family(remoteAddress, (short) WindowsSockets.AF_INET());
+        sockaddr_in.sin_family(remoteAddress, (short) WindowsKernel.AF_INET());
         sockaddr_in.sin_port(remoteAddress, (short) 0);
         var inAddr = arena.allocate(in_addr.layout());
-        in_addr.S_un(inAddr, arena.allocateFrom(WindowsSockets.ULONG, WindowsSockets.INADDR_ANY()));
+        in_addr.S_un(inAddr, arena.allocateFrom(WindowsKernel.ULONG, WindowsKernel.INADDR_ANY()));
         sockaddr_in.sin_addr(remoteAddress, inAddr);
         return remoteAddress;
     }
@@ -198,7 +198,7 @@ final class WindowsTransmissionLayer extends SocketTransmissionLayer<Long> {
         message.set(_WSABUF.buf$layout(), _WSABUF.buf$offset(), writeBuffer);
         var overlapped = arena.allocate(_OVERLAPPED.layout());
         var future = completionPort.getOrAllocateFuture(handle);
-        var result = WindowsSockets.WSASend(
+        var result = WindowsKernel.WSASend(
                 handle,
                 message,
                 1,
@@ -207,9 +207,9 @@ final class WindowsTransmissionLayer extends SocketTransmissionLayer<Long> {
                 overlapped,
                 MemorySegment.NULL
         );
-        if (result == WindowsSockets.SOCKET_ERROR()) {
-            var error = WindowsSockets.WSAGetLastError();
-            if (error != WindowsSockets.WSA_IO_PENDING()) {
+        if (result == WindowsKernel.SOCKET_ERROR()) {
+            var error = WindowsKernel.WSAGetLastError();
+            if (error != WindowsKernel.WSA_IO_PENDING()) {
                 return CompletableFuture.failedFuture(new SocketException("Cannot send message to socket (error code %s)".formatted(error)));
             }
         }
@@ -236,7 +236,7 @@ final class WindowsTransmissionLayer extends SocketTransmissionLayer<Long> {
         var lpFlags = arena.allocate(ValueLayout.JAVA_INT);
         var overlapped = arena.allocate(_OVERLAPPED.layout());
         var future = completionPort.getOrAllocateFuture(handle);
-        var result = WindowsSockets.WSARecv(
+        var result = WindowsKernel.WSARecv(
                 handle,
                 buffer,
                 1,
@@ -245,9 +245,9 @@ final class WindowsTransmissionLayer extends SocketTransmissionLayer<Long> {
                 overlapped,
                 MemorySegment.NULL
         );
-        if (result == WindowsSockets.SOCKET_ERROR()) {
-            var error = WindowsSockets.WSAGetLastError();
-            if (error != WindowsSockets.WSA_IO_PENDING()) {
+        if (result == WindowsKernel.SOCKET_ERROR()) {
+            var error = WindowsKernel.WSAGetLastError();
+            if (error != WindowsKernel.WSA_IO_PENDING()) {
                 return CompletableFuture.failedFuture(new SocketException("Cannot receive message from socket (error code %s)".formatted(error)));
             }
         }
@@ -267,13 +267,13 @@ final class WindowsTransmissionLayer extends SocketTransmissionLayer<Long> {
     public <V> void setOption(SocketOption<V> option, V optionValue) throws SocketException {
         Objects.requireNonNull(optionValue, "Invalid option value");
         var value = arena.allocate(
-                WindowsSockets.DWORD,
+                WindowsKernel.DWORD,
                 option.accept(optionValue)
         );
-        var result = WindowsSockets.setsockopt(
+        var result = WindowsKernel.setsockopt(
                 handle,
-                WindowsSockets.SOL_SOCKET(),
-                WindowsSockets.SO_KEEPALIVE(),
+                WindowsKernel.SOL_SOCKET(),
+                WindowsKernel.SO_KEEPALIVE(),
                 value,
                 (int) value.byteSize()
         );
@@ -292,7 +292,7 @@ final class WindowsTransmissionLayer extends SocketTransmissionLayer<Long> {
 
         this.address = null;
         connected.set(false);
-        WindowsSockets.closesocket(handle);
+        WindowsKernel.closesocket(handle);
         if (completionPort != null) {
             completionPort.unregisterHandle(handle);
         }
@@ -337,7 +337,7 @@ final class WindowsTransmissionLayer extends SocketTransmissionLayer<Long> {
                     return;
                 }
 
-                var completionPort = WindowsSockets.CreateIoCompletionPort(
+                var completionPort = WindowsKernel.CreateIoCompletionPort(
                         INVALID_HANDLE_VALUE,
                         MemorySegment.NULL,
                         0,
@@ -358,7 +358,7 @@ final class WindowsTransmissionLayer extends SocketTransmissionLayer<Long> {
 
         public void registerHandle(long handle) {
             initPort();
-            var completionPort = WindowsSockets.CreateIoCompletionPort(
+            var completionPort = WindowsKernel.CreateIoCompletionPort(
                     MemorySegment.ofAddress(handle),
                     this.completionPort,
                     handle,
@@ -384,7 +384,7 @@ final class WindowsTransmissionLayer extends SocketTransmissionLayer<Long> {
             var completionPort = this.completionPort;
             this.completionPort = null;
             if (completionPort != null) {
-                WindowsSockets.CloseHandle(completionPort);
+                WindowsKernel.CloseHandle(completionPort);
             }
 
             if (executor != null && !executor.isShutdown()) {
@@ -401,12 +401,12 @@ final class WindowsTransmissionLayer extends SocketTransmissionLayer<Long> {
             var overlappedEntries = arena.allocate(OVERLAPPED_ENTRY.layout(), OVERLAPPED_CHUNK_SIZE);
             var overlappedEntriesCount = arena.allocate(ValueLayout.JAVA_INT);
             while (!Thread.interrupted()) {
-                var result = WindowsSockets.GetQueuedCompletionStatusEx(
+                var result = WindowsKernel.GetQueuedCompletionStatusEx(
                         completionPort,
                         overlappedEntries,
                         OVERLAPPED_CHUNK_SIZE,
                         overlappedEntriesCount,
-                        WindowsSockets.INFINITE(),
+                        WindowsKernel.INFINITE(),
                         1
                 );
                 if (result == 0) {

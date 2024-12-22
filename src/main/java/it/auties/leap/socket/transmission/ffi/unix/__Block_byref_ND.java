@@ -25,10 +25,10 @@ public class __Block_byref_ND {
     }
 
     private static final GroupLayout $LAYOUT = MemoryLayout.structLayout(
-        UnixSockets.C_POINTER.withName("__isa"),
-        UnixSockets.C_INT.withName("__flags"),
-        UnixSockets.C_INT.withName("__reserved"),
-        UnixSockets.C_POINTER.withName("__FuncPtr")
+        UnixKernel.C_POINTER.withName("__isa"),
+        UnixKernel.C_INT.withName("__flags"),
+        UnixKernel.C_INT.withName("__reserved"),
+        UnixKernel.C_POINTER.withName("__FuncPtr")
     ).withName("__Block_byref_ND");
 
     /**

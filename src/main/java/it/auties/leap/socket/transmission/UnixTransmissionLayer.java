@@ -1,7 +1,7 @@
 package it.auties.leap.socket.transmission;
 
 import it.auties.leap.socket.SocketProtocol;
-import it.auties.leap.socket.transmission.ffi.unix.UnixSockets;
+import it.auties.leap.socket.transmission.ffi.unix.UnixKernel;
 import it.auties.leap.socket.transmission.ffi.unix.__Block_byref_ND;
 import it.auties.leap.socket.transmission.ffi.unix.dispatch_block_t;
 import it.auties.leap.socket.transmission.ffi.unix.dispatch_object_t;
@@ -16,7 +16,7 @@ import java.util.concurrent.CompletableFuture;
 
 // GCD (General Central Dispatch)
 final class UnixTransmissionLayer extends SocketTransmissionLayer<Integer> {
-    private static final UnixSockets.fcntl fcntl = UnixSockets.fcntl
+    private static final UnixKernel.fcntl fcntl = UnixKernel.fcntl
             .makeInvoker(ValueLayout.JAVA_INT);
     private static final MemorySegment errno = Linker.nativeLinker()
             .defaultLookup()
@@ -31,18 +31,18 @@ final class UnixTransmissionLayer extends SocketTransmissionLayer<Integer> {
 
     @Override
     Integer createHandle() throws SocketException {
-        var socketHandle = UnixSockets.socket(UnixSockets.AF_INET(), UnixSockets.SOCK_STREAM(), 0);
+        var socketHandle = UnixKernel.socket(UnixKernel.AF_INET(), UnixKernel.SOCK_STREAM(), 0);
         if (socketHandle == -1) {
             // https://developer.apple.com/library/archive/documentation/System/Conceptual/ManPages_iPhoneOS/man2/socket.2.html
             throw new SocketException("Cannot create socket (socket call failed)");
         }
 
-        var flags = fcntl.apply(socketHandle, UnixSockets.F_GETFL(), 0);
+        var flags = fcntl.apply(socketHandle, UnixKernel.F_GETFL(), 0);
         if (flags == -1) {
             throw new SocketException("Cannot create socket (fcntl get call failed)");
         }
 
-        var result = fcntl.apply(socketHandle, UnixSockets.F_SETFL(), flags | UnixSockets.O_NONBLOCK());
+        var result = fcntl.apply(socketHandle, UnixKernel.F_SETFL(), flags | UnixKernel.O_NONBLOCK());
         if (result == -1) {
             throw new SocketException("Cannot create socket (fcntl set call failed)");
         }
@@ -62,7 +62,7 @@ final class UnixTransmissionLayer extends SocketTransmissionLayer<Integer> {
             return CompletableFuture.failedFuture(new SocketException("Cannot connect to socket: unresolved host %s".formatted(address.getHostName())));
         }
 
-        var response = UnixSockets.connect(
+        var response = UnixKernel.connect(
                 handle,
                 remoteAddress.get(),
                 (int) remoteAddress.get().byteSize()
@@ -72,22 +72,22 @@ final class UnixTransmissionLayer extends SocketTransmissionLayer<Integer> {
         }
 
         var errorCode = getErrorCode();
-        if (errorCode != UnixSockets.EINPROGRESS() && errorCode != UnixSockets.ETIMEDOUT()) {
+        if (errorCode != UnixKernel.EINPROGRESS() && errorCode != UnixKernel.ETIMEDOUT()) {
             return CompletableFuture.failedFuture(new SocketException("Cannot connect to socket: remote connection failure (error code: %s)".formatted(errorCode)));
         }
 
         initIOBuffers();
 
-        this.gcdQueue = UnixSockets.dispatch_queue_create(
+        this.gcdQueue = UnixKernel.dispatch_queue_create(
                 arena.allocateFrom("socket_" + handle),
                 MemorySegment.NULL
         );
         return dispatch(DispatchEvent.WRITE).thenCompose(_ -> {
             var errorSegment = arena.allocate(ValueLayout.JAVA_INT);
-            var result = UnixSockets.getsockopt(
+            var result = UnixKernel.getsockopt(
                     handle,
-                    UnixSockets.SOL_SOCKET(),
-                    UnixSockets.SO_ERROR(),
+                    UnixKernel.SOL_SOCKET(),
+                    UnixKernel.SO_ERROR(),
                     errorSegment,
                     arena.allocateFrom(ValueLayout.JAVA_INT, (int) errorSegment.byteSize())
             );
@@ -109,7 +109,7 @@ final class UnixTransmissionLayer extends SocketTransmissionLayer<Integer> {
         var length = Math.min(input.remaining(), writeBufferSize);
         writeToIOBuffer(input, length);
         return dispatch(DispatchEvent.WRITE).thenCompose(_ -> {
-            var result = UnixSockets.write(handle, writeBuffer, length);
+            var result = UnixKernel.write(handle, writeBuffer, length);
             if (result == -1) {
                 close();
                 return CompletableFuture.failedFuture(new SocketException("Cannot send message to socket (socket closed)"));
@@ -127,7 +127,7 @@ final class UnixTransmissionLayer extends SocketTransmissionLayer<Integer> {
     protected CompletableFuture<ByteBuffer> readUnchecked(ByteBuffer output) {
         return dispatch(DispatchEvent.READ).thenCompose(_ -> {
             var length = Math.min(output.remaining(), readBufferSize);
-            var readLength = UnixSockets.read(handle, readBuffer, length);
+            var readLength = UnixKernel.read(handle, readBuffer, length);
             if (readLength <= 0) {
                 close();
                 return CompletableFuture.failedFuture(new SocketException("Cannot receive message from socket (socket closed)"));
@@ -146,7 +146,7 @@ final class UnixTransmissionLayer extends SocketTransmissionLayer<Integer> {
 
         this.address = null;
         connected.set(false);
-        UnixSockets.close(handle);
+        UnixKernel.close(handle);
     }
 
     private int getErrorCode() {
@@ -156,7 +156,7 @@ final class UnixTransmissionLayer extends SocketTransmissionLayer<Integer> {
     }
 
     private CompletableFuture<Void> dispatch(DispatchEvent event) {
-        var source = UnixSockets.dispatch_source_create(
+        var source = UnixKernel.dispatch_source_create(
                 event.constant(),
                 handle,
                 0,
@@ -169,19 +169,19 @@ final class UnixTransmissionLayer extends SocketTransmissionLayer<Integer> {
                 future.complete(null);
             }
 
-            UnixSockets.dispatch_source_cancel(source);
+            UnixKernel.dispatch_source_cancel(source);
         }, arena);
 
         var block = arena.allocate(__Block_byref_ND.layout());
         __Block_byref_ND.__isa(block, BlockType.GLOBAL.constant());
-        __Block_byref_ND.__flags(block, UnixSockets.BLOCK_BYREF_LAYOUT_UNRETAINED());
+        __Block_byref_ND.__flags(block, UnixKernel.BLOCK_BYREF_LAYOUT_UNRETAINED());
         __Block_byref_ND.__reserved(block, 0);
         __Block_byref_ND.__FuncPtr(block, handler);
-        UnixSockets.dispatch_source_set_event_handler(source, block);
+        UnixKernel.dispatch_source_set_event_handler(source, block);
 
         var obj = arena.allocate(dispatch_object_t.layout());
         dispatch_object_t._ds(obj, source);
-        UnixSockets.dispatch_resume(obj);
+        UnixKernel.dispatch_resume(obj);
 
         return future;
     }

@@ -1,6 +1,6 @@
 package it.auties.leap.tls.cipher.engine;
 
-import it.auties.leap.tls.BufferHelper;
+import it.auties.leap.tls.util.BufferHelper;
 
 import java.nio.ByteBuffer;
 
@@ -22,7 +22,7 @@ class DESEngine extends TlsCipherEngine.Block {
 
     private int[] workingKey;
     DESEngine(int keyLength) {
-        super(keyLength);
+        super(8, keyLength);
     }
 
     @Override

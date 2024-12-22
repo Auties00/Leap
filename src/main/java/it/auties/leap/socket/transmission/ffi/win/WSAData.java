@@ -29,13 +29,13 @@ public class WSAData {
     }
 
     private static final GroupLayout $LAYOUT = MemoryLayout.structLayout(
-        WindowsSockets.C_SHORT.withName("wVersion"),
-        WindowsSockets.C_SHORT.withName("wHighVersion"),
-        WindowsSockets.C_SHORT.withName("iMaxSockets"),
-        WindowsSockets.C_SHORT.withName("iMaxUdpDg"),
-        WindowsSockets.C_POINTER.withName("lpVendorInfo"),
-        MemoryLayout.sequenceLayout(257, WindowsSockets.C_CHAR).withName("szDescription"),
-        MemoryLayout.sequenceLayout(129, WindowsSockets.C_CHAR).withName("szSystemStatus"),
+        WindowsKernel.C_SHORT.withName("wVersion"),
+        WindowsKernel.C_SHORT.withName("wHighVersion"),
+        WindowsKernel.C_SHORT.withName("iMaxSockets"),
+        WindowsKernel.C_SHORT.withName("iMaxUdpDg"),
+        WindowsKernel.C_POINTER.withName("lpVendorInfo"),
+        MemoryLayout.sequenceLayout(257, WindowsKernel.C_CHAR).withName("szDescription"),
+        MemoryLayout.sequenceLayout(129, WindowsKernel.C_CHAR).withName("szSystemStatus"),
         MemoryLayout.paddingLayout(6)
     ).withName("WSAData");
 

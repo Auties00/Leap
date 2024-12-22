@@ -1,6 +1,6 @@
 package it.auties.leap.tls.cipher.engine;
 
-import it.auties.leap.tls.BufferHelper;
+import it.auties.leap.tls.util.BufferHelper;
 
 import java.nio.ByteBuffer;
 
@@ -13,7 +13,7 @@ final class SM4Engine extends TlsCipherEngine.Block {
     private int[] x;
     private int[] rk;
     SM4Engine() {
-        super(16);
+        super(16, 16);
     }
 
     @Override

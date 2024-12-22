@@ -32,18 +32,18 @@ public class dispatch_object_t {
     }
 
     private static final GroupLayout $LAYOUT = MemoryLayout.unionLayout(
-        UnixSockets.C_POINTER.withName("_os_obj"),
-        UnixSockets.C_POINTER.withName("_do"),
-        UnixSockets.C_POINTER.withName("_dq"),
-        UnixSockets.C_POINTER.withName("_dqa"),
-        UnixSockets.C_POINTER.withName("_dg"),
-        UnixSockets.C_POINTER.withName("_ds"),
-        UnixSockets.C_POINTER.withName("_dch"),
-        UnixSockets.C_POINTER.withName("_dm"),
-        UnixSockets.C_POINTER.withName("_dmsg"),
-        UnixSockets.C_POINTER.withName("_dsema"),
-        UnixSockets.C_POINTER.withName("_ddata"),
-        UnixSockets.C_POINTER.withName("_dchannel")
+        UnixKernel.C_POINTER.withName("_os_obj"),
+        UnixKernel.C_POINTER.withName("_do"),
+        UnixKernel.C_POINTER.withName("_dq"),
+        UnixKernel.C_POINTER.withName("_dqa"),
+        UnixKernel.C_POINTER.withName("_dg"),
+        UnixKernel.C_POINTER.withName("_ds"),
+        UnixKernel.C_POINTER.withName("_dch"),
+        UnixKernel.C_POINTER.withName("_dm"),
+        UnixKernel.C_POINTER.withName("_dmsg"),
+        UnixKernel.C_POINTER.withName("_dsema"),
+        UnixKernel.C_POINTER.withName("_ddata"),
+        UnixKernel.C_POINTER.withName("_dchannel")
     ).withName("$anon$126:9");
 
     /**

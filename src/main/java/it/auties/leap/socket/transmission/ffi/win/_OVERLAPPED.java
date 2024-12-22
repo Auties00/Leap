@@ -31,16 +31,16 @@ public class _OVERLAPPED {
     }
 
     private static final GroupLayout $LAYOUT = MemoryLayout.structLayout(
-        WindowsSockets.C_LONG_LONG.withName("Internal"),
-        WindowsSockets.C_LONG_LONG.withName("InternalHigh"),
+        WindowsKernel.C_LONG_LONG.withName("Internal"),
+        WindowsKernel.C_LONG_LONG.withName("InternalHigh"),
         MemoryLayout.unionLayout(
             MemoryLayout.structLayout(
-                WindowsSockets.C_LONG.withName("Offset"),
-                WindowsSockets.C_LONG.withName("OffsetHigh")
+                WindowsKernel.C_LONG.withName("Offset"),
+                WindowsKernel.C_LONG.withName("OffsetHigh")
             ).withName("$anon$56:9"),
-            WindowsSockets.C_POINTER.withName("Pointer")
+            WindowsKernel.C_POINTER.withName("Pointer")
         ).withName("$anon$55:5"),
-        WindowsSockets.C_POINTER.withName("hEvent")
+        WindowsKernel.C_POINTER.withName("hEvent")
     ).withName("_OVERLAPPED");
 
     /**

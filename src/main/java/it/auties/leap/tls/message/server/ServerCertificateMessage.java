@@ -12,8 +12,6 @@ import java.security.cert.X509Certificate;
 import java.util.ArrayList;
 import java.util.List;
 
-import static it.auties.leap.tls.BufferHelper.*;
-
 public final class ServerCertificateMessage extends TlsHandshakeMessage {
     public static final byte ID = 0x0B;
 

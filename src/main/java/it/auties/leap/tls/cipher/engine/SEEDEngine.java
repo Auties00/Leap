@@ -1,6 +1,6 @@
 package it.auties.leap.tls.cipher.engine;
 
-import it.auties.leap.tls.BufferHelper;
+import it.auties.leap.tls.util.BufferHelper;
 
 import java.nio.ByteBuffer;
 
@@ -15,7 +15,7 @@ final class SEEDEngine extends TlsCipherEngine.Block {
 
     private int[] workingKey;
     SEEDEngine() {
-        super(16);
+        super(16, 16);
     }
 
     @Override

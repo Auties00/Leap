@@ -64,48 +64,48 @@ public class io_uring_sqe {
     }
 
     private static final GroupLayout $LAYOUT = MemoryLayout.structLayout(
-        LinuxSockets.C_CHAR.withName("opcode"),
-        LinuxSockets.C_CHAR.withName("flags"),
-        LinuxSockets.C_SHORT.withName("ioprio"),
-        LinuxSockets.C_INT.withName("fd"),
+        LinuxKernel.C_CHAR.withName("opcode"),
+        LinuxKernel.C_CHAR.withName("flags"),
+        LinuxKernel.C_SHORT.withName("ioprio"),
+        LinuxKernel.C_INT.withName("fd"),
         MemoryLayout.unionLayout(
-            LinuxSockets.C_LONG_LONG.withName("off"),
-            LinuxSockets.C_LONG_LONG.withName("addr2")
+            LinuxKernel.C_LONG_LONG.withName("off"),
+            LinuxKernel.C_LONG_LONG.withName("addr2")
         ).withName("$anon$22:2"),
         MemoryLayout.unionLayout(
-            LinuxSockets.C_LONG_LONG.withName("addr"),
-            LinuxSockets.C_LONG_LONG.withName("splice_off_in")
+            LinuxKernel.C_LONG_LONG.withName("addr"),
+            LinuxKernel.C_LONG_LONG.withName("splice_off_in")
         ).withName("$anon$26:2"),
-        LinuxSockets.C_INT.withName("len"),
+        LinuxKernel.C_INT.withName("len"),
         MemoryLayout.unionLayout(
-            LinuxSockets.C_INT.withName("rw_flags"),
-            LinuxSockets.C_INT.withName("fsync_flags"),
-            LinuxSockets.C_SHORT.withName("poll_events"),
-            LinuxSockets.C_INT.withName("poll32_events"),
-            LinuxSockets.C_INT.withName("sync_range_flags"),
-            LinuxSockets.C_INT.withName("msg_flags"),
-            LinuxSockets.C_INT.withName("timeout_flags"),
-            LinuxSockets.C_INT.withName("accept_flags"),
-            LinuxSockets.C_INT.withName("cancel_flags"),
-            LinuxSockets.C_INT.withName("open_flags"),
-            LinuxSockets.C_INT.withName("statx_flags"),
-            LinuxSockets.C_INT.withName("fadvise_advice"),
-            LinuxSockets.C_INT.withName("splice_flags"),
-            LinuxSockets.C_INT.withName("rename_flags"),
-            LinuxSockets.C_INT.withName("unlink_flags"),
-            LinuxSockets.C_INT.withName("hardlink_flags")
+            LinuxKernel.C_INT.withName("rw_flags"),
+            LinuxKernel.C_INT.withName("fsync_flags"),
+            LinuxKernel.C_SHORT.withName("poll_events"),
+            LinuxKernel.C_INT.withName("poll32_events"),
+            LinuxKernel.C_INT.withName("sync_range_flags"),
+            LinuxKernel.C_INT.withName("msg_flags"),
+            LinuxKernel.C_INT.withName("timeout_flags"),
+            LinuxKernel.C_INT.withName("accept_flags"),
+            LinuxKernel.C_INT.withName("cancel_flags"),
+            LinuxKernel.C_INT.withName("open_flags"),
+            LinuxKernel.C_INT.withName("statx_flags"),
+            LinuxKernel.C_INT.withName("fadvise_advice"),
+            LinuxKernel.C_INT.withName("splice_flags"),
+            LinuxKernel.C_INT.withName("rename_flags"),
+            LinuxKernel.C_INT.withName("unlink_flags"),
+            LinuxKernel.C_INT.withName("hardlink_flags")
         ).withName("$anon$31:2"),
-        LinuxSockets.C_LONG_LONG.withName("user_data"),
+        LinuxKernel.C_LONG_LONG.withName("user_data"),
         MemoryLayout.unionLayout(
-            LinuxSockets.align(LinuxSockets.C_SHORT, 1).withName("buf_index"),
-            LinuxSockets.align(LinuxSockets.C_SHORT, 1).withName("buf_group")
+            LinuxKernel.align(LinuxKernel.C_SHORT, 1).withName("buf_index"),
+            LinuxKernel.align(LinuxKernel.C_SHORT, 1).withName("buf_group")
         ).withName("$anon$51:2"),
-        LinuxSockets.C_SHORT.withName("personality"),
+        LinuxKernel.C_SHORT.withName("personality"),
         MemoryLayout.unionLayout(
-            LinuxSockets.C_INT.withName("splice_fd_in"),
-            LinuxSockets.C_INT.withName("file_index")
+            LinuxKernel.C_INT.withName("splice_fd_in"),
+            LinuxKernel.C_INT.withName("file_index")
         ).withName("$anon$59:2"),
-        MemoryLayout.sequenceLayout(2, LinuxSockets.C_LONG_LONG).withName("__pad2")
+        MemoryLayout.sequenceLayout(2, LinuxKernel.C_LONG_LONG).withName("__pad2")
     ).withName("io_uring_sqe");
 
     /**

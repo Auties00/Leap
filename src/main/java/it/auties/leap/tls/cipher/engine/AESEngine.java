@@ -1,6 +1,6 @@
 package it.auties.leap.tls.cipher.engine;
 
-import it.auties.leap.tls.BufferHelper;
+import it.auties.leap.tls.util.BufferHelper;
 
 import java.nio.ByteBuffer;
 
@@ -21,7 +21,7 @@ final class AESEngine extends TlsCipherEngine.Block {
     private int[][] workingKey;
     private byte[] s;
     AESEngine(int keyLength) {
-        super(keyLength);
+        super(16, keyLength);
         this.rounds = keyLength >>> 2 + 6;
     }
 

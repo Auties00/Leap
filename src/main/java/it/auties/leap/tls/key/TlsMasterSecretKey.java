@@ -1,15 +1,21 @@
 package it.auties.leap.tls.key;
 
 import it.auties.leap.tls.cipher.TlsCipher;
+import it.auties.leap.tls.config.TlsMode;
 import it.auties.leap.tls.config.TlsVersion;
 import it.auties.leap.tls.hash.TlsHash;
 import it.auties.leap.tls.hash.TlsPRF;
-import it.auties.leap.tls.config.TlsMode;
+
+import java.util.Arrays;
 
 import static it.auties.leap.tls.key.TlsKeyConstants.*;
 
-public record TlsMasterSecretKey(byte[] data) {
+public final class TlsMasterSecretKey {
     private static final int LENGTH = 48;
+    private final byte[] data;
+    private TlsMasterSecretKey(byte[] data) {
+        this.data = data;
+    }
 
     public static int length() {
         return LENGTH;
@@ -71,4 +77,28 @@ public record TlsMasterSecretKey(byte[] data) {
         );
         return new TlsMasterSecretKey(result);
     }
+
+    public byte[] data() {
+        return data;
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+        if (obj == this) return true;
+        if (obj == null || obj.getClass() != this.getClass()) return false;
+        var that = (TlsMasterSecretKey) obj;
+        return Arrays.equals(this.data, that.data);
+    }
+
+    @Override
+    public int hashCode() {
+        return Arrays.hashCode(data);
+    }
+
+    @Override
+    public String toString() {
+        return "TlsMasterSecretKey[" +
+                "data=" + Arrays.toString(data) + ']';
+    }
+
 }

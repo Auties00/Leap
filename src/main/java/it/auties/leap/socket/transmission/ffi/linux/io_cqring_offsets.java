@@ -30,15 +30,15 @@ public class io_cqring_offsets {
     }
 
     private static final GroupLayout $LAYOUT = MemoryLayout.structLayout(
-        LinuxSockets.C_INT.withName("head"),
-        LinuxSockets.C_INT.withName("tail"),
-        LinuxSockets.C_INT.withName("ring_mask"),
-        LinuxSockets.C_INT.withName("ring_entries"),
-        LinuxSockets.C_INT.withName("overflow"),
-        LinuxSockets.C_INT.withName("cqes"),
-        LinuxSockets.C_INT.withName("flags"),
-        LinuxSockets.C_INT.withName("resv1"),
-        LinuxSockets.C_LONG_LONG.withName("resv2")
+        LinuxKernel.C_INT.withName("head"),
+        LinuxKernel.C_INT.withName("tail"),
+        LinuxKernel.C_INT.withName("ring_mask"),
+        LinuxKernel.C_INT.withName("ring_entries"),
+        LinuxKernel.C_INT.withName("overflow"),
+        LinuxKernel.C_INT.withName("cqes"),
+        LinuxKernel.C_INT.withName("flags"),
+        LinuxKernel.C_INT.withName("resv1"),
+        LinuxKernel.C_LONG_LONG.withName("resv2")
     ).withName("io_cqring_offsets");
 
     /**

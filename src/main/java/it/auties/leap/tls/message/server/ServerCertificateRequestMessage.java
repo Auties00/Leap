@@ -1,6 +1,6 @@
 package it.auties.leap.tls.message.server;
 
-import it.auties.leap.tls.BufferHelper;
+import it.auties.leap.tls.util.BufferHelper;
 import it.auties.leap.tls.config.TlsSource;
 import it.auties.leap.tls.config.TlsVersion;
 import it.auties.leap.tls.message.TlsHandshakeMessage;
@@ -9,8 +9,6 @@ import javax.security.auth.x500.X500Principal;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.List;
-
-import static it.auties.leap.tls.BufferHelper.*;
 
 public final class ServerCertificateRequestMessage extends TlsHandshakeMessage {
     public static final byte ID = 0x0D;

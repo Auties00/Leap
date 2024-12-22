@@ -32,14 +32,14 @@ public class io_uring_params {
     }
 
     private static final GroupLayout $LAYOUT = MemoryLayout.structLayout(
-        LinuxSockets.C_INT.withName("sq_entries"),
-        LinuxSockets.C_INT.withName("cq_entries"),
-        LinuxSockets.C_INT.withName("flags"),
-        LinuxSockets.C_INT.withName("sq_thread_cpu"),
-        LinuxSockets.C_INT.withName("sq_thread_idle"),
-        LinuxSockets.C_INT.withName("features"),
-        LinuxSockets.C_INT.withName("wq_fd"),
-        MemoryLayout.sequenceLayout(3, LinuxSockets.C_INT).withName("resv"),
+        LinuxKernel.C_INT.withName("sq_entries"),
+        LinuxKernel.C_INT.withName("cq_entries"),
+        LinuxKernel.C_INT.withName("flags"),
+        LinuxKernel.C_INT.withName("sq_thread_cpu"),
+        LinuxKernel.C_INT.withName("sq_thread_idle"),
+        LinuxKernel.C_INT.withName("features"),
+        LinuxKernel.C_INT.withName("wq_fd"),
+        MemoryLayout.sequenceLayout(3, LinuxKernel.C_INT).withName("resv"),
         io_sqring_offsets.layout().withName("sq_off"),
         io_cqring_offsets.layout().withName("cq_off")
     ).withName("io_uring_params");

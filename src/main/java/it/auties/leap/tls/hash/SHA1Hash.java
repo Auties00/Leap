@@ -1,6 +1,6 @@
 package it.auties.leap.tls.hash;
 
-import it.auties.leap.tls.BufferHelper;
+import it.auties.leap.tls.util.BufferHelper;
 
 import java.nio.ByteBuffer;
 import java.util.Arrays;

@@ -1,6 +1,6 @@
 package it.auties.leap.tls.message.client;
 
-import it.auties.leap.tls.BufferHelper;
+import it.auties.leap.tls.util.BufferHelper;
 import it.auties.leap.tls.config.TlsSource;
 import it.auties.leap.tls.config.TlsVersion;
 import it.auties.leap.tls.exception.TlsException;
@@ -8,7 +8,7 @@ import it.auties.leap.tls.message.TlsHandshakeMessage;
 
 import java.nio.ByteBuffer;
 
-import static it.auties.leap.tls.BufferHelper.writeBytes;
+import static it.auties.leap.tls.util.BufferHelper.writeBytes;
 
 public final class ClientFinishedMessage extends TlsHandshakeMessage {
     public static final int ID = 0x14;

@@ -3,24 +3,23 @@ package it.auties.leap.tls.config;
 import java.util.List;
 import java.util.Objects;
 
-// Implementing a new version is not a supported use case: this is why this class is implemented as final
 public final class TlsVersionId {
-    public static final TlsVersionId GREASE_0A = new TlsVersionId(0x0A0A);
-    public static final TlsVersionId GREASE_1A = new TlsVersionId(0x1A1A);
-    public static final TlsVersionId GREASE_2A = new TlsVersionId(0x2A2A);
-    public static final TlsVersionId GREASE_3A = new TlsVersionId(0x3A3A);
-    public static final TlsVersionId GREASE_4A = new TlsVersionId(0x4A4A);
-    public static final TlsVersionId GREASE_5A = new TlsVersionId(0x5A5A);
-    public static final TlsVersionId GREASE_6A = new TlsVersionId(0x6A6A);
-    public static final TlsVersionId GREASE_7A = new TlsVersionId(0x7A7A);
-    public static final TlsVersionId GREASE_8A = new TlsVersionId(0x8A8A);
-    public static final TlsVersionId GREASE_9A = new TlsVersionId(0x9A9A);
-    public static final TlsVersionId GREASE_AA = new TlsVersionId(0xAAAA);
-    public static final TlsVersionId GREASE_BA = new TlsVersionId(0xBABA);
-    public static final TlsVersionId GREASE_CA = new TlsVersionId(0xCACA);
-    public static final TlsVersionId GREASE_DA = new TlsVersionId(0xDADA);
-    public static final TlsVersionId GREASE_EA = new TlsVersionId(0xEAEA);
-    public static final TlsVersionId GREASE_FA = new TlsVersionId(0xFAFA);
+    private static final TlsVersionId GREASE_0A = new TlsVersionId(0x0A0A);
+    private static final TlsVersionId GREASE_1A = new TlsVersionId(0x1A1A);
+    private static final TlsVersionId GREASE_2A = new TlsVersionId(0x2A2A);
+    private static final TlsVersionId GREASE_3A = new TlsVersionId(0x3A3A);
+    private static final TlsVersionId GREASE_4A = new TlsVersionId(0x4A4A);
+    private static final TlsVersionId GREASE_5A = new TlsVersionId(0x5A5A);
+    private static final TlsVersionId GREASE_6A = new TlsVersionId(0x6A6A);
+    private static final TlsVersionId GREASE_7A = new TlsVersionId(0x7A7A);
+    private static final TlsVersionId GREASE_8A = new TlsVersionId(0x8A8A);
+    private static final TlsVersionId GREASE_9A = new TlsVersionId(0x9A9A);
+    private static final TlsVersionId GREASE_AA = new TlsVersionId(0xAAAA);
+    private static final TlsVersionId GREASE_BA = new TlsVersionId(0xBABA);
+    private static final TlsVersionId GREASE_CA = new TlsVersionId(0xCACA);
+    private static final TlsVersionId GREASE_DA = new TlsVersionId(0xDADA);
+    private static final TlsVersionId GREASE_EA = new TlsVersionId(0xEAEA);
+    private static final TlsVersionId GREASE_FA = new TlsVersionId(0xFAFA);
     private static final List<TlsVersionId> GREASE = List.of(GREASE_0A, GREASE_1A, GREASE_2A, GREASE_3A, GREASE_4A, GREASE_5A, GREASE_6A, GREASE_7A, GREASE_8A, GREASE_9A, GREASE_AA, GREASE_BA, GREASE_CA, GREASE_DA, GREASE_EA, GREASE_FA);
 
     public static TlsVersionId grease0A() {

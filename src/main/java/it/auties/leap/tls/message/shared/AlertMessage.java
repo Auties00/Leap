@@ -11,8 +11,6 @@ import java.util.Optional;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
-import static it.auties.leap.tls.BufferHelper.*;
-
 public final class AlertMessage extends TlsMessage {
     private static final int LENGTH = INT8_LENGTH + INT8_LENGTH;
 

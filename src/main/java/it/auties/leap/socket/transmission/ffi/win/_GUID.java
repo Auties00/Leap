@@ -26,10 +26,10 @@ public class _GUID {
     }
 
     private static final GroupLayout $LAYOUT = MemoryLayout.structLayout(
-        WindowsSockets.C_LONG.withName("Data1"),
-        WindowsSockets.C_SHORT.withName("Data2"),
-        WindowsSockets.C_SHORT.withName("Data3"),
-        MemoryLayout.sequenceLayout(8, WindowsSockets.C_CHAR).withName("Data4")
+        WindowsKernel.C_LONG.withName("Data1"),
+        WindowsKernel.C_SHORT.withName("Data2"),
+        WindowsKernel.C_SHORT.withName("Data3"),
+        MemoryLayout.sequenceLayout(8, WindowsKernel.C_CHAR).withName("Data4")
     ).withName("_GUID");
 
     /**

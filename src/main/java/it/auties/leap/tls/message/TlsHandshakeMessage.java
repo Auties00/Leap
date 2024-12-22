@@ -10,8 +10,6 @@ import it.auties.leap.tls.message.server.*;
 import java.nio.ByteBuffer;
 import java.util.List;
 
-import static it.auties.leap.tls.BufferHelper.*;
-
 public abstract sealed class TlsHandshakeMessage extends TlsMessage
         permits ClientCertificateMessage, ClientCertificateVerifyMessage, ClientChangeCipherSpecMessage,
         ClientFinishedMessage, ClientHelloMessage, ClientKeyExchangeMessage, ServerCertificateMessage,
@@ -23,7 +21,7 @@ public abstract sealed class TlsHandshakeMessage extends TlsMessage
         super(version, source);
     }
 
-    public static TlsMessage ofServer(TlsCipher cipher, List<TlsExtension.Concrete.Decoder> decoders, ByteBuffer buffer, Metadata metadata) {
+    public static TlsMessage ofServer(TlsCipher cipher, List<TlsExtension.Implementation.Decoder> decoders, ByteBuffer buffer, Metadata metadata) {
         var version = metadata.version();
         var source = metadata.source();
         var id = readLittleEndianInt8(buffer);
@@ -42,7 +40,7 @@ public abstract sealed class TlsHandshakeMessage extends TlsMessage
         }
     }
 
-    public static TlsMessage ofClient(TlsCipher cipher, List<TlsExtension.Concrete.Decoder> decoders, ByteBuffer buffer, Metadata metadata) {
+    public static TlsMessage ofClient(TlsCipher cipher, List<TlsExtension.Implementation.Decoder> decoders, ByteBuffer buffer, Metadata metadata) {
         var version = metadata.version();
         var source = metadata.source();
         var id = readLittleEndianInt8(buffer);

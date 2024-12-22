@@ -23,9 +23,9 @@ public class _WSABUF {
     }
 
     private static final GroupLayout $LAYOUT = MemoryLayout.structLayout(
-        WindowsSockets.C_LONG.withName("len"),
+        WindowsKernel.C_LONG.withName("len"),
         MemoryLayout.paddingLayout(4),
-        WindowsSockets.C_POINTER.withName("buf")
+        WindowsKernel.C_POINTER.withName("buf")
     ).withName("_WSABUF");
 
     /**

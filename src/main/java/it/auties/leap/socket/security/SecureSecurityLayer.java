@@ -2,7 +2,7 @@ package it.auties.leap.socket.security;
 
 import it.auties.leap.socket.transmission.SocketTransmissionLayer;
 import it.auties.leap.tls.cipher.TlsCipher;
-import it.auties.leap.tls.cipher.exchange.TlsKeyExchange;
+import it.auties.leap.tls.cipher.exchange.TlsServerKeyExchange;
 import it.auties.leap.tls.cipher.mode.TlsCipherMode;
 import it.auties.leap.tls.config.TlsCompression;
 import it.auties.leap.tls.config.TlsConfig;
@@ -19,6 +19,7 @@ import it.auties.leap.tls.message.client.*;
 import it.auties.leap.tls.message.server.*;
 import it.auties.leap.tls.message.shared.AlertMessage;
 import it.auties.leap.tls.message.shared.ApplicationDataMessage;
+import it.auties.leap.tls.signature.TlsSignatureAndHashAlgorithm;
 
 import java.io.ByteArrayOutputStream;
 import java.nio.ByteBuffer;
@@ -26,8 +27,6 @@ import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.CopyOnWriteArrayList;
-
-import static it.auties.leap.tls.BufferHelper.*;
 
 final class SecureSecurityLayer extends SocketSecurityLayer {
     private static final int FRAGMENT_LENGTH = 18432;
@@ -50,15 +49,14 @@ final class SecureSecurityLayer extends SocketSecurityLayer {
     private volatile TlsCompression negotiatedCompression;
     private volatile TlsSignatureAndHashAlgorithm negotiatedSignatureAndHashAlgorithm;
 
-    private volatile TlsCipherMode clientCipherMode;
-    private volatile TlsCipherMode serverCipherMode;
+    private volatile TlsCipherMode clientCipher;
+    private volatile TlsCipherMode serverCipher;
     private volatile TlsExchangeAuthenticator clientAuth;
     private volatile TlsExchangeAuthenticator serverAuth;
 
-    private volatile TlsKeyExchange.Server serverKeyExchange;
+    private volatile TlsServerKeyExchange serverKeyExchange;
     private volatile byte[] remoteKeySignature;
 
-    private volatile TlsKeyPair localKeyPair;
 
     private final TlsCookie clientDtlsCookie;
 
@@ -138,20 +136,21 @@ final class SecureSecurityLayer extends SocketSecurityLayer {
         var seen = new HashSet<Class<? extends TlsExtension>>();
         for (var extension : compatibleExtensions) {
             switch (extension) {
-                case TlsExtension.Concrete concreteExtension -> {
-                    if (!seen.add(concreteExtension.getClass())) {
+                case TlsExtension.Implementation implementationExtension -> {
+                    if (!seen.add(implementationExtension.getClass())) {
                         throw new IllegalArgumentException("Extension with type %s conflicts with previously defined extension".formatted(extension.getClass().getName()));
                     }
 
-                    dependenciesTree.put(concreteExtension.getClass(), TlsExtension.Model.Dependencies.none());
+                    dependenciesTree.put(implementationExtension.getClass(), TlsExtension.Model.Dependencies.none());
                 }
-                case TlsExtension.Model<?> modelExtension -> {
+                case TlsExtension.Model modelExtension -> {
                     if (!seen.add(modelExtension.getClass())) {
                         throw new IllegalArgumentException("Model with type %s conflicts with previously defined model".formatted(extension.getClass().getName()));
                     }
 
-                    if (!seen.add(modelExtension.resultType())) {
-                        throw new IllegalArgumentException("Extension with type %s, produced by a model with type %s, conflicts with previously defined extension".formatted(extension.getClass().getName(), modelExtension.resultType().getName()));
+                    var concreteType = modelExtension.toConcreteType(TlsMode.CLIENT);
+                    if (!seen.add(concreteType)) {
+                        throw new IllegalArgumentException("Extension with type %s, produced by a model with type %s, conflicts with previously defined extension".formatted(extension.getClass().getName(), concreteType.getName()));
                     }
 
                     dependenciesTree.put(modelExtension.getClass(), modelExtension.dependencies());
@@ -165,12 +164,12 @@ final class SecureSecurityLayer extends SocketSecurityLayer {
         rounds.addLast(new ArrayList<>()); // Allocate the last round
         for (var extension : compatibleExtensions) {
             switch (extension) {
-                case TlsExtension.Concrete concreteExtension -> {
+                case TlsExtension.Implementation implementationExtension -> {
                     // Concrete extensions don't have any dependencies, so we can always process them at the beginning
                     var firstRound = rounds.getFirst();
-                    firstRound.add(concreteExtension);
+                    firstRound.add(implementationExtension);
                 }
-                case TlsExtension.Model<?> modelExtension -> {
+                case TlsExtension.Model modelExtension -> {
                     switch (modelExtension.dependencies()) {
                         // If no dependencies are needed, we can process this extension at the beginning
                         case TlsExtension.Model.Dependencies.None _ -> {
@@ -202,13 +201,13 @@ final class SecureSecurityLayer extends SocketSecurityLayer {
         }
 
         // Actually process the annotations
-        var context = TlsExtension.Model.Context.of(transmissionLayer.address().orElse(null), tlsConfig);
+        var context = TlsExtension.Model.Context.of(transmissionLayer.address().orElse(null), tlsConfig, TlsMode.CLIENT);
         for (var round : rounds) {
             for (var extension : round) {
                 switch (extension) {
-                    case TlsExtension.Concrete concrete -> context.putExtension(concrete);
-                    case TlsExtension.Model<?> model -> {
-                        var result = model.create(context);
+                    case TlsExtension.Implementation implementation -> context.putExtension(implementation);
+                    case TlsExtension.Model model -> {
+                        var result = model.newInstance(context);
                         result.ifPresent(context::putExtension);
                     }
                 }
@@ -609,25 +608,31 @@ final class SecureSecurityLayer extends SocketSecurityLayer {
                         serverRandomData
                 );
 
-                this.clientCipherMode = negotiatedCipher.engineModeSupplier().get();
                 this.clientAuth = TlsExchangeAuthenticator.of(
                         tlsConfig.version(),
-                        clientCipherMode instanceof TlsCipherMode.AEAD ? TlsHmac.of(negotiatedCipher.hashSupplier().get()) : null,
+                        negotiatedCipher.factory().hasAdditionalData() ? TlsHmac.of(negotiatedCipher.hashSupplier().get()) : null,
                         sessionKeys.localMacKey()
                 );
-                var clientEngine = negotiatedCipher.engineSupplier().get();
-                clientEngine.init(true, sessionKeys.localCipherKey());
-                clientCipherMode.init(tlsConfig.version(), clientAuth, clientEngine, sessionKeys.localIv(), 0);
+                this.clientCipher = negotiatedCipher.factory().newInstance(
+                        tlsConfig.version(),
+                        clientAuth,
+                        sessionKeys.localIv(),
+                        sessionKeys.localCipherKey(),
+                        true
+                );
 
-                this.serverCipherMode = negotiatedCipher.engineModeSupplier().get();
                 this.serverAuth = TlsExchangeAuthenticator.of(
                         tlsConfig.version(),
-                        serverCipherMode instanceof TlsCipherMode.AEAD ? TlsHmac.of(negotiatedCipher.hashSupplier().get()) : null,
+                        negotiatedCipher.factory().hasAdditionalData() ? TlsHmac.of(negotiatedCipher.hashSupplier().get()) : null,
                         sessionKeys.remoteMacKey()
                 );
-                var serverEngine = negotiatedCipher.engineSupplier().get();
-                serverEngine.init(false, sessionKeys.remoteCipherKey());
-                serverCipherMode.init(tlsConfig.version(), null, serverEngine, sessionKeys.remoteIv(), 0);
+                this.serverCipher = negotiatedCipher.factory().newInstance(
+                        tlsConfig.version(),
+                        clientAuth,
+                        sessionKeys.remoteIv(),
+                        sessionKeys.remoteCipherKey(),
+                        false
+                );
             }
 
             case ClientCertificateMessage certificateMessage -> {
@@ -700,23 +705,23 @@ final class SecureSecurityLayer extends SocketSecurityLayer {
     }
 
     private OptionalInt explicitNonceLength() {
-        return clientCipherMode != null ? OptionalInt.of(clientCipherMode.nonceLength()) : OptionalInt.empty();
+        return clientCipher != null ? OptionalInt.of(clientCipher.nonceLength()) : OptionalInt.empty();
     }
 
     private void encrypt(TlsMessage.ContentType contentType, ByteBuffer input, ByteBuffer output) {
-        if (clientCipherMode == null) {
+        if (clientCipher == null) {
             throw new TlsException("Cannot encrypt a message before enabling the local cipher");
         }
 
-        clientCipherMode.update(contentType, input, output, null);
+        clientCipher.update(contentType, input, output, null);
     }
 
     private void decrypt(TlsMessage.ContentType contentType, ByteBuffer input, ByteBuffer output) {
-        if (serverCipherMode == null) {
+        if (serverCipher == null) {
             throw new TlsException("Cannot decrypt a message before enabling the remote cipher");
         }
 
-        serverCipherMode.update(contentType, input, output, null);
+        serverCipher.update(contentType, input, output, null);
     }
 
     private Optional<ByteBuffer> lastBufferedMessage() {

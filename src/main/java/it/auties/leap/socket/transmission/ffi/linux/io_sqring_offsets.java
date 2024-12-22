@@ -30,15 +30,15 @@ public class io_sqring_offsets {
     }
 
     private static final GroupLayout $LAYOUT = MemoryLayout.structLayout(
-        LinuxSockets.C_INT.withName("head"),
-        LinuxSockets.C_INT.withName("tail"),
-        LinuxSockets.C_INT.withName("ring_mask"),
-        LinuxSockets.C_INT.withName("ring_entries"),
-        LinuxSockets.C_INT.withName("flags"),
-        LinuxSockets.C_INT.withName("dropped"),
-        LinuxSockets.C_INT.withName("array"),
-        LinuxSockets.C_INT.withName("resv1"),
-        LinuxSockets.C_LONG_LONG.withName("resv2")
+        LinuxKernel.C_INT.withName("head"),
+        LinuxKernel.C_INT.withName("tail"),
+        LinuxKernel.C_INT.withName("ring_mask"),
+        LinuxKernel.C_INT.withName("ring_entries"),
+        LinuxKernel.C_INT.withName("flags"),
+        LinuxKernel.C_INT.withName("dropped"),
+        LinuxKernel.C_INT.withName("array"),
+        LinuxKernel.C_INT.withName("resv1"),
+        LinuxKernel.C_LONG_LONG.withName("resv2")
     ).withName("io_sqring_offsets");
 
     /**

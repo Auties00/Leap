@@ -93,6 +93,10 @@ public final class TlsGrease {
         return VALUES;
     }
 
+    public static boolean isGrease(int extensionType) {
+        return (extensionType & 0x0f0f) == 0x0a0a;
+    }
+
     private final TlsVersionId versionId;
     private final TlsCipher cipher;
     private final TlsExtension extension;

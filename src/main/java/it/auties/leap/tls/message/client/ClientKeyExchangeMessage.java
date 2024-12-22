@@ -1,20 +1,20 @@
 package it.auties.leap.tls.message.client;
 
 import it.auties.leap.tls.cipher.TlsCipher;
-import it.auties.leap.tls.cipher.exchange.TlsKeyExchange;
+import it.auties.leap.tls.cipher.exchange.TlsClientKeyExchange;
 import it.auties.leap.tls.config.TlsSource;
 import it.auties.leap.tls.config.TlsVersion;
 import it.auties.leap.tls.message.TlsHandshakeMessage;
 
 import java.nio.ByteBuffer;
 
-import static it.auties.leap.tls.BufferHelper.readLittleEndianInt24;
-import static it.auties.leap.tls.BufferHelper.scopedRead;
+import static it.auties.leap.tls.util.BufferHelper.readLittleEndianInt24;
+import static it.auties.leap.tls.util.BufferHelper.scopedRead;
 
 public final class ClientKeyExchangeMessage extends TlsHandshakeMessage {
     public static final byte ID = 0x10;
-    private final TlsKeyExchange.Client parameters;
-    public ClientKeyExchangeMessage(TlsVersion tlsVersion, TlsSource source, TlsKeyExchange.Client parameters) {
+    private final TlsClientKeyExchange parameters;
+    public ClientKeyExchangeMessage(TlsVersion tlsVersion, TlsSource source, TlsClientKeyExchange parameters) {
         super(tlsVersion, source);
         this.parameters = parameters;
     }
@@ -26,7 +26,7 @@ public final class ClientKeyExchangeMessage extends TlsHandshakeMessage {
 
         var messageLength = readLittleEndianInt24(buffer);
         try(var _ = scopedRead(buffer, messageLength)) {
-            var parameters = TlsKeyExchange.Client.of(cipher, buffer);
+            var parameters = TlsClientKeyExchange.of(cipher, buffer);
             return new ClientKeyExchangeMessage(version, source, parameters);
         }
     }
@@ -36,7 +36,7 @@ public final class ClientKeyExchangeMessage extends TlsHandshakeMessage {
         return ID;
     }
 
-    public TlsKeyExchange.Client parameters() {
+    public TlsClientKeyExchange parameters() {
         return parameters;
     }
 

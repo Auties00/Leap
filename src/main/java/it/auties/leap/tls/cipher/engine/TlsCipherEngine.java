@@ -70,10 +70,16 @@ public sealed abstract class TlsCipherEngine {
     public static TlsCipherEngine none() {
         return new NoneEngine();
     }
-    
+
+    public static TlsCipherEngine chacha20() {
+        throw new UnsupportedOperationException();
+    }
+
+    protected final int ivLength;
     protected final int keyLength;
     protected boolean forEncryption;
-    private TlsCipherEngine(int keyLength) {
+    private TlsCipherEngine(int ivLength, int keyLength) {
+        this.ivLength = ivLength;
         this.keyLength = keyLength;
     }
 
@@ -87,15 +93,19 @@ public sealed abstract class TlsCipherEngine {
         return forEncryption;
     }
 
+    public int keyLength() {
+        return keyLength;
+    }
+
     public static abstract non-sealed class Stream extends TlsCipherEngine {
-        protected Stream(int keyLength) {
-            super(keyLength);
+        protected Stream(int ivLength, int keyLength) {
+            super(ivLength, keyLength);
         }
     }
 
     public static abstract non-sealed class Block extends TlsCipherEngine {
-        protected Block(int keyLength) {
-            super(keyLength);
+        protected Block(int ivLength, int keyLength) {
+            super(ivLength, keyLength);
         }
 
         public abstract int blockLength();

@@ -53,10 +53,9 @@ public sealed abstract class TlsCipherMode {
     protected TlsVersion version;
     protected TlsExchangeAuthenticator authenticator;
     protected byte[] fixedIv;
-    protected int ivLength;
     protected boolean initialized;
 
-    public void init(TlsVersion version, TlsExchangeAuthenticator authenticator, TlsCipherEngine engine, byte[] fixedIv, int ivLength) {
+    public void init(TlsVersion version, TlsExchangeAuthenticator authenticator, TlsCipherEngine engine, byte[] fixedIv) {
         if(initialized) {
             throw new IllegalStateException();
         }
@@ -64,7 +63,6 @@ public sealed abstract class TlsCipherMode {
         this.version = version;
         this.authenticator = authenticator;
         this.fixedIv = fixedIv;
-        this.ivLength = ivLength;
         this.initialized = true;
     }
     
@@ -175,8 +173,8 @@ public sealed abstract class TlsCipherMode {
         protected TlsCipherEngine.Block engine;
 
         @Override
-        public void init(TlsVersion version, TlsExchangeAuthenticator authenticator, TlsCipherEngine engine, byte[] fixedIv, int ivLength) {
-            super.init(version, authenticator, engine, fixedIv, ivLength);
+        public void init(TlsVersion version, TlsExchangeAuthenticator authenticator, TlsCipherEngine engine, byte[] fixedIv) {
+            super.init(version, authenticator, engine, fixedIv);
             if(!(engine instanceof TlsCipherEngine.Block blockEngine)) {
                 throw new IllegalArgumentException();
             }
@@ -193,8 +191,8 @@ public sealed abstract class TlsCipherMode {
         protected TlsCipherEngine.Stream engine;
 
         @Override
-        public void init(TlsVersion version, TlsExchangeAuthenticator authenticator, TlsCipherEngine engine, byte[] fixedIv, int ivLength) {
-            super.init(version, authenticator, engine, fixedIv, ivLength);
+        public void init(TlsVersion version, TlsExchangeAuthenticator authenticator, TlsCipherEngine engine, byte[] fixedIv) {
+            super.init(version, authenticator, engine, fixedIv);
             if(!(engine instanceof TlsCipherEngine.Stream streamEngine)) {
                 throw new IllegalArgumentException();
             }

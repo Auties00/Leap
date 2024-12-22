@@ -23,8 +23,8 @@ public class iovec {
     }
 
     private static final GroupLayout $LAYOUT = MemoryLayout.structLayout(
-        LinuxSockets.C_POINTER.withName("iov_base"),
-        LinuxSockets.C_LONG.withName("iov_len")
+        LinuxKernel.C_POINTER.withName("iov_base"),
+        LinuxKernel.C_LONG.withName("iov_len")
     ).withName("iovec");
 
     /**

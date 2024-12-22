@@ -14,11 +14,9 @@ import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
-import static it.auties.leap.tls.BufferHelper.*;
-
 public sealed abstract class TlsMessage
         permits AlertMessage, ApplicationDataMessage, TlsHandshakeMessage {
-    public static TlsMessage ofServer(TlsCipher cipher, List<TlsExtension.Concrete.Decoder> decoders, ByteBuffer buffer, Metadata metadata) {
+    public static TlsMessage ofServer(TlsCipher cipher, List<TlsExtension.Implementation.Decoder> decoders, ByteBuffer buffer, Metadata metadata) {
         var version = metadata.version();
         var source = metadata.source();
         try(var _ = scopedRead(buffer, metadata.messageLength())) {
@@ -31,7 +29,7 @@ public sealed abstract class TlsMessage
         }
     }
 
-    public static TlsMessage ofClient(TlsCipher cipher, List<TlsExtension.Concrete.Decoder> decoders, ByteBuffer buffer, Metadata metadata) {
+    public static TlsMessage ofClient(TlsCipher cipher, List<TlsExtension.Implementation.Decoder> decoders, ByteBuffer buffer, Metadata metadata) {
         var version = metadata.version();
         var source = metadata.source();
         try(var _ = scopedRead(buffer, metadata.messageLength())) {

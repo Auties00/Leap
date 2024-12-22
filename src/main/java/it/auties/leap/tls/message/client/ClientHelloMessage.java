@@ -14,8 +14,6 @@ import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.List;
 
-import static it.auties.leap.tls.BufferHelper.*;
-
 public final class ClientHelloMessage extends TlsHandshakeMessage {
     public static final int ID = 0x01;
 
@@ -24,10 +22,10 @@ public final class ClientHelloMessage extends TlsHandshakeMessage {
     private final TlsCookie cookie;
     private final List<Integer> ciphers;
     private final List<Byte> compressions;
-    private final List<TlsExtension.Concrete> extensions;
+    private final List<TlsExtension.Implementation> extensions;
     private final int extensionsLength;
 
-    public ClientHelloMessage(TlsVersion tlsVersion, TlsSource source, TlsRandomData randomData, TlsSharedSecret sessionId, TlsCookie cookie, List<Integer> ciphers, List<Byte> compressions, List<TlsExtension.Concrete> extensions, int extensionsLength) {
+    public ClientHelloMessage(TlsVersion tlsVersion, TlsSource source, TlsRandomData randomData, TlsSharedSecret sessionId, TlsCookie cookie, List<Integer> ciphers, List<Byte> compressions, List<TlsExtension.Implementation> extensions, int extensionsLength) {
         super(tlsVersion, source);
         this.randomData = randomData;
         this.sessionId = sessionId;
@@ -38,7 +36,7 @@ public final class ClientHelloMessage extends TlsHandshakeMessage {
         this.extensionsLength = extensionsLength;
     }
 
-    public static TlsMessage of(TlsVersion version, List<TlsExtension.Concrete.Decoder> decoders, TlsSource source, ByteBuffer buffer) {
+    public static TlsMessage of(TlsVersion version, List<TlsExtension.Implementation.Decoder> decoders, TlsSource source, ByteBuffer buffer) {
         var versionId = TlsVersionId.of(readLittleEndianInt16(buffer));
         var tlsVersion = TlsVersion.of(versionId)
                 .orElseThrow(() -> new IllegalArgumentException("Unknown version: " + versionId));
@@ -62,7 +60,7 @@ public final class ClientHelloMessage extends TlsHandshakeMessage {
                 compressions.add(compressionId);
             }
         }
-        var extensions = new ArrayList<TlsExtension.Concrete>();
+        var extensions = new ArrayList<TlsExtension.Implementation>();
         var extensionsLength = readLittleEndianInt16(buffer);
         try(var _ = scopedRead(buffer, extensionsLength)) {
             while (buffer.hasRemaining()) {

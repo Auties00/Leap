@@ -25,9 +25,9 @@ final class LinuxTransmissionLayer extends SocketTransmissionLayer<Integer> {
 
     @Override
     Integer createHandle() throws SocketException {
-        var handle = LinuxSockets.socket(
-                LinuxSockets.AF_INET(),
-                LinuxSockets.SOCK_STREAM() | LinuxSockets.SOCK_NONBLOCK(),
+        var handle = LinuxKernel.socket(
+                LinuxKernel.AF_INET(),
+                LinuxKernel.SOCK_STREAM() | LinuxKernel.SOCK_NONBLOCK(),
                 0
         );
         if (handle == -1) {
@@ -54,7 +54,7 @@ final class LinuxTransmissionLayer extends SocketTransmissionLayer<Integer> {
         ioUring.registerHandle(handle);
 
         return ioUring.prepareAsyncOperation(handle, sqe -> {
-            io_uring_sqe.opcode(sqe, (byte) LinuxSockets.IORING_OP_CONNECT());
+            io_uring_sqe.opcode(sqe, (byte) LinuxKernel.IORING_OP_CONNECT());
             io_uring_sqe.fd(sqe, handle);
             io_uring_sqe.addr(sqe, remoteAddress.get().address());
             io_uring_sqe.off(sqe, remoteAddress.get().byteSize());
@@ -74,7 +74,7 @@ final class LinuxTransmissionLayer extends SocketTransmissionLayer<Integer> {
             var length = Math.min(data.remaining(), writeBufferSize);
             writeToIOBuffer(data, length);
             io_uring_sqe.fd(sqe, handle);
-            io_uring_sqe.opcode(sqe, (byte) LinuxSockets.IORING_OP_WRITE());
+            io_uring_sqe.opcode(sqe, (byte) LinuxKernel.IORING_OP_WRITE());
             io_uring_sqe.addr(sqe, writeBuffer.address());
             io_uring_sqe.len(sqe, length);
             io_uring_sqe.user_data(sqe, handle);
@@ -96,7 +96,7 @@ final class LinuxTransmissionLayer extends SocketTransmissionLayer<Integer> {
         var caller = new RuntimeException();
         return ioUring.prepareAsyncOperation(handle, sqe -> {
             var length = Math.min(data.remaining(), readBufferSize);
-            io_uring_sqe.opcode(sqe, (byte) LinuxSockets.IORING_OP_READ());
+            io_uring_sqe.opcode(sqe, (byte) LinuxKernel.IORING_OP_READ());
             io_uring_sqe.fd(sqe, handle);
             io_uring_sqe.addr(sqe, readBuffer.address());
             io_uring_sqe.len(sqe, length);
@@ -126,8 +126,8 @@ final class LinuxTransmissionLayer extends SocketTransmissionLayer<Integer> {
         }
 
         if (handle != null) {
-            LinuxSockets.shutdown(handle, LinuxSockets.SHUT_RDWR());
-            LinuxSockets.close(handle);
+            LinuxKernel.shutdown(handle, LinuxKernel.SHUT_RDWR());
+            LinuxKernel.close(handle);
         }
     }
 
@@ -184,7 +184,7 @@ final class LinuxTransmissionLayer extends SocketTransmissionLayer<Integer> {
 
                 var sqRingSize = io_sqring_offsets.array(io_uring_params.sq_off(ringParams)) + io_uring_params.sq_entries(ringParams) * ValueLayout.JAVA_INT.byteSize();
                 var cqRingSize = io_cqring_offsets.cqes(io_uring_params.cq_off(ringParams)) + io_uring_params.cq_entries(ringParams) * io_uring_cqe.sizeof();
-                var singleMap = (io_uring_params.features(ringParams) & LinuxSockets.IORING_FEAT_SINGLE_MMAP()) == 0;
+                var singleMap = (io_uring_params.features(ringParams) & LinuxKernel.IORING_FEAT_SINGLE_MMAP()) == 0;
                 if (singleMap) {
                     if (cqRingSize > sqRingSize) {
                         sqRingSize = cqRingSize;
@@ -193,42 +193,42 @@ final class LinuxTransmissionLayer extends SocketTransmissionLayer<Integer> {
                     cqRingSize = sqRingSize;
                 }
 
-                ringSq = LinuxSockets.mmap(
+                ringSq = LinuxKernel.mmap(
                         MemorySegment.NULL,
                         sqRingSize,
-                        LinuxSockets.PROT_READ() | LinuxSockets.PROT_WRITE(),
-                        LinuxSockets.MAP_SHARED() | LinuxSockets.MAP_POPULATE(),
+                        LinuxKernel.PROT_READ() | LinuxKernel.PROT_WRITE(),
+                        LinuxKernel.MAP_SHARED() | LinuxKernel.MAP_POPULATE(),
                         ringHandle,
-                        LinuxSockets.IORING_OFF_SQ_RING()
+                        LinuxKernel.IORING_OFF_SQ_RING()
                 );
-                if (ringSq == LinuxSockets.MAP_FAILED()) {
+                if (ringSq == LinuxKernel.MAP_FAILED()) {
                     throw new RuntimeException("Io_uring bootstrap failed: invalid ringSq mmap result");
                 }
                 if (singleMap) {
                     ringCq = ringCqEntries;
                 } else {
-                    ringCq = LinuxSockets.mmap(
+                    ringCq = LinuxKernel.mmap(
                             MemorySegment.NULL,
                             cqRingSize,
-                            LinuxSockets.PROT_READ() | LinuxSockets.PROT_WRITE(),
-                            LinuxSockets.MAP_SHARED() | LinuxSockets.MAP_POPULATE(),
+                            LinuxKernel.PROT_READ() | LinuxKernel.PROT_WRITE(),
+                            LinuxKernel.MAP_SHARED() | LinuxKernel.MAP_POPULATE(),
                             ringHandle,
-                            LinuxSockets.IORING_OFF_CQ_RING()
+                            LinuxKernel.IORING_OFF_CQ_RING()
                     );
-                    if (ringCq == LinuxSockets.MAP_FAILED()) {
+                    if (ringCq == LinuxKernel.MAP_FAILED()) {
                         throw new RuntimeException("Io_uring bootstrap failed: invalid ringCq mmap result");
                     }
                 }
 
-                ringSqEntries = LinuxSockets.mmap(
+                ringSqEntries = LinuxKernel.mmap(
                         MemorySegment.NULL,
                         io_uring_params.sq_entries(ringParams) * io_uring_sqe.sizeof(),
-                        LinuxSockets.PROT_READ() | LinuxSockets.PROT_WRITE(),
-                        LinuxSockets.MAP_SHARED() | LinuxSockets.MAP_POPULATE(),
+                        LinuxKernel.PROT_READ() | LinuxKernel.PROT_WRITE(),
+                        LinuxKernel.MAP_SHARED() | LinuxKernel.MAP_POPULATE(),
                         ringHandle,
-                        LinuxSockets.IORING_OFF_SQES()
+                        LinuxKernel.IORING_OFF_SQES()
                 );
-                if (ringSqEntries == LinuxSockets.MAP_FAILED()) {
+                if (ringSqEntries == LinuxKernel.MAP_FAILED()) {
                     throw new RuntimeException("Io_uring bootstrap failed: invalid ringSqEntries mmap result");
                 }
 
@@ -267,7 +267,7 @@ final class LinuxTransmissionLayer extends SocketTransmissionLayer<Integer> {
                 queueLock.lock();
                 int ringHandle = this.ringHandle;
                 this.ringHandle = null;
-                LinuxSockets.close(ringHandle);
+                LinuxKernel.close(ringHandle);
                 if (executor != null && !executor.isShutdown()) {
                     executor.shutdownNow();
                 }
@@ -314,7 +314,7 @@ final class LinuxTransmissionLayer extends SocketTransmissionLayer<Integer> {
         @Override
         public void run() {
             while (!Thread.interrupted()) {
-                var result = enterRing(0, 1, LinuxSockets.IORING_ENTER_GETEVENTS());
+                var result = enterRing(0, 1, LinuxKernel.IORING_ENTER_GETEVENTS());
                 if (!result) {
                     break;
                 }
@@ -353,13 +353,13 @@ final class LinuxTransmissionLayer extends SocketTransmissionLayer<Integer> {
         }
 
         private int setupRing() {
-            return (int) LinuxSockets.syscall
+            return (int) LinuxKernel.syscall
                     .makeInvoker(
                             ValueLayout.JAVA_INT,
                             ValueLayout.ADDRESS.withTargetLayout(io_uring_params.layout())
                     )
                     .apply(
-                            LinuxSockets.__NR_io_uring_setup(),
+                            LinuxKernel.__NR_io_uring_setup(),
                             QUEUE_SIZE,
                             ringParams
                     );
@@ -367,7 +367,7 @@ final class LinuxTransmissionLayer extends SocketTransmissionLayer<Integer> {
 
         private boolean enterRing(int in, int out, int flags) {
             try {
-                var result = LinuxSockets.syscall
+                var result = LinuxKernel.syscall
                         .makeInvoker(
                                 ValueLayout.JAVA_INT,
                                 ValueLayout.JAVA_INT,
@@ -377,7 +377,7 @@ final class LinuxTransmissionLayer extends SocketTransmissionLayer<Integer> {
                                 ValueLayout.JAVA_INT
                         )
                         .apply(
-                                LinuxSockets.__NR_io_uring_enter(),
+                                LinuxKernel.__NR_io_uring_enter(),
                                 ringHandle,
                                 in,
                                 out,

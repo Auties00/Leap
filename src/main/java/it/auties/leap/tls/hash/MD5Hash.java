@@ -1,11 +1,11 @@
 package it.auties.leap.tls.hash;
 
-import it.auties.leap.tls.BufferHelper;
+import it.auties.leap.tls.util.BufferHelper;
 
 import java.nio.ByteBuffer;
 import java.util.Arrays;
 
-import static it.auties.leap.tls.BufferHelper.readLittleEndianInt32;
+import static it.auties.leap.tls.util.BufferHelper.readLittleEndianInt32;
 
 final class MD5Hash implements TlsHash {
     private static final int BLOCK_LENGTH = 4;

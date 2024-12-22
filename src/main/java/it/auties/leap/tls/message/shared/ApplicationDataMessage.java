@@ -1,14 +1,12 @@
 package it.auties.leap.tls.message.shared;
 
-import it.auties.leap.tls.BufferHelper;
+import it.auties.leap.tls.util.BufferHelper;
 import it.auties.leap.tls.config.TlsSource;
 import it.auties.leap.tls.config.TlsVersion;
 import it.auties.leap.tls.message.TlsMessage;
 
 import java.nio.BufferUnderflowException;
 import java.nio.ByteBuffer;
-
-import static it.auties.leap.tls.BufferHelper.*;
 
 public final class ApplicationDataMessage extends TlsMessage {
     private static final int ID = 0x17;

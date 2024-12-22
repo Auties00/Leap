@@ -11,8 +11,6 @@ import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.List;
 
-import static it.auties.leap.tls.BufferHelper.*;
-
 public final class ServerHelloMessage extends TlsHandshakeMessage {
     public static final byte ID = 0x02;
 
@@ -50,7 +48,7 @@ public final class ServerHelloMessage extends TlsHandshakeMessage {
         return extensions;
     }
 
-    public static ServerHelloMessage of(TlsVersion version, List<TlsExtension.Concrete.Decoder> decoders, TlsSource source, ByteBuffer buffer) {
+    public static ServerHelloMessage of(TlsVersion version, List<TlsExtension.Implementation.Decoder> decoders, TlsSource source, ByteBuffer buffer) {
         var tlsVersionId = readLittleEndianInt16(buffer);
         var tlsVersion = TlsVersion.of(tlsVersionId)
                 .orElseThrow(() -> new IllegalArgumentException("Cannot decode TLS message, unknown protocol version: " + tlsVersionId));
