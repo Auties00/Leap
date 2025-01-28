@@ -47,8 +47,8 @@ public class HttpDecoder {
     }
 
     private <T> CompletableFuture<HttpResult<T>> handleResponse(URI uri, HttpResponse.Converter<T> converter) {
-        var partial = handleStatusCodeAndHeaders();
-        if (partial) {
+        handleStatusCodeAndHeaders();
+        if (isPartial()) {
             return readResponse(uri, converter);
         }
 
@@ -61,7 +61,12 @@ public class HttpDecoder {
             return CompletableFuture.completedFuture(new HttpResult.Response<>(statusCode, closeConnection, converter.empty(statusCode)));
         }
 
-        return (contentLength() == -1 ? readChunkedResponse() : readFullResponse())
+        if (contentLength() == -1) {
+            return readChunkedResponse()
+                    .thenApplyAsync(response -> new HttpResult.Response<>(statusCode, closeConnection, converter.of(statusCode, response)));
+        }
+
+        return readFullResponse()
                 .thenApplyAsync(response -> new HttpResult.Response<>(statusCode, closeConnection, converter.of(statusCode, response)));
     }
 
@@ -84,7 +89,7 @@ public class HttpDecoder {
         return result;
     }
 
-    private boolean handleStatusCodeAndHeaders() {
+    private void handleStatusCodeAndHeaders() {
         while (hasNext()) {
             var responseLine = readHeaderLine();
             setLastHeaderLineIndex(currentHeaderLineIndex());
@@ -119,7 +124,6 @@ public class HttpDecoder {
                 case "content-encoding" -> contentEncoding().addAll(Arrays.stream(headerValue.split(",")).map(String::trim).toList());
             }
         }
-        return isPartial();
     }
 
     private int parseStatusCode(String responseLine) {

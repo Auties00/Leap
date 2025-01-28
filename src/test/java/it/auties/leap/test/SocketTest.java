@@ -3,7 +3,7 @@ package it.auties.leap.test;
 import it.auties.leap.http.HttpConfig;
 import it.auties.leap.socket.SocketClient;
 import it.auties.leap.socket.SocketProtocol;
-import it.auties.leap.tls.config.TlsVersion;
+import it.auties.leap.tls.version.TlsVersion;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;

@@ -13,15 +13,15 @@ public interface TlsAuth {
         return null;
     }
 
-    static TlsAuth eccPwd() {
+    static TlsAuth eccpwd() {
         return null;
     }
 
-    static TlsAuth ecDsa() {
+    static TlsAuth ecdsa() {
         return null;
     }
 
-    static TlsAuth gostr341012() {
+    static TlsAuth gostr341012_256() {
         return null;
     }
 
@@ -34,6 +34,10 @@ public interface TlsAuth {
     }
 
     static TlsAuth rsa() {
+        return null;
+    }
+
+    static TlsAuth rsaExport() {
         return null;
     }
 

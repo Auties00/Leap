@@ -1,43 +1,31 @@
 package it.auties.leap.tls.message;
 
-import it.auties.leap.tls.cipher.TlsCipher;
-import it.auties.leap.tls.config.TlsSource;
-import it.auties.leap.tls.config.TlsVersion;
-import it.auties.leap.tls.extension.TlsExtension;
-import it.auties.leap.tls.message.client.ClientChangeCipherSpecMessage;
-import it.auties.leap.tls.message.server.ServerChangeCipherSpecMessage;
-import it.auties.leap.tls.message.shared.AlertMessage;
-import it.auties.leap.tls.message.shared.ApplicationDataMessage;
+import it.auties.leap.tls.TlsEngine;
+import it.auties.leap.tls.TlsSource;
+import it.auties.leap.tls.message.implementation.AlertMessage;
+import it.auties.leap.tls.message.implementation.ApplicationDataMessage;
+import it.auties.leap.tls.message.implementation.ChangeCipherSpecMessage;
+import it.auties.leap.tls.version.TlsVersion;
 
 import java.nio.ByteBuffer;
-import java.util.*;
+import java.util.Arrays;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Optional;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
+import static it.auties.leap.tls.util.BufferUtils.*;
+
 public sealed abstract class TlsMessage
         permits AlertMessage, ApplicationDataMessage, TlsHandshakeMessage {
-    public static TlsMessage ofServer(TlsCipher cipher, List<TlsExtension.Implementation.Decoder> decoders, ByteBuffer buffer, Metadata metadata) {
-        var version = metadata.version();
-        var source = metadata.source();
+    public static TlsMessage of(TlsEngine engine, ByteBuffer buffer, Metadata metadata) {
         try(var _ = scopedRead(buffer, metadata.messageLength())) {
             return switch (metadata.contentType()) {
-                case HANDSHAKE -> TlsHandshakeMessage.ofServer(cipher, decoders, buffer, metadata);
-                case CHANGE_CIPHER_SPEC -> ServerChangeCipherSpecMessage.of(version, source, buffer);
-                case ALERT -> AlertMessage.of(version, source, buffer);
-                case APPLICATION_DATA -> ApplicationDataMessage.of(version, source, buffer);
-            };
-        }
-    }
-
-    public static TlsMessage ofClient(TlsCipher cipher, List<TlsExtension.Implementation.Decoder> decoders, ByteBuffer buffer, Metadata metadata) {
-        var version = metadata.version();
-        var source = metadata.source();
-        try(var _ = scopedRead(buffer, metadata.messageLength())) {
-            return switch (metadata.contentType()) {
-                case HANDSHAKE -> TlsHandshakeMessage.ofClient(cipher, decoders, buffer, metadata);
-                case CHANGE_CIPHER_SPEC -> ClientChangeCipherSpecMessage.of(version, source, metadata.messageLength());
-                case ALERT -> AlertMessage.of(version, source, buffer);
-                case APPLICATION_DATA -> ApplicationDataMessage.of(version, source, buffer);
+                case HANDSHAKE -> TlsHandshakeMessage.of(engine, buffer, metadata);
+                case CHANGE_CIPHER_SPEC -> ChangeCipherSpecMessage.of(engine, buffer, metadata);
+                case ALERT -> AlertMessage.of(engine, buffer, metadata);
+                case APPLICATION_DATA -> ApplicationDataMessage.of(engine, buffer, metadata);
             };
         }
     }

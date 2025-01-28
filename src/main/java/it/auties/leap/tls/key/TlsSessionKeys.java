@@ -1,8 +1,8 @@
 package it.auties.leap.tls.key;
 
+import it.auties.leap.tls.TlsEngine;
 import it.auties.leap.tls.cipher.TlsCipher;
-import it.auties.leap.tls.config.TlsMode;
-import it.auties.leap.tls.config.TlsVersion;
+import it.auties.leap.tls.version.TlsVersion;
 import it.auties.leap.tls.hash.TlsHash;
 import it.auties.leap.tls.hash.TlsPRF;
 
@@ -10,7 +10,7 @@ import java.nio.ByteBuffer;
 import java.util.Arrays;
 import java.util.Objects;
 
-import static it.auties.leap.tls.util.BufferHelper.readBytes;
+import static it.auties.leap.tls.util.BufferUtils.readBytes;
 import static it.auties.leap.tls.key.TlsKeyConstants.*;
 
 public final class TlsSessionKeys {
@@ -40,7 +40,7 @@ public final class TlsSessionKeys {
     }
 
     public static TlsSessionKeys of(
-            TlsMode mode,
+            TlsEngine.Mode mode,
             TlsVersion version,
             TlsCipher cipher,
             TlsMasterSecretKey masterSecret,
@@ -55,9 +55,7 @@ public final class TlsSessionKeys {
             case SERVER -> localRandomData.data();
             case CLIENT -> remoteRandomData.data();
         };
-        var macLength = cipher.hashSupplier()
-                .get()
-                .length();
+        var macLength = cipher.hashFactory().length();
         var expandedKeyLength = cipher.factory()
                 .expandedKeyLength()
                 .orElse(-1);
@@ -220,7 +218,7 @@ public final class TlsSessionKeys {
                         LABEL_KEY_EXPANSION,
                         seed,
                         keyBlockLen,
-                        cipher.hashSupplier().get()
+                        cipher.newHash()
                 );
                 yield ByteBuffer.wrap(result);
             }

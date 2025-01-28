@@ -1,15 +1,14 @@
 package it.auties.leap.tls.hash;
 
-import it.auties.leap.tls.config.TlsMode;
-import it.auties.leap.tls.config.TlsSource;
-import it.auties.leap.tls.config.TlsVersion;
+import it.auties.leap.tls.TlsEngine;
+import it.auties.leap.tls.TlsSource;
 import it.auties.leap.tls.key.TlsSessionKeys;
+import it.auties.leap.tls.version.TlsVersion;
 
 import java.util.Arrays;
-import java.util.function.Supplier;
 
 public abstract sealed class TlsHandshakeHash {
-    public static TlsHandshakeHash of(TlsVersion version, Supplier<TlsHash> hash) {
+    public static TlsHandshakeHash of(TlsVersion version, TlsHash hash) {
         return switch (version) {
             case TLS13, DTLS13 -> new T13VerifyDataGenerator(hash);
             case TLS12, DTLS12 -> new T12VerifyDataGenerator(hash);
@@ -20,7 +19,7 @@ public abstract sealed class TlsHandshakeHash {
 
     public abstract void update(byte[] input);
     public abstract byte[] digest();
-    public abstract byte[] finish(TlsSessionKeys keys, TlsMode mode, TlsSource source);
+    public abstract byte[] finish(TlsSessionKeys keys, TlsEngine.Mode mode, TlsSource source);
 
     private static final class S30VerifyDataGenerator extends TlsHandshakeHash {
         private static final byte[] MD5_PAD1 = genPad(0x36, 48);
@@ -59,10 +58,10 @@ public abstract sealed class TlsHandshakeHash {
         }
 
         @Override
-        public byte[] finish(TlsSessionKeys keys, TlsMode mode, TlsSource source) {
+        public byte[] finish(TlsSessionKeys keys, TlsEngine.Mode mode, TlsSource source) {
             var masterSecret = keys.masterSecretKey()
                     .data();
-            var useClientLabel = (mode == TlsMode.CLIENT && source == TlsSource.LOCAL) || (mode == TlsMode.SERVER && source == TlsSource.REMOTE);
+            var useClientLabel = (mode == TlsEngine.Mode.CLIENT && source == TlsSource.LOCAL) || (mode == TlsEngine.Mode.SERVER && source == TlsSource.REMOTE);
             if (useClientLabel) {
                 md5.update(SSL_CLIENT);
                 sha1.update(SSL_CLIENT);
@@ -117,10 +116,10 @@ public abstract sealed class TlsHandshakeHash {
         }
 
         @Override
-        public byte[] finish(TlsSessionKeys keys, TlsMode mode, TlsSource source) {
+        public byte[] finish(TlsSessionKeys keys, TlsEngine.Mode mode, TlsSource source) {
             var masterSecret = keys.masterSecretKey()
                     .data();
-            var useClientLabel = (mode == TlsMode.CLIENT && source == TlsSource.LOCAL) || (mode == TlsMode.SERVER && source == TlsSource.REMOTE);
+            var useClientLabel = (mode == TlsEngine.Mode.CLIENT && source == TlsSource.LOCAL) || (mode == TlsEngine.Mode.SERVER && source == TlsSource.REMOTE);
             var tlsLabel = useClientLabel ? "client finished" : "server finished";
             return TlsPRF.tls10Prf(
                     masterSecret,
@@ -134,34 +133,32 @@ public abstract sealed class TlsHandshakeHash {
     }
 
     private static final class T12VerifyDataGenerator extends TlsHandshakeHash {
-        private final Supplier<TlsHash> hashFactory;
-        private final TlsHash digest;
-        private T12VerifyDataGenerator(Supplier<TlsHash> hashFactory) {
-            this.hashFactory = hashFactory;
-            this.digest = hashFactory.get();
+        private final TlsHash hash;
+        private T12VerifyDataGenerator(TlsHash hash) {
+            this.hash = hash;
         }
 
         @Override
         public void update(byte[] input) {
-            digest.update(input);
+            hash.update(input);
         }
 
         @Override
         public byte[] digest() {
-            return digest.digest(false);
+            return hash.digest(false);
         }
 
         @Override
-        public byte[] finish(TlsSessionKeys keys, TlsMode mode, TlsSource source) {
+        public byte[] finish(TlsSessionKeys keys, TlsEngine.Mode mode, TlsSource source) {
             var masterSecret = keys.masterSecretKey();
-            var useClientLabel = (mode == TlsMode.CLIENT && source == TlsSource.LOCAL) || (mode == TlsMode.SERVER && source == TlsSource.REMOTE);
+            var useClientLabel = (mode == TlsEngine.Mode.CLIENT && source == TlsSource.LOCAL) || (mode == TlsEngine.Mode.SERVER && source == TlsSource.REMOTE);
             var tlsLabel = useClientLabel ? "client finished" : "server finished";
             return TlsPRF.tls12Prf(
                     masterSecret.data(),
                     tlsLabel.getBytes(),
                     digest(),
                     12,
-                    hashFactory.get()
+                    hash.duplicate()
             );
         }
     }
@@ -170,25 +167,23 @@ public abstract sealed class TlsHandshakeHash {
         private static final byte[] HKDF_LABEL = "tls13 finished".getBytes();
         private static final byte[] HKDF_CONTEXT = new byte[0];
 
-        private final Supplier<TlsHash> hashFactory;
-        private final TlsHash digest;
-        private T13VerifyDataGenerator(Supplier<TlsHash> hashFactory) {
-            this.hashFactory = hashFactory;
-            this.digest = hashFactory.get();
+        private final TlsHash hash;
+        private T13VerifyDataGenerator(TlsHash hash) {
+            this.hash = hash;
         }
 
         @Override
         public void update(byte[] input) {
-            digest.update(input);
+            hash.update(input);
         }
 
         @Override
         public byte[] digest() {
-            return digest.digest(false);
+            return hash.digest(false);
         }
 
         @Override
-        public byte[] finish(TlsSessionKeys keys, TlsMode mode, TlsSource source) {
+        public byte[] finish(TlsSessionKeys keys, TlsEngine.Mode mode, TlsSource source) {
               /*
             TODO
             CipherSuite.HashAlg hashAlg = context.negotiatedCipherSuite.hashAlg;

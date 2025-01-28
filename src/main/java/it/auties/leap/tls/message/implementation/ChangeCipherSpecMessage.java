@@ -1,0 +1,124 @@
+package it.auties.leap.tls.message.implementation;
+
+import it.auties.leap.tls.TlsEngine;
+import it.auties.leap.tls.TlsSource;
+import it.auties.leap.tls.exception.TlsException;
+import it.auties.leap.tls.message.TlsHandshakeMessage;
+import it.auties.leap.tls.version.TlsVersion;
+
+import java.nio.ByteBuffer;
+
+import static it.auties.leap.tls.util.BufferUtils.*;
+
+public sealed abstract class ChangeCipherSpecMessage extends TlsHandshakeMessage {
+    public static final int ID = 0x01;
+
+    ChangeCipherSpecMessage(TlsVersion version, TlsSource source) {
+        super(version, source);
+    }
+
+    public static ChangeCipherSpecMessage of(TlsEngine engine, ByteBuffer buffer, Metadata metadata) {
+        return switch(engine.selectedMode().orElse(null)) {
+            case CLIENT -> ChangeCipherSpecMessage.Client.of(metadata.version(), metadata.source(), buffer);
+            case SERVER -> ChangeCipherSpecMessage.Server.of(metadata.version(), metadata.source(), buffer);
+            case null -> throw new TlsException("No engine mode has been selected yet");
+        };
+    }
+
+    public static final class Server extends ChangeCipherSpecMessage {
+        private static final int LENGTH = INT8_LENGTH;
+
+        public Server(TlsVersion tlsVersion, TlsSource source) {
+            super(tlsVersion, source);
+        }
+
+        public static Server of(TlsVersion tlsVersion, TlsSource source, ByteBuffer buffer) {
+            var messageId = readLittleEndianInt8(buffer);
+            if(messageId != ID) {
+                throw new TlsException("Cannot decode TLS message, invalid change cipher spec message id: " + messageId);
+            }
+
+            return new Server(tlsVersion, source);
+        }
+
+        @Override
+        public byte id() {
+            return ID;
+        }
+
+        @Override
+        public Type type() {
+            return Type.SERVER_CHANGE_CIPHER_SPEC;
+        }
+
+        @Override
+        public ContentType contentType() {
+            return ContentType.CHANGE_CIPHER_SPEC;
+        }
+
+        @Override
+        public void serializeHandshakePayload(ByteBuffer buffer) {
+            writeLittleEndianInt8(buffer, id());
+        }
+
+        @Override
+        public int handshakePayloadLength() {
+            return LENGTH;
+        }
+
+        @Override
+        public String toString() {
+            return "ChangeCipherSpecMessage[" +
+                    "tlsVersion=" + version +
+                    ']';
+        }
+    }
+
+    public static final class Client extends ChangeCipherSpecMessage {
+        private static final int LENGTH = 0;
+
+        public Client(TlsVersion tlsVersion, TlsSource source) {
+            super(tlsVersion, source);
+        }
+
+        public static Client of(TlsVersion tlsVersion, TlsSource source, ByteBuffer buffer) {
+            if(buffer.hasRemaining()) {
+                throw new TlsException("Cannot decode TLS message, invalid payload length");
+            }
+
+            return new Client(tlsVersion, source);
+        }
+
+        @Override
+        public Type type() {
+            return Type.CLIENT_CHANGE_CIPHER_SPEC;
+        }
+
+        @Override
+        public byte id() {
+            return ID;
+        }
+
+        @Override
+        public ContentType contentType() {
+            return ContentType.CHANGE_CIPHER_SPEC;
+        }
+
+        @Override
+        public void serializeHandshakePayload(ByteBuffer buffer) {
+            writeLittleEndianInt8(buffer, id());
+        }
+
+        @Override
+        public int handshakePayloadLength() {
+            return LENGTH;
+        }
+
+        @Override
+        public String toString() {
+            return "ChangeCipherSpecMessage[" +
+                    "tlsVersion=" + version +
+                    ']';
+        }
+    }
+}

@@ -1,62 +1,50 @@
 package it.auties.leap.tls.message;
 
-import it.auties.leap.tls.cipher.TlsCipher;
-import it.auties.leap.tls.config.TlsSource;
-import it.auties.leap.tls.config.TlsVersion;
-import it.auties.leap.tls.extension.TlsExtension;
-import it.auties.leap.tls.message.client.*;
-import it.auties.leap.tls.message.server.*;
+import it.auties.leap.tls.TlsEngine;
+import it.auties.leap.tls.TlsSource;
+import it.auties.leap.tls.exception.TlsException;
+import it.auties.leap.tls.message.implementation.*;
+import it.auties.leap.tls.version.TlsVersion;
 
 import java.nio.ByteBuffer;
-import java.util.List;
+
+import static it.auties.leap.tls.util.BufferUtils.*;
 
 public abstract sealed class TlsHandshakeMessage extends TlsMessage
-        permits ClientCertificateMessage, ClientCertificateVerifyMessage, ClientChangeCipherSpecMessage,
-        ClientFinishedMessage, ClientHelloMessage, ClientKeyExchangeMessage, ServerCertificateMessage,
-                ServerCertificateRequestMessage, ServerChangeCipherSpecMessage, ServerFinishedMessage, ServerHelloDoneMessage,
-                ServerHelloMessage, ServerHelloRequestMessage, ServerKeyExchangeMessage {
-    protected static final int MIN_HASH_LENGTH = 12;
-
+        permits CertificateMessage, CertificateRequestMessage, CertificateVerifyMessage, ChangeCipherSpecMessage, FinishedMessage, HelloDoneMessage, HelloMessage, HelloRequestMessage, KeyExchangeMessage {
     protected TlsHandshakeMessage(TlsVersion version, TlsSource source) {
         super(version, source);
     }
 
-    public static TlsMessage ofServer(TlsCipher cipher, List<TlsExtension.Implementation.Decoder> decoders, ByteBuffer buffer, Metadata metadata) {
-        var version = metadata.version();
-        var source = metadata.source();
+    public static TlsHandshakeMessage of(TlsEngine engine, ByteBuffer buffer, Metadata metadata) {
         var id = readLittleEndianInt8(buffer);
         var messageLength = readLittleEndianInt24(buffer);
-        try(var _ = scopedRead(buffer, messageLength)) {
-            return switch (id) {
-                case ServerHelloRequestMessage.ID -> ServerHelloRequestMessage.of(version, source, messageLength);
-                case ServerHelloMessage.ID -> ServerHelloMessage.of(version, decoders, source, buffer);
-                case ServerCertificateMessage.ID -> ServerCertificateMessage.of(version, source, buffer);
-                case ServerKeyExchangeMessage.ID -> ServerKeyExchangeMessage.of(version, source, cipher, buffer);
-                case ServerHelloDoneMessage.ID -> ServerHelloDoneMessage.of(version, source, messageLength);
-                case ServerCertificateRequestMessage.ID -> ServerCertificateRequestMessage.of(version, source, buffer);
-                case ServerFinishedMessage.ID -> ServerFinishedMessage.of(version, source, buffer);
-                default -> throw new IllegalArgumentException("Cannot decode server message, unknown id: " + id);
-            };
-        }
-    }
-
-    public static TlsMessage ofClient(TlsCipher cipher, List<TlsExtension.Implementation.Decoder> decoders, ByteBuffer buffer, Metadata metadata) {
-        var version = metadata.version();
-        var source = metadata.source();
-        var id = readLittleEndianInt8(buffer);
-        var messageLength = readLittleEndianInt24(buffer);
-        try(var _ = scopedRead(buffer, messageLength)) {
-            return switch (id) {
-                case ClientHelloMessage.ID -> ClientHelloMessage.of(version, decoders, source, buffer);
-                case ClientCertificateMessage.ID -> ClientCertificateMessage.of(version, source, buffer);
-                case ClientKeyExchangeMessage.ID -> ServerKeyExchangeMessage.of(version, source, cipher, buffer);
-                case ClientFinishedMessage.ID -> ClientFinishedMessage.of(version, source, buffer);
-                default -> throw new IllegalArgumentException("Cannot decode client message, unknown id: " + id);
+        try (var _ = scopedRead(buffer, messageLength)) {
+            return switch (engine.selectedMode().orElse(null)) {
+                case CLIENT -> switch (id) {
+                    case HelloMessage.Client.ID -> HelloMessage.Client.of(engine, buffer, metadata);
+                    case CertificateMessage.Client.ID -> CertificateMessage.Client.of(engine, buffer, metadata);
+                    case KeyExchangeMessage.Client.ID -> KeyExchangeMessage.Client.of(engine, buffer, metadata);
+                    case FinishedMessage.Client.ID -> FinishedMessage.Client.of(engine, buffer, metadata);
+                    default -> throw new IllegalArgumentException("Cannot decode client message, unknown id: " + id);
+                };
+                case SERVER -> switch (id) {
+                    case HelloRequestMessage.Server.ID -> HelloRequestMessage.Server.of(engine, buffer, metadata);
+                    case HelloMessage.Server.ID -> HelloMessage.Server.of(engine, buffer, metadata);
+                    case CertificateMessage.Server.ID -> CertificateMessage.Server.of(engine, buffer, metadata);
+                    case KeyExchangeMessage.Server.ID -> KeyExchangeMessage.Server.of(engine, buffer, metadata);
+                    case HelloDoneMessage.Server.ID -> HelloDoneMessage.Server.of(engine, buffer, metadata);
+                    case CertificateRequestMessage.Server.ID -> CertificateRequestMessage.Server.of(engine, buffer, metadata);
+                    case FinishedMessage.Server.ID -> FinishedMessage.Server.of(engine, buffer, metadata);
+                    default -> throw new IllegalArgumentException("Cannot decode server message, unknown id: " + id);
+                };
+                case null -> throw new TlsException("No engine mode has been selected yet");
             };
         }
     }
 
     protected abstract int handshakePayloadLength();
+
     protected abstract void serializeHandshakePayload(ByteBuffer buffer);
 
     @Override
@@ -73,7 +61,7 @@ public abstract sealed class TlsHandshakeMessage extends TlsMessage
     public void serializeMessagePayload(ByteBuffer buffer) {
         writeLittleEndianInt8(buffer, id());
         var handshakePayloadLength = handshakePayloadLength();
-        if(handshakePayloadLength > 0) {
+        if (handshakePayloadLength > 0) {
             writeLittleEndianInt24(buffer, handshakePayloadLength);
             serializeHandshakePayload(buffer);
         }

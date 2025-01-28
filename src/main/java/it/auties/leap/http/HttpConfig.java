@@ -1,10 +1,10 @@
 package it.auties.leap.http;
 
-import it.auties.leap.tls.config.TlsCompression;
-import it.auties.leap.tls.config.TlsConfig;
+import it.auties.leap.tls.TlsEngine;
+import it.auties.leap.tls.compression.TlsCompression;
 import it.auties.leap.tls.cipher.TlsCipher;
-import it.auties.leap.tls.key.TlsPskKeyExchangeMode;
-import it.auties.leap.tls.config.TlsVersion;
+import it.auties.leap.tls.psk.TlsPSKExchangeMode;
+import it.auties.leap.tls.version.TlsVersion;
 import it.auties.leap.tls.extension.TlsExtension;
 
 import java.net.URI;
@@ -17,16 +17,16 @@ public final class HttpConfig {
     private static final Duration DEFAULT_KEEP_ALIVE = Duration.ofSeconds(10);
     private static final Duration NO_KEEP_ALIVE = Duration.ofSeconds(-1);
 
-    private final TlsConfig tlsConfig;
+    private final TlsEngine.Config tlsConfig;
     private final Duration keepAlive;
     private final URI proxy;
-    private HttpConfig(TlsConfig tlsConfig, Duration keepAlive, URI proxy) {
+    private HttpConfig(TlsEngine.Config tlsConfig, Duration keepAlive, URI proxy) {
         this.tlsConfig = tlsConfig;
         this.keepAlive = keepAlive;
         this.proxy = proxy;
     }
 
-    public TlsConfig tlsConfig() {
+    public TlsEngine.Config tlsConfig() {
         return tlsConfig;
     }
 
@@ -46,7 +46,7 @@ public final class HttpConfig {
         return HttpConfig.builder().build();
     }
 
-    public static TlsConfig.Builder defaultTlsConfigBuilder() {
+    public static TlsEngine.Config.Builder defaultTlsConfigBuilder() {
         var ciphers = List.of(
                 TlsCipher.aes256GcmSha384(),
                 TlsCipher.chacha20Poly1305Sha256(),
@@ -90,14 +90,14 @@ public final class HttpConfig {
                 // TlsExtension.postHandshakeAuth(),
                 TlsExtension.signatureAlgorithms(),
                 TlsExtension.supportedVersions(),
-                TlsExtension.pskExchangeModes(List.of(TlsPskKeyExchangeMode.pskDheKe())),
+                TlsExtension.pskExchangeModes(List.of(TlsPSKExchangeMode.pskDheKe())),
                 TlsExtension.keyShare(),
                 TlsExtension.padding(517)
         );
         var compressions = List.of(
                 TlsCompression.none()
         );
-        return TlsConfig.builder()
+        return TlsEngine.Config.builder()
                 .version(TlsVersion.TLS12)
                 .ciphers(ciphers)
                 .extensions(extensions)
@@ -105,14 +105,14 @@ public final class HttpConfig {
     }
 
     public static final class Builder {
-        private TlsConfig tlsConfig;
+        private TlsEngine.Config tlsConfig;
         private Duration keepAliveDuration;
         private URI proxy;
         private Builder() {
 
         }
 
-        public Builder tlsConfig(TlsConfig tlsConfig) {
+        public Builder tlsConfig(TlsEngine.Config tlsConfig) {
             this.tlsConfig = tlsConfig;
             return this;
         }

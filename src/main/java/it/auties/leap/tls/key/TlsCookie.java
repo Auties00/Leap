@@ -1,13 +1,13 @@
 package it.auties.leap.tls.key;
 
-import it.auties.leap.tls.config.TlsVersion;
+import it.auties.leap.tls.version.TlsVersion;
 
 import java.nio.ByteBuffer;
 import java.util.Arrays;
 import java.util.Optional;
 
-import static it.auties.leap.tls.util.BufferHelper.readBytesLittleEndian8;
-import static it.auties.leap.tls.util.BufferHelper.writeBytesLittleEndian8;
+import static it.auties.leap.tls.util.BufferUtils.readBytesLittleEndian8;
+import static it.auties.leap.tls.util.BufferUtils.writeBytesLittleEndian8;
 
 public final class TlsCookie {
     private static final TlsCookie EMPTY = new TlsCookie(new byte[0]);

@@ -31,7 +31,7 @@ public final class TlsHmac {
     }
 
     public static TlsHmac gostr256() {
-        return new TlsHmac(TlsHash.gostr256());
+        return new TlsHmac(TlsHash.gostr341112_256());
     }
 
     public static TlsHmac of(TlsHash hash) {

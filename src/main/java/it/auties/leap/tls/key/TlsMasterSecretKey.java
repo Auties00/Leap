@@ -1,8 +1,8 @@
 package it.auties.leap.tls.key;
 
+import it.auties.leap.tls.TlsEngine;
 import it.auties.leap.tls.cipher.TlsCipher;
-import it.auties.leap.tls.config.TlsMode;
-import it.auties.leap.tls.config.TlsVersion;
+import it.auties.leap.tls.version.TlsVersion;
 import it.auties.leap.tls.hash.TlsHash;
 import it.auties.leap.tls.hash.TlsPRF;
 
@@ -22,7 +22,7 @@ public final class TlsMasterSecretKey {
     }
 
     public static TlsMasterSecretKey of(
-            TlsMode mode,
+            TlsEngine.Mode mode,
             TlsVersion version,
             TlsCipher cipher,
             byte[] preMasterKey,
@@ -73,7 +73,7 @@ public final class TlsMasterSecretKey {
                 label,
                 seed,
                 length(),
-                cipher.hashSupplier().get()
+                cipher.newHash()
         );
         return new TlsMasterSecretKey(result);
     }

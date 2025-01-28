@@ -5,8 +5,8 @@ import it.auties.leap.tls.exception.TlsException;
 import java.net.URI;
 import java.util.Objects;
 
-public final class TlsSignatureAlgorithm implements TlsSignatureAndHashAlgorithm {
-    public static TlsSignatureAndHashAlgorithm of(TlsSignatureAlgorithm.Signature signature, TlsSignatureAlgorithm.Hash hash) {
+public final class TlsSignatureAlgorithm implements TlsSignature {
+    public static TlsSignature of(TlsSignatureAlgorithm.Signature signature, TlsSignatureAlgorithm.Hash hash) {
         return new TlsSignatureAlgorithm(signature, hash);
     }
 
@@ -47,8 +47,8 @@ public final class TlsSignatureAlgorithm implements TlsSignatureAndHashAlgorithm
         private static final Signature RSA_PSS_PSS_SHA256 = new Signature((byte) 9, true);
         private static final Signature RSA_PSS_PSS_SHA384 = new Signature((byte) 10, true);
         private static final Signature RSA_PSS_PSS_SHA512 = new Signature((byte) 11, true);
-        private static final Signature GOSTR_256 = new Signature((byte) 64, false);
-        private static final Signature GOSTR_512 = new Signature((byte) 65, false);
+        private static final Signature GOSTR34102012_256 = new Signature((byte) 64, false);
+        private static final Signature GOSTR34102012_512 = new Signature((byte) 65, false);
 
 
         public static Signature anonymous() {
@@ -99,12 +99,12 @@ public final class TlsSignatureAlgorithm implements TlsSignatureAndHashAlgorithm
             return RSA_PSS_PSS_SHA512;
         }
 
-        public static Signature gostr256() {
-            return GOSTR_256;
+        public static Signature gostr34102012_256() {
+            return GOSTR34102012_256;
         }
 
-        public static Signature gostr512() {
-            return GOSTR_512;
+        public static Signature gostr34102012_512() {
+            return GOSTR34102012_512;
         }
 
         public static Hash reservedForPrivateUse(byte id) {

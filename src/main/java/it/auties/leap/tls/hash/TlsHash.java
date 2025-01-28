@@ -1,10 +1,12 @@
 package it.auties.leap.tls.hash;
 
+import it.auties.leap.tls.hash.implementation.*;
+
 import java.nio.ByteBuffer;
 
-public sealed interface TlsHash permits GOSTR256Hash, MD5Hash, NoneHash, SHA1Hash, SHA256Hash, SHA384Hash, SM3Hash {
+public interface TlsHash {
     static TlsHash none() {
-        return NoneHash.INSTANCE;
+        return NoneHash.instance();
     }
 
     static TlsHash md5() {
@@ -27,10 +29,12 @@ public sealed interface TlsHash permits GOSTR256Hash, MD5Hash, NoneHash, SHA1Has
         return new SM3Hash();
     }
 
-    static TlsHash gostr256() {
-        return new GOSTR256Hash();
+    static TlsHash gostr341112_256() {
+        return new GOSTR341112_256_Hash();
     }
-    
+
+    TlsHash duplicate();
+
     void update(byte input);
 
     void update(ByteBuffer input);

@@ -1,6 +1,6 @@
 package it.auties.leap.tls.hash;
 
-import it.auties.leap.tls.config.TlsVersion;
+import it.auties.leap.tls.version.TlsVersion;
 import it.auties.leap.tls.exception.TlsException;
 
 import java.nio.ByteBuffer;
