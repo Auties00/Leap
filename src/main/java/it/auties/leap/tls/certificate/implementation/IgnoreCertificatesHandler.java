@@ -15,7 +15,7 @@ public final class IgnoreCertificatesHandler implements TlsCertificatesHandler {
     }
 
     @Override
-    public void accept(InetSocketAddress remoteAddress, List<X509Certificate> certificates, TlsSource certificatesSource) {
-
+    public X509Certificate accept(InetSocketAddress remoteAddress, List<X509Certificate> certificates, TlsSource certificatesSource) {
+        return certificates.getFirst();
     }
 }

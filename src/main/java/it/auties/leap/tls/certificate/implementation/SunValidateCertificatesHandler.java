@@ -35,7 +35,7 @@ public final class SunValidateCertificatesHandler implements TlsCertificatesHand
     }
 
     @Override
-    public void accept(InetSocketAddress remoteAddress, List<X509Certificate> certificates, TlsSource certificatesSource) {
+    public X509Certificate accept(InetSocketAddress remoteAddress, List<X509Certificate> certificates, TlsSource certificatesSource) {
         try {
             Objects.requireNonNull(certificates, "Missing certificates");
             var validCertificates = getClientCertificates(certificates);
@@ -48,6 +48,7 @@ public final class SunValidateCertificatesHandler implements TlsCertificatesHand
             if(!validated) {
                 throw new RuntimeException("No X509 certificate validator found");
             }
+            return validCertificates[0];
         }catch (GeneralSecurityException exception) {
             throw new RuntimeException("Cannot validate X509 certificates", exception);
         }

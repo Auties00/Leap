@@ -23,19 +23,19 @@ public final class HttpClient implements AutoCloseable {
     private static final String HTTPS_SCHEME = "https";
     private static final String HTTP_DELIMITER = "\r\n";
 
-    private final HttpConfig configuration;
+    private final HttpConfig config;
     private final Map<String, SocketClient> keepAlive;
     private final Executor keepAliveEnforcer;
     public HttpClient() {
         this(HttpConfig.defaults());
     }
 
-    public HttpClient(HttpConfig configuration) {
-        Objects.requireNonNull(configuration, "Invalid configuration");
-        this.configuration = configuration;
+    public HttpClient(HttpConfig config) {
+        Objects.requireNonNull(config, "Invalid configuration");
+        this.config = config;
         this.keepAlive = new ConcurrentHashMap<>();
         this.keepAliveEnforcer = CompletableFuture.delayedExecutor(
-                configuration.keepAlive().getSeconds(),
+                config.keepAlive().getSeconds(),
                 TimeUnit.SECONDS,
                 Thread::startVirtualThread
         );
@@ -154,7 +154,7 @@ public final class HttpClient implements AutoCloseable {
             case HTTP_SCHEME -> 80;
             default -> throw new IllegalArgumentException("Unexpected scheme: %s".formatted(uri.getScheme()));
         };
-        if (configuration.proxy().isEmpty()) {
+        if (config.proxy().isEmpty()) {
             return new InetSocketAddress(hostname, port);
         }
 
@@ -163,35 +163,41 @@ public final class HttpClient implements AutoCloseable {
 
 
     private CompletableFuture<SocketClient> getSocketClient(URI uri) {
-        try {
-            var id = uri.getScheme() + "://" + uri.getHost() + ":" + uri.getPort();
-            var keptAlive = keepAlive.get(id);
-            if(keptAlive != null && keptAlive.isConnected()) {
-                return CompletableFuture.completedFuture(keptAlive);
-            }
-
-            var proxy = configuration.proxy()
-                    .orElse(null);
-            var freshSocket = switch (uri.getScheme().toLowerCase()) {
-                case HTTP_SCHEME -> {
-                    var result = SocketClient.ofPlain(SocketProtocol.TCP, proxy);
-                    result.setOption(SocketOption.keepAlive(), true);
-                    keepAlive.put(id, result);
-                    yield result;
-                }
-                case HTTPS_SCHEME -> {
-                    var result = SocketClient.ofSecure(SocketProtocol.TCP, configuration.tlsConfig(), proxy);
-                    result.setOption(SocketOption.keepAlive(), true);
-                    keepAlive.put(id, result);
-                    yield result;
-                }
-                default -> throw new IllegalArgumentException("Unexpected scheme: " + uri.getScheme().toLowerCase());
-            };
-            return freshSocket.connect(toSocketAddress(uri))
-                    .thenApply(ignored -> freshSocket);
-        }catch (IOException exception) {
-            return CompletableFuture.failedFuture(exception);
+        var id = uri.getScheme() + "://" + uri.getHost() + ":" + uri.getPort();
+        var keptAlive = keepAlive.get(id);
+        if(keptAlive != null && keptAlive.isConnected()) {
+            return CompletableFuture.completedFuture(keptAlive);
         }
+
+        var proxy = config.proxy()
+                .orElse(null);
+        var builder = SocketClient.builder()
+                .async(SocketProtocol.TCP);
+        var freshSocket = switch (uri.getScheme().toLowerCase()) {
+            case HTTP_SCHEME -> {
+                var result = SocketClient.builder()
+                        .async(SocketProtocol.TCP)
+                        .plain()
+                        .proxy(proxy)
+                        .build()
+                        .setOption(SocketOption.keepAlive(), true);
+                keepAlive.put(id, result);
+                yield result;
+            }
+            case HTTPS_SCHEME -> {
+                var result = SocketClient.builder()
+                        .async(SocketProtocol.TCP)
+                        .secure(config.tlsConfig())
+                        .proxy(proxy)
+                        .build()
+                        .setOption(SocketOption.keepAlive(), true);
+                keepAlive.put(id, result);
+                yield result;
+            }
+            default -> throw new IllegalArgumentException("Unexpected scheme: " + uri.getScheme().toLowerCase());
+        };
+        return freshSocket.connect(toSocketAddress(uri))
+                .thenApply(ignored -> freshSocket);
     }
 
     @Override

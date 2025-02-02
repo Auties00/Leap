@@ -32,4 +32,6 @@ public interface TlsHashFactory {
     }
     
     TlsHash newHash();
+
+    int length();
 }

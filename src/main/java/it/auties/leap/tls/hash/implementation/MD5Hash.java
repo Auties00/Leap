@@ -11,7 +11,17 @@ import static it.auties.leap.tls.util.BufferUtils.readLittleEndianInt32;
 
 public final class MD5Hash implements TlsHash {
     private static final int BLOCK_LENGTH = 4;
-    private static final TlsHashFactory FACTORY = MD5Hash::new;
+    private static final TlsHashFactory FACTORY = new TlsHashFactory() {
+        @Override
+        public TlsHash newHash() {
+            return new MD5Hash();
+        }
+
+        @Override
+        public int length() {
+            return 16;
+        }
+    };
 
     private int h1;
     private int h2;

@@ -1,13 +1,13 @@
 package it.auties.leap.socket;
 
 import it.auties.leap.http.decoder.HttpDecodable;
-import it.auties.leap.socket.platform.SocketPlatform;
-import it.auties.leap.socket.platform.implementation.LinuxPlatform;
-import it.auties.leap.socket.platform.implementation.UnixPlatform;
-import it.auties.leap.socket.platform.implementation.WinPlatform;
-import it.auties.leap.socket.security.SocketSecurity;
-import it.auties.leap.socket.security.implementation.PlainSocket;
-import it.auties.leap.socket.security.implementation.SecureSocket;
+import it.auties.leap.socket.implementation.SocketImplementation;
+import it.auties.leap.socket.implementation.bridge.LinuxImplementation;
+import it.auties.leap.socket.implementation.bridge.UnixImplementation;
+import it.auties.leap.socket.implementation.bridge.WinImplementation;
+import it.auties.leap.socket.transport.SocketTransport;
+import it.auties.leap.socket.transport.implementation.PlainTransport;
+import it.auties.leap.socket.transport.implementation.SecureTransport;
 import it.auties.leap.socket.tunnel.SocketTunnel;
 import it.auties.leap.socket.tunnel.implementation.DirectTunnel;
 import it.auties.leap.socket.tunnel.implementation.HTTPTunnel;
@@ -23,52 +23,56 @@ import java.util.concurrent.CompletableFuture;
 
 @SuppressWarnings("unused")
 public final class SocketClient implements HttpDecodable, AutoCloseable {
-    private final SocketPlatform<?> transmissionLayer;
+    private final SocketImplementation implementation;
     private final SocketTunnel tunnelLayer;
-    private final SocketSecurity securityLayer;
-    private SocketClient(SocketPlatform<?> transmissionLayer, SocketTunnel tunnelLayer, SocketSecurity securityLayer) {
-        this.transmissionLayer = transmissionLayer;
+    private final SocketTransport securityLayer;
+    private SocketClient(SocketImplementation implementation, SocketTunnel tunnelLayer, SocketTransport securityLayer) {
+        this.implementation = implementation;
         this.tunnelLayer = tunnelLayer;
         this.securityLayer = securityLayer;
     }
 
+    public static Builder builder() {
+        return Builder.INSTANCE;
+    }
+
     public CompletableFuture<Void> connect(InetSocketAddress address) {
-        if(isConnected()) {
-            return CompletableFuture.completedFuture(null);
-        }
-
         return tunnelLayer.connect(address)
-                .thenComposeAsync(ignored -> securityLayer.handshake())
+                .thenComposeAsync(_ -> securityLayer.handshake())
                 .exceptionallyComposeAsync(error -> {
-                    try {
-                        close();
-                    }catch (Throwable ignored) {
-
-                    }
-
+                    closeSilently();
                     return CompletableFuture.failedFuture(error);
                 });
     }
-    
+
+    private void closeSilently() {
+        try {
+            close();
+        }catch (Throwable ignored) {
+
+        }
+    }
+
     @Override
     public void close() throws IOException {
-        transmissionLayer.close();
+        implementation.close();
     }
 
     public boolean isConnected() {
-        return transmissionLayer.isConnected();
+        return implementation.isConnected();
     }
 
     public Optional<InetSocketAddress> remoteSocketAddress() {
-        return transmissionLayer.address();
+        return implementation.remoteAddress();
     }
 
-    public <V> void setOption(SocketOption<V> option, V value) {
-        transmissionLayer.setOption(option, value);
+    public <V> SocketClient setOption(SocketOption<V> option, V value) {
+        implementation.setOption(option, value);
+        return this;
     }
 
     public <V> V getOption(SocketOption<V> option) {
-        return transmissionLayer.getOption(option);
+        return implementation.getOption(option);
     }
 
     public CompletableFuture<Void> write(byte[] data) {
@@ -101,7 +105,7 @@ public final class SocketClient implements HttpDecodable, AutoCloseable {
         return securityLayer.readFully(buffer);
     }
     
-    public static final class Builder {
+    public static sealed class Builder {
         private static final Builder INSTANCE = new Builder();
         private Builder() {
 
@@ -121,11 +125,11 @@ public final class SocketClient implements HttpDecodable, AutoCloseable {
             };
         }
 
-        public Security custom(SocketPlatform<?> platform) {
+        public Security custom(SocketImplementation platform) {
             return new Security(new PlatformValue.Custom(platform));
         }
         
-        public static final class Security {
+        public static final class Security extends Builder {
             private static final Security TCP_ASYNC = new Security(PlatformValue.Async.TCP);
             private static final Security UDP_ASYNC = new Security(PlatformValue.Async.UDP);
             private static final Security TCP_BLOCKING = new Security(PlatformValue.Blocking.TCP);
@@ -152,41 +156,30 @@ public final class SocketClient implements HttpDecodable, AutoCloseable {
             }
 
             public TunnelOrFinish secure(TlsEngine.Config config) {
-                return switch (platform) {
-                    case PlatformValue.Async async -> switch (async.protocol()) {
-                        case TCP -> TunnelOrFinish.TCP_ASYNC_PLAIN;
-                        case UDP -> TunnelOrFinish.UDP_ASYNC_PLAIN;
-                    };
-                    case PlatformValue.Blocking blocking -> switch (blocking.protocol()) {
-                        case TCP -> TunnelOrFinish.TCP_BLOCKING_PLAIN;
-                        case UDP -> TunnelOrFinish.UDP_BLOCKING_PLAIN;
-                    };
-                    case PlatformValue.Custom custom -> new TunnelOrFinish(custom, SecurityValue.Secure.INSTANCE);
-                };
+                return new TunnelOrFinish(platform, new SecurityValue.Secure(config));
             }
 
-            public TunnelOrFinish security(SocketSecurity security) {
+            public TunnelOrFinish custom(SocketTransport security) {
                 return new TunnelOrFinish(platform, new SecurityValue.Custom(security));
             }
         }
 
         public static final class TunnelOrFinish extends Finish {
             private static final TunnelOrFinish TCP_ASYNC_PLAIN = new TunnelOrFinish(PlatformValue.Async.TCP, SecurityValue.Plain.INSTANCE);
-            private static final TunnelOrFinish TCP_ASYNC_SECURE = new TunnelOrFinish(PlatformValue.Async.TCP, SecurityValue.Secure.INSTANCE);
             private static final TunnelOrFinish TCP_BLOCKING_PLAIN = new TunnelOrFinish(PlatformValue.Async.TCP, SecurityValue.Plain.INSTANCE);
-            private static final TunnelOrFinish TCP_BLOCKING_SECURE = new TunnelOrFinish(PlatformValue.Async.TCP, SecurityValue.Secure.INSTANCE);
 
             private static final TunnelOrFinish UDP_ASYNC_PLAIN = new TunnelOrFinish(PlatformValue.Async.UDP, SecurityValue.Plain.INSTANCE);
-            private static final TunnelOrFinish UDP_ASYNC_SECURE = new TunnelOrFinish(PlatformValue.Async.UDP, SecurityValue.Secure.INSTANCE);
             private static final TunnelOrFinish UDP_BLOCKING_PLAIN = new TunnelOrFinish(PlatformValue.Async.UDP, SecurityValue.Plain.INSTANCE);
-            private static final TunnelOrFinish UDP_BLOCKING_SECURE = new TunnelOrFinish(PlatformValue.Async.UDP, SecurityValue.Secure.INSTANCE);
 
             TunnelOrFinish(PlatformValue platform, SecurityValue security) {
                 super(platform, security, TunnelValue.Direct.INSTANCE);
             }
 
-
             public Finish proxy(URI proxy) {
+                if(proxy == null) {
+                    return this;
+                }
+
                 return new Finish(platform, security, new TunnelValue.Proxy(proxy));
             }
 
@@ -195,7 +188,7 @@ public final class SocketClient implements HttpDecodable, AutoCloseable {
             }
         }
 
-        public static sealed class Finish {
+        public static sealed class Finish extends Builder {
             final PlatformValue platform;
             final SecurityValue security;
             final TunnelValue tunnel;
@@ -205,8 +198,10 @@ public final class SocketClient implements HttpDecodable, AutoCloseable {
                 this.security = security;
                 this.tunnel = tunnel;
             }
-            
+
+            @SuppressWarnings("resource")
             public SocketClient build() {
+                var os = System.getProperty("os.name").toLowerCase();
                 var socketPlatform = switch (platform) {
                     case PlatformValue.Async async -> createAsyncPlatform(async.protocol());
                     case PlatformValue.Blocking blocking -> createBlockingPlatform(blocking.protocol());
@@ -214,8 +209,8 @@ public final class SocketClient implements HttpDecodable, AutoCloseable {
                 };
                 var socketSecurity = switch (security) {
                     case SecurityValue.Custom custom -> custom.security();
-                    case SecurityValue.Plain _ -> new PlainSocket(socketPlatform);
-                    case SecurityValue.Secure secure -> new SecureSocket(socketPlatform, secure.config());
+                    case SecurityValue.Plain _ -> new PlainTransport(socketPlatform);
+                    case SecurityValue.Secure secure -> new SecureTransport(socketPlatform, secure.config());
                 };
                 var socketTunnel = switch (tunnel) {
                     case TunnelValue.Custom custom -> custom.tunnel();
@@ -232,20 +227,20 @@ public final class SocketClient implements HttpDecodable, AutoCloseable {
                 return new SocketClient(socketPlatform, socketTunnel, socketSecurity);
             }
 
-            private SocketPlatform<?> createAsyncPlatform(SocketProtocol protocol) {
+            private SocketImplementation createAsyncPlatform(SocketProtocol protocol) {
                 var os = System.getProperty("os.name").toLowerCase();
                 if(os.contains("win")) {
-                    return new WinPlatform(protocol);
+                    return new WinImplementation(protocol);
                 }else if(os.contains("nix") || os.contains("nux") || os.contains("aix")) {
-                    return new LinuxPlatform(protocol);
+                    return new LinuxImplementation(protocol);
                 }else if(os.contains("mac")) {
-                    return new UnixPlatform(protocol);
+                    return new UnixImplementation(protocol);
                 }else {
                     throw new IllegalArgumentException("Unsupported platform: " + os);
                 }
             }
 
-            private SocketPlatform<?> createBlockingPlatform(SocketProtocol protocol) {
+            private SocketImplementation createBlockingPlatform(SocketProtocol protocol) {
                 throw new UnsupportedOperationException();
             }
 
@@ -266,7 +261,7 @@ public final class SocketClient implements HttpDecodable, AutoCloseable {
                 private static final Blocking UDP = new Blocking(SocketProtocol.UDP);
             }
 
-            record Custom(SocketPlatform<?> value) implements PlatformValue {
+            record Custom(SocketImplementation value) implements PlatformValue {
 
             }
         }
@@ -277,10 +272,10 @@ public final class SocketClient implements HttpDecodable, AutoCloseable {
             }
 
             record Secure(TlsEngine.Config config) implements SecurityValue {
-                private static final Secure INSTANCE = new Secure(TlsEngine.Config.defaults());
+
             }
 
-            record Custom(SocketSecurity security) implements SecurityValue {
+            record Custom(SocketTransport security) implements SecurityValue {
 
             }
         }

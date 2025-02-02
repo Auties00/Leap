@@ -3,12 +3,12 @@ package it.auties.leap.socket.tunnel.implementation;
 import it.auties.leap.http.HttpResponse;
 import it.auties.leap.http.decoder.HttpDecoder;
 import it.auties.leap.http.decoder.HttpResult;
-import it.auties.leap.socket.security.SocketSecurity;
-import it.auties.leap.socket.platform.SocketPlatform;
+import it.auties.leap.socket.SocketException;
+import it.auties.leap.socket.implementation.SocketImplementation;
+import it.auties.leap.socket.transport.SocketTransport;
 import it.auties.leap.socket.tunnel.SocketTunnel;
 
 import java.net.InetSocketAddress;
-import it.auties.leap.socket.SocketException;
 import java.net.URI;
 import java.nio.ByteBuffer;
 import java.util.Base64;
@@ -18,13 +18,13 @@ import java.util.concurrent.CompletionStage;
 public final class HTTPTunnel extends SocketTunnel {
     private static final int OK_STATUS_CODE = 200;
 
-    public HTTPTunnel(SocketPlatform<?> channel, SocketSecurity securityLayer, URI proxy) {
+    public HTTPTunnel(SocketImplementation channel, SocketTransport securityLayer, URI proxy) {
         super(channel, securityLayer, proxy);
     }
 
     @Override
     public CompletableFuture<Void> connect(InetSocketAddress address) {
-        return transmissionLayer.connect(new InetSocketAddress(proxy.getHost(), proxy.getPort()))
+        return implementation.connect(new InetSocketAddress(proxy.getHost(), proxy.getPort()))
                 .thenCompose(_ -> sendAuthentication(address))
                 .thenCompose(_ -> readAuthenticationResponse(address));
     }
@@ -43,7 +43,7 @@ public final class HTTPTunnel extends SocketTunnel {
                     yield CompletableFuture.failedFuture(new SocketException("HTTP : Cannot connect to value, status code " + response.statusCode()));
                 }
 
-                transmissionLayer.setAddress(address);
+                implementation.setRemoteAddress(address);
                 yield CompletableFuture.completedFuture((Void) null);
             }
 

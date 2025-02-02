@@ -8,9 +8,17 @@ import java.nio.ByteBuffer;
 import static it.auties.leap.tls.util.BufferUtils.*;
 
 public final class NamedCurveParameters implements TlsECParameters {
-    private static final TlsECParametersDecoder DECODER = input -> {
-        var namedGroup = readLittleEndianInt16(input);
-        return new NamedCurveParameters(namedGroup);
+    private static final TlsECParametersDecoder DECODER = new TlsECParametersDecoder() {
+        @Override
+        public byte id() {
+            return 3;
+        }
+
+        @Override
+        public TlsECParameters decode(ByteBuffer input) {
+            var namedGroup = readLittleEndianInt16(input);
+            return new NamedCurveParameters(namedGroup);
+        }
     };
 
     private final int namedGroup;
@@ -19,7 +27,7 @@ public final class NamedCurveParameters implements TlsECParameters {
         this.namedGroup = namedGroup;
     }
 
-    public static TlsECParametersDecoder decoder() {
+    public static TlsECParametersDecoder parametersDecoder() {
         return DECODER;
     }
 
@@ -31,5 +39,10 @@ public final class NamedCurveParameters implements TlsECParameters {
     @Override
     public int length() {
         return INT16_LENGTH;
+    }
+
+    @Override
+    public TlsECParametersDecoder decoder() {
+        return DECODER;
     }
 }

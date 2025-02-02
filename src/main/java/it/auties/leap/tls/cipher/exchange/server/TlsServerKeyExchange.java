@@ -1,9 +1,11 @@
 package it.auties.leap.tls.cipher.exchange.server;
 
 import it.auties.leap.tls.cipher.exchange.TlsKeyExchange;
+import it.auties.leap.tls.cipher.exchange.client.TlsClientKeyExchange;
 import it.auties.leap.tls.cipher.exchange.server.implementation.*;
 import it.auties.leap.tls.ec.TlsECParameters;
 
+import java.nio.ByteBuffer;
 import java.security.PublicKey;
 
 public non-sealed interface TlsServerKeyExchange extends TlsKeyExchange {
@@ -34,4 +36,10 @@ public non-sealed interface TlsServerKeyExchange extends TlsKeyExchange {
     static TlsServerKeyExchange srp(byte[] srpN, byte[] srpG, byte[] srpS, byte[] srpB) {
         return new SRPServerKeyExchange(srpN, srpG, srpS, srpB);
     }
+
+    @Override
+    TlsServerKeyExchange decodeLocal(ByteBuffer buffer);
+
+    @Override
+    TlsClientKeyExchange decodeRemote(ByteBuffer buffer);
 }

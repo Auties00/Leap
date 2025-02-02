@@ -9,7 +9,17 @@ import java.util.Arrays;
 
 public final class SHA384Hash implements TlsHash {
     private static final int BLOCK_LENGTH = 8;
-    private static final TlsHashFactory FACTORY = SHA384Hash::new;
+    private static final TlsHashFactory FACTORY = new TlsHashFactory() {
+        @Override
+        public TlsHash newHash() {
+            return new SHA384Hash();
+        }
+
+        @Override
+        public int length() {
+            return 48;
+        }
+    };
 
     private long h1;
     private long h2;

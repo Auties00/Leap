@@ -12,12 +12,20 @@ public interface TlsServerKeyExchangeFactory {
         return DHServerKeyExchange.factory();
     }
 
+    static TlsServerKeyExchangeFactory dhe() {
+        return DHEServerKeyExchange.factory();
+    }
+
     static TlsServerKeyExchangeFactory eccpwd() {
         return ECCPWDServerKeyExchange.factory();
     }
 
     static TlsServerKeyExchangeFactory ecdh() {
         return ECDHServerKeyExchange.factory();
+    }
+
+    static TlsServerKeyExchangeFactory ecdhe() {
+        return ECDHEServerKeyExchange.factory();
     }
 
     static TlsServerKeyExchangeFactory psk() {

@@ -1,11 +1,14 @@
 package it.auties.leap.tls.cipher.exchange.client.implementation;
 
+import it.auties.leap.tls.cipher.exchange.TlsKeyExchange;
 import it.auties.leap.tls.cipher.exchange.client.TlsClientKeyExchange;
 import it.auties.leap.tls.cipher.exchange.client.TlsClientKeyExchangeFactory;
+import it.auties.leap.tls.cipher.exchange.server.TlsServerKeyExchange;
 import it.auties.leap.tls.exception.TlsException;
 
 import java.nio.ByteBuffer;
 import java.security.PrivateKey;
+import java.security.PublicKey;
 
 import static it.auties.leap.tls.util.BufferUtils.*;
 
@@ -47,7 +50,17 @@ public final class ECCPWDClientKeyExchange implements TlsClientKeyExchange {
     }
 
     @Override
-    public byte[] generatePreMasterSecret(PrivateKey privateKey, ByteBuffer source) {
+    public TlsClientKeyExchange decodeLocal(ByteBuffer buffer) {
+        return null;
+    }
+
+    @Override
+    public TlsServerKeyExchange decodeRemote(ByteBuffer buffer) {
+        return null;
+    }
+
+    @Override
+    public byte[] generatePreMasterSecret(PrivateKey localPrivateKey, PublicKey remoteCertificatePublicKey, TlsKeyExchange remoteKeyExchange) {
         throw new UnsupportedOperationException();
     }
 }

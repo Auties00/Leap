@@ -11,12 +11,21 @@ public interface TlsClientKeyExchangeFactory {
     static TlsClientKeyExchangeFactory dh() {
         return DHClientKeyExchange.factory();
     }
+
+    static TlsClientKeyExchangeFactory dhe() {
+        return DHEClientKeyExchange.factory();
+    }
+
     static TlsClientKeyExchangeFactory eccpwd() {
         return ECCPWDClientKeyExchange.factory();
     }
 
     static TlsClientKeyExchangeFactory ecdh() {
         return ECDHClientKeyExchange.factory();
+    }
+
+    static TlsClientKeyExchangeFactory ecdhe() {
+        return ECDHEClientKeyExchange.factory();
     }
 
     static TlsClientKeyExchangeFactory gostr256() {

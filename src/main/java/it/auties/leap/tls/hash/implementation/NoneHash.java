@@ -7,7 +7,17 @@ import java.nio.ByteBuffer;
 
 public final class NoneHash implements TlsHash {
     private static final NoneHash INSTANCE = new NoneHash();
-    private static final TlsHashFactory FACTORY = NoneHash::instance;
+    private static final TlsHashFactory FACTORY = new TlsHashFactory() {
+        @Override
+        public TlsHash newHash() {
+            return INSTANCE;
+        }
+
+        @Override
+        public int length() {
+            return 0;
+        }
+    };
     private static final byte[] EMPTY_BUFFER = new byte[0];
 
     private NoneHash() {

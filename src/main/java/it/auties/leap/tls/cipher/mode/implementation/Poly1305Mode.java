@@ -1,10 +1,10 @@
 package it.auties.leap.tls.cipher.mode.implementation;
 
+import it.auties.leap.tls.cipher.TlsCipherIV;
 import it.auties.leap.tls.cipher.engine.TlsCipherEngine;
 import it.auties.leap.tls.cipher.mode.TlsCipherMode;
 import it.auties.leap.tls.cipher.mode.TlsCipherModeFactory;
-import it.auties.leap.tls.hash.TlsExchangeAuthenticator;
-import it.auties.leap.tls.version.TlsVersion;
+import it.auties.leap.tls.cipher.auth.TlsExchangeAuthenticator;
 
 import java.nio.ByteBuffer;
 
@@ -13,12 +13,14 @@ import java.nio.ByteBuffer;
 //  - While AES is ChaCha20Poly1305Mode supported out of the box, it makes sense to write an engine for that because we can apply it to CBC, CCM, GCM while here we can't
 public final class Poly1305Mode extends TlsCipherMode.Stream {
     private static final TlsCipherModeFactory FACTORY = Poly1305Mode::new;
-    public Poly1305Mode(TlsVersion version, TlsExchangeAuthenticator authenticator, TlsCipherEngine engine, byte[] fixedIv) {
-        super(version, authenticator, engine, fixedIv);
-    }
 
     public static TlsCipherModeFactory factory() {
         return FACTORY;
+    }
+
+    @Override
+    public void init(TlsExchangeAuthenticator authenticator, TlsCipherEngine engine, byte[] fixedIv) {
+        super.init(authenticator, engine, fixedIv);
     }
 
     @Override
@@ -34,6 +36,11 @@ public final class Poly1305Mode extends TlsCipherMode.Stream {
     @Override
     public void reset() {
 
+    }
+
+    @Override
+    public TlsCipherIV ivLength() {
+        return new TlsCipherIV(4, 8);
     }
 
     @Override

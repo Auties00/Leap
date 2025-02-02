@@ -2,9 +2,10 @@ package it.auties.leap.tls.cipher.engine.implementation;
 
 import it.auties.leap.tls.cipher.engine.TlsCipherEngine;
 import it.auties.leap.tls.cipher.engine.TlsCipherEngineFactory;
-import it.auties.leap.tls.util.BufferUtils;
 
 import java.nio.ByteBuffer;
+
+import static it.auties.leap.tls.util.BufferUtils.*;
 
 public final class SEEDEngine extends TlsCipherEngine.Block {
     private static final int KEY_SIZE = 16;
@@ -16,20 +17,22 @@ public final class SEEDEngine extends TlsCipherEngine.Block {
     private static final int[] KC = {0x9e3779b9, 0x3c6ef373, 0x78dde6e6, 0xf1bbcdcc, 0xe3779b99, 0xc6ef3733, 0x8dde6e67, 0x1bbcdccf, 0x3779b99e, 0x6ef3733c, 0xdde6e678, 0xbbcdccf1, 0x779b99e3, 0xef3733c6, 0xde6e678d, 0xbcdccf1b};
     private static final TlsCipherEngineFactory FACTORY = SEEDEngine::new;
 
-    private final int[] workingKey;
-    public SEEDEngine(boolean forEncryption, byte[] key) {
-        super(forEncryption, key);
-        this.workingKey = createWorkingKey(key);
-    }
+    private int[] workingKey;
 
     public static TlsCipherEngineFactory factory() {
         return FACTORY;
     }
 
+    @Override
+    public void init(boolean forEncryption, byte[] key) {
+        super.init(forEncryption, key);
+        this.workingKey = createWorkingKey(key);
+    }
+
     private int[] createWorkingKey(byte[] inKey) {
         var key = new int[32];
-        var lower = BufferUtils.bigEndianToLong(inKey, 0);
-        var upper = BufferUtils.bigEndianToLong(inKey, 8);
+        var lower = bigEndianToLong(inKey, 0);
+        var upper = bigEndianToLong(inKey, 8);
 
         var key0 = extractW0(lower);
         var key1 = extractW1(lower);
@@ -81,8 +84,8 @@ public final class SEEDEngine extends TlsCipherEngine.Block {
             throw new IllegalStateException();
         }
 
-        var l = BufferUtils.readBigEndianInt64(input);
-        var r = BufferUtils.readBigEndianInt64(input);
+        var l = readBigEndianInt64(input);
+        var r = readBigEndianInt64(input);
 
         if (forEncryption) {
             for (var i = 0; i < 16; i++) {
@@ -100,8 +103,8 @@ public final class SEEDEngine extends TlsCipherEngine.Block {
             }
         }
 
-        BufferUtils.writeBigEndianInt64(output, r);
-        BufferUtils.writeBigEndianInt64(output, l);
+        writeBigEndianInt64(output, r);
+        writeBigEndianInt64(output, l);
     }
 
     private int G(int x) {

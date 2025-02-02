@@ -61,7 +61,7 @@ public record ECPointFormatExtension(
 
     @Override
     public int extensionPayloadLength() {
-        return INT8_LENGTH + ecPointFormats.size();
+        return INT8_LENGTH + INT8_LENGTH * ecPointFormats.size();
     }
 
     @Override

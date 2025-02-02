@@ -4,6 +4,7 @@ import it.auties.leap.tls.TlsEngine;
 import it.auties.leap.tls.TlsSource;
 import it.auties.leap.tls.cipher.TlsCipher;
 import it.auties.leap.tls.compression.TlsCompression;
+import it.auties.leap.tls.exception.TlsException;
 import it.auties.leap.tls.extension.TlsExtension;
 import it.auties.leap.tls.key.TlsCookie;
 import it.auties.leap.tls.key.TlsRandomData;
@@ -16,6 +17,7 @@ import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 import static it.auties.leap.tls.util.BufferUtils.*;
 
@@ -56,9 +58,9 @@ public sealed abstract class HelloMessage extends TlsHandshakeMessage {
             this.sessionId = sessionId;
             this.cookie = cookie;
             this.ciphers = ciphers;
-            this.ciphersIds = List.of();
+            this.ciphersIds = null;
             this.compressions = compressions;
-            this.compressionsIds = List.of();
+            this.compressionsIds = null;
             this.extensions = extensions;
             this.extensionsLength = extensionsLength;
         }
@@ -107,7 +109,7 @@ public sealed abstract class HelloMessage extends TlsHandshakeMessage {
                     }
                 }
             }
-            return new Client(tlsVersion, metadata.source(), clientRandom, sessionId, cookie, ciphers, List.of(), compressions, List.of(), extensions, extensionsLength);
+            return new Client(tlsVersion, metadata.source(), clientRandom, sessionId, cookie, ciphers, null, compressions, null, extensions, extensionsLength);
         }
 
         @Override
@@ -142,15 +144,28 @@ public sealed abstract class HelloMessage extends TlsHandshakeMessage {
                 cookie.serialize(payload);
             }
 
-            var ciphersLength = ciphersIds.size() * INT16_LENGTH;
+            var ciphersLength = getCiphersCount() * INT16_LENGTH;
             writeLittleEndianInt16(payload, ciphersLength);
-            for (var cipher : ciphersIds) {
-                writeLittleEndianInt16(payload, cipher);
+            if(ciphersIds != null) {
+                for (var cipher : ciphersIds) {
+                    writeLittleEndianInt16(payload, cipher);
+                }
+            }else if(ciphers != null) {
+                for (var cipher : ciphers) {
+                    writeLittleEndianInt16(payload, cipher.id());
+                }
             }
 
-            writeLittleEndianInt8(payload, compressionsIds.size());
-            for(var compression : compressionsIds) {
-                writeLittleEndianInt8(payload, compression);
+            var compressionsLength = getCompressionsCount() * INT8_LENGTH;
+            writeLittleEndianInt8(payload, compressionsLength);
+            if(compressionsIds != null) {
+                for (var compression : compressionsIds) {
+                    writeLittleEndianInt8(payload, compression);
+                }
+            }else if(compressions != null ) {
+                for (var compression : compressions) {
+                    writeLittleEndianInt8(payload, compression.id());
+                }
             }
 
             if(!extensions.isEmpty()) {
@@ -163,18 +178,38 @@ public sealed abstract class HelloMessage extends TlsHandshakeMessage {
 
         @Override
         public int handshakePayloadLength() {
-            var messagePayloadNoExtensionsLength = getMessagePayloadLength(cookie, ciphersIds, compressionsIds);
+            var messagePayloadNoExtensionsLength = getMessagePayloadLength(cookie, getCiphersCount(), getCompressionsCount());
             return messagePayloadNoExtensionsLength
                     + INT16_LENGTH + extensionsLength;
         }
 
-        public static int getMessagePayloadLength(TlsCookie cookie, List<Integer> ciphers, List<Byte> compressions) {
+        private int getCiphersCount() {
+            if (ciphersIds != null) {
+                return ciphersIds.size();
+            }else if(ciphers != null){
+                return ciphers.size();
+            }else {
+                return 0;
+            }
+        }
+
+        private int getCompressionsCount() {
+            if (compressionsIds != null) {
+                return compressionsIds.size();
+            }else if(compressions != null){
+                return compressions.size();
+            }else {
+                return 0;
+            }
+        }
+
+        public static int getMessagePayloadLength(TlsCookie cookie, int ciphers, int compressions) {
             return INT16_LENGTH
                     + TlsRandomData.length()
                     + INT8_LENGTH + TlsSharedSecret.length()
                     + (cookie != null ? INT8_LENGTH + cookie.length() : 0)
-                    + INT16_LENGTH + ciphers.size() * INT16_LENGTH
-                    + INT8_LENGTH + compressions.size() * INT8_LENGTH;
+                    + INT16_LENGTH + ciphers * INT16_LENGTH
+                    + INT8_LENGTH + compressions * INT8_LENGTH;
         }
 
         public TlsRandomData randomData() {
@@ -275,6 +310,10 @@ public sealed abstract class HelloMessage extends TlsHandshakeMessage {
 
             var compressionMethodId = readLittleEndianInt8(buffer);
 
+            var extensionTypeToDecoder = engine.config()
+                    .extensions()
+                    .stream()
+                    .collect(Collectors.toUnmodifiableMap(TlsExtension::extensionType, TlsExtension::decoder));
             var extensions = new ArrayList<TlsExtension>();
             if(buffer.remaining() >= INT16_LENGTH) {
                 var extensionsLength = readLittleEndianInt16(buffer);
@@ -286,14 +325,13 @@ public sealed abstract class HelloMessage extends TlsHandshakeMessage {
                             continue;
                         }
 
-                        for(var inputExtension : engine.config().extensions()) {
-                            var extension = inputExtension.decoder()
-                                    .decode(buffer, extensionType, TlsEngine.Mode.CLIENT);
-                            if (extension.isPresent()) {
-                                extensions.add(extension.get());
-                                break;
-                            }
+                        var extensionDecoder = extensionTypeToDecoder.get(extensionType);
+                        if(extensionDecoder == null) {
+                            throw new TlsException("Unknown extension");
                         }
+
+                        extensionDecoder.decode(buffer, extensionType, TlsEngine.Mode.CLIENT)
+                                .ifPresent(extensions::add);
                     }
                 }
             }

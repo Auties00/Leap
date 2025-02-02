@@ -1,4 +1,4 @@
-jextract --library user32 -t it.auties.leap.socket.platform.win --output ".\..\..\src\main\java" WindowsSockets.h --header-class-name WindowsSockets ^
+jextract --library user32 -t it.auties.leap.socket.implementation.win --output ".\..\..\src\main\java" WindowsSockets.h --header-class-name WindowsSockets ^
 --include-function WSAStartup ^
 --include-function WSASocketA ^
 --include-function WSAConnect ^

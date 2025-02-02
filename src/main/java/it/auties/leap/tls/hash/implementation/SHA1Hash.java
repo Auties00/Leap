@@ -9,6 +9,17 @@ import java.util.Arrays;
 
 public final class SHA1Hash implements TlsHash {
     private static final int BLOCK_LENGTH = 4;
+    private static final TlsHashFactory FACTORY = new TlsHashFactory() {
+        @Override
+        public TlsHash newHash() {
+            return new SHA1Hash();
+        }
+
+        @Override
+        public int length() {
+            return 20;
+        }
+    };
 
     private int h1;
     private int h2;
@@ -41,7 +52,7 @@ public final class SHA1Hash implements TlsHash {
     }
 
     public static TlsHashFactory factory() {
-        return null;
+        return FACTORY;
     }
 
     @Override
@@ -153,11 +164,11 @@ public final class SHA1Hash implements TlsHash {
 
             processBlock();
 
-            BufferUtils.writeLittleEndianInt32(h1, output, offset);
-            BufferUtils.writeLittleEndianInt32(h2, output, offset + 4);
-            BufferUtils.writeLittleEndianInt32(h3, output, offset + 8);
-            BufferUtils.writeLittleEndianInt32(h4, output, offset + 12);
-            BufferUtils.writeLittleEndianInt32(h5, output, offset + 16);
+            BufferUtils.writeBigEndianInt32(h1, output, offset);
+            BufferUtils.writeBigEndianInt32(h2, output, offset + 4);
+            BufferUtils.writeBigEndianInt32(h3, output, offset + 8);
+            BufferUtils.writeBigEndianInt32(h4, output, offset + 12);
+            BufferUtils.writeBigEndianInt32(h5, output, offset + 16);
 
             reset();
 

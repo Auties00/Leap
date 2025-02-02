@@ -1,12 +1,12 @@
 package it.auties.leap.socket.tunnel.implementation;
 
-import it.auties.leap.socket.security.SocketSecurity;
-import it.auties.leap.socket.platform.SocketPlatform;
+import it.auties.leap.socket.SocketException;
+import it.auties.leap.socket.implementation.SocketImplementation;
+import it.auties.leap.socket.transport.SocketTransport;
 import it.auties.leap.socket.tunnel.SocketTunnel;
 
 import java.io.ByteArrayOutputStream;
 import java.net.InetSocketAddress;
-import it.auties.leap.socket.SocketException;
 import java.net.URI;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
@@ -37,14 +37,14 @@ public final class SOCKSTunnel extends SocketTunnel {
     private static final int CMD_NOT_SUPPORTED = 7;
     private static final int ADDR_TYPE_NOT_SUP = 8;
 
-    public SOCKSTunnel(SocketPlatform<?> channel, SocketSecurity securityLayer, URI proxy) {
+    public SOCKSTunnel(SocketImplementation channel, SocketTransport securityLayer, URI proxy) {
         super(channel, securityLayer, proxy);
     }
 
 
     @Override
     public CompletableFuture<Void> connect(InetSocketAddress address) {
-        return transmissionLayer.connect(new InetSocketAddress(proxy.getHost(), proxy.getPort()))
+        return implementation.connect(new InetSocketAddress(proxy.getHost(), proxy.getPort()))
                 .thenCompose(_ -> sendAuthenticationRequest())
                 .thenCompose(this::sendAuthenticationData)
                 .thenCompose(connectionResponse -> sendConnectionData(connectionResponse, address));
@@ -160,14 +160,14 @@ public final class SOCKSTunnel extends SocketTunnel {
         return switch (authenticationType) {
             case IPV4 -> readOrThrow(4, "Cannot read IPV4 address")
                     .thenCompose(_ -> readOrThrow(2, "Cannot read IPV4 port"))
-                    .thenRun(() -> transmissionLayer.setAddress(address));
+                    .thenRun(() -> implementation.setRemoteAddress(address));
             case IPV6 -> readOrThrow(16, "Cannot read IPV6 address")
                     .thenCompose(_ -> readOrThrow(2, "Cannot read IPV6 port"))
-                    .thenRun(() -> transmissionLayer.setAddress(address));
+                    .thenRun(() -> implementation.setRemoteAddress(address));
             case DOMAIN_NAME -> readOrThrow(1, "Cannot read domain name")
                     .thenCompose(domainLengthBuffer -> readOrThrow(Byte.toUnsignedInt(domainLengthBuffer.get()), "Cannot read domain hostname"))
                     .thenCompose(_ -> readOrThrow(2, "Cannot read domain port"))
-                    .thenRun(() -> transmissionLayer.setAddress(address));
+                    .thenRun(() -> implementation.setRemoteAddress(address));
             default ->
                     CompletableFuture.failedFuture(new SocketException("Reply from SOCKS server contains wrong code"));
         };

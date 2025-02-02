@@ -53,7 +53,7 @@ public record PSKExchangeModesExtension(
 
     @Override
     public int extensionPayloadLength() {
-        return INT8_LENGTH + modes.size();
+        return INT8_LENGTH + INT8_LENGTH * modes.size();
     }
 
     @Override

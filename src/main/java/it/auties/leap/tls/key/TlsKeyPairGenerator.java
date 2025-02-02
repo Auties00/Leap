@@ -20,148 +20,144 @@ public interface TlsKeyPairGenerator {
         return XDHKeyPairGenerator.x448();
     }
 
-    static TlsKeyPairGenerator ecdsa() {
-        return XDHKeyPairGenerator.x448();
-    }
-
     static TlsKeyPairGenerator sect163k1() {
-        return ECDSAKeyPairGenerator.sect163k1();
+        return ECKeyPairGenerator.sect163k1();
     }
 
     static TlsKeyPairGenerator sect163r1() {
-        return ECDSAKeyPairGenerator.sect163r1();
+        return ECKeyPairGenerator.sect163r1();
     }
 
     static TlsKeyPairGenerator sect163r2() {
-        return ECDSAKeyPairGenerator.sect163r2();
+        return ECKeyPairGenerator.sect163r2();
     }
 
     static TlsKeyPairGenerator sect193r1() {
-        return ECDSAKeyPairGenerator.sect193r1();
+        return ECKeyPairGenerator.sect193r1();
     }
 
     static TlsKeyPairGenerator sect193r2() {
-        return ECDSAKeyPairGenerator.sect193r2();
+        return ECKeyPairGenerator.sect193r2();
     }
 
     static TlsKeyPairGenerator sect233k1() {
-        return ECDSAKeyPairGenerator.sect233k1();
+        return ECKeyPairGenerator.sect233k1();
     }
 
     static TlsKeyPairGenerator sect233r1() {
-        return ECDSAKeyPairGenerator.sect233r1();
+        return ECKeyPairGenerator.sect233r1();
     }
 
     static TlsKeyPairGenerator sect239k1() {
-        return ECDSAKeyPairGenerator.sect239k1();
+        return ECKeyPairGenerator.sect239k1();
     }
 
     static TlsKeyPairGenerator sect283k1() {
-        return ECDSAKeyPairGenerator.sect283k1();
+        return ECKeyPairGenerator.sect283k1();
     }
 
     static TlsKeyPairGenerator sect283r1() {
-        return ECDSAKeyPairGenerator.sect283r1();
+        return ECKeyPairGenerator.sect283r1();
     }
 
     static TlsKeyPairGenerator sect409k1() {
-        return ECDSAKeyPairGenerator.sect409k1();
+        return ECKeyPairGenerator.sect409k1();
     }
 
     static TlsKeyPairGenerator sect409r1() {
-        return ECDSAKeyPairGenerator.sect409r1();
+        return ECKeyPairGenerator.sect409r1();
     }
 
     static TlsKeyPairGenerator sect571k1() {
-        return ECDSAKeyPairGenerator.sect571k1();
+        return ECKeyPairGenerator.sect571k1();
     }
 
     static TlsKeyPairGenerator sect571r1() {
-        return ECDSAKeyPairGenerator.sect571r1();
+        return ECKeyPairGenerator.sect571r1();
     }
 
     static TlsKeyPairGenerator secp160k1() {
-        return ECDSAKeyPairGenerator.secp160k1();
+        return ECKeyPairGenerator.secp160k1();
     }
 
     static TlsKeyPairGenerator secp160r1() {
-        return ECDSAKeyPairGenerator.secp160r1();
+        return ECKeyPairGenerator.secp160r1();
     }
 
     static TlsKeyPairGenerator secp160r2() {
-        return ECDSAKeyPairGenerator.secp160r2();
+        return ECKeyPairGenerator.secp160r2();
     }
 
     static TlsKeyPairGenerator secp192k1() {
-        return ECDSAKeyPairGenerator.secp192k1();
+        return ECKeyPairGenerator.secp192k1();
     }
 
     static TlsKeyPairGenerator secp192r1() {
-        return ECDSAKeyPairGenerator.secp192r1();
+        return ECKeyPairGenerator.secp192r1();
     }
 
     static TlsKeyPairGenerator secp224k1() {
-        return ECDSAKeyPairGenerator.secp224k1();
+        return ECKeyPairGenerator.secp224k1();
     }
 
     static TlsKeyPairGenerator secp224r1() {
-        return ECDSAKeyPairGenerator.secp224r1();
+        return ECKeyPairGenerator.secp224r1();
     }
 
     static TlsKeyPairGenerator secp256k1() {
-        return ECDSAKeyPairGenerator.secp256k1();
+        return ECKeyPairGenerator.secp256k1();
     }
 
     static TlsKeyPairGenerator secp256r1() {
-        return ECDSAKeyPairGenerator.secp256r1();
+        return ECKeyPairGenerator.secp256r1();
     }
 
     static TlsKeyPairGenerator secp384r1() {
-        return ECDSAKeyPairGenerator.secp384r1();
+        return ECKeyPairGenerator.secp384r1();
     }
 
     static TlsKeyPairGenerator secp521r1() {
-        return ECDSAKeyPairGenerator.secp521r1();
+        return ECKeyPairGenerator.secp521r1();
     }
 
     static TlsKeyPairGenerator brainpoolp256r1() {
-        return ECDSAKeyPairGenerator.brainpoolp256r1();
+        return ECKeyPairGenerator.brainpoolp256r1();
     }
 
     static TlsKeyPairGenerator brainpoolp384r1() {
-        return ECDSAKeyPairGenerator.brainpoolp384r1();
+        return ECKeyPairGenerator.brainpoolp384r1();
     }
 
     static TlsKeyPairGenerator brainpoolp512r1() {
-        return ECDSAKeyPairGenerator.brainpoolp512r1();
+        return ECKeyPairGenerator.brainpoolp512r1();
     }
 
     static TlsKeyPairGenerator gc256a() {
-        return ECDSAKeyPairGenerator.gc256a();
+        return ECKeyPairGenerator.gc256a();
     }
 
     static TlsKeyPairGenerator gc256b() {
-        return ECDSAKeyPairGenerator.gc256b();
+        return ECKeyPairGenerator.gc256b();
     }
 
     static TlsKeyPairGenerator gc256c() {
-        return ECDSAKeyPairGenerator.gc256c();
+        return ECKeyPairGenerator.gc256c();
     }
 
     static TlsKeyPairGenerator gc256d() {
-        return ECDSAKeyPairGenerator.gc256d();
+        return ECKeyPairGenerator.gc256d();
     }
 
     static TlsKeyPairGenerator gc512a() {
-        return ECDSAKeyPairGenerator.gc512a();
+        return ECKeyPairGenerator.gc512a();
     }
 
     static TlsKeyPairGenerator gc512b() {
-        return ECDSAKeyPairGenerator.gc512b();
+        return ECKeyPairGenerator.gc512b();
     }
 
     static TlsKeyPairGenerator gc512c() {
-        return ECDSAKeyPairGenerator.gc512c();
+        return ECKeyPairGenerator.gc512c();
     }
 
     static TlsKeyPairGenerator ffdhe2048() {

@@ -1,22 +1,28 @@
 package it.auties.leap.tls.cipher.mode.implementation;
 
+import it.auties.leap.tls.cipher.TlsCipherIV;
 import it.auties.leap.tls.cipher.engine.TlsCipherEngine;
+import it.auties.leap.tls.cipher.engine.implementation.MagmaEngine;
 import it.auties.leap.tls.cipher.mode.TlsCipherMode;
 import it.auties.leap.tls.cipher.mode.TlsCipherModeFactory;
-import it.auties.leap.tls.hash.TlsExchangeAuthenticator;
-import it.auties.leap.tls.version.TlsVersion;
+import it.auties.leap.tls.exception.TlsException;
+import it.auties.leap.tls.cipher.auth.TlsExchangeAuthenticator;
 
 import java.nio.ByteBuffer;
 
 public final class CTRMode extends TlsCipherMode.Block {
-    private static final TlsCipherModeFactory FACTORY = CTRMode::new;
-
-    public CTRMode(TlsVersion version, TlsExchangeAuthenticator authenticator, TlsCipherEngine engine, byte[] fixedIv) {
-        super(version, authenticator, engine, fixedIv);
-    }
+    private static final TlsCipherModeFactory FACTORY = CNTImitMode::new;
 
     public static TlsCipherModeFactory factory() {
         return FACTORY;
+    }
+
+    @Override
+    public void init(TlsExchangeAuthenticator authenticator, TlsCipherEngine engine, byte[] fixedIv) {
+        if(!(engine instanceof MagmaEngine)) {
+            throw new TlsException("CTR mode is supported only by Magma engines");
+        }
+        super.init(authenticator, engine, fixedIv);
     }
 
     @Override
@@ -32,6 +38,11 @@ public final class CTRMode extends TlsCipherMode.Block {
     @Override
     public void reset() {
 
+    }
+
+    @Override
+    public TlsCipherIV ivLength() {
+        return new TlsCipherIV(4, 4);
     }
 
     @Override

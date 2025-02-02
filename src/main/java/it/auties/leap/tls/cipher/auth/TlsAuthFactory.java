@@ -2,64 +2,201 @@ package it.auties.leap.tls.cipher.auth;
 
 public interface TlsAuthFactory {
     static TlsAuthFactory none() {
-        return null;
+        return new TlsAuthFactory() {
+            @Override
+            public TlsAuth newAuth() {
+                return null;
+            }
+
+            @Override
+            public boolean isAnonymous() {
+                return false;
+            }
+        };
     }
 
     static TlsAuthFactory anonymous() {
-        return null;
+        return new TlsAuthFactory() {
+            @Override
+            public TlsAuth newAuth() {
+                return null;
+            }
+
+            @Override
+            public boolean isAnonymous() {
+                return true;
+            }
+        };
     }
 
     static TlsAuthFactory dss() {
-        return null;
+        return new TlsAuthFactory() {
+            @Override
+            public TlsAuth newAuth() {
+                return null;
+            }
+
+            @Override
+            public boolean isAnonymous() {
+                return false;
+            }
+        };
     }
 
     static TlsAuthFactory eccpwd() {
-        return null;
+        return new TlsAuthFactory() {
+            @Override
+            public TlsAuth newAuth() {
+                return null;
+            }
+
+            @Override
+            public boolean isAnonymous() {
+                return false;
+            }
+        };
     }
 
     static TlsAuthFactory ecdsa() {
-        return null;
+        return new TlsAuthFactory() {
+            @Override
+            public TlsAuth newAuth() {
+                return null;
+            }
+
+            @Override
+            public boolean isAnonymous() {
+                return false;
+            }
+        };
     }
 
     static TlsAuthFactory gostr341012_256() {
-        return null;
+        return new TlsAuthFactory() {
+            @Override
+            public TlsAuth newAuth() {
+                return null;
+            }
+
+            @Override
+            public boolean isAnonymous() {
+                return false;
+            }
+        };
     }
 
     static TlsAuthFactory krb5() {
-        return null;
+        return new TlsAuthFactory() {
+            @Override
+            public TlsAuth newAuth() {
+                return null;
+            }
+
+            @Override
+            public boolean isAnonymous() {
+                return false;
+            }
+        };
     }
 
     static TlsAuthFactory psk() {
-        return null;
+        return new TlsAuthFactory() {
+            @Override
+            public TlsAuth newAuth() {
+                return null;
+            }
+
+            @Override
+            public boolean isAnonymous() {
+                return false;
+            }
+        };
     }
 
     static TlsAuthFactory rsa() {
-        return null;
-    }
+        return new TlsAuthFactory() {
+            @Override
+            public TlsAuth newAuth() {
+                return null;
+            }
 
-    static TlsAuthFactory rsaExport() {
-        return null;
+            @Override
+            public boolean isAnonymous() {
+                return false;
+            }
+        };
     }
 
     static TlsAuthFactory sha() {
-        return null;
+        return new TlsAuthFactory() {
+            @Override
+            public TlsAuth newAuth() {
+                return null;
+            }
+
+            @Override
+            public boolean isAnonymous() {
+                return false;
+            }
+        };
     }
 
     static TlsAuthFactory sha256() {
-        return null;
+        return new TlsAuthFactory() {
+            @Override
+            public TlsAuth newAuth() {
+                return null;
+            }
+
+            @Override
+            public boolean isAnonymous() {
+                return false;
+            }
+        };
     }
 
     static TlsAuthFactory sha384() {
-        return null;
+        return new TlsAuthFactory() {
+            @Override
+            public TlsAuth newAuth() {
+                return null;
+            }
+
+            @Override
+            public boolean isAnonymous() {
+                return false;
+            }
+        };
     }
 
     static TlsAuthFactory shaDss() {
-        return null;
+        return new TlsAuthFactory() {
+            @Override
+            public TlsAuth newAuth() {
+                return null;
+            }
+
+            @Override
+            public boolean isAnonymous() {
+                return false;
+            }
+        };
     }
 
     static TlsAuthFactory shaRsa() {
-        return null;
+        return new TlsAuthFactory() {
+            @Override
+            public TlsAuth newAuth() {
+                return null;
+            }
+
+            @Override
+            public boolean isAnonymous() {
+                return false;
+            }
+        };
     }
 
     TlsAuth newAuth();
+    boolean isAnonymous();
 }

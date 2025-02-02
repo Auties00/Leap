@@ -2,35 +2,38 @@ package it.auties.leap.tls.cipher.engine.implementation;
 
 import it.auties.leap.tls.cipher.engine.TlsCipherEngine;
 import it.auties.leap.tls.cipher.engine.TlsCipherEngineFactory;
-import it.auties.leap.tls.util.BufferUtils;
 
 import java.nio.ByteBuffer;
+
+import static it.auties.leap.tls.util.BufferUtils.*;
 
 public final class MagmaEngine extends TlsCipherEngine.Block {
     private static final int BLOCK_SIZE = 8;
     private static final byte[] S_BOX_DEFAULT = {0x4, 0xA, 0x9, 0x2, 0xD, 0x8, 0x0, 0xE, 0x6, 0xB, 0x1, 0xC, 0x7, 0xF, 0x5, 0x3, 0xE, 0xB, 0x4, 0xC, 0x6, 0xD, 0xF, 0xA, 0x2, 0x3, 0x8, 0x1, 0x0, 0x7, 0x5, 0x9, 0x5, 0x8, 0x1, 0xD, 0xA, 0x3, 0x4, 0x2, 0xE, 0xF, 0xC, 0x7, 0x6, 0x0, 0x9, 0xB, 0x7, 0xD, 0xA, 0x1, 0x0, 0x8, 0x9, 0xF, 0xE, 0x4, 0x6, 0xC, 0xB, 0x2, 0x5, 0x3, 0x6, 0xC, 0x7, 0x1, 0x5, 0xF, 0xD, 0x8, 0x4, 0xA, 0x9, 0xE, 0x0, 0x3, 0xB, 0x2, 0x4, 0xB, 0xA, 0x0, 0x7, 0x2, 0x1, 0xD, 0x3, 0x6, 0x8, 0x5, 0x9, 0xC, 0xF, 0xE, 0xD, 0xB, 0x4, 0x1, 0x3, 0xF, 0x5, 0x9, 0x0, 0xA, 0xE, 0x7, 0x6, 0x8, 0x2, 0xC, 0x1, 0xF, 0xD, 0x0, 0x5, 0x7, 0xA, 0x4, 0x9, 0x2, 0x3, 0xE, 0x6, 0xB, 0x8, 0xC};
     private static final TlsCipherEngineFactory FACTORY = MagmaEngine::new;
 
-    private final int[] workingKey;
-    public MagmaEngine(boolean forEncryption, byte[] key) {
-        super(forEncryption, key);
-        this.workingKey = generateWorkingKey(key);
-    }
+    private int[] workingKey;
 
     public static TlsCipherEngineFactory factory() {
         return FACTORY;
     }
 
+    @Override
+    public void init(boolean forEncryption, byte[] key) {
+        super.init(forEncryption, key);
+        this.workingKey = generateWorkingKey(key);
+    }
+
     private int[] generateWorkingKey(byte[] key) {
         var workingKey = new int[8];
-        workingKey[0] = BufferUtils.readBigEndianInt32(key, 0);
-        workingKey[1] = BufferUtils.readBigEndianInt32(key, 4);
-        workingKey[2] = BufferUtils.readBigEndianInt32(key, 8);
-        workingKey[3] = BufferUtils.readBigEndianInt32(key, 12);
-        workingKey[4] = BufferUtils.readBigEndianInt32(key, 16);
-        workingKey[5] = BufferUtils.readBigEndianInt32(key, 20);
-        workingKey[6] = BufferUtils.readBigEndianInt32(key, 24);
-        workingKey[7] = BufferUtils.readBigEndianInt32(key, 28);
+        workingKey[0] = readBigEndianInt32(key, 0);
+        workingKey[1] = readBigEndianInt32(key, 4);
+        workingKey[2] = readBigEndianInt32(key, 8);
+        workingKey[3] = readBigEndianInt32(key, 12);
+        workingKey[4] = readBigEndianInt32(key, 16);
+        workingKey[5] = readBigEndianInt32(key, 20);
+        workingKey[6] = readBigEndianInt32(key, 24);
+        workingKey[7] = readBigEndianInt32(key, 28);
         return workingKey;
     }
 
@@ -41,8 +44,8 @@ public final class MagmaEngine extends TlsCipherEngine.Block {
 
     @Override
     public void update(ByteBuffer input, ByteBuffer output) {
-        var n1 = BufferUtils.readBigEndianInt32(input);
-        var n2 = BufferUtils.readBigEndianInt32(input);
+        var n1 = readBigEndianInt32(input);
+        var n2 = readBigEndianInt32(input);
 
         int tmp;
         if (this.forEncryption) {
@@ -78,8 +81,8 @@ public final class MagmaEngine extends TlsCipherEngine.Block {
 
         n2 = n2 ^ mainStep(n1, workingKey[0]);
 
-        BufferUtils.writeBigEndianInt32(output, n1);
-        BufferUtils.writeBigEndianInt32(output, n2);
+        writeBigEndianInt32(output, n1);
+        writeBigEndianInt32(output, n2);
     }
 
     private int mainStep(int n1, int key) {

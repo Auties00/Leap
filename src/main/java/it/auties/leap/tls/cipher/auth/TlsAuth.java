@@ -60,4 +60,6 @@ public interface TlsAuth {
     static TlsAuth shaRsa() {
         return null;
     }
+
+    boolean isAnonymous();
 }

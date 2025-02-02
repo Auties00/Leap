@@ -1,22 +1,23 @@
 package it.auties.leap.tls.cipher.mode.implementation;
 
+import it.auties.leap.tls.cipher.TlsCipherIV;
 import it.auties.leap.tls.cipher.engine.TlsCipherEngine;
 import it.auties.leap.tls.cipher.mode.TlsCipherMode;
 import it.auties.leap.tls.cipher.mode.TlsCipherModeFactory;
-import it.auties.leap.tls.hash.TlsExchangeAuthenticator;
-import it.auties.leap.tls.version.TlsVersion;
+import it.auties.leap.tls.cipher.auth.TlsExchangeAuthenticator;
 
 import java.nio.ByteBuffer;
 
 public final class CCMMode extends TlsCipherMode.Block {
     private static final TlsCipherModeFactory FACTORY = CCMMode::new;
 
-    public CCMMode(TlsVersion version, TlsExchangeAuthenticator authenticator, TlsCipherEngine engine, byte[] fixedIv) {
-        super(version, authenticator, engine, fixedIv);
-    }
-
     public static TlsCipherModeFactory factory() {
         return FACTORY;
+    }
+
+    @Override
+    public void init(TlsExchangeAuthenticator authenticator, TlsCipherEngine engine, byte[] fixedIv) {
+        super.init(authenticator, engine, fixedIv);
     }
 
     @Override
@@ -32,6 +33,11 @@ public final class CCMMode extends TlsCipherMode.Block {
     @Override
     public void reset() {
 
+    }
+
+    @Override
+    public TlsCipherIV ivLength() {
+        return new TlsCipherIV(4, 8);
     }
 
     @Override

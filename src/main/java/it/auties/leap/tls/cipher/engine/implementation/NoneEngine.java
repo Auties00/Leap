@@ -7,18 +7,19 @@ import java.nio.ByteBuffer;
 
 public final class NoneEngine extends TlsCipherEngine.Block {
     private static final NoneEngine INSTANCE = new NoneEngine();
-    private static final TlsCipherEngineFactory FACTORY = (_, _) -> INSTANCE;
+    private static final TlsCipherEngineFactory FACTORY = () -> INSTANCE;
 
     public static NoneEngine instance() {
         return INSTANCE;
     }
 
-    private NoneEngine() {
-        super(false, new byte[0]);
-    }
-
     public static TlsCipherEngineFactory factory() {
         return FACTORY;
+    }
+
+    @Override
+    public void init(boolean forEncryption, byte[] key) {
+
     }
 
     @Override

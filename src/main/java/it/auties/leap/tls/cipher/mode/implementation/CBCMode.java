@@ -1,10 +1,11 @@
 package it.auties.leap.tls.cipher.mode.implementation;
 
+import it.auties.leap.tls.cipher.TlsCipherIV;
 import it.auties.leap.tls.cipher.engine.TlsCipherEngine;
 import it.auties.leap.tls.cipher.mode.TlsCipherMode;
 import it.auties.leap.tls.cipher.mode.TlsCipherModeFactory;
 import it.auties.leap.tls.exception.TlsException;
-import it.auties.leap.tls.hash.TlsExchangeAuthenticator;
+import it.auties.leap.tls.cipher.auth.TlsExchangeAuthenticator;
 import it.auties.leap.tls.version.TlsVersion;
 
 import java.nio.ByteBuffer;
@@ -13,24 +14,25 @@ import java.security.SecureRandom;
 public final class CBCMode extends TlsCipherMode.Block {
     private static final TlsCipherModeFactory FACTORY = CBCMode::new;
 
-    private final SecureRandom random;
+    private SecureRandom random;
     private ByteBuffer cbcV;
     private ByteBuffer cbcNextV;
-
-    public CBCMode(TlsVersion version, TlsExchangeAuthenticator authenticator, TlsCipherEngine engine, byte[] fixedIv) {
-        super(version, authenticator, engine, fixedIv);
-        this.cbcV = ByteBuffer.allocate(blockLength());
-        this.cbcNextV = ByteBuffer.allocate(blockLength());
-        this.random = new SecureRandom();
-    }
 
     public static TlsCipherModeFactory factory() {
         return FACTORY;
     }
 
     @Override
+    public void init(TlsExchangeAuthenticator authenticator, TlsCipherEngine engine, byte[] fixedIv) {
+        super.init(authenticator, engine, fixedIv);
+        this.cbcV = ByteBuffer.allocate(engine().blockLength());
+        this.cbcNextV = ByteBuffer.allocate(engine().blockLength());
+        this.random = new SecureRandom();
+    }
+
+    @Override
     public void update(byte contentType, ByteBuffer input, ByteBuffer output, byte[] sequence) {
-        switch (version) {
+        switch (authenticator.version()) {
             case TLS10, DTLS10 -> throw new UnsupportedOperationException();
             case TLS11, TLS12, DTLS12 -> tls11Update(contentType, input, output, sequence);
             case TLS13, DTLS13 -> throw new TlsException("AesCbc ciphers are not allowed in (D)TLSv1.3");
@@ -40,7 +42,7 @@ public final class CBCMode extends TlsCipherMode.Block {
     private void tls11Update(byte contentType, ByteBuffer input, ByteBuffer output, byte[] sequence) {
         if (engine.forEncryption()) {
             addMac(input, contentType);
-            var nonce = new byte[blockLength()];
+            var nonce = new byte[engine().blockLength()];
             random.nextBytes(nonce);
             var inputPositionWithNonce = input.position() - nonce.length;
             input.put(inputPositionWithNonce, nonce);
@@ -61,7 +63,7 @@ public final class CBCMode extends TlsCipherMode.Block {
                 throw new RuntimeException("Unexpected number of ciphered bytes");
             }
             output.limit(output.position());
-            output.position(outputPosition + blockLength());
+            output.position(outputPosition + engine().blockLength());
             removePadding(output);
             checkCbcMac(output, contentType, sequence);
         }
@@ -72,9 +74,9 @@ public final class CBCMode extends TlsCipherMode.Block {
         var offset = bb.position();
 
         var newlen = len + 1;
-        if ((newlen % blockLength()) != 0) {
-            newlen += blockLength() - 1;
-            newlen -= newlen % blockLength();
+        if ((newlen % engine().blockLength()) != 0) {
+            newlen += engine().blockLength() - 1;
+            newlen -= newlen % engine().blockLength();
         }
 
         var pad = (byte) (newlen - len);
@@ -103,9 +105,9 @@ public final class CBCMode extends TlsCipherMode.Block {
             throw new RuntimeException("Padding length should be positive");
         }
 
-        if (version == TlsVersion.SSL30) {
-            if (padValue > blockLength()) {
-                throw new RuntimeException("Padding length (" + padValue + ") of SSLv3 message should not be bigger than the block size (" + blockLength() + ")");
+        if (authenticator.version() == TlsVersion.SSL30) {
+            if (padValue > engine().blockLength()) {
+                throw new RuntimeException("Padding length (" + padValue + ") of SSLv3 message should not be bigger than the block size (" + engine().blockLength() + ")");
             }
         }else {
             while (toCheck.hasRemaining()) {
@@ -117,15 +119,15 @@ public final class CBCMode extends TlsCipherMode.Block {
 
         output.limit(offset + newLen);
     }
-    
+
     @Override
     public void doFinal(byte contentType, ByteBuffer input, ByteBuffer output) {
-       
+
     }
 
     private int encryptBlock(ByteBuffer input, ByteBuffer output) {
         var initialPosition = output.position();
-        for (int i = 0; i < blockLength(); i++) {
+        for (int i = 0; i < engine().blockLength(); i++) {
             cbcV.put(i, (byte) (cbcV.get(i) ^ input.get()));
         }
 
@@ -136,13 +138,13 @@ public final class CBCMode extends TlsCipherMode.Block {
     private int decryptBlock(ByteBuffer input, ByteBuffer output) {
         var initialPosition = output.position();
         cbcNextV.clear();
-        for(var i = 0; i < blockLength(); i++) {
+        for(var i = 0; i < engine().blockLength(); i++) {
             cbcNextV.put(input.get());
         }
 
         var outputPosition = output.position();
         engine.update(input, output);
-        for (int i = 0; i < blockLength(); i++) {
+        for (int i = 0; i < engine().blockLength(); i++) {
             var position = outputPosition + i;
             output.put(position, (byte) (output.get(position) ^ cbcV.get(i)));
         }
@@ -157,7 +159,12 @@ public final class CBCMode extends TlsCipherMode.Block {
     public void reset() {
         cbcV.put(0, fixedIv);
         cbcNextV.clear();
-        engine.reset();
+    }
+
+    @Override
+    public TlsCipherIV ivLength() {
+        var blockLength = engine().blockLength();
+        return new TlsCipherIV(blockLength, blockLength - fixedIv.length);
     }
 
     @Override

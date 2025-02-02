@@ -1,11 +1,19 @@
 package it.auties.leap.tls.cipher.exchange.client.implementation;
 
+import it.auties.leap.tls.cipher.exchange.TlsKeyExchange;
 import it.auties.leap.tls.cipher.exchange.client.TlsClientKeyExchange;
 import it.auties.leap.tls.cipher.exchange.client.TlsClientKeyExchangeFactory;
+import it.auties.leap.tls.cipher.exchange.server.TlsServerKeyExchange;
+import it.auties.leap.tls.cipher.exchange.server.implementation.ECDHServerKeyExchange;
+import it.auties.leap.tls.ec.TlsECParametersDecoder;
 import it.auties.leap.tls.exception.TlsException;
 
+import javax.crypto.KeyAgreement;
 import java.nio.ByteBuffer;
+import java.security.GeneralSecurityException;
 import java.security.PrivateKey;
+import java.security.PublicKey;
+import java.util.List;
 
 import static it.auties.leap.tls.util.BufferUtils.*;
 
@@ -21,17 +29,20 @@ public final class ECDHClientKeyExchange implements TlsClientKeyExchange {
         var publicKey = engine.localKeyPair()
                 .map(keyPair -> keyPair.getPublic().getEncoded())
                 .orElseThrow(() -> new TlsException("Missing key pair"));
-        return new ECDHClientKeyExchange(publicKey);
+        return new ECDHClientKeyExchange(publicKey, engine.ecParametersDecoders());
     };
 
     private final byte[] publicKey;
+    private final List<TlsECParametersDecoder> decoders;
 
-    public ECDHClientKeyExchange(byte[] publicKey) {
+    public ECDHClientKeyExchange(byte[] publicKey, List<TlsECParametersDecoder> decoders) {
         this.publicKey = publicKey;
+        this.decoders = decoders;
     }
 
-    public ECDHClientKeyExchange(ByteBuffer buffer) {
+    public ECDHClientKeyExchange(ByteBuffer buffer, List<TlsECParametersDecoder> decoders) {
         this.publicKey = readBytesLittleEndian8(buffer);
+        this.decoders = decoders;
     }
 
     public static TlsClientKeyExchangeFactory factory() {
@@ -49,7 +60,24 @@ public final class ECDHClientKeyExchange implements TlsClientKeyExchange {
     }
 
     @Override
-    public byte[] generatePreMasterSecret(PrivateKey privateKey, ByteBuffer source) {
-        throw new UnsupportedOperationException();
+    public TlsClientKeyExchange decodeLocal(ByteBuffer buffer) {
+        return new ECDHClientKeyExchange(buffer, decoders);
+    }
+
+    @Override
+    public TlsServerKeyExchange decodeRemote(ByteBuffer buffer) {
+        return new ECDHServerKeyExchange(buffer, decoders);
+    }
+
+    @Override
+    public byte[] generatePreMasterSecret(PrivateKey localPrivateKey, PublicKey remoteCertificatePublicKey, TlsKeyExchange remoteKeyExchange) {
+        try {
+            var keyAgreement = KeyAgreement.getInstance("ECDH");
+            keyAgreement.init(localPrivateKey);
+            keyAgreement.doPhase(null, true);
+            return keyAgreement.generateSecret();
+        } catch (GeneralSecurityException exception) {
+            throw new TlsException("Cannot generate pre master secret", exception);
+        }
     }
 }

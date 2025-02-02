@@ -41,19 +41,16 @@ public final class KuznyechikEngine extends TlsCipherEngine.Block {
         return p;
     }
 
-    private final byte[][] subKeys;
-    public KuznyechikEngine(boolean forEncryption, byte[] key) {
-        super(forEncryption, key);
-        this.subKeys = generateSubKeys(key);
-    }
+    private byte[][] subKeys;
 
     public static TlsCipherEngineFactory factory() {
         return FACTORY;
     }
 
     @Override
-    public int blockLength() {
-        return BLOCK_SIZE;
+    public void init(boolean forEncryption, byte[] key) {
+        super.init(forEncryption, key);
+        this.subKeys = generateSubKeys(key);
     }
 
     private byte[][] generateSubKeys(byte[] userKey) {
@@ -95,6 +92,11 @@ public final class KuznyechikEngine extends TlsCipherEngine.Block {
 
         System.arraycopy(a1, 0, a0, 0, SUB_LENGTH);
         System.arraycopy(temp, 0, a1, 0, SUB_LENGTH);
+    }
+
+    @Override
+    public int blockLength() {
+        return BLOCK_SIZE;
     }
 
     @Override

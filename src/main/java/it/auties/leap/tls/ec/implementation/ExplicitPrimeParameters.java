@@ -8,14 +8,22 @@ import java.nio.ByteBuffer;
 import static it.auties.leap.tls.util.BufferUtils.*;
 
 public final class ExplicitPrimeParameters implements TlsECParameters {
-    private static final TlsECParametersDecoder DECODER = input -> {
-        var prime = readBytesLittleEndian8(input);
-        var a = readBytesLittleEndian8(input);
-        var b = readBytesLittleEndian8(input);
-        var encoding = readBytesLittleEndian8(input);
-        var order = readBytesLittleEndian8(input);
-        var cofactor = readBytesLittleEndian8(input);
-        return new ExplicitPrimeParameters(prime, a, b, encoding, order, cofactor);
+    private static final TlsECParametersDecoder DECODER = new TlsECParametersDecoder() {
+        @Override
+        public byte id() {
+            return 1;
+        }
+
+        @Override
+        public TlsECParameters decode(ByteBuffer input) {
+            var prime = readBytesLittleEndian8(input);
+            var a = readBytesLittleEndian8(input);
+            var b = readBytesLittleEndian8(input);
+            var encoding = readBytesLittleEndian8(input);
+            var order = readBytesLittleEndian8(input);
+            var cofactor = readBytesLittleEndian8(input);
+            return new ExplicitPrimeParameters(prime, a, b, encoding, order, cofactor);
+        }
     };
 
     private final byte[] prime;
@@ -34,7 +42,7 @@ public final class ExplicitPrimeParameters implements TlsECParameters {
         this.cofactor = cofactor;
     }
 
-    public static TlsECParametersDecoder decoder() {
+    public static TlsECParametersDecoder parametersDecoder() {
         return DECODER;
     }
 
@@ -56,5 +64,10 @@ public final class ExplicitPrimeParameters implements TlsECParameters {
                 + INT8_LENGTH + encoding.length
                 + INT8_LENGTH + order.length
                 + INT8_LENGTH + cofactor.length;
+    }
+
+    @Override
+    public TlsECParametersDecoder decoder() {
+        return DECODER;
     }
 }

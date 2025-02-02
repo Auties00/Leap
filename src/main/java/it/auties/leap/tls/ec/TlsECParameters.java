@@ -10,6 +10,7 @@ import java.nio.ByteBuffer;
 public interface TlsECParameters {
     void serialize(ByteBuffer buffer);
     int length();
+    TlsECParametersDecoder decoder();
 
     static TlsECParameters explicitChar2(int m, byte basis, int k, byte[] a, byte[] b, byte[] encoding, byte[] order, byte[] cofactor) {
         return new ExplicitChar2Parameters(m, basis, k, a, b, encoding, order, cofactor);

@@ -2,9 +2,10 @@ package it.auties.leap.tls.cipher.engine.implementation;
 
 import it.auties.leap.tls.cipher.engine.TlsCipherEngine;
 import it.auties.leap.tls.cipher.engine.TlsCipherEngineFactory;
-import it.auties.leap.tls.util.BufferUtils;
 
 import java.nio.ByteBuffer;
+
+import static it.auties.leap.tls.util.BufferUtils.*;
 
 public final class IDEAEngine extends TlsCipherEngine.Block {
     private static final int BLOCK_SIZE = 8;
@@ -12,14 +13,16 @@ public final class IDEAEngine extends TlsCipherEngine.Block {
     private static final int BASE = 0x10001;
     private static final TlsCipherEngineFactory FACTORY = IDEAEngine::new;
 
-    private final int[] workingKey;
-    public IDEAEngine(boolean forEncryption, byte[] key) {
-        super(forEncryption, key);
-        this.workingKey = forEncryption ? expandKey(key) : invertKey(expandKey(key));
-    }
+    private int[] workingKey;
 
     public static TlsCipherEngineFactory factory() {
         return FACTORY;
+    }
+
+    @Override
+    public void init(boolean forEncryption, byte[] key) {
+        super.init(forEncryption, key);
+        this.workingKey = forEncryption ? expandKey(key) : invertKey(expandKey(key));
     }
 
     private int[] invertKey(int[] inKey) {
@@ -74,7 +77,7 @@ public final class IDEAEngine extends TlsCipherEngine.Block {
         var key = new int[52];
 
         for (var i = 0; i < 8; i++) {
-            key[i] = BufferUtils.readBigEndianInt16(userKey, i * 2);
+            key[i] = readBigEndianInt16(userKey, i * 2);
         }
 
         for (var i = 8; i < 52; i++) {
@@ -99,10 +102,10 @@ public final class IDEAEngine extends TlsCipherEngine.Block {
     @Override
     public void update(ByteBuffer input, ByteBuffer output) {
         var keyOff = 0;
-        var x0 = BufferUtils.readBigEndianInt16(input);
-        var x1 = BufferUtils.readBigEndianInt16(input);
-        var x2 = BufferUtils.readBigEndianInt16(input);
-        var x3 = BufferUtils.readBigEndianInt16(input);
+        var x0 = readBigEndianInt16(input);
+        var x1 = readBigEndianInt16(input);
+        var x2 = readBigEndianInt16(input);
+        var x3 = readBigEndianInt16(input);
         for (var round = 0; round < 8; round++) {
             x0 = mul(x0, workingKey[keyOff++]);
             x1 += workingKey[keyOff++];
@@ -129,10 +132,10 @@ public final class IDEAEngine extends TlsCipherEngine.Block {
             x1 ^= t1;
             x2 ^= t0;
         }
-        BufferUtils.writeBigEndianInt16(output, mul(x0, workingKey[keyOff++]));
-        BufferUtils.writeBigEndianInt16(output, x2 + workingKey[keyOff++]);
-        BufferUtils.writeBigEndianInt16(output, x1 + workingKey[keyOff++]);
-        BufferUtils.writeBigEndianInt16(output, mul(x3, workingKey[keyOff]));
+        writeBigEndianInt16(output, mul(x0, workingKey[keyOff++]));
+        writeBigEndianInt16(output, x2 + workingKey[keyOff++]);
+        writeBigEndianInt16(output, x1 + workingKey[keyOff++]);
+        writeBigEndianInt16(output, mul(x3, workingKey[keyOff]));
     }
 
     private int mul(int x, int y) {

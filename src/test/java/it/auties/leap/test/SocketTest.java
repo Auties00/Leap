@@ -1,26 +1,33 @@
+
 package it.auties.leap.test;
 
 import it.auties.leap.http.HttpConfig;
 import it.auties.leap.socket.SocketClient;
 import it.auties.leap.socket.SocketProtocol;
+import it.auties.leap.tls.certificate.TlsCertificatesHandler;
+import it.auties.leap.tls.cipher.TlsCipher;
 import it.auties.leap.tls.version.TlsVersion;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
+import java.util.List;
 
 public class SocketTest {
     public static void main(String[] args) throws IOException {
         // ECDHE-ECDSA-AES256-CCM
         var tlsConfig = HttpConfig.defaultTlsConfigBuilder()
                 .version(TlsVersion.TLS12)
-
-                .certificatesHandler((address, certificates, source) -> {
-
-                })
+                .ciphers(List.of(TlsCipher.aes128GcmSha256()))
+                .certificatesHandler(TlsCertificatesHandler.ignore())
                 .build();
-        try(var socket = SocketClient.ofSecure(SocketProtocol.TCP, tlsConfig)) {
+        try (
+                var socket = SocketClient.builder()
+                        .async(SocketProtocol.TCP)
+                        .secure(tlsConfig)
+                        .build()
+        ) {
             socket.connect(new InetSocketAddress("localhost", 8080)).join();
             var message = ByteBuffer.allocate(1024);
             socket.read(message).join();

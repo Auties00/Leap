@@ -13,36 +13,44 @@ public final class ExplicitChar2Parameters implements TlsECParameters {
     private static final byte BASIS_TRINOMIAL = 1;
     private static final byte BASIS_PENTANOMIAL = 2;
 
-    private static final TlsECParametersDecoder DECODER = input -> {
-        var m = readLittleEndianInt16(input);
-        var basis = readLittleEndianInt8(input);
-        return switch (basis) {
-            case BASIS_TRINOMIAL -> {
-                var k = new BigInteger(1, readBytesLittleEndian8(input))
-                        .intValueExact();
-                var a = readBytesLittleEndian8(input);
-                var b = readBytesLittleEndian8(input);
-                var encoding = readBytesLittleEndian8(input);
-                var order = readBytesLittleEndian8(input);
-                var cofactor = readBytesLittleEndian8(input);
-                yield new ExplicitChar2Parameters(m, basis, k, a, b, encoding, order, cofactor);
-            }
-            case BASIS_PENTANOMIAL -> {
-                var k1 = new BigInteger(1, readBytesLittleEndian8(input))
-                        .intValueExact();
-                var k2 = new BigInteger(1, readBytesLittleEndian8(input))
-                        .intValueExact();
-                var k3 = new BigInteger(1, readBytesLittleEndian8(input))
-                        .intValueExact();
-                var a = readBytesLittleEndian8(input);
-                var b = readBytesLittleEndian8(input);
-                var encoding = readBytesLittleEndian8(input);
-                var order = readBytesLittleEndian8(input);
-                var cofactor = readBytesLittleEndian8(input);
-                yield new ExplicitChar2Parameters(m, basis, k1, k2, k3, a, b, encoding, order, cofactor);
-            }
-            default -> throw new TlsException("Unknown basis: " + basis);
-        };
+    private static final TlsECParametersDecoder DECODER = new TlsECParametersDecoder() {
+        @Override
+        public byte id() {
+            return 2;
+        }
+
+        @Override
+        public TlsECParameters decode(ByteBuffer input) {
+            var m = readLittleEndianInt16(input);
+            var basis = readLittleEndianInt8(input);
+            return switch (basis) {
+                case BASIS_TRINOMIAL -> {
+                    var k = new BigInteger(1, readBytesLittleEndian8(input))
+                            .intValueExact();
+                    var a = readBytesLittleEndian8(input);
+                    var b = readBytesLittleEndian8(input);
+                    var encoding = readBytesLittleEndian8(input);
+                    var order = readBytesLittleEndian8(input);
+                    var cofactor = readBytesLittleEndian8(input);
+                    yield new ExplicitChar2Parameters(m, basis, k, a, b, encoding, order, cofactor);
+                }
+                case BASIS_PENTANOMIAL -> {
+                    var k1 = new BigInteger(1, readBytesLittleEndian8(input))
+                            .intValueExact();
+                    var k2 = new BigInteger(1, readBytesLittleEndian8(input))
+                            .intValueExact();
+                    var k3 = new BigInteger(1, readBytesLittleEndian8(input))
+                            .intValueExact();
+                    var a = readBytesLittleEndian8(input);
+                    var b = readBytesLittleEndian8(input);
+                    var encoding = readBytesLittleEndian8(input);
+                    var order = readBytesLittleEndian8(input);
+                    var cofactor = readBytesLittleEndian8(input);
+                    yield new ExplicitChar2Parameters(m, basis, k1, k2, k3, a, b, encoding, order, cofactor);
+                }
+                default -> throw new TlsException("Unknown basis: " + basis);
+            };
+        }
     };
 
     private final int m;
@@ -73,7 +81,7 @@ public final class ExplicitChar2Parameters implements TlsECParameters {
         this.cofactor = cofactor;
     }
 
-    public static TlsECParametersDecoder decoder() {
+    public static TlsECParametersDecoder parametersDecoder() {
         return DECODER;
     }
 
@@ -115,5 +123,10 @@ public final class ExplicitChar2Parameters implements TlsECParameters {
             case BASIS_PENTANOMIAL -> INT8_LENGTH + INT8_LENGTH + INT8_LENGTH;
             default -> throw new TlsException("Unknown basis: " + basis);
         };
+    }
+
+    @Override
+    public TlsECParametersDecoder decoder() {
+        return DECODER;
     }
 }

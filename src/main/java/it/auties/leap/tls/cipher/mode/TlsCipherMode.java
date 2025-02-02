@@ -4,68 +4,75 @@ import it.auties.leap.tls.cipher.TlsCipherIV;
 import it.auties.leap.tls.cipher.engine.TlsCipherEngine;
 import it.auties.leap.tls.cipher.mode.implementation.*;
 import it.auties.leap.tls.exception.TlsException;
-import it.auties.leap.tls.hash.TlsExchangeAuthenticator;
+import it.auties.leap.tls.cipher.auth.TlsExchangeAuthenticator;
 import it.auties.leap.tls.hash.TlsHmac;
-import it.auties.leap.tls.version.TlsVersion;
 
 import java.nio.ByteBuffer;
 
 public sealed abstract class TlsCipherMode {
-    public static TlsCipherMode poly1305(TlsVersion version, TlsExchangeAuthenticator authenticator, TlsCipherEngine engine, byte[] fixedIv) {
-        return new Poly1305Mode(version, authenticator, engine, fixedIv);
+    public static TlsCipherMode poly1305() {
+        return new Poly1305Mode();
     }
 
-    public static TlsCipherMode ctr(TlsVersion version, TlsExchangeAuthenticator authenticator, TlsCipherEngine engine, byte[] fixedIv) {
-        return new CTRMode(version, authenticator, engine, fixedIv);
+    public static TlsCipherMode ctr() {
+        return new CTRMode();
     }
 
-    public static TlsCipherMode gcm(TlsVersion version, TlsExchangeAuthenticator authenticator, TlsCipherEngine engine, byte[] fixedIv) {
-        return new GCMMode(version, authenticator, engine, fixedIv);
+    public static TlsCipherMode gcm() {
+        return new GCMMode();
     }
 
-    public static TlsCipherMode cbc(TlsVersion version, TlsExchangeAuthenticator authenticator, TlsCipherEngine engine, byte[] fixedIv) {
-        return new CBCMode(version, authenticator, engine, fixedIv);
+    public static TlsCipherMode cbc() {
+        return new CBCMode();
     }
 
-    public static TlsCipherMode cbcExport(TlsVersion version, TlsExchangeAuthenticator authenticator, TlsCipherEngine engine, byte[] fixedIv) {
-        return new CBCMode(version, authenticator, engine, fixedIv);
+    public static TlsCipherMode cbcExport() {
+        return new CBCMode();
     }
 
-    public static TlsCipherMode ccm(TlsVersion version, TlsExchangeAuthenticator authenticator, TlsCipherEngine engine, byte[] fixedIv) {
-        return new CCMMode(version, authenticator, engine, fixedIv);
+    public static TlsCipherMode ccm() {
+        return new CCMMode();
     }
 
-    public static TlsCipherMode ccm8(TlsVersion version, TlsExchangeAuthenticator authenticator, TlsCipherEngine engine, byte[] fixedIv) {
-        return new CCMMode(version, authenticator, engine, fixedIv);
+    public static TlsCipherMode ccm8() {
+        return new CCMMode();
     }
 
     public static TlsCipherMode none() {
         return NoneMode.instance();
     }
 
-    public static TlsCipherMode mgmLight(TlsVersion version, TlsExchangeAuthenticator authenticator, TlsCipherEngine engine, byte[] fixedIv) {
+    public static TlsCipherMode mgmLight() {
         throw new UnsupportedOperationException();
     }
 
-    public static TlsCipherMode mgmStrong(TlsVersion version, TlsExchangeAuthenticator authenticator, TlsCipherEngine engine, byte[] fixedIv) {
+    public static TlsCipherMode mgmStrong() {
         throw new UnsupportedOperationException();
     }
 
-    protected TlsVersion version;
     protected TlsExchangeAuthenticator authenticator;
+    protected TlsCipherEngine engine;
     protected byte[] fixedIv;
+    protected boolean initialized;
 
-    protected TlsCipherMode(TlsVersion version, TlsExchangeAuthenticator authenticator, byte[] fixedIv) {
-        this.version = version;
+    public void init(TlsExchangeAuthenticator authenticator, TlsCipherEngine engine, byte[] fixedIv) {
+        if(initialized) {
+            throw new TlsException("Engine mode is already initialized");
+        }
+        
         this.authenticator = authenticator;
+        this.engine = engine;
         this.fixedIv = fixedIv;
+        this.initialized = true;
     }
-    
+
     public abstract void update(byte contentType, ByteBuffer input, ByteBuffer output, byte[] sequence);
 
     public abstract void doFinal(byte contentType, ByteBuffer input, ByteBuffer output);
 
     public abstract void reset();
+
+    public abstract TlsCipherEngine engine();
 
     public abstract TlsCipherIV ivLength();
 
@@ -167,43 +174,32 @@ public sealed abstract class TlsCipherMode {
     }
 
     public abstract non-sealed static class Block extends TlsCipherMode {
-        protected TlsCipherEngine.Block engine;
-
-        protected Block(TlsVersion version, TlsExchangeAuthenticator authenticator, TlsCipherEngine engine, byte[] fixedIv) {
-            super(version, authenticator, fixedIv);
-            if(!(engine instanceof TlsCipherEngine.Block blockEngine)) {
-                throw new IllegalArgumentException();
+        @Override
+        public void init(TlsExchangeAuthenticator authenticator, TlsCipherEngine engine, byte[] fixedIv) {
+            if(engine != null && !(engine instanceof TlsCipherEngine.Block)) {
+                throw new TlsException("Expected block engine");
             }
-
-            this.engine = blockEngine;
+            super.init(authenticator, engine, fixedIv);
         }
 
         @Override
-        public TlsCipherIV ivLength() {
-            var blockLength = blockLength();
-            return new TlsCipherIV(blockLength, blockLength - fixedIv.length);
-        }
-
-        public int blockLength() {
-            return engine.blockLength();
+        public TlsCipherEngine.Block engine() {
+            return (TlsCipherEngine.Block) engine;
         }
     }
 
     public abstract non-sealed static class Stream extends TlsCipherMode {
-        protected TlsCipherEngine.Stream engine;
-
-        protected Stream(TlsVersion version, TlsExchangeAuthenticator authenticator, TlsCipherEngine engine, byte[] fixedIv) {
-            super(version, authenticator, fixedIv);
-            if(!(engine instanceof TlsCipherEngine.Stream blockEngine)) {
-                throw new IllegalArgumentException();
+        @Override
+        public void init(TlsExchangeAuthenticator authenticator, TlsCipherEngine engine, byte[] fixedIv) {
+            if(engine != null && !(engine instanceof TlsCipherEngine.Stream)) {
+                throw new TlsException("Expected stream engine");
             }
-
-            this.engine = blockEngine;
+            super.init(authenticator, engine, fixedIv);
         }
 
         @Override
-        public TlsCipherIV ivLength() {
-            return new TlsCipherIV(fixedIv.length, 0);
+        public TlsCipherEngine.Stream engine() {
+            return (TlsCipherEngine.Stream) engine;
         }
     }
 }

@@ -2,16 +2,16 @@ package it.auties.leap.tls.hash;
 
 import it.auties.leap.tls.TlsEngine;
 import it.auties.leap.tls.TlsSource;
-import it.auties.leap.tls.key.TlsSessionKeys;
+import it.auties.leap.tls.exception.TlsException;
 import it.auties.leap.tls.version.TlsVersion;
 
 import java.util.Arrays;
 
 public abstract sealed class TlsHandshakeHash {
-    public static TlsHandshakeHash of(TlsVersion version, TlsHash hash) {
+    public static TlsHandshakeHash of(TlsVersion version, TlsHashFactory hash) {
         return switch (version) {
-            case TLS13, DTLS13 -> new T13VerifyDataGenerator(hash);
-            case TLS12, DTLS12 -> new T12VerifyDataGenerator(hash);
+            case TLS13, DTLS13 -> new T13VerifyDataGenerator(hash.newHash());
+            case TLS12, DTLS12 -> new T12VerifyDataGenerator(hash.newHash());
             case TLS10, TLS11, DTLS10 -> new T10VerifyDataGenerator();
             case SSL30 -> new S30VerifyDataGenerator();
         };
@@ -19,7 +19,7 @@ public abstract sealed class TlsHandshakeHash {
 
     public abstract void update(byte[] input);
     public abstract byte[] digest();
-    public abstract byte[] finish(TlsSessionKeys keys, TlsEngine.Mode mode, TlsSource source);
+    public abstract byte[] finish(TlsEngine engine, TlsSource source);
 
     private static final class S30VerifyDataGenerator extends TlsHandshakeHash {
         private static final byte[] MD5_PAD1 = genPad(0x36, 48);
@@ -58,8 +58,11 @@ public abstract sealed class TlsHandshakeHash {
         }
 
         @Override
-        public byte[] finish(TlsSessionKeys keys, TlsEngine.Mode mode, TlsSource source) {
-            var masterSecret = keys.masterSecretKey()
+        public byte[] finish(TlsEngine engine, TlsSource source) {
+            var mode = engine.selectedMode()
+                    .orElseThrow(() -> new TlsException("No mode was selected yet"));
+            var masterSecret = engine.masterSecretKey()
+                    .orElseThrow(() -> new TlsException("Master secret key is not available yet"))
                     .data();
             var useClientLabel = (mode == TlsEngine.Mode.CLIENT && source == TlsSource.LOCAL) || (mode == TlsEngine.Mode.SERVER && source == TlsSource.REMOTE);
             if (useClientLabel) {
@@ -116,8 +119,11 @@ public abstract sealed class TlsHandshakeHash {
         }
 
         @Override
-        public byte[] finish(TlsSessionKeys keys, TlsEngine.Mode mode, TlsSource source) {
-            var masterSecret = keys.masterSecretKey()
+        public byte[] finish(TlsEngine engine, TlsSource source) {
+            var mode = engine.selectedMode()
+                    .orElseThrow(() -> new TlsException("No mode was selected yet"));
+            var masterSecret = engine.masterSecretKey()
+                    .orElseThrow(() -> new TlsException("Master secret key is not available yet"))
                     .data();
             var useClientLabel = (mode == TlsEngine.Mode.CLIENT && source == TlsSource.LOCAL) || (mode == TlsEngine.Mode.SERVER && source == TlsSource.REMOTE);
             var tlsLabel = useClientLabel ? "client finished" : "server finished";
@@ -149,12 +155,16 @@ public abstract sealed class TlsHandshakeHash {
         }
 
         @Override
-        public byte[] finish(TlsSessionKeys keys, TlsEngine.Mode mode, TlsSource source) {
-            var masterSecret = keys.masterSecretKey();
+        public byte[] finish(TlsEngine engine, TlsSource source) {
+            var mode = engine.selectedMode()
+                    .orElseThrow(() -> new TlsException("No mode was selected yet"));
+            var masterSecret = engine.masterSecretKey()
+                    .orElseThrow(() -> new TlsException("Master secret key is not available yet"))
+                    .data();
             var useClientLabel = (mode == TlsEngine.Mode.CLIENT && source == TlsSource.LOCAL) || (mode == TlsEngine.Mode.SERVER && source == TlsSource.REMOTE);
             var tlsLabel = useClientLabel ? "client finished" : "server finished";
             return TlsPRF.tls12Prf(
-                    masterSecret.data(),
+                    masterSecret,
                     tlsLabel.getBytes(),
                     digest(),
                     12,
@@ -183,7 +193,7 @@ public abstract sealed class TlsHandshakeHash {
         }
 
         @Override
-        public byte[] finish(TlsSessionKeys keys, TlsEngine.Mode mode, TlsSource source) {
+        public byte[] finish(TlsEngine engine, TlsSource source) {
               /*
             TODO
             CipherSuite.HashAlg hashAlg = context.negotiatedCipherSuite.hashAlg;

@@ -7,10 +7,11 @@ import java.nio.ByteBuffer;
 public class DESEngine extends DESBaseEngine {
     private static final TlsCipherEngineFactory FACTORY = DESEngine::new;
 
-    private final int[] workingKey;
+    private int[] workingKey;
 
-    public DESEngine(boolean forEncryption, byte[] key) {
-        super(forEncryption, key);
+    @Override
+    public void init(boolean forEncryption, byte[] key) {
+        super.init(forEncryption, key);
         this.workingKey = generateWorkingKey(forEncryption, key);
     }
 

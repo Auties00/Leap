@@ -2,8 +2,12 @@ package it.auties.leap.tls.cipher.exchange.client;
 
 import it.auties.leap.tls.cipher.exchange.TlsKeyExchange;
 import it.auties.leap.tls.cipher.exchange.client.implementation.*;
+import it.auties.leap.tls.cipher.exchange.server.TlsServerKeyExchange;
+import it.auties.leap.tls.ec.TlsECParametersDecoder;
 
+import java.nio.ByteBuffer;
 import java.security.PublicKey;
+import java.util.List;
 
 public non-sealed interface TlsClientKeyExchange extends TlsKeyExchange {
     static TlsClientKeyExchange none() {
@@ -17,8 +21,8 @@ public non-sealed interface TlsClientKeyExchange extends TlsKeyExchange {
         return new ECCPWDClientKeyExchange(publicKey, password);
     }
 
-    static TlsClientKeyExchange ecdh(byte[] publicKey) {
-        return new ECDHClientKeyExchange(publicKey);
+    static TlsClientKeyExchange ecdh(byte[] publicKey, List<TlsECParametersDecoder> decoders) {
+        return new ECDHClientKeyExchange(publicKey, decoders);
     }
 
     static TlsClientKeyExchange gostr256(byte[] encodedKeyTransport) {
@@ -40,4 +44,10 @@ public non-sealed interface TlsClientKeyExchange extends TlsKeyExchange {
     static TlsClientKeyExchange srp(byte[] srpA) {
         return new SRPClientKeyExchange(srpA);
     }
+
+    @Override
+    TlsClientKeyExchange decodeLocal(ByteBuffer buffer);
+
+    @Override
+    TlsServerKeyExchange decodeRemote(ByteBuffer buffer);
 }

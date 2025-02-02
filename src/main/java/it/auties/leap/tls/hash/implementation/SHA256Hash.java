@@ -9,7 +9,17 @@ import java.util.Arrays;
 
 public final class SHA256Hash implements TlsHash {
     private static final int BLOCK_LENGTH = 4;
-    private static final TlsHashFactory FACTORY = SHA256Hash::new;
+    private static final TlsHashFactory FACTORY = new TlsHashFactory() {
+        @Override
+        public TlsHash newHash() {
+            return new SHA256Hash();
+        }
+
+        @Override
+        public int length() {
+            return 64;
+        }
+    };
 
     private int h1;
     private int h2;
@@ -179,14 +189,14 @@ public final class SHA256Hash implements TlsHash {
 
             processBlock();
 
-            BufferUtils.writeLittleEndianInt32(h1, output, offset);
-            BufferUtils.writeLittleEndianInt32(h2, output, offset + 4);
-            BufferUtils.writeLittleEndianInt32(h3, output, offset + 8);
-            BufferUtils.writeLittleEndianInt32(h4, output, offset + 12);
-            BufferUtils.writeLittleEndianInt32(h5, output, offset + 16);
-            BufferUtils.writeLittleEndianInt32(h6, output, offset + 20);
-            BufferUtils.writeLittleEndianInt32(h7, output, offset + 24);
-            BufferUtils.writeLittleEndianInt32(h8, output, offset + 28);
+            BufferUtils.writeBigEndianInt32(h1, output, offset);
+            BufferUtils.writeBigEndianInt32(h2, output, offset + 4);
+            BufferUtils.writeBigEndianInt32(h3, output, offset + 8);
+            BufferUtils.writeBigEndianInt32(h4, output, offset + 12);
+            BufferUtils.writeBigEndianInt32(h5, output, offset + 16);
+            BufferUtils.writeBigEndianInt32(h6, output, offset + 20);
+            BufferUtils.writeBigEndianInt32(h7, output, offset + 24);
+            BufferUtils.writeBigEndianInt32(h8, output, offset + 28);
 
             reset();
 

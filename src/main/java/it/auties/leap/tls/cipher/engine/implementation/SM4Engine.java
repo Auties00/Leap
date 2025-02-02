@@ -2,9 +2,10 @@ package it.auties.leap.tls.cipher.engine.implementation;
 
 import it.auties.leap.tls.cipher.engine.TlsCipherEngine;
 import it.auties.leap.tls.cipher.engine.TlsCipherEngineFactory;
-import it.auties.leap.tls.util.BufferUtils;
 
 import java.nio.ByteBuffer;
+
+import static it.auties.leap.tls.util.BufferUtils.*;
 
 public final class SM4Engine extends TlsCipherEngine.Block {
     private static final int BLOCK_SIZE = 16;
@@ -13,27 +14,28 @@ public final class SM4Engine extends TlsCipherEngine.Block {
     private final static int[] FK = {0xa3b1bac6, 0x56aa3350, 0x677d9197, 0xb27022dc};
     private static final TlsCipherEngineFactory FACTORY = SM4Engine::new;
 
-    private final int[] x;
-    private final int[] rk;
-
-    public SM4Engine(boolean forEncryption, byte[] key) {
-        super(forEncryption, key);
-        this.x = new int[4];
-        this.rk = expandKey(forEncryption, key);
-    }
+    private int[] x;
+    private int[] rk;
 
     public static TlsCipherEngineFactory factory() {
         return FACTORY;
+    }
+
+    @Override
+    public void init(boolean forEncryption, byte[] key) {
+        super.init(forEncryption, key);
+        this.x = new int[4];
+        this.rk = expandKey(forEncryption, key);
     }
 
     private int[] expandKey(boolean forEncryption, byte[] key) {
         var rk = new int[32];
         var mk = new int[4];
 
-        mk[0] = BufferUtils.readBigEndianInt32(key, 0);
-        mk[1] = BufferUtils.readBigEndianInt32(key, 4);
-        mk[2] = BufferUtils.readBigEndianInt32(key, 8);
-        mk[3] = BufferUtils.readBigEndianInt32(key, 12);
+        mk[0] = readBigEndianInt32(key, 0);
+        mk[1] = readBigEndianInt32(key, 4);
+        mk[2] = readBigEndianInt32(key, 8);
+        mk[3] = readBigEndianInt32(key, 12);
 
         var k = new int[4];
         k[0] = mk[0] ^ FK[0];
@@ -89,10 +91,10 @@ public final class SM4Engine extends TlsCipherEngine.Block {
             throw new IllegalStateException();
         }
 
-        x[0] = BufferUtils.readBigEndianInt32(input);
-        x[1] = BufferUtils.readBigEndianInt32(input);
-        x[2] = BufferUtils.readBigEndianInt32(input);
-        x[3] = BufferUtils.readBigEndianInt32(input);
+        x[0] = readBigEndianInt32(input);
+        x[1] = readBigEndianInt32(input);
+        x[2] = readBigEndianInt32(input);
+        x[3] = readBigEndianInt32(input);
 
         int i;
 
@@ -103,10 +105,10 @@ public final class SM4Engine extends TlsCipherEngine.Block {
             x[3] = F3(x, rk[i + 3]);
         }
 
-        BufferUtils.writeBigEndianInt32(output, x[3]);
-        BufferUtils.writeBigEndianInt32(output, x[2]);
-        BufferUtils.writeBigEndianInt32(output, x[1]);
-        BufferUtils.writeBigEndianInt32(output, x[0]);
+        writeBigEndianInt32(output, x[3]);
+        writeBigEndianInt32(output, x[2]);
+        writeBigEndianInt32(output, x[1]);
+        writeBigEndianInt32(output, x[0]);
     }
 
     private int F0(int[] X, int rk) {

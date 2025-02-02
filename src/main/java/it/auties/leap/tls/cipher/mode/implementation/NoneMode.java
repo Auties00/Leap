@@ -1,24 +1,28 @@
 package it.auties.leap.tls.cipher.mode.implementation;
 
+import it.auties.leap.tls.cipher.TlsCipherIV;
+import it.auties.leap.tls.cipher.engine.TlsCipherEngine;
 import it.auties.leap.tls.cipher.mode.TlsCipherMode;
 import it.auties.leap.tls.cipher.mode.TlsCipherModeFactory;
+import it.auties.leap.tls.cipher.auth.TlsExchangeAuthenticator;
 
 import java.nio.ByteBuffer;
 
 public final class NoneMode extends TlsCipherMode.Block {
     private static final NoneMode INSTANCE = new NoneMode();
-    private static final TlsCipherModeFactory FACTORY = (_, _, _, _) -> INSTANCE;
+    private static final TlsCipherModeFactory FACTORY = () -> INSTANCE;
 
     public static NoneMode instance() {
         return INSTANCE;
     }
 
-    private NoneMode() {
-        super(null, null, null, new byte[0]);
-    }
-
     public static TlsCipherModeFactory factory() {
         return FACTORY;
+    }
+
+    @Override
+    public void init(TlsExchangeAuthenticator authenticator, TlsCipherEngine engine, byte[] fixedIv) {
+        super.init(authenticator, engine, fixedIv);
     }
 
     @Override
@@ -36,6 +40,11 @@ public final class NoneMode extends TlsCipherMode.Block {
     @Override
     public void reset() {
 
+    }
+
+    @Override
+    public TlsCipherIV ivLength() {
+        return TlsCipherIV.none();
     }
 
     @Override

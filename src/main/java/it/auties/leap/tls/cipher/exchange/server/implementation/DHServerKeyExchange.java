@@ -1,5 +1,7 @@
 package it.auties.leap.tls.cipher.exchange.server.implementation;
 
+import it.auties.leap.tls.cipher.exchange.TlsKeyExchange;
+import it.auties.leap.tls.cipher.exchange.client.TlsClientKeyExchange;
 import it.auties.leap.tls.cipher.exchange.client.implementation.DHClientKeyExchange;
 import it.auties.leap.tls.cipher.exchange.server.TlsServerKeyExchange;
 import it.auties.leap.tls.cipher.exchange.server.TlsServerKeyExchangeFactory;
@@ -14,7 +16,6 @@ import java.security.PrivateKey;
 import java.security.PublicKey;
 
 import static it.auties.leap.tls.util.BufferUtils.*;
-import static it.auties.leap.tls.util.KeyUtils.toUnsignedLittleEndianBytes;
 
 public final class DHServerKeyExchange implements TlsServerKeyExchange {
     private static final TlsServerKeyExchangeFactory FACTORY = engine -> engine.localKeyPair()
@@ -32,16 +33,16 @@ public final class DHServerKeyExchange implements TlsServerKeyExchange {
         }
 
         this.publicKey = dhPublicKey;
-        this.p = toUnsignedLittleEndianBytes(dhPublicKey.getParams().getP());
-        this.g = toUnsignedLittleEndianBytes(dhPublicKey.getParams().getG());
-        this.y = toUnsignedLittleEndianBytes(dhPublicKey.getY());
+        this.p = KeyUtils.toUnsignedLittleEndianBytes(dhPublicKey.getParams().getP());
+        this.g = KeyUtils.toUnsignedLittleEndianBytes(dhPublicKey.getParams().getG());
+        this.y = KeyUtils.toUnsignedLittleEndianBytes(dhPublicKey.getY());
     }
 
     public DHServerKeyExchange(ByteBuffer buffer) {
         this.p = readBytesLittleEndian16(buffer);
         this.g = readBytesLittleEndian16(buffer);
         this.y = readBytesLittleEndian16(buffer);
-        this.publicKey = KeyUtils.read(y, p, g);
+        this.publicKey = KeyUtils.read(y, KeyUtils.fromUnsignedLittleEndianBytes(p), KeyUtils.fromUnsignedLittleEndianBytes(g));
     }
 
     public static TlsServerKeyExchangeFactory factory() {
@@ -63,11 +64,23 @@ public final class DHServerKeyExchange implements TlsServerKeyExchange {
     }
 
     @Override
-    public byte[] generatePreMasterSecret(PrivateKey privateKey, ByteBuffer source) {
+    public TlsServerKeyExchange decodeLocal(ByteBuffer buffer) {
+        return new DHServerKeyExchange(buffer);
+    }
+
+    @Override
+    public TlsClientKeyExchange decodeRemote(ByteBuffer buffer) {
+        return new DHClientKeyExchange(buffer, p, g);
+    }
+
+    @Override
+    public byte[] generatePreMasterSecret(PrivateKey localPrivateKey, PublicKey remoteCertificatePublicKey, TlsKeyExchange remoteKeyExchange) {
+        if(!(remoteKeyExchange instanceof DHClientKeyExchange clientKeyExchange)) {
+            throw new TlsException("Remote key exchange mismatch: expected DH");
+        }
         try {
-            var clientKeyExchange = new DHClientKeyExchange(source, p, g);
             var keyAgreement = KeyAgreement.getInstance("DH");
-            keyAgreement.init(privateKey);
+            keyAgreement.init(localPrivateKey);
             keyAgreement.doPhase(clientKeyExchange.publicKey(), true);
             return keyAgreement.generateSecret();
         } catch (GeneralSecurityException exception) {

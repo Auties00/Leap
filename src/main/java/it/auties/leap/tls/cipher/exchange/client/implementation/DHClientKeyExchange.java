@@ -1,19 +1,23 @@
 package it.auties.leap.tls.cipher.exchange.client.implementation;
 
+import it.auties.leap.tls.cipher.exchange.TlsKeyExchange;
 import it.auties.leap.tls.cipher.exchange.client.TlsClientKeyExchange;
 import it.auties.leap.tls.cipher.exchange.client.TlsClientKeyExchangeFactory;
+import it.auties.leap.tls.cipher.exchange.server.TlsServerKeyExchange;
 import it.auties.leap.tls.cipher.exchange.server.implementation.DHServerKeyExchange;
 import it.auties.leap.tls.exception.TlsException;
 import it.auties.leap.tls.util.KeyUtils;
 
 import javax.crypto.KeyAgreement;
 import javax.crypto.interfaces.DHPublicKey;
+import java.math.BigInteger;
 import java.nio.ByteBuffer;
 import java.security.GeneralSecurityException;
 import java.security.PrivateKey;
 import java.security.PublicKey;
 
 import static it.auties.leap.tls.util.BufferUtils.*;
+import static it.auties.leap.tls.util.KeyUtils.fromUnsignedLittleEndianBytes;
 import static it.auties.leap.tls.util.KeyUtils.toUnsignedLittleEndianBytes;
 
 // This structure conveys the client's Diffie-Hellman public value
@@ -39,9 +43,14 @@ public final class DHClientKeyExchange implements TlsClientKeyExchange {
     }
 
     public DHClientKeyExchange(ByteBuffer buffer, byte[] p, byte[] g) {
+        this(buffer, KeyUtils.fromUnsignedLittleEndianBytes(p), fromUnsignedLittleEndianBytes(g));
+    }
+
+    public DHClientKeyExchange(ByteBuffer buffer, BigInteger p, BigInteger g) {
         this.y = readBytesLittleEndian8(buffer);
         this.publicKey = KeyUtils.read(y, p, g);
     }
+
 
     public static TlsClientKeyExchangeFactory factory() {
         return FACTORY;
@@ -62,11 +71,24 @@ public final class DHClientKeyExchange implements TlsClientKeyExchange {
     }
 
     @Override
-    public byte[] generatePreMasterSecret(PrivateKey privateKey, ByteBuffer source) {
+    public TlsClientKeyExchange decodeLocal(ByteBuffer buffer) {
+        return new DHClientKeyExchange(buffer, publicKey.getParams().getP(), publicKey.getParams().getG());
+    }
+
+    @Override
+    public TlsServerKeyExchange decodeRemote(ByteBuffer buffer) {
+        return new DHServerKeyExchange(buffer);
+    }
+
+    @Override
+    public byte[] generatePreMasterSecret(PrivateKey localPrivateKey, PublicKey remoteCertificatePublicKey, TlsKeyExchange remoteKeyExchange) {
+        if (!(remoteKeyExchange instanceof DHServerKeyExchange serverKeyExchange)) {
+            throw new TlsException("Remote key exchange mismatch: expected DH");
+        }
+
         try {
-            var serverKeyExchange = new DHServerKeyExchange(source);
             var keyAgreement = KeyAgreement.getInstance("DH");
-            keyAgreement.init(privateKey);
+            keyAgreement.init(localPrivateKey);
             keyAgreement.doPhase(serverKeyExchange.publicKey(), true);
             return keyAgreement.generateSecret();
         } catch (GeneralSecurityException exception) {

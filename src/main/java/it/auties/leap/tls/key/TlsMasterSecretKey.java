@@ -8,7 +8,7 @@ import it.auties.leap.tls.hash.TlsPRF;
 
 import java.util.Arrays;
 
-import static it.auties.leap.tls.key.TlsKeyConstants.*;
+import static it.auties.leap.tls.util.TlsKeyConstants.*;
 
 public final class TlsMasterSecretKey {
     private static final int LENGTH = 48;
@@ -38,44 +38,48 @@ public final class TlsMasterSecretKey {
             case SERVER -> localRandomData.data();
             case CLIENT -> remoteRandomData.data();
         };
-        if (version == TlsVersion.SSL30) {
-            var master = new byte[length()];
-            var md5 = TlsHash.md5();
-            var sha = TlsHash.sha1();
-            var tmp = new byte[20];
-            for (var i = 0; i < 3; i++) {
-                sha.update(SSL3_CONSTANT[i]);
-                sha.update(preMasterKey);
-                sha.update(clientRandom);
-                sha.update(serverRandom);
-                sha.digest(tmp, 0, 20, true);
-                md5.update(preMasterKey);
-                md5.update(tmp);
-                md5.digest(master, i << 4, 16, true);
+        return switch (version) {
+            case SSL30 -> {
+                var master = new byte[length()];
+                var md5 = TlsHash.md5();
+                var sha = TlsHash.sha1();
+                var tmp = new byte[20];
+                for (var i = 0; i < 3; i++) {
+                    sha.update(SSL3_CONSTANT[i]);
+                    sha.update(preMasterKey);
+                    sha.update(clientRandom);
+                    sha.update(serverRandom);
+                    sha.digest(tmp, 0, 20, true);
+                    md5.update(preMasterKey);
+                    md5.update(tmp);
+                    md5.digest(master, i << 4, 16, true);
+                }
+                yield new TlsMasterSecretKey(master);
             }
-            return new TlsMasterSecretKey(master);
-        }
-
-        var label = extendedMasterSecretSessionHash != null ? LABEL_EXTENDED_MASTER_SECRET : LABEL_MASTER_SECRET;
-        var seed = extendedMasterSecretSessionHash != null ? extendedMasterSecretSessionHash : TlsPRF.seed(clientRandom, serverRandom);
-        if (version == TlsVersion.TLS10 || version == TlsVersion.TLS11) {
-            var result = TlsPRF.tls10Prf(
-                    preMasterKey,
-                    label,
-                    seed,
-                    length()
-            );
-            return new TlsMasterSecretKey(result);
-        }
-
-        var result = TlsPRF.tls12Prf(
-                preMasterKey,
-                label,
-                seed,
-                length(),
-                cipher.newHash()
-        );
-        return new TlsMasterSecretKey(result);
+            case TLS10, TLS11, DTLS10 -> {
+                var label = extendedMasterSecretSessionHash != null ? LABEL_EXTENDED_MASTER_SECRET : LABEL_MASTER_SECRET;
+                var seed = extendedMasterSecretSessionHash != null ? extendedMasterSecretSessionHash : TlsPRF.seed(clientRandom, serverRandom);
+                var result = TlsPRF.tls10Prf(
+                        preMasterKey,
+                        label,
+                        seed,
+                        length()
+                );
+                yield new TlsMasterSecretKey(result);
+            }
+            case TLS12, DTLS12, TLS13, DTLS13 -> {
+                var label = extendedMasterSecretSessionHash != null ? LABEL_EXTENDED_MASTER_SECRET : LABEL_MASTER_SECRET;
+                var seed = extendedMasterSecretSessionHash != null ? extendedMasterSecretSessionHash : TlsPRF.seed(clientRandom, serverRandom);
+                var result = TlsPRF.tls12Prf(
+                        preMasterKey,
+                        label,
+                        seed,
+                        length(),
+                        cipher.hashFactory().newHash()
+                );
+                yield new TlsMasterSecretKey(result);
+            }
+        };
     }
 
     public byte[] data() {

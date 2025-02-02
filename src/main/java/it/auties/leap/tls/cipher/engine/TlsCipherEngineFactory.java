@@ -3,8 +3,6 @@ package it.auties.leap.tls.cipher.engine;
 import it.auties.leap.tls.cipher.engine.implementation.*;
 
 public interface TlsCipherEngineFactory {
-    TlsCipherEngine newCipherEngine(boolean forEncryption, byte[] key);
-
     static TlsCipherEngineFactory aes() {
         return AESEngine.factory();
     }
@@ -58,8 +56,8 @@ public interface TlsCipherEngineFactory {
     }
 
     static TlsCipherEngineFactory chaCha20() {
-        return (forEncryption, key) -> {
-            throw new UnsupportedOperationException();
-        };
+        return ChaCha20Engine.factory();
     }
+
+    TlsCipherEngine newCipherEngine();
 }

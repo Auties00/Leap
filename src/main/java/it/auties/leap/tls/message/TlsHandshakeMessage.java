@@ -22,13 +22,6 @@ public abstract sealed class TlsHandshakeMessage extends TlsMessage
         try (var _ = scopedRead(buffer, messageLength)) {
             return switch (engine.selectedMode().orElse(null)) {
                 case CLIENT -> switch (id) {
-                    case HelloMessage.Client.ID -> HelloMessage.Client.of(engine, buffer, metadata);
-                    case CertificateMessage.Client.ID -> CertificateMessage.Client.of(engine, buffer, metadata);
-                    case KeyExchangeMessage.Client.ID -> KeyExchangeMessage.Client.of(engine, buffer, metadata);
-                    case FinishedMessage.Client.ID -> FinishedMessage.Client.of(engine, buffer, metadata);
-                    default -> throw new IllegalArgumentException("Cannot decode client message, unknown id: " + id);
-                };
-                case SERVER -> switch (id) {
                     case HelloRequestMessage.Server.ID -> HelloRequestMessage.Server.of(engine, buffer, metadata);
                     case HelloMessage.Server.ID -> HelloMessage.Server.of(engine, buffer, metadata);
                     case CertificateMessage.Server.ID -> CertificateMessage.Server.of(engine, buffer, metadata);
@@ -37,6 +30,13 @@ public abstract sealed class TlsHandshakeMessage extends TlsMessage
                     case CertificateRequestMessage.Server.ID -> CertificateRequestMessage.Server.of(engine, buffer, metadata);
                     case FinishedMessage.Server.ID -> FinishedMessage.Server.of(engine, buffer, metadata);
                     default -> throw new IllegalArgumentException("Cannot decode server message, unknown id: " + id);
+                };
+                case SERVER -> switch (id) {
+                    case HelloMessage.Client.ID -> HelloMessage.Client.of(engine, buffer, metadata);
+                    case CertificateMessage.Client.ID -> CertificateMessage.Client.of(engine, buffer, metadata);
+                    case KeyExchangeMessage.Client.ID -> KeyExchangeMessage.Client.of(engine, buffer, metadata);
+                    case FinishedMessage.Client.ID -> FinishedMessage.Client.of(engine, buffer, metadata);
+                    default -> throw new IllegalArgumentException("Cannot decode client message, unknown id: " + id);
                 };
                 case null -> throw new TlsException("No engine mode has been selected yet");
             };

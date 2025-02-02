@@ -11,8 +11,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 
-import static it.auties.leap.tls.util.BufferUtils.readBytesLittleEndian8;
-import static it.auties.leap.tls.util.BufferUtils.writeBytesLittleEndian8;
+import static it.auties.leap.tls.util.BufferUtils.*;
 
 public abstract sealed class NPNExtension {
     private static final TlsExtensionDecoder DECODER = new TlsExtensionDecoder() {
@@ -114,7 +113,7 @@ public abstract sealed class NPNExtension {
 
         @Override
         public int extensionPayloadLength() {
-            return selectedProtocol.length;
+            return INT8_LENGTH + selectedProtocol.length;
         }
 
         @Override

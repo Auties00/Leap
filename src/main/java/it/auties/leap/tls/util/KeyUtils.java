@@ -11,13 +11,13 @@ import java.security.NoSuchAlgorithmException;
 
 // This implementation favors in place transformations when possible
 public final class KeyUtils {
-    public static DHPublicKey read(byte[] y, byte[] p, byte[] g) {
+    public static DHPublicKey read(byte[] y, BigInteger p, BigInteger g) {
         try {
             var keyFactory = KeyFactory.getInstance("DH");
             var dhPubKeySpecs = new DHPublicKeySpec(
                     fromUnsignedLittleEndianBytes(y),
-                    fromUnsignedLittleEndianBytes(p),
-                    fromUnsignedLittleEndianBytes(g)
+                    p,
+                    g
             );
             return (DHPublicKey) keyFactory.generatePublic(dhPubKeySpecs);
         } catch (NoSuchAlgorithmException exception) {

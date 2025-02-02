@@ -43,7 +43,7 @@ public record ALPNExtension(
         for(var supportedProtocol : supportedProtocols) {
             var source = supportedProtocol.getBytes(StandardCharsets.US_ASCII);
             supportedProtocolsSources.add(source);
-            supportedProtocolsLength += source.length;
+            supportedProtocolsLength += INT8_LENGTH + source.length;
         }
         return new ALPNExtension(supportedProtocolsSources, supportedProtocolsLength);
     }

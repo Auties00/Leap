@@ -1,19 +1,19 @@
 package it.auties.leap.socket.tunnel;
 
-import it.auties.leap.socket.platform.SocketPlatform;
-import it.auties.leap.socket.security.SocketSecurity;
+import it.auties.leap.socket.implementation.SocketImplementation;
+import it.auties.leap.socket.transport.SocketTransport;
 
 import java.net.InetSocketAddress;
 import java.net.URI;
 import java.util.concurrent.CompletableFuture;
 
 public abstract class SocketTunnel {
-    protected final SocketPlatform<?> transmissionLayer;
-    protected final SocketSecurity securityLayer;
+    protected final SocketImplementation implementation;
+    protected final SocketTransport securityLayer;
     protected final URI proxy;
 
-    protected SocketTunnel(SocketPlatform<?> transmissionLayer, SocketSecurity securityLayer, URI proxy) {
-        this.transmissionLayer = transmissionLayer;
+    protected SocketTunnel(SocketImplementation implementation, SocketTransport securityLayer, URI proxy) {
+        this.implementation = implementation;
         this.securityLayer = securityLayer;
         this.proxy = proxy;
     }

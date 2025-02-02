@@ -9,7 +9,7 @@ import java.security.cert.X509Certificate;
 import java.util.List;
 
 public interface TlsCertificatesHandler {
-    void accept(InetSocketAddress remoteAddress, List<X509Certificate> certificates, TlsSource certificatesSource);
+    X509Certificate accept(InetSocketAddress remoteAddress, List<X509Certificate> certificates, TlsSource certificatesSource);
 
     static TlsCertificatesHandler validate() {
         return SunValidateCertificatesHandler.instance();

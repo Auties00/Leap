@@ -1,22 +1,23 @@
 package it.auties.leap.tls.cipher.mode.implementation;
 
+import it.auties.leap.tls.cipher.TlsCipherIV;
 import it.auties.leap.tls.cipher.engine.TlsCipherEngine;
 import it.auties.leap.tls.cipher.mode.TlsCipherMode;
 import it.auties.leap.tls.cipher.mode.TlsCipherModeFactory;
-import it.auties.leap.tls.hash.TlsExchangeAuthenticator;
-import it.auties.leap.tls.version.TlsVersion;
+import it.auties.leap.tls.cipher.auth.TlsExchangeAuthenticator;
 
 import java.nio.ByteBuffer;
 
 public final class GCMMode extends TlsCipherMode.Block {
     private static final TlsCipherModeFactory FACTORY = GCMMode::new;
 
-    public GCMMode(TlsVersion version, TlsExchangeAuthenticator authenticator, TlsCipherEngine engine, byte[] fixedIv) {
-        super(version, authenticator, engine, fixedIv);
-    }
-
     public static TlsCipherModeFactory factory() {
         return FACTORY;
+    }
+
+    @Override
+    public void init(TlsExchangeAuthenticator authenticator, TlsCipherEngine engine, byte[] fixedIv) {
+        super.init(authenticator, engine, fixedIv);
     }
 
     @Override
@@ -35,12 +36,17 @@ public final class GCMMode extends TlsCipherMode.Block {
     }
 
     @Override
+    public TlsCipherIV ivLength() {
+        return new TlsCipherIV(8, 4);
+    }
+
+    @Override
     public int tagLength() {
-        return 0;
+        return 16;
     }
     /*
-      GCMWrapper(TlsVersion version, TlsCipher cipher, TlsExchangeAuthenticator authenticator, TlsSessionKeys sessionKeys, TlsMode mode) {
-        super(version, cipher, authenticator, sessionKeys, mode);
+      GCMWrapper(TlsCipher cipher, TlsExchangeAuthenticator authenticator, TlsSessionKeys sessionKeys, TlsMode mode) {
+        super(cipher, authenticator, sessionKeys, mode);
     }
 
     @Override

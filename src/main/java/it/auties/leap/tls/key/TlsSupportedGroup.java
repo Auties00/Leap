@@ -1,17 +1,16 @@
 package it.auties.leap.tls.key;
 
-import it.auties.leap.tls.ec.TlsECParameters;
 import it.auties.leap.tls.ec.TlsECParametersDecoder;
 import it.auties.leap.tls.exception.TlsException;
 import it.auties.leap.tls.version.TlsVersion;
 
-import java.nio.ByteBuffer;
 import java.security.KeyPair;
 import java.util.Objects;
+import java.util.Optional;
 
 // Includes ECCurveType
 // https://www.iana.org/assignments/tls-parameters/tls-parameters-8.csv
-public sealed interface TlsSupportedGroup extends TlsKeyPairGenerator, TlsECParametersDecoder {
+public sealed interface TlsSupportedGroup extends TlsKeyPairGenerator {
     static TlsSupportedGroup x25519() {
         return NamedCurve.X25519;
     }
@@ -229,11 +228,12 @@ public sealed interface TlsSupportedGroup extends TlsKeyPairGenerator, TlsECPara
     }
 
     static TlsSupportedGroup reservedForPrivateUse(int id, boolean dtls, TlsKeyPairGenerator generator, TlsECParametersDecoder decoder) {
-        return new Reserved(id, dtls, Objects.requireNonNullElseGet(generator, TlsKeyPairGenerator::unsupported), Objects.requireNonNullElseGet(decoder, TlsECParametersDecoder::unsupported));
+        return new Reserved(id, dtls, Objects.requireNonNullElseGet(generator, TlsKeyPairGenerator::unsupported), decoder);
     }
 
     int id();
     boolean dtls();
+    Optional<TlsECParametersDecoder> ecDecoder();
 
     final class NamedCurve implements TlsSupportedGroup {
         private static final TlsSupportedGroup SECT163K1 = new NamedCurve(1, true, TlsKeyPairGenerator.sect163k1());
@@ -309,9 +309,8 @@ public sealed interface TlsSupportedGroup extends TlsKeyPairGenerator, TlsECPara
         }
 
         @Override
-        public TlsECParameters decodeParameters(ByteBuffer buffer) {
-            return TlsECParametersDecoder.namedCurve()
-                    .decodeParameters(buffer);
+        public Optional<TlsECParametersDecoder> ecDecoder() {
+            return Optional.of(TlsECParametersDecoder.namedCurve());
         }
 
         @Override
@@ -338,9 +337,8 @@ public sealed interface TlsSupportedGroup extends TlsKeyPairGenerator, TlsECPara
         }
 
         @Override
-        public TlsECParameters decodeParameters(ByteBuffer buffer) {
-            return TlsECParametersDecoder.explicitPrime()
-                    .decodeParameters(buffer);
+        public Optional<TlsECParametersDecoder> ecDecoder() {
+            return Optional.of(TlsECParametersDecoder.explicitPrime());
         }
 
         @Override
@@ -367,9 +365,8 @@ public sealed interface TlsSupportedGroup extends TlsKeyPairGenerator, TlsECPara
         }
 
         @Override
-        public TlsECParameters decodeParameters(ByteBuffer buffer) {
-            return TlsECParametersDecoder.explicitChar2()
-                    .decodeParameters(buffer);
+        public Optional<TlsECParametersDecoder> ecDecoder() {
+            return Optional.of(TlsECParametersDecoder.explicitChar2());
         }
 
         @Override
@@ -406,8 +403,8 @@ public sealed interface TlsSupportedGroup extends TlsKeyPairGenerator, TlsECPara
         }
 
         @Override
-        public TlsECParameters decodeParameters(ByteBuffer buffer) {
-            return decoder.decodeParameters(buffer);
+        public Optional<TlsECParametersDecoder> ecDecoder() {
+            return Optional.ofNullable(decoder);
         }
 
         @Override

@@ -5,8 +5,8 @@ module it.auties.leap {
     exports it.auties.leap.http;
 
     exports it.auties.leap.socket;
-    exports it.auties.leap.socket.platform;
-    exports it.auties.leap.socket.security;
+    exports it.auties.leap.socket.implementation;
+    exports it.auties.leap.socket.transport;
     exports it.auties.leap.socket.tunnel;
 
     exports it.auties.leap.tls.certificate;
@@ -29,4 +29,5 @@ module it.auties.leap {
     exports it.auties.leap.tls.psk;
     exports it.auties.leap.tls.cipher.exchange.client;
     exports it.auties.leap.tls.cipher.exchange.server;
+    exports it.auties.leap.socket.implementation.bridge;
 }

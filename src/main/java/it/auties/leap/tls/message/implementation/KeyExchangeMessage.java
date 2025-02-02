@@ -4,6 +4,7 @@ import it.auties.leap.tls.TlsEngine;
 import it.auties.leap.tls.TlsSource;
 import it.auties.leap.tls.cipher.exchange.client.TlsClientKeyExchange;
 import it.auties.leap.tls.cipher.exchange.server.TlsServerKeyExchange;
+import it.auties.leap.tls.exception.TlsException;
 import it.auties.leap.tls.message.TlsHandshakeMessage;
 import it.auties.leap.tls.version.TlsVersion;
 
@@ -20,28 +21,22 @@ public sealed abstract class KeyExchangeMessage extends TlsHandshakeMessage {
     public static final class Server extends KeyExchangeMessage {
         public static final byte ID = 0x0C;
 
-        private final TlsServerKeyExchange localParameters;
-        private final ByteBuffer remoteParameters;
+        private final TlsServerKeyExchange parameters;
         private final int signatureAlgorithm;
         private final byte[] signature;
-        public Server(TlsVersion tlsVersion, TlsSource source, TlsServerKeyExchange localParameters, int signatureAlgorithm, byte[] signature) {
+        public Server(TlsVersion tlsVersion, TlsSource source, TlsServerKeyExchange parameters, int signatureAlgorithm, byte[] signature) {
             super(tlsVersion, source);
-            this.localParameters = localParameters;
-            this.remoteParameters = null;
+            this.parameters = parameters;
             this.signatureAlgorithm = signatureAlgorithm;
             this.signature = signature;
         }
 
-        private Server(TlsVersion tlsVersion, TlsSource source, ByteBuffer remoteParameters, int signatureAlgorithm, byte[] signature) {
-            super(tlsVersion, source);
-            this.localParameters = null;
-            this.remoteParameters = remoteParameters;
-            this.signatureAlgorithm = signatureAlgorithm;
-            this.signature = signature;
-        }
-
-        public static Server of(TlsEngine ignoredEngine, ByteBuffer buffer, Metadata metadata) {
-            var remoteParameters = readBuffer(buffer, readLittleEndianInt24(buffer));
+        public static Server of(TlsEngine engine, ByteBuffer buffer, Metadata metadata) {
+            var remoteParameters = switch (engine.localKeyExchange().orElse(null)) {
+                case TlsClientKeyExchange clientKeyExchange -> clientKeyExchange.decodeRemote(buffer);
+                case TlsServerKeyExchange serverKeyExchange -> serverKeyExchange.decodeLocal(buffer);
+                case null -> throw new TlsException("Missing local key exchange");
+            };
             var signatureAlgorithmId = readLittleEndianInt16(buffer);
             var signature = readBytesLittleEndian16(buffer);
             return new Server(metadata.version(), metadata.source(), remoteParameters, signatureAlgorithmId, signature);
@@ -57,12 +52,8 @@ public sealed abstract class KeyExchangeMessage extends TlsHandshakeMessage {
             return Type.SERVER_KEY_EXCHANGE;
         }
 
-        public Optional<TlsServerKeyExchange> localParameters() {
-            return Optional.ofNullable(localParameters);
-        }
-
-        public Optional<ByteBuffer> remoteParameters() {
-            return Optional.ofNullable(remoteParameters);
+        public TlsServerKeyExchange parameters() {
+            return parameters;
         }
 
         public int signatureAlgorithm() {
@@ -80,33 +71,17 @@ public sealed abstract class KeyExchangeMessage extends TlsHandshakeMessage {
 
         @Override
         public void serializeHandshakePayload(ByteBuffer buffer) {
-            if(localParameters != null) {
-                localParameters.serialize(buffer);
-            }else if(remoteParameters != null) {
-                writeBuffer(buffer, remoteParameters);
-            }
+            parameters.serialize(buffer);
             writeLittleEndianInt16(buffer, signatureAlgorithm);
             writeBytesLittleEndian16(buffer, signature);
         }
 
         @Override
         public int handshakePayloadLength() {
-            return parametersLength()
+            return parameters.length()
                     + INT16_LENGTH
                     + INT16_LENGTH
                     + signature.length;
-        }
-
-        private int parametersLength() {
-            if (localParameters != null) {
-                return localParameters.length();
-            }
-
-            if (remoteParameters != null) {
-                return remoteParameters.remaining();
-            }
-
-            return 0;
         }
     }
 

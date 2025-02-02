@@ -1,11 +1,7 @@
 package it.auties.leap.tls.cipher.mode;
 
-import it.auties.leap.tls.cipher.engine.TlsCipherEngine;
 import it.auties.leap.tls.cipher.mode.implementation.*;
-import it.auties.leap.tls.hash.TlsExchangeAuthenticator;
-import it.auties.leap.tls.version.TlsVersion;
 
-@FunctionalInterface
 public interface TlsCipherModeFactory {
     static TlsCipherModeFactory poly1305() {
         return Poly1305Mode.factory();
@@ -40,28 +36,20 @@ public interface TlsCipherModeFactory {
     }
 
     static TlsCipherModeFactory mgmLight() {
-        return (version, authenticator, engine, fixedIv) -> {
-            throw new UnsupportedOperationException();
-        };
+        return MGMLightMode.factory();
     }
 
     static TlsCipherModeFactory mgmStrong() {
-        return (version, authenticator, engine, fixedIv) -> {
-            throw new UnsupportedOperationException();
-        };
+        return MGMStrongMode.factory();
     }
 
     static TlsCipherModeFactory cntImit() {
-        return (version, authenticator, engine, fixedIv) -> {
-            throw new UnsupportedOperationException();
-        };
+        return CNTImitMode.factory();
     }
 
     static TlsCipherModeFactory ctrOmac() {
-        return (version, authenticator, engine, fixedIv) -> {
-            throw new UnsupportedOperationException();
-        };
+        return CTROMacMode.factory();
     }
 
-    TlsCipherMode newCipherMode(TlsVersion version, TlsExchangeAuthenticator authenticator, TlsCipherEngine engine, byte[] fixedIv);
+    TlsCipherMode newCipherMode();
 }
