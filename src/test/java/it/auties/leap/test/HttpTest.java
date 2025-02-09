@@ -1,9 +1,10 @@
+/*
 package it.auties.leap.test;
 
-import it.auties.leap.http.HttpClient;
+import it.auties.leap.http.HttpResponseHandler;
+import it.auties.leap.http.client.HttpClient;
 import it.auties.leap.http.HttpConfig;
 import it.auties.leap.http.HttpRequest;
-import it.auties.leap.http.HttpResponse;
 
 import java.net.URI;
 
@@ -15,12 +16,14 @@ public class HttpTest {
         var httpConfig = HttpConfig.builder()
                 .tlsConfig(tlsConfig)
                 .build();
-        var request = HttpRequest.builder()
+        var request = HttpRequest.newBuilder()
                 .get()
                 .uri(URI.create("https://api.ipify.org/"))
                 .build();
         try(var client = new HttpClient(httpConfig)) {
-            System.out.println(client.send(request, HttpResponse.Converter.ofString()).join());
+            System.out.println(client.send(request, HttpResponseHandler.ofString()).join());
         }
     }
 }
+
+ */

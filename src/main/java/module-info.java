@@ -5,9 +5,12 @@ module it.auties.leap {
     exports it.auties.leap.http;
 
     exports it.auties.leap.socket;
-    exports it.auties.leap.socket.implementation;
-    exports it.auties.leap.socket.transport;
-    exports it.auties.leap.socket.tunnel;
+    exports it.auties.leap.socket.async;
+    exports it.auties.leap.socket.async.client;
+    // exports it.auties.leap.socket.async.server;
+    exports it.auties.leap.socket.blocking;
+    exports it.auties.leap.socket.blocking.client;
+    // exports it.auties.leap.socket.blocking.server;
 
     exports it.auties.leap.tls.certificate;
 
@@ -29,5 +32,4 @@ module it.auties.leap {
     exports it.auties.leap.tls.psk;
     exports it.auties.leap.tls.cipher.exchange.client;
     exports it.auties.leap.tls.cipher.exchange.server;
-    exports it.auties.leap.socket.implementation.bridge;
 }
