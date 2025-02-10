@@ -1,6 +1,7 @@
 package it.auties.leap.tls.message.implementation;
 
 import it.auties.leap.tls.TlsEngine;
+import it.auties.leap.tls.TlsMode;
 import it.auties.leap.tls.TlsSource;
 import it.auties.leap.tls.cipher.TlsCipher;
 import it.auties.leap.tls.compression.TlsCompression;
@@ -101,7 +102,7 @@ public sealed abstract class HelloMessage extends TlsHandshakeMessage {
 
                     for(var configurable : engine.config().extensions()) {
                         var extension = configurable.decoder()
-                                .decode(buffer, extensionType, TlsEngine.Mode.SERVER);
+                                .decode(buffer, extensionType, TlsMode.SERVER);
                         if (extension.isPresent()) {
                             extensions.add(extension.get());
                             break;
@@ -330,7 +331,7 @@ public sealed abstract class HelloMessage extends TlsHandshakeMessage {
                             throw new TlsException("Unknown extension");
                         }
 
-                        extensionDecoder.decode(buffer, extensionType, TlsEngine.Mode.CLIENT)
+                        extensionDecoder.decode(buffer, extensionType, TlsMode.CLIENT)
                                 .ifPresent(extensions::add);
                     }
                 }

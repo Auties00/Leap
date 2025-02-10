@@ -1,6 +1,6 @@
 package it.auties.leap.tls.extension.implementation;
 
-import it.auties.leap.tls.TlsEngine;
+import it.auties.leap.tls.TlsMode;
 import it.auties.leap.tls.extension.TlsExtension;
 import it.auties.leap.tls.extension.TlsExtensionDecoder;
 import it.auties.leap.tls.version.TlsVersion;
@@ -14,7 +14,7 @@ public final class ExtendedMasterSecretExtension implements TlsExtension.Concret
 
     private static final TlsExtensionDecoder DECODER = new TlsExtensionDecoder() {
         @Override
-        public Optional<? extends Concrete> decode(ByteBuffer buffer, int type, TlsEngine.Mode mode) {
+        public Optional<? extends Concrete> decode(ByteBuffer buffer, int type, TlsMode mode) {
             if(buffer.hasRemaining()) {
                 throw new IllegalArgumentException("Unexpected extension payload");
             }
@@ -23,7 +23,7 @@ public final class ExtendedMasterSecretExtension implements TlsExtension.Concret
         }
 
         @Override
-        public Class<? extends Concrete> toConcreteType(TlsEngine.Mode mode) {
+        public Class<? extends Concrete> toConcreteType(TlsMode mode) {
             return ExtendedMasterSecretExtension.class;
         }
     };

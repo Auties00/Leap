@@ -1,8 +1,8 @@
 package it.auties.leap.http;
 
-import it.auties.leap.http.implementation.HttpBytesResponseHandler;
-import it.auties.leap.http.implementation.HttpBufferResponseHandler;
-import it.auties.leap.http.implementation.HttpTextResponseHandler;
+import it.auties.leap.http.response.HttpBytesResponseHandler;
+import it.auties.leap.http.response.HttpBufferResponseHandler;
+import it.auties.leap.http.response.HttpTextResponseHandler;
 
 import java.nio.ByteBuffer;
 import java.nio.charset.Charset;

@@ -1,6 +1,7 @@
 package it.auties.leap.tls.extension.implementation;
 
 import it.auties.leap.tls.TlsEngine;
+import it.auties.leap.tls.TlsMode;
 import it.auties.leap.tls.extension.TlsExtension;
 import it.auties.leap.tls.extension.TlsExtensionDecoder;
 import it.auties.leap.tls.version.TlsVersion;
@@ -16,7 +17,7 @@ import static it.auties.leap.tls.util.BufferUtils.*;
 public sealed abstract class KeyShareExtension {
     private static final TlsExtensionDecoder DECODER = new TlsExtensionDecoder() {
         @Override
-        public Optional<? extends TlsExtension.Concrete> decode(ByteBuffer buffer, int type, TlsEngine.Mode mode) {
+        public Optional<? extends TlsExtension.Concrete> decode(ByteBuffer buffer, int type, TlsMode mode) {
             var namedGroupId = readLittleEndianInt16(buffer);
             var publicKey = readBytesLittleEndian16(buffer);
             var extension = new Concrete(publicKey, namedGroupId);
@@ -24,7 +25,7 @@ public sealed abstract class KeyShareExtension {
         }
 
         @Override
-        public Class<? extends TlsExtension.Concrete> toConcreteType(TlsEngine.Mode mode) {
+        public Class<? extends TlsExtension.Concrete> toConcreteType(TlsMode mode) {
             return Concrete.class;
         }
     };

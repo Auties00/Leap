@@ -1,7 +1,7 @@
 package it.auties.leap.http;
 
-import it.auties.leap.http.implementation.HttpEmptyRequestBody;
-import it.auties.leap.http.implementation.HttpStaticRequestBody;
+import it.auties.leap.http.request.HttpEmptyRequestBody;
+import it.auties.leap.http.request.HttpStaticRequestBody;
 
 import java.nio.ByteBuffer;
 import java.nio.charset.Charset;

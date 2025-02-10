@@ -1,6 +1,6 @@
 package it.auties.leap.tls.extension.implementation;
 
-import it.auties.leap.tls.TlsEngine;
+import it.auties.leap.tls.TlsMode;
 import it.auties.leap.tls.ec.TlsECPointFormat;
 import it.auties.leap.tls.extension.TlsExtension;
 import it.auties.leap.tls.extension.TlsExtensionDecoder;
@@ -24,7 +24,7 @@ public record ECPointFormatExtension(
 
     private static final TlsExtensionDecoder DECODER = new TlsExtensionDecoder() {
         @Override
-        public Optional<? extends Concrete> decode(ByteBuffer buffer, int type, TlsEngine.Mode mode) {
+        public Optional<? extends Concrete> decode(ByteBuffer buffer, int type, TlsMode mode) {
             var ecPointFormatsSize = readLittleEndianInt8(buffer);
             var ecPointFormats = new ArrayList<Byte>();
             for(var i = 0; i < ecPointFormatsSize; i++) {
@@ -36,7 +36,7 @@ public record ECPointFormatExtension(
         }
 
         @Override
-        public Class<? extends Concrete> toConcreteType(TlsEngine.Mode mode) {
+        public Class<? extends Concrete> toConcreteType(TlsMode mode) {
             return ECPointFormatExtension.class;
         }
     };

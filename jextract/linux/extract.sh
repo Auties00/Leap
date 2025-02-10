@@ -1,5 +1,8 @@
-jextract -t it.auties.leap --output "./../../src/main/java" dependencies.h --header-class-name LinuxSockets \
+jextract -t it.auties.leap.socket.common.linux --output "./../../src/main/java" dependencies.h --header-class-name LinuxKernel \
 --include-function socket \
+--include-function connect \
+--include-function read \
+--include-function write \
 --include-function close \
 --include-function syscall \
 --include-struct io_uring_params \

@@ -1,6 +1,6 @@
 package it.auties.leap.tls.key;
 
-import it.auties.leap.tls.TlsEngine;
+import it.auties.leap.tls.TlsMode;
 import it.auties.leap.tls.cipher.TlsCipher;
 import it.auties.leap.tls.version.TlsVersion;
 import it.auties.leap.tls.hash.TlsHash;
@@ -22,7 +22,7 @@ public final class TlsMasterSecretKey {
     }
 
     public static TlsMasterSecretKey of(
-            TlsEngine.Mode mode,
+            TlsMode mode,
             TlsVersion version,
             TlsCipher cipher,
             byte[] preMasterKey,

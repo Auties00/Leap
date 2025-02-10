@@ -1,7 +1,5 @@
 package it.auties.leap.tls;
 
-import it.auties.leap.tls.certificate.TlsCertificatesHandler;
-import it.auties.leap.tls.certificate.TlsCertificatesProvider;
 import it.auties.leap.tls.certificate.TlsClientCertificateType;
 import it.auties.leap.tls.cipher.TlsCipher;
 import it.auties.leap.tls.cipher.auth.TlsExchangeAuthenticator;
@@ -35,14 +33,14 @@ import static it.auties.leap.tls.util.BufferUtils.readBytes;
 import static it.auties.leap.tls.util.TlsKeyConstants.*;
 
 public class TlsEngine {
-    private final Config localConfig;
+    private final TlsConfig localConfig;
     private final TlsRandomData localRandomData;
     private final TlsSharedSecret localSessionId;
 
     private final ByteArrayOutputStream messageDigestBuffer;
     private final CopyOnWriteArrayList<TlsMessage.Type> processedMessageTypes;
 
-    private volatile Mode mode;
+    private volatile TlsMode mode;
 
     private final InetSocketAddress remoteAddress;
     private volatile TlsRandomData remoteRandomData;
@@ -83,7 +81,7 @@ public class TlsEngine {
     private int localProcessedExtensionsLength;
     private PublicKey remotePublicKey;
 
-    public TlsEngine(InetSocketAddress address, Config config) {
+    public TlsEngine(InetSocketAddress address, TlsConfig config) {
         this.remoteAddress = address;
         this.localConfig = config;
         this.localRandomData = TlsRandomData.random();
@@ -98,7 +96,7 @@ public class TlsEngine {
         this.bufferedMessages = new LinkedList<>();
     }
 
-    public Config config() {
+    public TlsConfig config() {
         return localConfig;
     }
 
@@ -106,7 +104,7 @@ public class TlsEngine {
         return Optional.ofNullable(negotiatedCipher);
     }
 
-    public Optional<Mode> selectedMode() {
+    public Optional<TlsMode> selectedMode() {
         return Optional.ofNullable(mode);
     }
 
@@ -130,7 +128,7 @@ public class TlsEngine {
                             throw new TlsException("Local session id mismatch");
                         }
 
-                        this.mode = Mode.CLIENT;
+                        this.mode = TlsMode.CLIENT;
                         this.availableCiphers = clientHelloMessage.ciphers()
                                 .stream()
                                 .collect(Collectors.toUnmodifiableMap(TlsCipher::id, Function.identity()));
@@ -157,7 +155,7 @@ public class TlsEngine {
                             throw new TlsException("Local session id mismatch");
                         }
 
-                        this.mode = Mode.SERVER;
+                        this.mode = TlsMode.SERVER;
                         this.availableCiphers = TlsCipher.allCiphers()
                                 .stream()
                                 .collect(Collectors.toUnmodifiableMap(TlsCipher::id, Function.identity()));
@@ -213,7 +211,7 @@ public class TlsEngine {
             }
 
             case FinishedMessage.Server serverFinishedMessage -> {
-                if(mode == Mode.CLIENT) {
+                if(mode == TlsMode.CLIENT) {
                     // TODO: Validate
                 }
             }
@@ -228,11 +226,11 @@ public class TlsEngine {
             case CertificateMessage.Client certificateMessage -> {
                 var certificates = certificateMessage.certificates();
                 localConfig.certificatesHandler()
-                        .accept(remoteAddress, certificates, mode == Mode.CLIENT ? TlsSource.LOCAL : TlsSource.REMOTE);
+                        .accept(remoteAddress, certificates, mode == TlsMode.CLIENT ? TlsSource.LOCAL : TlsSource.REMOTE);
             }
 
             case FinishedMessage.Client clientFinishedMessage -> {
-                if(mode == Mode.SERVER) {
+                if(mode == TlsMode.SERVER) {
                     // TODO: Validate
                 }
             }
@@ -403,7 +401,7 @@ public class TlsEngine {
                     }
 
                     var concreteType = configurableExtension.decoder()
-                            .toConcreteType(Mode.CLIENT);
+                            .toConcreteType(TlsMode.CLIENT);
                     if (!seen.add(concreteType)) {
                         throw new IllegalArgumentException("Extension with type %s, produced by a model with type %s, conflicts with previously defined extension".formatted(extension.getClass().getName(), concreteType.getName()));
                     }
@@ -771,116 +769,5 @@ public class TlsEngine {
 
     public Optional<TlsMasterSecretKey> masterSecretKey() {
         return Optional.ofNullable(localMasterSecretKey);
-    }
-
-    public static final class Config {
-        private final TlsVersion version;
-        private final List<TlsCipher> ciphers;
-        private final List<TlsExtension> extensions;
-        private final List<TlsCompression> compressions;
-        private final TlsCertificatesProvider certificatesProvider;
-        private final TlsCertificatesHandler certificatesHandler;
-
-        public Config(
-                TlsVersion version,
-                List<TlsCipher> ciphers,
-                List<TlsExtension> extensions,
-                List<TlsCompression> compressions,
-                TlsCertificatesProvider certificatesProvider,
-                TlsCertificatesHandler certificatesHandler
-        ) {
-            this.version = version;
-            this.ciphers = ciphers;
-            this.extensions = extensions;
-            this.compressions = compressions;
-            this.certificatesProvider = certificatesProvider;
-            this.certificatesHandler = certificatesHandler;
-        }
-
-        public TlsVersion version() {
-            return version;
-        }
-
-        public List<TlsCipher> ciphers() {
-            return Collections.unmodifiableList(ciphers);
-        }
-
-        public List<TlsExtension> extensions() {
-            return Collections.unmodifiableList(extensions);
-        }
-
-        public List<TlsCompression> compressions() {
-            return Collections.unmodifiableList(compressions);
-        }
-
-        public Optional<TlsCertificatesProvider> certificatesProvider() {
-            return Optional.ofNullable(certificatesProvider);
-        }
-
-        public TlsCertificatesHandler certificatesHandler() {
-            return certificatesHandler;
-        }
-
-        public static Builder builder() {
-            return new Builder();
-        }
-
-        public static final class Builder {
-            private TlsVersion version;
-            private List<TlsCipher> ciphers;
-            private List<TlsExtension> extensions;
-            private List<TlsCompression> compressions;
-            private TlsCertificatesProvider certificatesProvider;
-            private TlsCertificatesHandler certificatesHandler;
-            private Builder() {
-
-            }
-
-            public Builder version(TlsVersion version) {
-                this.version = version;
-                return this;
-            }
-
-            public Builder ciphers(List<TlsCipher> ciphers) {
-                this.ciphers = ciphers;
-                return this;
-            }
-
-            public Builder extensions(List<TlsExtension> extensions) {
-                this.extensions = extensions;
-                return this;
-            }
-
-            public Builder compressions(List<TlsCompression> compressions) {
-                this.compressions = compressions;
-                return this;
-            }
-
-            public Builder certificatesProvider(TlsCertificatesProvider certificatesProvider) {
-                this.certificatesProvider = certificatesProvider;
-                return this;
-            }
-
-            public Builder certificatesHandler(TlsCertificatesHandler certificatesHandler) {
-                this.certificatesHandler = certificatesHandler;
-                return this;
-            }
-
-            public Config build() {
-                return new Config(
-                        Objects.requireNonNull(this.version, "Missing tls version"),
-                        Objects.requireNonNullElseGet(ciphers, TlsCipher::secureCiphers),
-                        Objects.requireNonNull(extensions, "Missing tls extensions"),
-                        Objects.requireNonNullElseGet(compressions, () -> List.of(TlsCompression.none())),
-                        certificatesProvider,
-                        Objects.requireNonNullElseGet(certificatesHandler, TlsCertificatesHandler::validate)
-                );
-            }
-        }
-    }
-
-    public enum Mode {
-        CLIENT,
-        SERVER
     }
 }

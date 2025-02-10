@@ -1,6 +1,6 @@
 package it.auties.leap.tls.extension.implementation;
 
-import it.auties.leap.tls.TlsEngine;
+import it.auties.leap.tls.TlsMode;
 import it.auties.leap.tls.extension.TlsExtension;
 import it.auties.leap.tls.extension.TlsExtensionDecoder;
 import it.auties.leap.tls.key.TlsSupportedGroup;
@@ -20,7 +20,7 @@ public record SupportedGroupsExtension(
 ) implements TlsExtension.Concrete {
     private static final TlsExtensionDecoder DECODER = new TlsExtensionDecoder() {
         @Override
-        public Optional<? extends Concrete> decode(ByteBuffer buffer, int type, TlsEngine.Mode mode) {
+        public Optional<? extends Concrete> decode(ByteBuffer buffer, int type, TlsMode mode) {
             var groupsSize = readLittleEndianInt16(buffer);
             var groups = new ArrayList<Integer>(groupsSize);
             for (var i = 0; i < groupsSize; i++) {
@@ -32,7 +32,7 @@ public record SupportedGroupsExtension(
         }
 
         @Override
-        public Class<? extends Concrete> toConcreteType(TlsEngine.Mode mode) {
+        public Class<? extends Concrete> toConcreteType(TlsMode mode) {
             return SupportedGroupsExtension.class;
         }
     };

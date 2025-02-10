@@ -1,9 +1,9 @@
 package it.auties.leap.socket;
 
-import it.auties.leap.socket.async.client.AsyncSocketClient;
-import it.auties.leap.socket.async.client.AsyncSocketClientBuilder;
-import it.auties.leap.socket.blocking.client.BlockingSocketClient;
-import it.auties.leap.socket.blocking.client.BlockingSocketClientBuilder;
+import it.auties.leap.socket.async.AsyncSocketClient;
+import it.auties.leap.socket.async.AsyncSocketClientBuilder;
+import it.auties.leap.socket.blocking.BlockingSocketClient;
+import it.auties.leap.socket.blocking.BlockingSocketClientBuilder;
 
 public sealed class SocketClientBuilder permits AsyncSocketClientBuilder, BlockingSocketClientBuilder {
     private static final SocketClientBuilder INSTANCE = new SocketClientBuilder();

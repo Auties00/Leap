@@ -1,6 +1,7 @@
 package it.auties.leap.tls.hash;
 
 import it.auties.leap.tls.TlsEngine;
+import it.auties.leap.tls.TlsMode;
 import it.auties.leap.tls.TlsSource;
 import it.auties.leap.tls.exception.TlsException;
 import it.auties.leap.tls.version.TlsVersion;
@@ -64,7 +65,7 @@ public abstract sealed class TlsHandshakeHash {
             var masterSecret = engine.masterSecretKey()
                     .orElseThrow(() -> new TlsException("Master secret key is not available yet"))
                     .data();
-            var useClientLabel = (mode == TlsEngine.Mode.CLIENT && source == TlsSource.LOCAL) || (mode == TlsEngine.Mode.SERVER && source == TlsSource.REMOTE);
+            var useClientLabel = (mode == TlsMode.CLIENT && source == TlsSource.LOCAL) || (mode == TlsMode.SERVER && source == TlsSource.REMOTE);
             if (useClientLabel) {
                 md5.update(SSL_CLIENT);
                 sha1.update(SSL_CLIENT);
@@ -125,7 +126,7 @@ public abstract sealed class TlsHandshakeHash {
             var masterSecret = engine.masterSecretKey()
                     .orElseThrow(() -> new TlsException("Master secret key is not available yet"))
                     .data();
-            var useClientLabel = (mode == TlsEngine.Mode.CLIENT && source == TlsSource.LOCAL) || (mode == TlsEngine.Mode.SERVER && source == TlsSource.REMOTE);
+            var useClientLabel = (mode == TlsMode.CLIENT && source == TlsSource.LOCAL) || (mode == TlsMode.SERVER && source == TlsSource.REMOTE);
             var tlsLabel = useClientLabel ? "client finished" : "server finished";
             return TlsPRF.tls10Prf(
                     masterSecret,
@@ -161,7 +162,7 @@ public abstract sealed class TlsHandshakeHash {
             var masterSecret = engine.masterSecretKey()
                     .orElseThrow(() -> new TlsException("Master secret key is not available yet"))
                     .data();
-            var useClientLabel = (mode == TlsEngine.Mode.CLIENT && source == TlsSource.LOCAL) || (mode == TlsEngine.Mode.SERVER && source == TlsSource.REMOTE);
+            var useClientLabel = (mode == TlsMode.CLIENT && source == TlsSource.LOCAL) || (mode == TlsMode.SERVER && source == TlsSource.REMOTE);
             var tlsLabel = useClientLabel ? "client finished" : "server finished";
             return TlsPRF.tls12Prf(
                     masterSecret,

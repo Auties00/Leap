@@ -1,6 +1,6 @@
 package it.auties.leap.tls.extension.implementation;
 
-import it.auties.leap.tls.TlsEngine;
+import it.auties.leap.tls.TlsMode;
 import it.auties.leap.tls.extension.TlsExtension;
 import it.auties.leap.tls.extension.TlsExtensionDecoder;
 import it.auties.leap.tls.version.TlsVersion;
@@ -19,7 +19,7 @@ public record ALPNExtension(
 ) implements TlsExtension.Concrete {
     private static final TlsExtensionDecoder DECODER = new TlsExtensionDecoder() {
         @Override
-        public Optional<? extends Concrete> decode(ByteBuffer buffer, int type, TlsEngine.Mode mode) {
+        public Optional<? extends Concrete> decode(ByteBuffer buffer, int type, TlsMode mode) {
             var supportedProtocolsSize = readLittleEndianInt16(buffer);
             var supportedProtocols = new ArrayList<byte[]>();
             try(var _ = scopedRead(buffer, supportedProtocolsSize)) {
@@ -32,7 +32,7 @@ public record ALPNExtension(
         }
 
         @Override
-        public Class<? extends Concrete> toConcreteType(TlsEngine.Mode mode) {
+        public Class<? extends Concrete> toConcreteType(TlsMode mode) {
             return ALPNExtension.class;
         }
     };
