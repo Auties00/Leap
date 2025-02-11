@@ -1,12 +1,17 @@
 package it.auties.leap.tls.cipher.mode.implementation;
 
 import it.auties.leap.tls.cipher.TlsCipherIV;
+import it.auties.leap.tls.cipher.auth.TlsExchangeAuthenticator;
 import it.auties.leap.tls.cipher.engine.TlsCipherEngine;
 import it.auties.leap.tls.cipher.mode.TlsCipherMode;
 import it.auties.leap.tls.cipher.mode.TlsCipherModeFactory;
-import it.auties.leap.tls.cipher.auth.TlsExchangeAuthenticator;
 
+import javax.crypto.Cipher;
+import javax.crypto.SecretKey;
+import javax.crypto.spec.IvParameterSpec;
+import javax.crypto.spec.SecretKeySpec;
 import java.nio.ByteBuffer;
+import java.security.GeneralSecurityException;
 
 // Why didn't I implement ChaCha20Poly1305Mode like the other ciphers?
 //  - Java already supports ChaCha20Poly1305
@@ -18,48 +23,18 @@ public final class Poly1305Mode extends TlsCipherMode.Stream {
         return FACTORY;
     }
 
+    private int mode;
+    private SecretKey secretKey;
+    private IvParameterSpec ivSpec;
+    private Cipher cipher;
+
     @Override
     public void init(TlsExchangeAuthenticator authenticator, TlsCipherEngine engine, byte[] fixedIv) {
         super.init(authenticator, engine, fixedIv);
-    }
-
-    @Override
-    public void update(byte contentType, ByteBuffer input, ByteBuffer output, byte[] sequence) {
-
-    }
-
-    @Override
-    public void doFinal(byte contentType, ByteBuffer input, ByteBuffer output) {
-
-    }
-
-    @Override
-    public void reset() {
-
-    }
-
-    @Override
-    public TlsCipherIV ivLength() {
-        return new TlsCipherIV(4, 8);
-    }
-
-    @Override
-    public int tagLength() {
-        return 0;
-    }
-
-    /*
-    private final int mode;
-    private final SecretKey secretKey;
-    private final IvParameterSpec ivSpec;
-    private final Cipher cipher;
-
-    ChaCha20Poly1305Mode(boolean forEncryption, byte[] key, byte[] iv) {
-        super(null, iv);
         try {
-            this.mode = forEncryption ? Cipher.ENCRYPT_MODE : Cipher.DECRYPT_MODE;
-            this.secretKey = new SecretKeySpec(key, "ChaCha20");
-            this.ivSpec = new IvParameterSpec(iv);
+            this.mode = engine.forEncryption() ? Cipher.ENCRYPT_MODE : Cipher.DECRYPT_MODE;
+            this.secretKey = new SecretKeySpec(engine.key(), "ChaCha20");
+            this.ivSpec = new IvParameterSpec(fixedIv);
             this.cipher = Cipher.getInstance("ChaCha20-Poly1305");
             reset();
         } catch (GeneralSecurityException exception) {
@@ -68,15 +43,20 @@ public final class Poly1305Mode extends TlsCipherMode.Stream {
     }
 
     @Override
-    public void update(ByteBuffer input, ByteBuffer output, boolean last) {
+    public void update(byte contentType, ByteBuffer input, ByteBuffer output, byte[] sequence) {
         try {
-            if (last) {
-                cipher.doFinal(input, output);
-            } else {
-                cipher.update(input, output);
-            }
+            cipher.update(input, output);
         } catch (GeneralSecurityException exception) {
             throw new InternalError("Cannot update engine", exception);
+        }
+    }
+
+    @Override
+    public void doFinal(byte contentType, ByteBuffer input, ByteBuffer output) {
+        try {
+            cipher.doFinal(input, output);
+        } catch (GeneralSecurityException exception) {
+            throw new InternalError("Cannot doFinal engine", exception);
         }
     }
 
@@ -92,5 +72,14 @@ public final class Poly1305Mode extends TlsCipherMode.Stream {
             throw new InternalError("Cannot reset engine", exception);
         }
     }
-     */
+
+    @Override
+    public TlsCipherIV ivLength() {
+        return new TlsCipherIV(12, 0);
+    }
+
+    @Override
+    public int tagLength() {
+        return 16;
+    }
 }

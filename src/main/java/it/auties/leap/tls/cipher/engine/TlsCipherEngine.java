@@ -99,6 +99,10 @@ public sealed abstract class TlsCipherEngine permits TlsCipherEngine.Block, TlsC
         return forEncryption;
     }
 
+    public boolean isInitialized() {
+        return initialized;
+    }
+
     public static abstract non-sealed class Block extends TlsCipherEngine {
         protected Block() {
             

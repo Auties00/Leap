@@ -56,6 +56,10 @@ public sealed abstract class TlsCipherMode {
     protected boolean initialized;
 
     public void init(TlsExchangeAuthenticator authenticator, TlsCipherEngine engine, byte[] fixedIv) {
+        if(engine != null && !engine.isInitialized()) {
+            throw new TlsException("Engine is not initialized");
+        }
+
         if(initialized) {
             throw new TlsException("Engine mode is already initialized");
         }
@@ -77,6 +81,10 @@ public sealed abstract class TlsCipherMode {
     public abstract TlsCipherIV ivLength();
 
     public abstract int tagLength();
+
+    public boolean isInitialized() {
+        return initialized;
+    }
 
     protected void addMac(ByteBuffer destination, byte contentId) {
         if(authenticator.hmac().isEmpty()) {

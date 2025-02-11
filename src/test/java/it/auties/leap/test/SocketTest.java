@@ -21,6 +21,7 @@ public class SocketTest {
     public static void main(String[] args) throws IOException {
         // ECDHE-ECDSA-AES256-CCM
         var ciphers = List.of(
+                TlsCipher.chacha20Poly1305Sha256(),
                 TlsCipher.aes256GcmSha384(),
                 TlsCipher.chacha20Poly1305Sha256(),
                 TlsCipher.aes128GcmSha256(),

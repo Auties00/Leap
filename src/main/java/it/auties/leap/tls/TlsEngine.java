@@ -9,7 +9,10 @@ import it.auties.leap.tls.compression.TlsCompression;
 import it.auties.leap.tls.ec.TlsECParametersDecoder;
 import it.auties.leap.tls.exception.TlsException;
 import it.auties.leap.tls.extension.TlsExtension;
-import it.auties.leap.tls.hash.*;
+import it.auties.leap.tls.hash.TlsHandshakeHash;
+import it.auties.leap.tls.hash.TlsHash;
+import it.auties.leap.tls.hash.TlsHashFactory;
+import it.auties.leap.tls.hash.TlsPRF;
 import it.auties.leap.tls.key.*;
 import it.auties.leap.tls.message.TlsMessage;
 import it.auties.leap.tls.message.implementation.*;
@@ -131,10 +134,10 @@ public class TlsEngine {
                         this.mode = TlsMode.CLIENT;
                         this.availableCiphers = clientHelloMessage.ciphers()
                                 .stream()
-                                .collect(Collectors.toUnmodifiableMap(TlsCipher::id, Function.identity()));
+                                .collect(Collectors.toUnmodifiableMap(TlsCipher::id, Function.identity(), (element, _) -> element));
                         this.availableCompressions = clientHelloMessage.compressions()
                                 .stream()
-                                .collect(Collectors.toUnmodifiableMap(TlsCompression::id, Function.identity()));
+                                .collect(Collectors.toUnmodifiableMap(TlsCompression::id, Function.identity(), (element, _) -> element));
                     }
                     case REMOTE -> {
                         this.remoteRandomData = clientHelloMessage.randomData();
@@ -158,10 +161,10 @@ public class TlsEngine {
                         this.mode = TlsMode.SERVER;
                         this.availableCiphers = TlsCipher.allCiphers()
                                 .stream()
-                                .collect(Collectors.toUnmodifiableMap(TlsCipher::id, Function.identity()));
+                                .collect(Collectors.toUnmodifiableMap(TlsCipher::id, Function.identity(), (element, _) -> element));
                         this.availableCompressions = TlsCompression.allCompressions()
                                 .stream()
-                                .collect(Collectors.toUnmodifiableMap(TlsCompression::id, Function.identity()));
+                                .collect(Collectors.toUnmodifiableMap(TlsCompression::id, Function.identity(), (element, _) -> element));
                     }
                     case REMOTE -> {
                         System.out.println("Selected cipher: " + serverHelloMessage.cipher());
@@ -188,7 +191,11 @@ public class TlsEngine {
                         .getPublicKey();
                 try {
                     var kpg = KeyPairGenerator.getInstance(remotePublicKey.getAlgorithm());
-                    kpg.initialize(remotePublicKey.getParams());
+                    if(remotePublicKey.getParams() == null) {
+                        kpg.initialize(2048);
+                    }else {
+                        kpg.initialize(remotePublicKey.getParams());
+                    }
                     this.localKeyPair = kpg.generateKeyPair();
                     this.localKeyExchange = switch (mode) {
                         case CLIENT ->
