@@ -1,21 +1,14 @@
 package it.auties.leap.socket.blocking.transportLayer;
 
-import it.auties.leap.socket.SocketException;
-import it.auties.leap.socket.SocketOption;
 import it.auties.leap.socket.SocketProtocol;
-import it.auties.leap.socket.async.AsyncSocketTransportLayerFactory;
 import it.auties.leap.socket.blocking.BlockingSocketTransportLayerFactory;
-import it.auties.leap.socket.common.win.*;
+import it.auties.leap.socket.common.win.WSAData;
+import it.auties.leap.socket.common.win.WindowsKernel;
 
+import java.io.IOException;
 import java.lang.foreign.Arena;
-import java.lang.foreign.MemorySegment;
-import java.lang.foreign.ValueLayout;
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
-import java.util.Objects;
-import java.util.Optional;
-import java.util.Set;
-import java.util.concurrent.*;
 
 // Completion Ports
 public final class BlockingWinTransportSocketLayer extends BlockingNativeTransportSocketLayer<Long> {
@@ -24,8 +17,6 @@ public final class BlockingWinTransportSocketLayer extends BlockingNativeTranspo
     public static BlockingSocketTransportLayerFactory factory() {
         return FACTORY;
     }
-
-    private static final MemorySegment CONNECT_EX_FUNCTION;
 
     static {
         System.loadLibrary("ws2_32");
@@ -48,36 +39,10 @@ public final class BlockingWinTransportSocketLayer extends BlockingNativeTranspo
             WindowsKernel.WSACleanup();
             throw new RuntimeException("Cannot initialize Windows Sockets: unsupported platform");
         }
+    }
 
-        var socket = WindowsKernel.socket(WindowsKernel.AF_INET(), WindowsKernel.SOCK_STREAM(), 0);
-        if (socket == WindowsKernel.INVALID_SOCKET()) {
-            WindowsKernel.WSACleanup();
-            throw new RuntimeException("Cannot create bootstrap socket");
-        }
-
-        var connectExOpCode = getConnectEx();
-        var connectEx = Arena.global().allocate(ValueLayout.ADDRESS, 8);
-        var connectExBytes = Arena.global().allocate(WindowsKernel.LPDWORD);
-        var connectExResult = WindowsKernel.WSAIoctl(
-                socket,
-                WindowsKernel.SIO_GET_EXTENSION_FUNCTION_POINTER(),
-                connectExOpCode,
-                (int) connectExOpCode.byteSize(),
-                connectEx,
-                (int) connectEx.byteSize(),
-                connectExBytes,
-                MemorySegment.NULL,
-                MemorySegment.NULL
-        );
-        if (connectExResult != 0) {
-            var error = WindowsKernel.WSAGetLastError();
-            WindowsKernel.WSACleanup();
-            WindowsKernel.closesocket(socket);
-            throw new RuntimeException("Cannot get ConnectEx pointer, error code " + error);
-        }
-
-        WindowsKernel.closesocket(socket);
-        CONNECT_EX_FUNCTION = connectEx.get(ValueLayout.ADDRESS, 0);
+    public BlockingWinTransportSocketLayer(SocketProtocol protocol) {
+        super(protocol);
     }
 
     @SuppressWarnings("SameParameterValue")
@@ -85,233 +50,28 @@ public final class BlockingWinTransportSocketLayer extends BlockingNativeTranspo
         return (short) ((a & 0xff) | ((b & 0xff) << 8));
     }
 
-    // #define WSAID_CONNECTEX {0x25a207b9,0xddf3,0x4660,{0x8e,0xe9,0x76,0xe5,0x8c,0x74,0x06,0x3e}}
-    private static MemorySegment getConnectEx() {
-        var connectExGuid = Arena.global().allocate(_GUID.layout());
-        _GUID.Data1(connectExGuid, 0x25a207b9);
-        _GUID.Data2(connectExGuid, (short) 0xddf3);
-        _GUID.Data3(connectExGuid, (short) 0x4660);
-        var data4 = Arena.global().allocate(WindowsKernel.C_CHAR, 8);
-        _GUID.Data4(data4, 0, (byte) 0x8e);
-        _GUID.Data4(data4, 1, (byte) 0xe9);
-        _GUID.Data4(data4, 2, (byte) 0x76);
-        _GUID.Data4(data4, 3, (byte) 0xe5);
-        _GUID.Data4(data4, 4, (byte) 0x8c);
-        _GUID.Data4(data4, 5, (byte) 0x74);
-        _GUID.Data4(data4, 6, (byte) 0x06);
-        _GUID.Data4(data4, 7, (byte) 0x3e);
-        _GUID.Data4(connectExGuid, data4);
-        return connectExGuid;
-    }
-
-    private CompletionPort completionPort;
-
-    public BlockingWinTransportSocketLayer(SocketProtocol protocol) {
-        super(protocol);
-    }
-
     @Override
     protected Long createNativeHandle() {
-        var handle = WindowsKernel.WSASocketA(
-                WindowsKernel.AF_INET(),
-                WindowsKernel.SOCK_STREAM(),
-                WindowsKernel.IPPROTO_TCP(),
-                MemorySegment.NULL,
-                0,
-                WindowsKernel.WSA_FLAG_OVERLAPPED()
-        );
-        if (handle == WindowsKernel.INVALID_SOCKET()) {
-            throw new SocketException("Cannot create socket");
-        }
-        return handle;
+        return -1L;
     }
 
     @Override
-    public CompletableFuture<Void> connectNative(InetSocketAddress address) {
-        var localAddress = createLocalAddress();
-        var bindResult = WindowsKernel.bind(handle, localAddress, (int) localAddress.byteSize());
-        if (bindResult == WindowsKernel.SOCKET_ERROR()) {
-            return CompletableFuture.failedFuture(new SocketException("Cannot connect to socket: local bind failed"));
-        }
+    protected void connectNative(InetSocketAddress address) {
 
-        var remoteAddress = createRemoteAddress(address);
-        if (remoteAddress.isEmpty()) {
-            return CompletableFuture.failedFuture(new SocketException("Cannot connect to socket: unresolved host %s".formatted(address.getHostName())));
-        }
-
-        initIOBuffers();
-
-        this.completionPort = CompletionPort.shared();
-        completionPort.registerHandle(handle);
-
-        var future = completionPort.getOrAllocateFuture(handle);
-        var overlapped = arena.allocate(_OVERLAPPED.layout());
-        var connectResult = LPFN_CONNECTEX.invoke(
-                CONNECT_EX_FUNCTION,
-                handle,
-                remoteAddress.get(),
-                (int) remoteAddress.get().byteSize(),
-                MemorySegment.NULL,
-                0,
-                MemorySegment.NULL,
-                overlapped
-        );
-        if (connectResult != 1) {
-            var errorCode = WindowsKernel.WSAGetLastError();
-            if (errorCode != 0 && errorCode != WindowsKernel.WSA_IO_PENDING()) {
-                return CompletableFuture.failedFuture(new SocketException("Cannot connect to socket: remote connection failure (error code %s)".formatted(errorCode)));
-            }
-        }
-
-        return future.thenComposeAsync(_ -> {
-            var updateOptions = WindowsKernel.setsockopt(
-                    handle,
-                    WindowsKernel.SOL_SOCKET(),
-                    WindowsKernel.SO_UPDATE_CONNECT_CONTEXT(),
-                    MemorySegment.NULL,
-                    0
-            );
-            if (updateOptions != 0) {
-                return CompletableFuture.failedFuture(new SocketException("Cannot connect to socket: cannot set socket options (error code %s)".formatted(updateOptions)));
-            }
-
-            connected.set(true);
-            return NO_RESULT;
-        });
-    }
-
-    private MemorySegment createLocalAddress() {
-        var remoteAddress = arena.allocate(sockaddr_in.layout());
-        sockaddr_in.sin_family(remoteAddress, (short) WindowsKernel.AF_INET());
-        sockaddr_in.sin_port(remoteAddress, (short) 0);
-        var inAddr = arena.allocate(in_addr.layout());
-        in_addr.S_un(inAddr, arena.allocateFrom(WindowsKernel.ULONG, WindowsKernel.INADDR_ANY()));
-        sockaddr_in.sin_addr(remoteAddress, inAddr);
-        return remoteAddress;
-    }
-
-    private Optional<MemorySegment> createRemoteAddress(InetSocketAddress address) {
-        var remoteAddress = arena.allocate(sockaddr_in.layout());
-        sockaddr_in.sin_family(remoteAddress, (short) WindowsKernel.AF_INET());
-        sockaddr_in.sin_port(remoteAddress, Short.reverseBytes((short) address.getPort()));
-        var inAddr = arena.allocate(in_addr.layout());
-        var ipv4Host = getLittleEndianIPV4Host(address);
-        if (ipv4Host.isEmpty()) {
-            return Optional.empty();
-        }
-
-        in_addr.S_un(inAddr, arena.allocateFrom(WindowsKernel.C_INT, ipv4Host.getAsInt()));
-        sockaddr_in.sin_addr(remoteAddress, inAddr);
-        return Optional.of(remoteAddress);
     }
 
     @Override
-    protected CompletableFuture<Void> writeNative(ByteBuffer input) {
-        var length = Math.min(input.remaining(), writeBufferSize);
-        writeToIOBuffer(input, length);
+    protected void writeNative(ByteBuffer input) {
 
-        var message = arena.allocate(_WSABUF.layout());
-        message.set(_WSABUF.len$layout(), _WSABUF.len$offset(), length);
-        message.set(_WSABUF.buf$layout(), _WSABUF.buf$offset(), writeBuffer);
-        var overlapped = arena.allocate(_OVERLAPPED.layout());
-        var future = completionPort.getOrAllocateFuture(handle);
-        var result = WindowsKernel.WSASend(
-                handle,
-                message,
-                1,
-                MemorySegment.NULL,
-                0,
-                overlapped,
-                MemorySegment.NULL
-        );
-        if (result == WindowsKernel.SOCKET_ERROR()) {
-            var error = WindowsKernel.WSAGetLastError();
-            if (error != WindowsKernel.WSA_IO_PENDING()) {
-                return CompletableFuture.failedFuture(new SocketException("Cannot send message to socket (error code %s)".formatted(error)));
-            }
-        }
-
-        return future.thenCompose(writeValue -> {
-            if (writeValue == 0) {
-                close();
-                return CompletableFuture.failedFuture(new SocketException("Cannot send message to socket (socket closed)"));
-            }
-
-            if (input.hasRemaining()) {
-                return writeNative(input);
-            }
-
-            return NO_RESULT;
-        });
     }
 
     @Override
-    protected CompletableFuture<Void> readNative(ByteBuffer output, boolean lastRead) {
-        var buffer = arena.allocate(_WSABUF.layout());
-        _WSABUF.len(buffer, Math.min(output.remaining(), readBufferSize));
-        _WSABUF.buf(buffer, this.readBuffer);
-        var lpFlags = arena.allocate(ValueLayout.JAVA_INT);
-        var overlapped = arena.allocate(_OVERLAPPED.layout());
-        var future = completionPort.getOrAllocateFuture(handle);
-        var result = WindowsKernel.WSARecv(
-                handle,
-                buffer,
-                1,
-                MemorySegment.NULL,
-                lpFlags,
-                overlapped,
-                MemorySegment.NULL
-        );
-        if (result == WindowsKernel.SOCKET_ERROR()) {
-            var error = WindowsKernel.WSAGetLastError();
-            if (error != WindowsKernel.WSA_IO_PENDING()) {
-                return CompletableFuture.failedFuture(new SocketException("Cannot receive message from socket (error code %s)".formatted(error)));
-            }
-        }
+    protected void readNative(ByteBuffer output, boolean lastRead) {
 
-        return future.thenCompose(readLength -> {
-            if (readLength == 0) {
-                close();
-                return CompletableFuture.failedFuture(new SocketException("Cannot receive message from socket (socket closed)"));
-            }
-
-            readFromIOBuffer(output, readLength, lastRead);
-            return NO_RESULT;
-        });
     }
 
     @Override
-    public <V> void setOption(SocketOption<V> option, V optionValue) {
-        Objects.requireNonNull(optionValue, "Invalid option value");
-        var value = arena.allocate(
-                WindowsKernel.DWORD,
-                option.accept(optionValue)
-        );
-        var result = WindowsKernel.setsockopt(
-                handle,
-                WindowsKernel.SOL_SOCKET(),
-                WindowsKernel.SO_KEEPALIVE(),
-                value,
-                (int) value.byteSize()
-        );
-        if (result != 0) {
-            throw new SocketException("Cannot set option %s to %s: error code %s".formatted(option.name(), optionValue, result));
-        }
+    public void close() throws IOException {
 
-        super.setOption(option, optionValue);
-    }
-
-    @Override
-    public void close() {
-        if (!connected.get()) {
-            return;
-        }
-
-        this.address = null;
-        connected.set(false);
-        WindowsKernel.closesocket(handle);
-        if (completionPort != null) {
-            completionPort.unregisterHandle(handle);
-        }
     }
 }

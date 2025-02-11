@@ -2,21 +2,23 @@
 
 package it.auties.leap.socket.common.linux;
 
+import java.lang.invoke.*;
 import java.lang.foreign.*;
-import java.lang.invoke.VarHandle;
-import java.util.function.Consumer;
+import java.nio.ByteOrder;
+import java.util.*;
+import java.util.function.*;
+import java.util.stream.*;
 
-import static java.lang.foreign.MemoryLayout.PathElement.groupElement;
-import static java.lang.foreign.MemoryLayout.PathElement.sequenceElement;
-import static java.lang.foreign.ValueLayout.OfShort;
+import static java.lang.foreign.ValueLayout.*;
+import static java.lang.foreign.MemoryLayout.PathElement.*;
 
 /**
  * {@snippet lang=c :
  * struct sockaddr_in {
- *     ADDRESS_FAMILY sin_family;
- *     USHORT sin_port;
- *     IN_ADDR sin_addr;
- *     CHAR sin_zero[8];
+ *     sa_family_t sin_family;
+ *     in_port_t sin_port;
+ *     struct in_addr sin_addr;
+ *     unsigned char sin_zero[8];
  * }
  * }
  */
@@ -45,7 +47,7 @@ public class sockaddr_in {
     /**
      * Layout for field:
      * {@snippet lang=c :
-     * ADDRESS_FAMILY sin_family
+     * sa_family_t sin_family
      * }
      */
     public static final OfShort sin_family$layout() {
@@ -57,7 +59,7 @@ public class sockaddr_in {
     /**
      * Offset for field:
      * {@snippet lang=c :
-     * ADDRESS_FAMILY sin_family
+     * sa_family_t sin_family
      * }
      */
     public static final long sin_family$offset() {
@@ -67,7 +69,7 @@ public class sockaddr_in {
     /**
      * Getter for field:
      * {@snippet lang=c :
-     * ADDRESS_FAMILY sin_family
+     * sa_family_t sin_family
      * }
      */
     public static short sin_family(MemorySegment struct) {
@@ -77,7 +79,7 @@ public class sockaddr_in {
     /**
      * Setter for field:
      * {@snippet lang=c :
-     * ADDRESS_FAMILY sin_family
+     * sa_family_t sin_family
      * }
      */
     public static void sin_family(MemorySegment struct, short fieldValue) {
@@ -89,7 +91,7 @@ public class sockaddr_in {
     /**
      * Layout for field:
      * {@snippet lang=c :
-     * USHORT sin_port
+     * in_port_t sin_port
      * }
      */
     public static final OfShort sin_port$layout() {
@@ -101,7 +103,7 @@ public class sockaddr_in {
     /**
      * Offset for field:
      * {@snippet lang=c :
-     * USHORT sin_port
+     * in_port_t sin_port
      * }
      */
     public static final long sin_port$offset() {
@@ -111,7 +113,7 @@ public class sockaddr_in {
     /**
      * Getter for field:
      * {@snippet lang=c :
-     * USHORT sin_port
+     * in_port_t sin_port
      * }
      */
     public static short sin_port(MemorySegment struct) {
@@ -121,7 +123,7 @@ public class sockaddr_in {
     /**
      * Setter for field:
      * {@snippet lang=c :
-     * USHORT sin_port
+     * in_port_t sin_port
      * }
      */
     public static void sin_port(MemorySegment struct, short fieldValue) {
@@ -133,7 +135,7 @@ public class sockaddr_in {
     /**
      * Layout for field:
      * {@snippet lang=c :
-     * IN_ADDR sin_addr
+     * struct in_addr sin_addr
      * }
      */
     public static final GroupLayout sin_addr$layout() {
@@ -145,7 +147,7 @@ public class sockaddr_in {
     /**
      * Offset for field:
      * {@snippet lang=c :
-     * IN_ADDR sin_addr
+     * struct in_addr sin_addr
      * }
      */
     public static final long sin_addr$offset() {
@@ -155,7 +157,7 @@ public class sockaddr_in {
     /**
      * Getter for field:
      * {@snippet lang=c :
-     * IN_ADDR sin_addr
+     * struct in_addr sin_addr
      * }
      */
     public static MemorySegment sin_addr(MemorySegment struct) {
@@ -165,7 +167,7 @@ public class sockaddr_in {
     /**
      * Setter for field:
      * {@snippet lang=c :
-     * IN_ADDR sin_addr
+     * struct in_addr sin_addr
      * }
      */
     public static void sin_addr(MemorySegment struct, MemorySegment fieldValue) {
@@ -177,7 +179,7 @@ public class sockaddr_in {
     /**
      * Layout for field:
      * {@snippet lang=c :
-     * CHAR sin_zero[8]
+     * unsigned char sin_zero[8]
      * }
      */
     public static final SequenceLayout sin_zero$layout() {
@@ -189,7 +191,7 @@ public class sockaddr_in {
     /**
      * Offset for field:
      * {@snippet lang=c :
-     * CHAR sin_zero[8]
+     * unsigned char sin_zero[8]
      * }
      */
     public static final long sin_zero$offset() {
@@ -199,7 +201,7 @@ public class sockaddr_in {
     /**
      * Getter for field:
      * {@snippet lang=c :
-     * CHAR sin_zero[8]
+     * unsigned char sin_zero[8]
      * }
      */
     public static MemorySegment sin_zero(MemorySegment struct) {
@@ -209,7 +211,7 @@ public class sockaddr_in {
     /**
      * Setter for field:
      * {@snippet lang=c :
-     * CHAR sin_zero[8]
+     * unsigned char sin_zero[8]
      * }
      */
     public static void sin_zero(MemorySegment struct, MemorySegment fieldValue) {
@@ -221,7 +223,7 @@ public class sockaddr_in {
     /**
      * Dimensions for array field:
      * {@snippet lang=c :
-     * CHAR sin_zero[8]
+     * unsigned char sin_zero[8]
      * }
      */
     public static long[] sin_zero$dimensions() {
@@ -232,7 +234,7 @@ public class sockaddr_in {
     /**
      * Indexed getter for field:
      * {@snippet lang=c :
-     * CHAR sin_zero[8]
+     * unsigned char sin_zero[8]
      * }
      */
     public static byte sin_zero(MemorySegment struct, long index0) {
@@ -242,7 +244,7 @@ public class sockaddr_in {
     /**
      * Indexed setter for field:
      * {@snippet lang=c :
-     * CHAR sin_zero[8]
+     * unsigned char sin_zero[8]
      * }
      */
     public static void sin_zero(MemorySegment struct, long index0, byte fieldValue) {

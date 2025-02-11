@@ -1,14 +1,21 @@
 package it.auties.leap.socket.async.applicationLayer;
 
 import it.auties.leap.socket.async.AsyncSocketApplicationLayer;
+import it.auties.leap.socket.async.AsyncSocketApplicationLayerFactory;
 import it.auties.leap.socket.async.AsyncSocketTransportLayer;
 
 import java.nio.ByteBuffer;
 import java.util.concurrent.CompletableFuture;
 
 public class AsyncPlainSocketApplicationLayer extends AsyncSocketApplicationLayer {
+    private static final AsyncSocketApplicationLayerFactory<Void> FACTORY = (transportLayer, _) -> new AsyncPlainSocketApplicationLayer(transportLayer);
+
     public AsyncPlainSocketApplicationLayer(AsyncSocketTransportLayer transportLayer) {
         super(transportLayer);
+    }
+
+    public static AsyncSocketApplicationLayerFactory<Void> factory() {
+        return FACTORY;
     }
 
     @Override

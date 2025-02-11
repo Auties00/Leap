@@ -83,7 +83,7 @@ public class SocketTest {
                         .secure(tlsConfig)
                         .build()
         ) {
-            socket.connect(new InetSocketAddress("localhost", 4433)).join();
+            socket.connect(new InetSocketAddress("localhost", 8080)).join();
             var message = ByteBuffer.allocate(1024);
             socket.read(message).join();
             System.out.println(StandardCharsets.UTF_8.decode(message));

@@ -1,6 +1,6 @@
 package it.auties.leap.socket.blocking;
 
-import it.auties.leap.socket.SocketClientTunnelFactory;
+import it.auties.leap.socket.SocketTunnelLayerFactory;
 import it.auties.leap.socket.SocketException;
 import it.auties.leap.socket.blocking.tunnelLayer.BlockingDirectTunnelSocketLayer;
 import it.auties.leap.socket.blocking.tunnelLayer.BlockingHTTPTunnelSocketLayer;
@@ -9,7 +9,7 @@ import it.auties.leap.socket.blocking.tunnelLayer.BlockingSOCKSTunnelSocketLayer
 import java.net.URI;
 import java.util.Objects;
 
-public non-sealed interface BlockingSocketTunnelLayerFactory extends SocketClientTunnelFactory<BlockingSocketApplicationLayer> {
+public non-sealed interface BlockingSocketTunnelLayerFactory extends SocketTunnelLayerFactory<BlockingSocketApplicationLayer> {
     static BlockingSocketTunnelLayerFactory forProxy(URI proxy) {
         if (proxy == null) {
             return BlockingSocketTunnelLayerFactory.direct();
@@ -40,5 +40,5 @@ public non-sealed interface BlockingSocketTunnelLayerFactory extends SocketClien
     }
     
     @Override
-    BlockingSocketTunnelLayer newTunnel(BlockingSocketApplicationLayer applicationLayer, URI proxy);
+    BlockingSocketTunnelLayer newTunnel(BlockingSocketApplicationLayer applicationLayer, URI location);
 }

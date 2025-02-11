@@ -1,4 +1,4 @@
-package it.auties.leap.http.async.client;
+package it.auties.leap.http.async;
 
 import it.auties.leap.http.HttpClientBuilder;
 

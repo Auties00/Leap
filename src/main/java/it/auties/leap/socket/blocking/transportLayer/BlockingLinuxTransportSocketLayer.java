@@ -64,7 +64,7 @@ public final class BlockingLinuxTransportSocketLayer extends BlockingNativeTrans
             return Optional.empty();
         }
 
-        in_addr.S_un(inAddr, arena.allocateFrom(LinuxKernel.C_INT, ipv4Host.getAsInt()));
+        in_addr.s_addr(inAddr, ipv4Host.getAsInt());
         sockaddr_in.sin_addr(remoteAddress, inAddr);
         return Optional.of(remoteAddress);
     }

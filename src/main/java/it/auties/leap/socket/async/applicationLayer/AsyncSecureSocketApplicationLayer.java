@@ -1,6 +1,7 @@
 package it.auties.leap.socket.async.applicationLayer;
 
 import it.auties.leap.socket.async.AsyncSocketApplicationLayer;
+import it.auties.leap.socket.async.AsyncSocketApplicationLayerFactory;
 import it.auties.leap.socket.async.AsyncSocketTransportLayer;
 import it.auties.leap.tls.TlsConfig;
 import it.auties.leap.tls.TlsEngine;
@@ -19,6 +20,7 @@ import static it.auties.leap.tls.util.BufferUtils.*;
 
 public class AsyncSecureSocketApplicationLayer extends AsyncSocketApplicationLayer {
     private static final int FRAGMENT_LENGTH = 18432;
+    private static final AsyncSocketApplicationLayerFactory<TlsConfig> FACTORY = AsyncSecureSocketApplicationLayer::new;
 
     private final TlsConfig tlsConfig;
     private ByteBuffer tlsBuffer;
@@ -27,6 +29,10 @@ public class AsyncSecureSocketApplicationLayer extends AsyncSocketApplicationLay
     public AsyncSecureSocketApplicationLayer(AsyncSocketTransportLayer transportLayer, TlsConfig tlsConfig) {
         super(transportLayer);
         this.tlsConfig = tlsConfig;
+    }
+
+    public static AsyncSocketApplicationLayerFactory<TlsConfig> factory() {
+        return FACTORY;
     }
 
     @Override

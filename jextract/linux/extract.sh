@@ -37,4 +37,6 @@ jextract -t it.auties.leap.socket.common.linux --output "./../../src/main/java" 
 --include-constant IORING_OP_WRITE \
 --include-constant IORING_OP_READ \
 --include-constant SHUT_RDWR \
---include-function shutdown
+--include-function shutdown \
+--include-struct sockaddr_in \
+--include-struct in_addr

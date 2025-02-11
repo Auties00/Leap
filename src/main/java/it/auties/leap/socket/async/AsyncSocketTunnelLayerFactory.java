@@ -1,6 +1,6 @@
 package it.auties.leap.socket.async;
 
-import it.auties.leap.socket.SocketClientTunnelFactory;
+import it.auties.leap.socket.SocketTunnelLayerFactory;
 import it.auties.leap.socket.SocketException;
 import it.auties.leap.socket.async.tunnelLayer.AsyncDirectTunnelSocketLayer;
 import it.auties.leap.socket.async.tunnelLayer.AsyncHTTPTunnelSocketLayer;
@@ -9,7 +9,7 @@ import it.auties.leap.socket.async.tunnelLayer.AsyncSOCKSTunnelSocketLayer;
 import java.net.URI;
 import java.util.Objects;
 
-public non-sealed interface AsyncSocketTunnelLayerFactory extends SocketClientTunnelFactory<AsyncSocketApplicationLayer> {
+public non-sealed interface AsyncSocketTunnelLayerFactory extends SocketTunnelLayerFactory<AsyncSocketApplicationLayer> {
     static AsyncSocketTunnelLayerFactory forProxy(URI proxy) {
         if (proxy == null) {
             return AsyncSocketTunnelLayerFactory.direct();
@@ -40,5 +40,5 @@ public non-sealed interface AsyncSocketTunnelLayerFactory extends SocketClientTu
     }
 
     @Override
-    AsyncSocketTunnelLayer newTunnel(AsyncSocketApplicationLayer applicationLayer, URI proxy);
+    AsyncSocketTunnelLayer newTunnel(AsyncSocketApplicationLayer applicationLayer, URI location);
 }

@@ -2,97 +2,71 @@ package it.auties.leap.socket.async;
 
 import it.auties.leap.socket.SocketClientBuilder;
 import it.auties.leap.socket.SocketProtocol;
-import it.auties.leap.socket.async.applicationLayer.AsyncPlainSocketApplicationLayer;
-import it.auties.leap.socket.async.applicationLayer.AsyncSecureSocketApplicationLayer;
 import it.auties.leap.tls.TlsConfig;
 
 import java.net.URI;
 import java.util.Objects;
 
-public sealed class AsyncSocketClientBuilder extends SocketClientBuilder {
-    final SocketProtocol protocol;
-    AsyncSocketTransportLayerFactory transportFactory;
+@SuppressWarnings({"rawtypes", "unchecked"})
+public final class AsyncSocketClientBuilder extends SocketClientBuilder {
+    private final SocketProtocol protocol;
+    private AsyncSocketApplicationLayerFactory applicationFactory;
+    private Object applicationParameter;
+    private AsyncSocketTransportLayerFactory transportFactory;
+    private AsyncSocketTunnelLayerFactory tunnelFactory;
+    private URI tunnelLocation;
 
     AsyncSocketClientBuilder(SocketProtocol protocol) {
         this.protocol = protocol;
     }
 
-    public AsyncSocketClientBuilder transport(AsyncSocketTransportLayerFactory transportFactory) {
-        this.transportFactory = Objects.requireNonNullElseGet(transportFactory, AsyncSocketTransportLayerFactory::forPlatform);
+    public AsyncSocketClientBuilder transportLayer(AsyncSocketTransportLayerFactory transportFactory) {
+        this.transportFactory = transportFactory;
         return this;
     }
 
-    public AsyncSocketClientBuilder.Secure secure(TlsConfig config) {
-        return new Secure(protocol, config);
+    public <P> AsyncSocketClientBuilder applicationLayer(AsyncSocketApplicationLayerFactory<P> factory, P param) {
+        this.applicationFactory = factory;
+        this.applicationParameter = param;
+        return this;
     }
 
-    public AsyncSocketClientBuilder.Plain plain() {
-        return new Plain(protocol);
+    public AsyncSocketClientBuilder tunnelLayer(AsyncSocketTunnelLayerFactory tunnelFactory, URI tunnelLocation) {
+        this.tunnelFactory = tunnelFactory;
+        this.tunnelLocation = tunnelLocation;
+        return this;
     }
 
-    public static final class Secure extends AsyncSocketClientBuilder {
-        private final TlsConfig config;
-        private AsyncSocketTunnelLayerFactory tunnelFactory;
-        private URI proxy;
-        Secure(SocketProtocol protocol, TlsConfig config) {
-            super(protocol);
-            this.tunnelFactory = AsyncSocketTunnelLayerFactory.direct();
-            this.config = config;
-        }
-
-        public Secure tunnel(URI proxy) {
-            if(proxy == null) {
-                this.tunnelFactory = AsyncSocketTunnelLayerFactory.direct();
-                this.proxy = null;
-            }else {
-                this.tunnelFactory = AsyncSocketTunnelLayerFactory.forProxy(proxy);
-                this.proxy = proxy;
-            }
-            return this;
-        }
-
-        public Secure tunnel(AsyncSocketTunnelLayerFactory tunnelFactory) {
-            this.tunnelFactory = tunnelFactory;
-            return this;
-        }
-
-        public AsyncSocketClient build() {
-            var transport = transportFactory.newTransport(protocol);
-            var application = new AsyncSecureSocketApplicationLayer(transport, config);
-            var tunnel = tunnelFactory.newTunnel(application, proxy);
-            return new AsyncSocketClient(application, tunnel);
-        }
+    public AsyncSocketClientBuilder secure(TlsConfig config) {
+        this.applicationFactory = AsyncSocketApplicationLayerFactory.secure();
+        this.applicationParameter = config;
+        return this;
     }
 
-    public static final class Plain extends AsyncSocketClientBuilder {
-        private AsyncSocketTunnelLayerFactory tunnelFactory;
-        private URI proxy;
-        Plain(SocketProtocol protocol) {
-            super(protocol);
-            this.tunnelFactory = AsyncSocketTunnelLayerFactory.direct();
-        }
+    public AsyncSocketClientBuilder plain() {
+        this.applicationFactory = AsyncSocketApplicationLayerFactory.plain();
+        this.applicationParameter = null;
+        return this;
+    }
 
-        public Plain tunnel(URI proxy) {
-            if(proxy == null) {
-                this.tunnelFactory = AsyncSocketTunnelLayerFactory.direct();
-                this.proxy = null;
-            }else {
-                this.tunnelFactory = AsyncSocketTunnelLayerFactory.forProxy(proxy);
-                this.proxy = proxy;
-            }
-            return this;
+    public AsyncSocketClientBuilder proxy(URI proxy) {
+        if(proxy == null) {
+            this.tunnelFactory = null;
+            this.tunnelLocation = null;
+        }else {
+            this.tunnelFactory = AsyncSocketTunnelLayerFactory.forProxy(proxy);
+            this.tunnelLocation = proxy;
         }
+        return this;
+    }
 
-        public Plain tunnel(AsyncSocketTunnelLayerFactory tunnelFactory) {
-            this.tunnelFactory = tunnelFactory;
-            return this;
-        }
-
-        public AsyncSocketClient build() {
-            var transport = transportFactory.newTransport(protocol);
-            var application = new AsyncPlainSocketApplicationLayer(transport);
-            var tunnel = tunnelFactory.newTunnel(application, proxy);
-            return new AsyncSocketClient(application, tunnel);
-        }
+    public AsyncSocketClient build() {
+        var transport = Objects.requireNonNullElseGet(transportFactory, AsyncSocketTransportLayerFactory::forPlatform)
+                .newTransport(protocol);
+        var application = Objects.requireNonNullElseGet(applicationFactory, AsyncSocketApplicationLayerFactory::secure)
+                .newApplication(transport, applicationParameter);
+        var tunnel = Objects.requireNonNullElseGet(tunnelFactory, AsyncSocketTunnelLayerFactory::direct)
+                .newTunnel(application, tunnelLocation);
+        return new AsyncSocketClient(application, tunnel);
     }
 }

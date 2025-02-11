@@ -93,7 +93,7 @@ public final class BlockingSocketClient implements SocketClient, BlockingSocketI
                 .setOption(option, value);
     }
 
-    static BlockingSocketClientBuilder newBuilder(SocketProtocol protocol) {
+    public static BlockingSocketClientBuilder newBuilder(SocketProtocol protocol) {
         return new BlockingSocketClientBuilder(protocol);
     }
 }
