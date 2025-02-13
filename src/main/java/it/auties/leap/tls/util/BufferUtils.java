@@ -13,8 +13,25 @@ public final class BufferUtils {
     }
 
     public static int readLittleEndianInt16(ByteBuffer m) {
-        return ((m.get() & 0xFF) << 8) |
-                (m.get() & 0xFF);
+        return (m.get() & 0xFF)
+                | ((m.get() & 0xFF) << 8);
+    }
+
+    public static int readLittleEndianInt24(ByteBuffer m) {
+        return (m.get() & 0xFF)
+                | ((m.get() & 0xFF) << 8)
+                | ((m.get() & 0xFF) << 16);
+    }
+
+    public static int readLittleEndianInt32(ByteBuffer m) {
+        return (m.get() & 0xFF)
+                | ((m.get() & 0xFF) << 8)
+                | ((m.get() & 0xFF) << 16)
+                | ((m.get() & 0xFF) << 24);
+    }
+
+    public static int readBigEndianInt8(ByteBuffer input) {
+        return input.get();
     }
 
     public static int readBigEndianInt16(ByteBuffer input) {
@@ -25,19 +42,6 @@ public final class BufferUtils {
     public static int readBigEndianInt16(byte[] bs, int off) {
         return ((bs[off] & 0xff) << 8)
                 | (bs[off + 1] & 0xff);
-    }
-
-    public static int readLittleEndianInt24(ByteBuffer m) {
-        return ((m.get() & 0xFF) << 16) |
-                ((m.get() & 0xFF) << 8) |
-                (m.get() & 0xFF);
-    }
-
-    public static int readLittleEndianInt32(ByteBuffer m) {
-        return ((m.get() & 0xFF) << 24) |
-                ((m.get() & 0xFF) << 16) |
-                ((m.get() & 0xFF) << 8) |
-                (m.get() & 0xFF);
     }
 
     public static int readBigEndianInt32(ByteBuffer input) {
@@ -76,7 +80,74 @@ public final class BufferUtils {
                 | ((long) (bs[++off] & 0xFF) << 8)
                 | ((long) (bs[++off] & 0xFF));
     }
-    
+
+    public static void writeLittleEndianInt8(ByteBuffer m, int i) {
+        m.put((byte) (i & 0xFF));
+    }
+
+    public static void writeLittleEndianInt16(ByteBuffer m, int i) {
+        m.put((byte) (i & 0xFF));
+        m.put((byte) ((i >> 8) & 0xFF));
+    }
+
+    public static void writeLittleEndianInt24(ByteBuffer m, int i) {
+        m.put((byte) (i & 0xFF));
+        m.put((byte) ((i >> 8) & 0xFF));
+        m.put((byte) ((i >> 16) & 0xFF));
+    }
+
+    public static void writeLittleEndianInt32(ByteBuffer m, int i) {
+        m.put((byte) (i & 0xFF));
+        m.put((byte) ((i >> 8) & 0xFF));
+        m.put((byte) ((i >> 16) & 0xFF));
+        m.put((byte) ((i >> 24) & 0xFF));
+    }
+
+    public static void writeLittleEndianInt64(ByteBuffer output, long n) {
+        output.put((byte) n);
+        output.put((byte) (n >> 8));
+        output.put((byte) (n >> 16));
+        output.put((byte) (n >> 24));
+        output.put((byte) (n >> 32));
+        output.put((byte) (n >> 40));
+        output.put((byte) (n >> 48));
+        output.put((byte) (n >> 56));
+    }
+
+    public static void writeBigEndianInt8(ByteBuffer m, int i) {
+        m.put((byte) (i & 0xFF));
+    }
+
+    public static void writeBigEndianInt16(ByteBuffer output, int n) {
+        output.put((byte) (n >>> 8));
+        output.put((byte) n);
+    }
+
+    public static void writeBigEndianInt32(ByteBuffer output, int n) {
+        output.put((byte) (n >>> 24));
+        output.put((byte) (n >>> 16));
+        output.put((byte) (n >>> 8));
+        output.put((byte) n);
+    }
+
+    public static void writeBigEndianInt32(int n, byte[] bs, int off) {
+        bs[off] = (byte) (n >>> 24);
+        bs[++off] = (byte) (n >>> 16);
+        bs[++off] = (byte) (n >>> 8);
+        bs[++off] = (byte) (n);
+    }
+
+    public static void writeBigEndianInt64(ByteBuffer output, long n) {
+        output.put((byte) (n >> 56));
+        output.put((byte) (n >> 48));
+        output.put((byte) (n >> 40));
+        output.put((byte) (n >> 32));
+        output.put((byte) (n >> 24));
+        output.put((byte) (n >> 16));
+        output.put((byte) (n >> 8));
+        output.put((byte) n);
+    }
+
     public static ByteBuffer readBuffer(ByteBuffer buffer, int length) {
         var sliced = buffer.slice(buffer.position(), length);
         buffer.position(buffer.position() + length);
@@ -156,58 +227,6 @@ public final class BufferUtils {
         var sliced = buffer.slice(buffer.position(), length);
         buffer.position(buffer.position() + length);
         return new ByteBufferBackedInputStream(sliced);
-    }
-
-    public static void writeLittleEndianInt8(ByteBuffer m, int i) {
-        m.put((byte) (i & 0xFF));
-    }
-
-    public static void writeLittleEndianInt16(ByteBuffer m, int i) {
-        m.put((byte) ((i >> 8) & 0xFF));
-        m.put((byte) (i & 0xFF));
-    }
-
-    public static void writeBigEndianInt16(ByteBuffer output, int n) {
-        output.put((byte) (n >>> 8));
-        output.put((byte) n);
-    }
-
-    public static void writeLittleEndianInt24(ByteBuffer m, int i) {
-        m.put((byte) ((i >> 16) & 0xFF));
-        m.put((byte) ((i >> 8) & 0xFF));
-        m.put((byte) (i & 0xFF));
-    }
-
-    public static void writeLittleEndianInt32(ByteBuffer m, int i) {
-        m.put((byte) ((i >> 24) & 0xFF));
-        m.put((byte) ((i >> 16) & 0xFF));
-        m.put((byte) ((i >> 8) & 0xFF));
-        m.put((byte) (i & 0xFF));
-    }
-
-    public static void writeBigEndianInt32(ByteBuffer output, int n) {
-        output.put((byte) (n >>> 24));
-        output.put((byte) (n >>> 16));
-        output.put((byte) (n >>> 8));
-        output.put((byte) n);
-    }
-
-    public static void writeBigEndianInt32(int n, byte[] bs, int off) {
-        bs[off] = (byte) (n >>> 24);
-        bs[++off] = (byte) (n >>> 16);
-        bs[++off] = (byte) (n >>> 8);
-        bs[++off] = (byte) (n);
-    }
-
-    public static void writeBigEndianInt64(ByteBuffer output, long n) {
-        output.put((byte) (n >> 56));
-        output.put((byte) (n >> 48));
-        output.put((byte) (n >> 40));
-        output.put((byte) (n >> 32));
-        output.put((byte) (n >> 24));
-        output.put((byte) (n >> 16));
-        output.put((byte) (n >> 8));
-        output.put((byte) n);
     }
 
     public static void writeBytes(ByteBuffer m, byte[] s) {
