@@ -3,7 +3,7 @@ package it.auties.leap.tls.extension.implementation;
 import it.auties.leap.tls.TlsMode;
 import it.auties.leap.tls.ec.TlsECPointFormat;
 import it.auties.leap.tls.extension.TlsExtension;
-import it.auties.leap.tls.extension.TlsExtensionDecoder;
+import it.auties.leap.tls.extension.TlsExtensionDeserializer;
 import it.auties.leap.tls.version.TlsVersion;
 
 import java.nio.ByteBuffer;
@@ -22,9 +22,9 @@ public record ECPointFormatExtension(
             TlsECPointFormat.ansix962CompressedPrime().id())
     );
 
-    private static final TlsExtensionDecoder DECODER = new TlsExtensionDecoder() {
+    private static final TlsExtensionDeserializer DECODER = new TlsExtensionDeserializer() {
         @Override
-        public Optional<? extends Concrete> decode(ByteBuffer buffer, int type, TlsMode mode) {
+        public Optional<? extends Concrete> deserialize(ByteBuffer buffer, int type, TlsMode mode) {
             var ecPointFormatsSize = readLittleEndianInt8(buffer);
             var ecPointFormats = new ArrayList<Byte>();
             for(var i = 0; i < ecPointFormatsSize; i++) {
@@ -75,7 +75,7 @@ public record ECPointFormatExtension(
     }
 
     @Override
-    public TlsExtensionDecoder decoder() {
+    public TlsExtensionDeserializer decoder() {
         return DECODER;
     }
 }

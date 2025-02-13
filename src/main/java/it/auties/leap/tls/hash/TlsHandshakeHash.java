@@ -1,6 +1,6 @@
 package it.auties.leap.tls.hash;
 
-import it.auties.leap.tls.TlsEngine;
+import it.auties.leap.tls.TlsContext;
 import it.auties.leap.tls.TlsMode;
 import it.auties.leap.tls.TlsSource;
 import it.auties.leap.tls.exception.TlsException;
@@ -20,7 +20,7 @@ public abstract sealed class TlsHandshakeHash {
 
     public abstract void update(byte[] input);
     public abstract byte[] digest();
-    public abstract byte[] finish(TlsEngine engine, TlsSource source);
+    public abstract byte[] finish(TlsContext context, TlsSource source);
 
     private static final class S30VerifyDataGenerator extends TlsHandshakeHash {
         private static final byte[] MD5_PAD1 = genPad(0x36, 48);
@@ -59,10 +59,10 @@ public abstract sealed class TlsHandshakeHash {
         }
 
         @Override
-        public byte[] finish(TlsEngine engine, TlsSource source) {
-            var mode = engine.selectedMode()
+        public byte[] finish(TlsContext context, TlsSource source) {
+            var mode = context.selectedMode()
                     .orElseThrow(() -> new TlsException("No mode was selected yet"));
-            var masterSecret = engine.masterSecretKey()
+            var masterSecret = context.masterSecretKey()
                     .orElseThrow(() -> new TlsException("Master secret key is not available yet"))
                     .data();
             var useClientLabel = (mode == TlsMode.CLIENT && source == TlsSource.LOCAL) || (mode == TlsMode.SERVER && source == TlsSource.REMOTE);
@@ -120,10 +120,10 @@ public abstract sealed class TlsHandshakeHash {
         }
 
         @Override
-        public byte[] finish(TlsEngine engine, TlsSource source) {
-            var mode = engine.selectedMode()
+        public byte[] finish(TlsContext context, TlsSource source) {
+            var mode = context.selectedMode()
                     .orElseThrow(() -> new TlsException("No mode was selected yet"));
-            var masterSecret = engine.masterSecretKey()
+            var masterSecret = context.masterSecretKey()
                     .orElseThrow(() -> new TlsException("Master secret key is not available yet"))
                     .data();
             var useClientLabel = (mode == TlsMode.CLIENT && source == TlsSource.LOCAL) || (mode == TlsMode.SERVER && source == TlsSource.REMOTE);
@@ -156,10 +156,10 @@ public abstract sealed class TlsHandshakeHash {
         }
 
         @Override
-        public byte[] finish(TlsEngine engine, TlsSource source) {
-            var mode = engine.selectedMode()
+        public byte[] finish(TlsContext context, TlsSource source) {
+            var mode = context.selectedMode()
                     .orElseThrow(() -> new TlsException("No mode was selected yet"));
-            var masterSecret = engine.masterSecretKey()
+            var masterSecret = context.masterSecretKey()
                     .orElseThrow(() -> new TlsException("Master secret key is not available yet"))
                     .data();
             var useClientLabel = (mode == TlsMode.CLIENT && source == TlsSource.LOCAL) || (mode == TlsMode.SERVER && source == TlsSource.REMOTE);
@@ -194,7 +194,7 @@ public abstract sealed class TlsHandshakeHash {
         }
 
         @Override
-        public byte[] finish(TlsEngine engine, TlsSource source) {
+        public byte[] finish(TlsContext context, TlsSource source) {
               /*
             TODO
             CipherSuite.HashAlg hashAlg = context.negotiatedCipherSuite.hashAlg;

@@ -1,6 +1,6 @@
 package it.auties.leap.tls.message.implementation;
 
-import it.auties.leap.tls.TlsEngine;
+import it.auties.leap.tls.TlsContext;
 import it.auties.leap.tls.TlsSource;
 import it.auties.leap.tls.exception.TlsException;
 import it.auties.leap.tls.message.TlsHandshakeMessage;
@@ -17,8 +17,8 @@ public sealed abstract class ChangeCipherSpecMessage extends TlsHandshakeMessage
         super(version, source);
     }
 
-    public static ChangeCipherSpecMessage of(TlsEngine engine, ByteBuffer buffer, Metadata metadata) {
-        return switch(engine.selectedMode().orElse(null)) {
+    public static ChangeCipherSpecMessage of(TlsContext context, ByteBuffer buffer, Metadata metadata) {
+        return switch(context.selectedMode().orElse(null)) {
             case CLIENT -> ChangeCipherSpecMessage.Client.of(metadata.version(), metadata.source(), buffer);
             case SERVER -> ChangeCipherSpecMessage.Server.of(metadata.version(), metadata.source(), buffer);
             case null -> throw new TlsException("No engine mode has been selected yet");

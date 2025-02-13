@@ -1,8 +1,10 @@
 package it.auties.leap.tls.ec.implementation;
 
+import it.auties.leap.tls.TlsContext;
 import it.auties.leap.tls.ec.TlsECParameters;
-import it.auties.leap.tls.ec.TlsECParametersDecoder;
+import it.auties.leap.tls.ec.TlsECParametersDeserializer;
 import it.auties.leap.tls.exception.TlsException;
+import it.auties.leap.tls.key.TlsSupportedGroup;
 
 import java.math.BigInteger;
 import java.nio.ByteBuffer;
@@ -13,14 +15,14 @@ public final class ExplicitChar2Parameters implements TlsECParameters {
     private static final byte BASIS_TRINOMIAL = 1;
     private static final byte BASIS_PENTANOMIAL = 2;
 
-    private static final TlsECParametersDecoder DECODER = new TlsECParametersDecoder() {
+    private static final TlsECParametersDeserializer DESERIALIZER = new TlsECParametersDeserializer() {
         @Override
-        public byte id() {
+        public byte type() {
             return 2;
         }
 
         @Override
-        public TlsECParameters decode(ByteBuffer input) {
+        public TlsECParameters deserialize(ByteBuffer input) {
             var m = readLittleEndianInt16(input);
             var basis = readLittleEndianInt8(input);
             return switch (basis) {
@@ -81,8 +83,8 @@ public final class ExplicitChar2Parameters implements TlsECParameters {
         this.cofactor = cofactor;
     }
 
-    public static TlsECParametersDecoder parametersDecoder() {
-        return DECODER;
+    public static TlsECParametersDeserializer deserializer() {
+        return DESERIALIZER;
     }
 
     @Override
@@ -126,7 +128,7 @@ public final class ExplicitChar2Parameters implements TlsECParameters {
     }
 
     @Override
-    public TlsECParametersDecoder decoder() {
-        return DECODER;
+    public TlsSupportedGroup toGroup(TlsContext context) {
+        return TlsSupportedGroup.explicitChar2(this);
     }
 }

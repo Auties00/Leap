@@ -1,21 +1,23 @@
 package it.auties.leap.tls.ec.implementation;
 
+import it.auties.leap.tls.TlsContext;
 import it.auties.leap.tls.ec.TlsECParameters;
-import it.auties.leap.tls.ec.TlsECParametersDecoder;
+import it.auties.leap.tls.ec.TlsECParametersDeserializer;
+import it.auties.leap.tls.key.TlsSupportedGroup;
 
 import java.nio.ByteBuffer;
 
 import static it.auties.leap.tls.util.BufferUtils.*;
 
 public final class ExplicitPrimeParameters implements TlsECParameters {
-    private static final TlsECParametersDecoder DECODER = new TlsECParametersDecoder() {
+    private static final TlsECParametersDeserializer DESERIALIZER = new TlsECParametersDeserializer() {
         @Override
-        public byte id() {
+        public byte type() {
             return 1;
         }
 
         @Override
-        public TlsECParameters decode(ByteBuffer input) {
+        public TlsECParameters deserialize(ByteBuffer input) {
             var prime = readBytesLittleEndian8(input);
             var a = readBytesLittleEndian8(input);
             var b = readBytesLittleEndian8(input);
@@ -42,8 +44,8 @@ public final class ExplicitPrimeParameters implements TlsECParameters {
         this.cofactor = cofactor;
     }
 
-    public static TlsECParametersDecoder parametersDecoder() {
-        return DECODER;
+    public static TlsECParametersDeserializer deserializer() {
+        return DESERIALIZER;
     }
 
     @Override
@@ -67,7 +69,7 @@ public final class ExplicitPrimeParameters implements TlsECParameters {
     }
 
     @Override
-    public TlsECParametersDecoder decoder() {
-        return DECODER;
+    public TlsSupportedGroup toGroup(TlsContext context) {
+        return TlsSupportedGroup.explicitPrime(this);
     }
 }

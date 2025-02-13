@@ -1,10 +1,6 @@
 package it.auties.leap.tls.cipher;
 
-import it.auties.leap.tls.cipher.auth.TlsAuthFactory;
-import it.auties.leap.tls.cipher.engine.TlsCipherEngineFactory;
-import it.auties.leap.tls.cipher.exchange.client.TlsClientKeyExchangeFactory;
-import it.auties.leap.tls.cipher.exchange.server.TlsServerKeyExchangeFactory;
-import it.auties.leap.tls.cipher.mode.TlsCipherModeFactory;
+import it.auties.leap.tls.cipher.exchange.TlsKeyExchangeFactory;
 import it.auties.leap.tls.extension.TlsExtension;
 import it.auties.leap.tls.extension.implementation.GREASEExtension;
 import it.auties.leap.tls.hash.TlsHashFactory;
@@ -38,8 +34,7 @@ public final class TlsGREASE {
                 id,
                 TlsCipherEngineFactory.none(),
                 TlsCipherModeFactory.none(),
-                TlsClientKeyExchangeFactory.none(),
-                TlsServerKeyExchangeFactory.none(),
+                TlsKeyExchangeFactory.none(),
                 TlsAuthFactory.none(),
                 TlsHashFactory.none(),
                 List.of(TlsVersion.TLS12, TlsVersion.TLS13),

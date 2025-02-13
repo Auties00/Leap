@@ -1,6 +1,6 @@
 package it.auties.leap.tls.message;
 
-import it.auties.leap.tls.TlsEngine;
+import it.auties.leap.tls.TlsContext;
 import it.auties.leap.tls.TlsSource;
 import it.auties.leap.tls.message.implementation.AlertMessage;
 import it.auties.leap.tls.message.implementation.ApplicationDataMessage;
@@ -19,13 +19,13 @@ import static it.auties.leap.tls.util.BufferUtils.*;
 
 public sealed abstract class TlsMessage
         permits AlertMessage, ApplicationDataMessage, TlsHandshakeMessage {
-    public static TlsMessage of(TlsEngine engine, ByteBuffer buffer, Metadata metadata) {
+    public static TlsMessage of(TlsContext context, ByteBuffer buffer, Metadata metadata) {
         try(var _ = scopedRead(buffer, metadata.messageLength())) {
             return switch (metadata.contentType()) {
-                case HANDSHAKE -> TlsHandshakeMessage.of(engine, buffer, metadata);
-                case CHANGE_CIPHER_SPEC -> ChangeCipherSpecMessage.of(engine, buffer, metadata);
-                case ALERT -> AlertMessage.of(engine, buffer, metadata);
-                case APPLICATION_DATA -> ApplicationDataMessage.of(engine, buffer, metadata);
+                case HANDSHAKE -> TlsHandshakeMessage.of(context, buffer, metadata);
+                case CHANGE_CIPHER_SPEC -> ChangeCipherSpecMessage.of(context, buffer, metadata);
+                case ALERT -> AlertMessage.of(context, buffer, metadata);
+                case APPLICATION_DATA -> ApplicationDataMessage.of(context, buffer, metadata);
             };
         }
     }

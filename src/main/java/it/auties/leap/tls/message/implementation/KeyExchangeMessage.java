@@ -1,10 +1,9 @@
 package it.auties.leap.tls.message.implementation;
 
-import it.auties.leap.tls.TlsEngine;
+import it.auties.leap.tls.TlsContext;
 import it.auties.leap.tls.TlsSource;
-import it.auties.leap.tls.cipher.exchange.client.TlsClientKeyExchange;
-import it.auties.leap.tls.cipher.exchange.server.TlsServerKeyExchange;
-import it.auties.leap.tls.exception.TlsException;
+import it.auties.leap.tls.cipher.exchange.TlsClientKeyExchange;
+import it.auties.leap.tls.cipher.exchange.TlsServerKeyExchange;
 import it.auties.leap.tls.message.TlsHandshakeMessage;
 import it.auties.leap.tls.version.TlsVersion;
 
@@ -31,12 +30,11 @@ public sealed abstract class KeyExchangeMessage extends TlsHandshakeMessage {
             this.signature = signature;
         }
 
-        public static Server of(TlsEngine engine, ByteBuffer buffer, Metadata metadata) {
-            var remoteParameters = switch (engine.localKeyExchange().orElse(null)) {
-                case TlsClientKeyExchange clientKeyExchange -> clientKeyExchange.decodeRemote(buffer);
-                case TlsServerKeyExchange serverKeyExchange -> serverKeyExchange.decodeLocal(buffer);
-                case null -> throw new TlsException("Missing local key exchange");
-            };
+        public static Server of(TlsContext context, ByteBuffer buffer, Metadata metadata) {
+            var remoteParameters = (TlsServerKeyExchange) context.negotiatedCipher()
+                    .orElseThrow()
+                    .keyExchangeFactory()
+                    .decodeRemoteKeyExchange(context, buffer);
             var signatureAlgorithmId = readLittleEndianInt16(buffer);
             var signature = readBytesLittleEndian16(buffer);
             return new Server(metadata.version(), metadata.source(), remoteParameters, signatureAlgorithmId, signature);
@@ -102,7 +100,7 @@ public sealed abstract class KeyExchangeMessage extends TlsHandshakeMessage {
             this.remoteParameters = remoteParameters;
         }
 
-        public static Client of(TlsEngine ignoredEngine, ByteBuffer buffer, Metadata metadata) {
+        public static Client of(TlsContext ignoredEngine, ByteBuffer buffer, Metadata metadata) {
             var messageLength = readLittleEndianInt24(buffer);
             try(var _ = scopedRead(buffer, messageLength)) {
                 return new Client(metadata.version(), metadata.source(), readBuffer(buffer, buffer.remaining()));

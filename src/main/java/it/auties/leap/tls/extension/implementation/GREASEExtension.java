@@ -2,7 +2,7 @@ package it.auties.leap.tls.extension.implementation;
 
 import it.auties.leap.tls.TlsMode;
 import it.auties.leap.tls.extension.TlsExtension;
-import it.auties.leap.tls.extension.TlsExtensionDecoder;
+import it.auties.leap.tls.extension.TlsExtensionDeserializer;
 import it.auties.leap.tls.version.TlsVersion;
 
 import java.nio.ByteBuffer;
@@ -28,9 +28,9 @@ public final class GREASEExtension implements TlsExtension.Concrete {
     private static final GREASEExtension GREASE_EA = new GREASEExtension(0xEAEA);
     private static final GREASEExtension GREASE_FA = new GREASEExtension(0xFAFA);
 
-    private static final TlsExtensionDecoder DECODER = new TlsExtensionDecoder() {
+    private static final TlsExtensionDeserializer DECODER = new TlsExtensionDeserializer() {
         @Override
-        public Optional<? extends Concrete> decode(ByteBuffer buffer, int type, TlsMode mode) {
+        public Optional<? extends Concrete> deserialize(ByteBuffer buffer, int type, TlsMode mode) {
             return switch (type) {
                 case 0x0A0A -> Optional.of(GREASE_0A);
                 case 0x1A1A -> Optional.of(GREASE_1A);
@@ -148,7 +148,7 @@ public final class GREASEExtension implements TlsExtension.Concrete {
     }
 
     @Override
-    public TlsExtensionDecoder decoder() {
+    public TlsExtensionDeserializer decoder() {
         return DECODER;
     }
 

@@ -2,7 +2,7 @@ package it.auties.leap.tls.extension.implementation;
 
 import it.auties.leap.tls.TlsMode;
 import it.auties.leap.tls.extension.TlsExtension;
-import it.auties.leap.tls.extension.TlsExtensionDecoder;
+import it.auties.leap.tls.extension.TlsExtensionDeserializer;
 import it.auties.leap.tls.psk.TlsPSKExchangeMode;
 import it.auties.leap.tls.version.TlsVersion;
 
@@ -18,9 +18,9 @@ import static it.auties.leap.tls.util.BufferUtils.readLittleEndianInt8;
 public record PSKExchangeModesExtension(
         List<Byte> modes
 ) implements TlsExtension.Concrete {
-    private static final TlsExtensionDecoder DECODER = new TlsExtensionDecoder(){
+    private static final TlsExtensionDeserializer DECODER = new TlsExtensionDeserializer(){
         @Override
-        public Optional<? extends Concrete> decode(ByteBuffer buffer, int type, TlsMode mode) {
+        public Optional<? extends Concrete> deserialize(ByteBuffer buffer, int type, TlsMode mode) {
             var modesSize = readLittleEndianInt16(buffer);
             var modes = new ArrayList<Byte>(modesSize);
             for(var i = 0; i < modesSize; i++) {
@@ -67,7 +67,7 @@ public record PSKExchangeModesExtension(
     }
 
     @Override
-    public TlsExtensionDecoder decoder() {
+    public TlsExtensionDeserializer decoder() {
         return DECODER;
     }
 

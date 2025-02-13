@@ -1,9 +1,9 @@
 package it.auties.leap.tls.extension.implementation;
 
-import it.auties.leap.tls.TlsEngine;
+import it.auties.leap.tls.TlsContext;
 import it.auties.leap.tls.TlsMode;
 import it.auties.leap.tls.extension.TlsExtension;
-import it.auties.leap.tls.extension.TlsExtensionDecoder;
+import it.auties.leap.tls.extension.TlsExtensionDeserializer;
 import it.auties.leap.tls.util.AddressUtils;
 import it.auties.leap.tls.version.TlsVersion;
 
@@ -16,9 +16,9 @@ import java.util.function.Predicate;
 import static it.auties.leap.tls.util.BufferUtils.*;
 
 public sealed abstract class SNIExtension {
-    private static final TlsExtensionDecoder DECODER = new TlsExtensionDecoder() {
+    private static final TlsExtensionDeserializer DECODER = new TlsExtensionDeserializer() {
         @Override
-        public Optional<? extends TlsExtension.Concrete> decode(ByteBuffer buffer, int type, TlsMode mode) {
+        public Optional<? extends TlsExtension.Concrete> deserialize(ByteBuffer buffer, int type, TlsMode mode) {
             var listLength = readLittleEndianInt16(buffer);
             if(listLength == 0) {
                 return Optional.empty();
@@ -75,7 +75,7 @@ public sealed abstract class SNIExtension {
         }
 
         @Override
-        public TlsExtensionDecoder decoder() {
+        public TlsExtensionDeserializer decoder() {
             return DECODER;
         }
 
@@ -121,8 +121,8 @@ public sealed abstract class SNIExtension {
         }
 
         @Override
-        public Optional<? extends TlsExtension.Concrete> newInstance(TlsEngine engine) {
-            var hostname = engine.remoteAddress()
+        public Optional<? extends TlsExtension.Concrete> newInstance(TlsContext context) {
+            var hostname = context.remoteAddress()
                     .map(InetSocketAddress::getHostName)
                     .orElse(null);
             if(hostname == null) {
@@ -154,7 +154,7 @@ public sealed abstract class SNIExtension {
         }
 
         @Override
-        public TlsExtensionDecoder decoder() {
+        public TlsExtensionDeserializer decoder() {
             return DECODER;
         }
     }

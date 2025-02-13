@@ -1,6 +1,6 @@
 package it.auties.leap.tls.message.implementation;
 
-import it.auties.leap.tls.TlsEngine;
+import it.auties.leap.tls.TlsContext;
 import it.auties.leap.tls.TlsSource;
 import it.auties.leap.tls.version.TlsVersion;
 import it.auties.leap.tls.message.TlsMessage;
@@ -26,7 +26,7 @@ public final class AlertMessage extends TlsMessage {
         this.type = type;
     }
 
-    public static AlertMessage of(TlsEngine ignoredEngine, ByteBuffer buffer, Metadata metadata) {
+    public static AlertMessage of(TlsContext ignoredEngine, ByteBuffer buffer, Metadata metadata) {
         var levelId = readLittleEndianInt8(buffer);
         var level = AlertMessage.Level.of(levelId)
                 .orElseThrow(() -> new IllegalArgumentException("Cannot decode TLS message, unknown alert level: " + levelId));

@@ -1,6 +1,6 @@
 package it.auties.leap.tls.extension;
 
-import it.auties.leap.tls.TlsEngine;
+import it.auties.leap.tls.TlsContext;
 import it.auties.leap.tls.extension.implementation.*;
 import it.auties.leap.tls.ec.TlsECPointFormat;
 import it.auties.leap.tls.psk.TlsPSKExchangeMode;
@@ -512,11 +512,11 @@ public sealed interface TlsExtension {
     }
 
     static TlsExtension supportedGroups() {
-        return SupportedGroupsExtension.recommended();
+        return SupportedGroupsExtension.Configurable.recommended();
     }
 
     static TlsExtension supportedGroups(List<TlsSupportedGroup> groups) {
-        return SupportedGroupsExtension.of(groups);
+        return new SupportedGroupsExtension.Configurable(groups);
     }
 
     static TlsExtension signatureAlgorithms() {
@@ -539,7 +539,7 @@ public sealed interface TlsExtension {
 
     List<TlsVersion> versions();
 
-    TlsExtensionDecoder decoder();
+    TlsExtensionDeserializer decoder();
 
     non-sealed interface Concrete extends TlsExtension {
         default void serializeExtension(ByteBuffer buffer) {
@@ -558,7 +558,7 @@ public sealed interface TlsExtension {
     }
 
     non-sealed interface Configurable extends TlsExtension {
-        Optional<? extends Concrete> newInstance(TlsEngine engine);
+        Optional<? extends Concrete> newInstance(TlsContext context);
 
         Dependencies dependencies();
 

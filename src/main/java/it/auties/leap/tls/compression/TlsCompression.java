@@ -73,11 +73,11 @@ public sealed interface TlsCompression extends TlsCompressionHandler {
         }
     }
 
-    non-sealed class Reserved implements TlsCompression {
+    final class Reserved implements TlsCompression {
         private final byte id;
         private final TlsCompressionHandler delegate;
 
-        protected Reserved(byte id, TlsCompressionHandler delegate) {
+        private Reserved(byte id, TlsCompressionHandler delegate) {
             if (id < -32 || id > -1) {
                 throw new TlsException(
                         "Only values from 224-255 (decimal) inclusive are reserved for Private Use",

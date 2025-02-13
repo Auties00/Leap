@@ -1,10 +1,10 @@
 package it.auties.leap.tls.extension.implementation;
 
-import it.auties.leap.tls.TlsEngine;
+import it.auties.leap.tls.TlsContext;
 import it.auties.leap.tls.TlsMode;
 import it.auties.leap.tls.extension.TlsExtension;
 import it.auties.leap.tls.extension.TlsExtension.Concrete;
-import it.auties.leap.tls.extension.TlsExtensionDecoder;
+import it.auties.leap.tls.extension.TlsExtensionDeserializer;
 import it.auties.leap.tls.cipher.TlsGREASE;
 import it.auties.leap.tls.version.TlsVersion;
 import it.auties.leap.tls.version.TlsVersionId;
@@ -19,9 +19,9 @@ import java.util.Optional;
 import static it.auties.leap.tls.util.BufferUtils.*;
 
 public abstract sealed class SupportedVersionsExtension {
-    private static final TlsExtensionDecoder DECODER = new TlsExtensionDecoder() {
+    private static final TlsExtensionDeserializer DECODER = new TlsExtensionDeserializer() {
         @Override
-        public Optional<? extends Concrete> decode(ByteBuffer buffer, int type, TlsMode mode) {
+        public Optional<? extends Concrete> deserialize(ByteBuffer buffer, int type, TlsMode mode) {
             return switch (mode) {
                 case CLIENT -> {
                     var payloadSize = readLittleEndianInt8(buffer);
@@ -82,7 +82,7 @@ public abstract sealed class SupportedVersionsExtension {
         }
 
         @Override
-        public TlsExtensionDecoder decoder() {
+        public TlsExtensionDeserializer decoder() {
             return DECODER;
         }
 
@@ -143,7 +143,7 @@ public abstract sealed class SupportedVersionsExtension {
             }
 
             @Override
-            public TlsExtensionDecoder decoder() {
+            public TlsExtensionDeserializer decoder() {
                 return DECODER;
             }
 
@@ -183,9 +183,9 @@ public abstract sealed class SupportedVersionsExtension {
             }
 
             @Override
-            public Optional<? extends Concrete> newInstance(TlsEngine engine) {
+            public Optional<? extends Concrete> newInstance(TlsContext context) {
                 var supportedVersions = new ArrayList<TlsVersionId>();
-                var chosenVersion = engine.config().version();
+                var chosenVersion = context.config().version();
                 switch (chosenVersion) {
                     case TLS13 -> {
                         supportedVersions.add(TlsVersion.TLS13.id());
@@ -198,7 +198,7 @@ public abstract sealed class SupportedVersionsExtension {
                     default -> supportedVersions.add(chosenVersion.id());
                 }
 
-                if (engine.hasExtension(TlsGREASE::isGrease)) {
+                if (context.hasExtension(TlsGREASE::isGrease)) {
                     supportedVersions.add(randomGrease());
                 }
 
@@ -229,7 +229,7 @@ public abstract sealed class SupportedVersionsExtension {
             }
 
             @Override
-            public TlsExtensionDecoder decoder() {
+            public TlsExtensionDeserializer decoder() {
                 return DECODER;
             }
 

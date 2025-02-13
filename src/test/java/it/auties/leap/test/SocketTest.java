@@ -19,39 +19,9 @@ import java.util.List;
 
 public class SocketTest {
     public static void main(String[] args) throws IOException {
-        // ECDHE-ECDSA-AES256-CCM
+        // TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256
         var ciphers = List.of(
-                TlsCipher.chacha20Poly1305Sha256(),
-                TlsCipher.aes256GcmSha384(),
-                TlsCipher.chacha20Poly1305Sha256(),
-                TlsCipher.aes128GcmSha256(),
-                TlsCipher.ecdheEcdsaWithAes256GcmSha384(),
-                TlsCipher.ecdheRsaWithAes256GcmSha384(),
-                TlsCipher.dheRsaWithAes256GcmSha384(),
-                TlsCipher.ecdheEcdsaWithChacha20Poly1305Sha256(),
-                TlsCipher.ecdheRsaWithChacha20Poly1305Sha256(),
-                TlsCipher.dheRsaWithChacha20Poly1305Sha256(),
-                TlsCipher.ecdheEcdsaWithAes128GcmSha256(),
-                TlsCipher.ecdheRsaWithAes128GcmSha256(),
-                TlsCipher.dheRsaWithAes128GcmSha256(),
-                TlsCipher.ecdheEcdsaWithAes256CbcSha384(),
-                TlsCipher.ecdheRsaWithAes256CbcSha384(),
-                TlsCipher.dheRsaWithAes256CbcSha256(),
-                TlsCipher.ecdheEcdsaWithAes128CbcSha256(),
-                TlsCipher.ecdheRsaWithAes128CbcSha256(),
-                TlsCipher.dheRsaWithAes128CbcSha256(),
-                TlsCipher.ecdheEcdsaWithAes256CbcSha(),
-                TlsCipher.ecdheRsaWithAes256CbcSha(),
-                TlsCipher.dheRsaWithAes256CbcSha(),
-                TlsCipher.ecdheEcdsaWithAes128CbcSha(),
-                TlsCipher.ecdheRsaWithAes128CbcSha(),
-                TlsCipher.dheRsaWithAes128CbcSha(),
-                TlsCipher.rsaWithAes256GcmSha384(),
-                TlsCipher.rsaWithAes128GcmSha256(),
-                TlsCipher.rsaWithAes256CbcSha256(),
-                TlsCipher.rsaWithAes128CbcSha256(),
-                TlsCipher.rsaWithAes256CbcSha(),
-                TlsCipher.rsaWithAes128CbcSha()
+                TlsCipher.ecdheRsaWithAes128GcmSha256()
         );
         var extensions = List.of(
                 TlsExtension.serverNameIndication(),
@@ -84,7 +54,7 @@ public class SocketTest {
                         .secure(tlsConfig)
                         .build()
         ) {
-            socket.connect(new InetSocketAddress("localhost", 8080)).join();
+            socket.connect(new InetSocketAddress("localhost", 8082)).join();
             var message = ByteBuffer.allocate(1024);
             socket.read(message).join();
             System.out.println(StandardCharsets.UTF_8.decode(message));

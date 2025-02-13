@@ -1,6 +1,6 @@
 package it.auties.leap.tls.message.implementation;
 
-import it.auties.leap.tls.TlsEngine;
+import it.auties.leap.tls.TlsContext;
 import it.auties.leap.tls.TlsMode;
 import it.auties.leap.tls.TlsSource;
 import it.auties.leap.tls.cipher.TlsCipher;
@@ -66,7 +66,7 @@ public sealed abstract class HelloMessage extends TlsHandshakeMessage {
             this.extensionsLength = extensionsLength;
         }
 
-        public static Client of(TlsEngine engine, ByteBuffer buffer, Metadata metadata) {
+        public static Client of(TlsContext context, ByteBuffer buffer, Metadata metadata) {
             var versionId = TlsVersionId.of(readLittleEndianInt16(buffer));
             var tlsVersion = TlsVersion.of(versionId)
                     .orElseThrow(() -> new IllegalArgumentException("Unknown version: " + versionId));
@@ -100,9 +100,9 @@ public sealed abstract class HelloMessage extends TlsHandshakeMessage {
                         continue;
                     }
 
-                    for(var configurable : engine.config().extensions()) {
+                    for(var configurable : context.config().extensions()) {
                         var extension = configurable.decoder()
-                                .decode(buffer, extensionType, TlsMode.SERVER);
+                                .deserialize(buffer, extensionType, TlsMode.SERVER);
                         if (extension.isPresent()) {
                             extensions.add(extension.get());
                             break;
@@ -298,7 +298,7 @@ public sealed abstract class HelloMessage extends TlsHandshakeMessage {
             return extensions;
         }
 
-        public static Server of(TlsEngine engine, ByteBuffer buffer, Metadata metadata) {
+        public static Server of(TlsContext context, ByteBuffer buffer, Metadata metadata) {
             var tlsVersionId = readLittleEndianInt16(buffer);
             var tlsVersion = TlsVersion.of(tlsVersionId)
                     .orElseThrow(() -> new IllegalArgumentException("Cannot decode TLS message, unknown protocol version: " + tlsVersionId));
@@ -311,7 +311,7 @@ public sealed abstract class HelloMessage extends TlsHandshakeMessage {
 
             var compressionMethodId = readLittleEndianInt8(buffer);
 
-            var extensionTypeToDecoder = engine.config()
+            var extensionTypeToDecoder = context.config()
                     .extensions()
                     .stream()
                     .collect(Collectors.toUnmodifiableMap(TlsExtension::extensionType, TlsExtension::decoder));
@@ -331,7 +331,7 @@ public sealed abstract class HelloMessage extends TlsHandshakeMessage {
                             throw new TlsException("Unknown extension");
                         }
 
-                        extensionDecoder.decode(buffer, extensionType, TlsMode.CLIENT)
+                        extensionDecoder.deserialize(buffer, extensionType, TlsMode.CLIENT)
                                 .ifPresent(extensions::add);
                     }
                 }

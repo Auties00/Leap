@@ -1,9 +1,9 @@
 package it.auties.leap.tls.extension.implementation;
 
-import it.auties.leap.tls.TlsEngine;
+import it.auties.leap.tls.TlsContext;
 import it.auties.leap.tls.TlsMode;
 import it.auties.leap.tls.extension.TlsExtension;
-import it.auties.leap.tls.extension.TlsExtensionDecoder;
+import it.auties.leap.tls.extension.TlsExtensionDeserializer;
 import it.auties.leap.tls.version.TlsVersion;
 
 import java.nio.ByteBuffer;
@@ -15,9 +15,9 @@ import java.util.Optional;
 import static it.auties.leap.tls.util.BufferUtils.*;
 
 public sealed abstract class KeyShareExtension {
-    private static final TlsExtensionDecoder DECODER = new TlsExtensionDecoder() {
+    private static final TlsExtensionDeserializer DECODER = new TlsExtensionDeserializer() {
         @Override
-        public Optional<? extends TlsExtension.Concrete> decode(ByteBuffer buffer, int type, TlsMode mode) {
+        public Optional<? extends TlsExtension.Concrete> deserialize(ByteBuffer buffer, int type, TlsMode mode) {
             var namedGroupId = readLittleEndianInt16(buffer);
             var publicKey = readBytesLittleEndian16(buffer);
             var extension = new Concrete(publicKey, namedGroupId);
@@ -63,7 +63,7 @@ public sealed abstract class KeyShareExtension {
         }
 
         @Override
-        public TlsExtensionDecoder decoder() {
+        public TlsExtensionDeserializer decoder() {
             return DECODER;
         }
 
@@ -109,8 +109,8 @@ public sealed abstract class KeyShareExtension {
         }
 
         @Override
-        public Optional<? extends TlsExtension.Concrete> newInstance(TlsEngine engine) {
-            var publicKey = engine.localKeyPair()
+        public Optional<? extends TlsExtension.Concrete> newInstance(TlsContext context) {
+            var publicKey = context.localKeyPair()
                     .map(e -> e.getPublic().getEncoded())
                     .orElse(null);
             if (publicKey == null) {
@@ -123,7 +123,7 @@ public sealed abstract class KeyShareExtension {
 
         @Override
         public Dependencies dependencies() {
-            return Dependencies.some(SupportedGroupsExtension.class);
+            return Dependencies.some(SupportedGroupsExtension.Concrete.class);
         }
 
         @Override
@@ -137,7 +137,7 @@ public sealed abstract class KeyShareExtension {
         }
 
         @Override
-        public TlsExtensionDecoder decoder() {
+        public TlsExtensionDeserializer decoder() {
             return DECODER;
         }
     }

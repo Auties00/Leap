@@ -1,6 +1,6 @@
 package it.auties.leap.tls.message.implementation;
 
-import it.auties.leap.tls.TlsEngine;
+import it.auties.leap.tls.TlsContext;
 import it.auties.leap.tls.util.BufferUtils;
 import it.auties.leap.tls.TlsSource;
 import it.auties.leap.tls.version.TlsVersion;
@@ -20,7 +20,7 @@ public final class ApplicationDataMessage extends TlsMessage {
         this.message = message;
     }
 
-    public static ApplicationDataMessage of(TlsEngine ignoredEngine, ByteBuffer buffer, Metadata metadata) {
+    public static ApplicationDataMessage of(TlsContext ignoredEngine, ByteBuffer buffer, Metadata metadata) {
         var message = readBuffer(buffer, buffer.remaining());
         return new ApplicationDataMessage(metadata.version(), metadata.source(), message);
     }

@@ -7,7 +7,7 @@ import java.nio.file.Path;
 import java.security.KeyStore;
 
 public class TestCertifiedHandshakeServer {
-    private static final int PORT = 8080;
+    private static final int PORT = 8082;
 
     public static void main(String[] args) throws Exception {
         KeyStore trustStore = KeyStore.getInstance("JKS");

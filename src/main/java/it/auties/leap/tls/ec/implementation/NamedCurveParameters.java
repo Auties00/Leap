@@ -1,21 +1,24 @@
 package it.auties.leap.tls.ec.implementation;
 
+import it.auties.leap.tls.TlsContext;
 import it.auties.leap.tls.ec.TlsECParameters;
-import it.auties.leap.tls.ec.TlsECParametersDecoder;
+import it.auties.leap.tls.ec.TlsECParametersDeserializer;
+import it.auties.leap.tls.exception.TlsException;
+import it.auties.leap.tls.key.TlsSupportedGroup;
 
 import java.nio.ByteBuffer;
 
 import static it.auties.leap.tls.util.BufferUtils.*;
 
 public final class NamedCurveParameters implements TlsECParameters {
-    private static final TlsECParametersDecoder DECODER = new TlsECParametersDecoder() {
+    private static final TlsECParametersDeserializer DESERIALIZER = new TlsECParametersDeserializer() {
         @Override
-        public byte id() {
+        public byte type() {
             return 3;
         }
 
         @Override
-        public TlsECParameters decode(ByteBuffer input) {
+        public TlsECParameters deserialize(ByteBuffer input) {
             var namedGroup = readLittleEndianInt16(input);
             return new NamedCurveParameters(namedGroup);
         }
@@ -27,8 +30,8 @@ public final class NamedCurveParameters implements TlsECParameters {
         this.namedGroup = namedGroup;
     }
 
-    public static TlsECParametersDecoder parametersDecoder() {
-        return DECODER;
+    public static TlsECParametersDeserializer deserializer() {
+        return DESERIALIZER;
     }
 
     @Override
@@ -42,7 +45,11 @@ public final class NamedCurveParameters implements TlsECParameters {
     }
 
     @Override
-    public TlsECParametersDecoder decoder() {
-        return DECODER;
+    public TlsSupportedGroup toGroup(TlsContext context) {
+        return context.supportedGroups()
+                .stream()
+                .filter(entry -> entry.id() == namedGroup)
+                .findFirst()
+                .orElseThrow(() -> new TlsException("No supported group matches the id " + namedGroup));
     }
 }

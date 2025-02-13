@@ -1,6 +1,6 @@
 package it.auties.leap.tls.message.implementation;
 
-import it.auties.leap.tls.TlsEngine;
+import it.auties.leap.tls.TlsContext;
 import it.auties.leap.tls.TlsSource;
 import it.auties.leap.tls.exception.TlsException;
 import it.auties.leap.tls.message.TlsHandshakeMessage;
@@ -31,7 +31,7 @@ public sealed abstract class FinishedMessage extends TlsHandshakeMessage {
             this.hash = hash;
         }
 
-        public static Server of(TlsEngine ignoredEngine, ByteBuffer buffer, Metadata metadata) {
+        public static Server of(TlsContext ignoredEngine, ByteBuffer buffer, Metadata metadata) {
             var hash = BufferUtils.readBytes(buffer, buffer.remaining());
             return new Server(metadata.version(), metadata.source(), hash);
         }
@@ -75,7 +75,7 @@ public sealed abstract class FinishedMessage extends TlsHandshakeMessage {
             this.hash = hash;
         }
 
-        public static Client of(TlsEngine ignoredEngine, ByteBuffer buffer, Metadata metadata) {
+        public static Client of(TlsContext ignoredEngine, ByteBuffer buffer, Metadata metadata) {
             var hash = BufferUtils.readBytes(buffer, buffer.remaining());
             return new Client(metadata.version(), metadata.source(), hash);
         }

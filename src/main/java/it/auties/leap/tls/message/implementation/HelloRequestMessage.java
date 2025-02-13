@@ -1,6 +1,6 @@
 package it.auties.leap.tls.message.implementation;
 
-import it.auties.leap.tls.TlsEngine;
+import it.auties.leap.tls.TlsContext;
 import it.auties.leap.tls.TlsSource;
 import it.auties.leap.tls.exception.TlsException;
 import it.auties.leap.tls.message.TlsHandshakeMessage;
@@ -21,7 +21,7 @@ public sealed abstract class HelloRequestMessage extends TlsHandshakeMessage{
             super(tlsVersion, source);
         }
 
-        public static Server of(TlsEngine ignoredEngine, ByteBuffer buffer, Metadata metadata) {
+        public static Server of(TlsContext ignoredEngine, ByteBuffer buffer, Metadata metadata) {
             if(buffer.hasRemaining()) {
                 throw new TlsException("Expected server hello request message to have an empty payload", URI.create("https://datatracker.ietf.org/doc/html/rfc5246#section-7.4.9"), "7.4.1.1");
             }

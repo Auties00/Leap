@@ -1,9 +1,9 @@
 package it.auties.leap.tls.extension.implementation;
 
-import it.auties.leap.tls.TlsEngine;
+import it.auties.leap.tls.TlsContext;
 import it.auties.leap.tls.TlsMode;
 import it.auties.leap.tls.extension.TlsExtension;
-import it.auties.leap.tls.extension.TlsExtensionDecoder;
+import it.auties.leap.tls.extension.TlsExtensionDeserializer;
 import it.auties.leap.tls.version.TlsVersion;
 
 import java.nio.ByteBuffer;
@@ -15,9 +15,9 @@ import static it.auties.leap.tls.util.BufferUtils.INT16_LENGTH;
 import static it.auties.leap.tls.util.BufferUtils.readLittleEndianInt8;
 
 public sealed abstract class PaddingExtension {
-    private static final TlsExtensionDecoder DECODER = new TlsExtensionDecoder() {
+    private static final TlsExtensionDeserializer DECODER = new TlsExtensionDeserializer() {
         @Override
-        public Optional<? extends TlsExtension.Concrete> decode(ByteBuffer buffer, int type, TlsMode mode) {
+        public Optional<? extends TlsExtension.Concrete> deserialize(ByteBuffer buffer, int type, TlsMode mode) {
             var padding = readLittleEndianInt8(buffer);
             var extension = new Concrete(padding);
             return Optional.of(extension);
@@ -59,7 +59,7 @@ public sealed abstract class PaddingExtension {
         }
 
         @Override
-        public TlsExtensionDecoder decoder() {
+        public TlsExtensionDeserializer decoder() {
             return DECODER;
         }
 
@@ -96,8 +96,8 @@ public sealed abstract class PaddingExtension {
         }
 
         @Override
-        public Optional<? extends TlsExtension.Concrete> newInstance(TlsEngine engine) {
-            var actualLength = engine.processedExtensionsLength() + INT16_LENGTH + INT16_LENGTH;
+        public Optional<? extends TlsExtension.Concrete> newInstance(TlsContext context) {
+            var actualLength = context.processedExtensionsLength() + INT16_LENGTH + INT16_LENGTH;
             if (actualLength > targetLength) {
                 return Optional.empty();
             }
@@ -122,7 +122,7 @@ public sealed abstract class PaddingExtension {
         }
 
         @Override
-        public TlsExtensionDecoder decoder() {
+        public TlsExtensionDeserializer decoder() {
             return DECODER;
         }
 

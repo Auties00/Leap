@@ -19,4 +19,8 @@ public class TlsException extends RuntimeException {
     public TlsException(String message, URI source, String section) {
         super("%s (section %s at %s)".formatted(message, section, source));
     }
+
+    public static TlsException stub() {
+        return new TlsException("Stub");
+    }
 }

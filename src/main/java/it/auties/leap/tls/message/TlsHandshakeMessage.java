@@ -1,6 +1,6 @@
 package it.auties.leap.tls.message;
 
-import it.auties.leap.tls.TlsEngine;
+import it.auties.leap.tls.TlsContext;
 import it.auties.leap.tls.TlsSource;
 import it.auties.leap.tls.exception.TlsException;
 import it.auties.leap.tls.message.implementation.*;
@@ -16,26 +16,26 @@ public abstract sealed class TlsHandshakeMessage extends TlsMessage
         super(version, source);
     }
 
-    public static TlsHandshakeMessage of(TlsEngine engine, ByteBuffer buffer, Metadata metadata) {
+    public static TlsHandshakeMessage of(TlsContext context, ByteBuffer buffer, Metadata metadata) {
         var id = readLittleEndianInt8(buffer);
         var messageLength = readLittleEndianInt24(buffer);
         try (var _ = scopedRead(buffer, messageLength)) {
-            return switch (engine.selectedMode().orElse(null)) {
+            return switch (context.selectedMode().orElse(null)) {
                 case CLIENT -> switch (id) {
-                    case HelloRequestMessage.Server.ID -> HelloRequestMessage.Server.of(engine, buffer, metadata);
-                    case HelloMessage.Server.ID -> HelloMessage.Server.of(engine, buffer, metadata);
-                    case CertificateMessage.Server.ID -> CertificateMessage.Server.of(engine, buffer, metadata);
-                    case KeyExchangeMessage.Server.ID -> KeyExchangeMessage.Server.of(engine, buffer, metadata);
-                    case HelloDoneMessage.Server.ID -> HelloDoneMessage.Server.of(engine, buffer, metadata);
-                    case CertificateRequestMessage.Server.ID -> CertificateRequestMessage.Server.of(engine, buffer, metadata);
-                    case FinishedMessage.Server.ID -> FinishedMessage.Server.of(engine, buffer, metadata);
+                    case HelloRequestMessage.Server.ID -> HelloRequestMessage.Server.of(context, buffer, metadata);
+                    case HelloMessage.Server.ID -> HelloMessage.Server.of(context, buffer, metadata);
+                    case CertificateMessage.Server.ID -> CertificateMessage.Server.of(context, buffer, metadata);
+                    case KeyExchangeMessage.Server.ID -> KeyExchangeMessage.Server.of(context, buffer, metadata);
+                    case HelloDoneMessage.Server.ID -> HelloDoneMessage.Server.of(context, buffer, metadata);
+                    case CertificateRequestMessage.Server.ID -> CertificateRequestMessage.Server.of(context, buffer, metadata);
+                    case FinishedMessage.Server.ID -> FinishedMessage.Server.of(context, buffer, metadata);
                     default -> throw new IllegalArgumentException("Cannot decode server message, unknown id: " + id);
                 };
                 case SERVER -> switch (id) {
-                    case HelloMessage.Client.ID -> HelloMessage.Client.of(engine, buffer, metadata);
-                    case CertificateMessage.Client.ID -> CertificateMessage.Client.of(engine, buffer, metadata);
-                    case KeyExchangeMessage.Client.ID -> KeyExchangeMessage.Client.of(engine, buffer, metadata);
-                    case FinishedMessage.Client.ID -> FinishedMessage.Client.of(engine, buffer, metadata);
+                    case HelloMessage.Client.ID -> HelloMessage.Client.of(context, buffer, metadata);
+                    case CertificateMessage.Client.ID -> CertificateMessage.Client.of(context, buffer, metadata);
+                    case KeyExchangeMessage.Client.ID -> KeyExchangeMessage.Client.of(context, buffer, metadata);
+                    case FinishedMessage.Client.ID -> FinishedMessage.Client.of(context, buffer, metadata);
                     default -> throw new IllegalArgumentException("Cannot decode client message, unknown id: " + id);
                 };
                 case null -> throw new TlsException("No engine mode has been selected yet");

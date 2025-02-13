@@ -1,6 +1,6 @@
 package it.auties.leap.tls.message.implementation;
 
-import it.auties.leap.tls.TlsEngine;
+import it.auties.leap.tls.TlsContext;
 import it.auties.leap.tls.TlsSource;
 import it.auties.leap.tls.message.TlsHandshakeMessage;
 import it.auties.leap.tls.version.TlsVersion;
@@ -29,7 +29,7 @@ public sealed abstract class CertificateMessage extends TlsHandshakeMessage {
             this.certificates = certificates;
         }
 
-        public static Client of(TlsEngine ignoredEngine, ByteBuffer buffer, Metadata metadata) {
+        public static Client of(TlsContext ignoredEngine, ByteBuffer buffer, Metadata metadata) {
             var certificatesLength = readLittleEndianInt24(buffer);
             try(var _ = scopedRead(buffer, certificatesLength)) {
                 var factory = CertificateFactory.getInstance("X.509");
@@ -100,7 +100,7 @@ public sealed abstract class CertificateMessage extends TlsHandshakeMessage {
             this.certificates = certificates;
         }
 
-        public static Server of(TlsEngine ignoredEngine, ByteBuffer buffer, Metadata metadata) {
+        public static Server of(TlsContext ignoredEngine, ByteBuffer buffer, Metadata metadata) {
             var certificatesLength = readLittleEndianInt24(buffer);
             try(var _ = scopedRead(buffer, certificatesLength)) {
                 var factory = CertificateFactory.getInstance("X.509");
