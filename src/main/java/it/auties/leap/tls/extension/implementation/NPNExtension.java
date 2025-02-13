@@ -26,7 +26,7 @@ public abstract sealed class NPNExtension {
                     yield Optional.of(Client.instance());
                 }
                 case SERVER -> {
-                    var selectedProtocol = readBytesLittleEndian8(buffer);
+                    var selectedProtocol = readBytesBigEndian8(buffer);
                     yield Optional.of(new Server(selectedProtocol));
                 }
             };
@@ -108,7 +108,7 @@ public abstract sealed class NPNExtension {
 
         @Override
         public void serializeExtensionPayload(ByteBuffer buffer) {
-            writeBytesLittleEndian8(buffer, selectedProtocol);
+            writeBytesBigEndian8(buffer, selectedProtocol);
         }
 
         @Override

@@ -18,8 +18,8 @@ public sealed abstract class KeyShareExtension {
     private static final TlsExtensionDeserializer DECODER = new TlsExtensionDeserializer() {
         @Override
         public Optional<? extends TlsExtension.Concrete> deserialize(ByteBuffer buffer, int type, TlsMode mode) {
-            var namedGroupId = readLittleEndianInt16(buffer);
-            var publicKey = readBytesLittleEndian16(buffer);
+            var namedGroupId = readBigEndianInt16(buffer);
+            var publicKey = readBytesBigEndian16(buffer);
             var extension = new Concrete(publicKey, namedGroupId);
             return Optional.of(extension);
         }
@@ -42,9 +42,9 @@ public sealed abstract class KeyShareExtension {
         @Override
         public void serializeExtensionPayload(ByteBuffer buffer) {
             var size = INT16_LENGTH + INT16_LENGTH + publicKey.length;
-            writeLittleEndianInt16(buffer, size);
-            writeLittleEndianInt16(buffer, namedGroup);
-            writeBytesLittleEndian16(buffer, publicKey);
+            writeBigEndianInt16(buffer, size);
+            writeBigEndianInt16(buffer, namedGroup);
+            writeBytesBigEndian16(buffer, publicKey);
         }
 
         @Override

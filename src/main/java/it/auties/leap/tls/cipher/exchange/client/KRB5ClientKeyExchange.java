@@ -22,16 +22,16 @@ public final class KRB5ClientKeyExchange extends TlsClientKeyExchange {
 
     public KRB5ClientKeyExchange(ByteBuffer buffer) {
         super(TlsKeyExchangeType.EPHEMERAL, TlsPreMasterSecretGenerator.krb5());
-        this.ticket = readBytesLittleEndian16(buffer);
-        this.authenticator = readBytesLittleEndian16(buffer);
-        this.encryptedPreMasterSecret = readBytesLittleEndian16(buffer);
+        this.ticket = readBytesBigEndian16(buffer);
+        this.authenticator = readBytesBigEndian16(buffer);
+        this.encryptedPreMasterSecret = readBytesBigEndian16(buffer);
     }
 
     @Override
     public void serialize(ByteBuffer buffer) {
-        writeBytesLittleEndian16(buffer, ticket);
-        writeBytesLittleEndian16(buffer, authenticator);
-        writeBytesLittleEndian16(buffer, encryptedPreMasterSecret);
+        writeBytesBigEndian16(buffer, ticket);
+        writeBytesBigEndian16(buffer, authenticator);
+        writeBytesBigEndian16(buffer, encryptedPreMasterSecret);
     }
 
     @Override

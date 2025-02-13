@@ -25,12 +25,12 @@ public final class ECDHClientKeyExchange extends TlsClientKeyExchange {
 
     public ECDHClientKeyExchange(TlsKeyExchangeType type, ByteBuffer buffer) {
         super(type, TlsPreMasterSecretGenerator.ecdh());
-        this.publicKey = readBytesLittleEndian8(buffer);
+        this.publicKey = readBytesBigEndian8(buffer);
     }
 
     @Override
     public void serialize(ByteBuffer buffer) {
-        writeBytesLittleEndian8(buffer, publicKey);
+        writeBytesBigEndian8(buffer, publicKey);
     }
 
     @Override

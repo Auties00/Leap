@@ -32,29 +32,29 @@ public sealed abstract class CertificateRequestMessage extends TlsHandshakeMessa
         }
 
         public static Server of(TlsContext ignoredEngine, ByteBuffer buffer, Metadata metadata) {
-            var certificatesLength = BufferUtils.readLittleEndianInt8(buffer);
+            var certificatesLength = BufferUtils.readBigEndianInt8(buffer);
             var certificateTypes = new ArrayList<Byte>();
             try(var _ = scopedRead(buffer, certificatesLength)) {
                 while (buffer.hasRemaining()) {
-                    var certificateTypeId = readLittleEndianInt8(buffer);
+                    var certificateTypeId = readBigEndianInt8(buffer);
                     certificateTypes.add(certificateTypeId);
                 }
             }
 
-            var algorithmsLength = readLittleEndianInt16(buffer);
+            var algorithmsLength = readBigEndianInt16(buffer);
             var algorithms = new ArrayList<Integer>();
             try(var _ = scopedRead(buffer, algorithmsLength)) {
                 while (buffer.hasRemaining()) {
-                    var algorithmId = readLittleEndianInt16(buffer);
+                    var algorithmId = readBigEndianInt16(buffer);
                     algorithms.add(algorithmId);
                 }
             }
 
-            var authoritiesLength = readLittleEndianInt16(buffer);
+            var authoritiesLength = readBigEndianInt16(buffer);
             var authorities = new ArrayList<String>();
             try(var _ = scopedRead(buffer, authoritiesLength)) {
                 while (buffer.hasRemaining()) {
-                    var authority = new X500Principal(readStreamLittleEndian16(buffer));
+                    var authority = new X500Principal(readStreamBigEndian16(buffer));
                     authorities.add(authority.getName(X500Principal.CANONICAL));
                 }
             }

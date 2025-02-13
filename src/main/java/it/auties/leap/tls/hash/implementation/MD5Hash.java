@@ -7,7 +7,7 @@ import it.auties.leap.tls.util.BufferUtils;
 import java.nio.ByteBuffer;
 import java.util.Arrays;
 
-import static it.auties.leap.tls.util.BufferUtils.readLittleEndianInt32;
+import static it.auties.leap.tls.util.BufferUtils.readBigEndianInt32;
 
 public final class MD5Hash implements TlsHash {
     private static final int BLOCK_LENGTH = 4;
@@ -143,7 +143,7 @@ public final class MD5Hash implements TlsHash {
     }
 
     private void processWord(byte[] in, int inOff) {
-        x[xOff++] = readLittleEndianInt32(in, inOff);
+        x[xOff++] = readBigEndianInt32(in, inOff);
 
         if (xOff == 16) {
             processBlock();
@@ -151,7 +151,7 @@ public final class MD5Hash implements TlsHash {
     }
 
     private void processWord(ByteBuffer in) {
-        x[xOff++] = readLittleEndianInt32(in);
+        x[xOff++] = readBigEndianInt32(in);
 
         if (xOff == 16) {
             processBlock();
@@ -182,10 +182,10 @@ public final class MD5Hash implements TlsHash {
 
             processBlock();
 
-            BufferUtils.writeLittleEndianInt32(h1, output, offset);
-            BufferUtils.writeLittleEndianInt32(h2, output, offset + 4);
-            BufferUtils.writeLittleEndianInt32(h3, output, offset + 8);
-            BufferUtils.writeLittleEndianInt32(h4, output, offset + 12);
+            BufferUtils.writeBigEndianInt32(h1, output, offset);
+            BufferUtils.writeBigEndianInt32(h2, output, offset + 4);
+            BufferUtils.writeBigEndianInt32(h3, output, offset + 8);
+            BufferUtils.writeBigEndianInt32(h4, output, offset + 12);
 
             reset();
 

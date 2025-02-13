@@ -30,7 +30,7 @@ public final class BufferUtils {
                 | ((m.get() & 0xFF) << 24);
     }
 
-    public static int readBigEndianInt8(ByteBuffer input) {
+    public static byte readBigEndianInt8(ByteBuffer input) {
         return input.get();
     }
 
@@ -42,6 +42,18 @@ public final class BufferUtils {
     public static int readBigEndianInt16(byte[] bs, int off) {
         return ((bs[off] & 0xff) << 8)
                 | (bs[off + 1] & 0xff);
+    }
+
+    public static int readBigEndianInt24(ByteBuffer input) {
+        return ((input.get() & 0xff) << 16)
+                | ((input.get() & 0xff) << 8)
+                | (input.get() & 0xff);
+    }
+
+    public static int readBigEndianInt24(byte[] bs, int off) {
+        return ((bs[off] & 0xff) << 16)
+                | ((bs[off + 1] & 0xff) << 8)
+                | (bs[off + 2] & 0xff);
     }
 
     public static int readBigEndianInt32(ByteBuffer input) {
@@ -123,6 +135,18 @@ public final class BufferUtils {
         output.put((byte) n);
     }
 
+    public static void writeBigEndianInt24(ByteBuffer output, int n) {
+        output.put((byte) (n >>> 16));
+        output.put((byte) (n >>> 8));
+        output.put((byte) n);
+    }
+
+    public static void writeBigEndianInt24(int n, byte[] bs, int off) {
+        bs[off] = (byte) (n >>> 16);
+        bs[++off] = (byte) (n >>> 8);
+        bs[++off] = (byte) (n);
+    }
+
     public static void writeBigEndianInt32(ByteBuffer output, int n) {
         output.put((byte) (n >>> 24));
         output.put((byte) (n >>> 16));
@@ -202,6 +226,27 @@ public final class BufferUtils {
         return bytes;
     }
 
+    public static byte[] readBytesBigEndian8(ByteBuffer buffer) {
+        var length = readBigEndianInt8(buffer);
+        var bytes = new byte[length];
+        buffer.get(bytes);
+        return bytes;
+    }
+
+    public static byte[] readBytesBigEndian16(ByteBuffer buffer) {
+        var length = readBigEndianInt16(buffer);
+        var bytes = new byte[length];
+        buffer.get(bytes);
+        return bytes;
+    }
+
+    public static byte[] readBytesBigEndian24(ByteBuffer buffer) {
+        var length = readBigEndianInt24(buffer);
+        var bytes = new byte[length];
+        buffer.get(bytes);
+        return bytes;
+    }
+
     public static InputStream readStream(ByteBuffer buffer, int length) {
         var sliced = buffer.slice(buffer.position(), length);
         buffer.position(buffer.position() + length);
@@ -224,6 +269,27 @@ public final class BufferUtils {
 
     public static InputStream readStreamLittleEndian24(ByteBuffer buffer) {
         var length = readLittleEndianInt24(buffer);
+        var sliced = buffer.slice(buffer.position(), length);
+        buffer.position(buffer.position() + length);
+        return new ByteBufferBackedInputStream(sliced);
+    }
+
+    public static InputStream readStreamBigEndian8(ByteBuffer buffer) {
+        var length = readBigEndianInt8(buffer);
+        var sliced = buffer.slice(buffer.position(), length);
+        buffer.position(buffer.position() + length);
+        return new ByteBufferBackedInputStream(sliced);
+    }
+
+    public static InputStream readStreamBigEndian16(ByteBuffer buffer) {
+        var length = readBigEndianInt16(buffer);
+        var sliced = buffer.slice(buffer.position(), length);
+        buffer.position(buffer.position() + length);
+        return new ByteBufferBackedInputStream(sliced);
+    }
+
+    public static InputStream readStreamBigEndian24(ByteBuffer buffer) {
+        var length = readBigEndianInt24(buffer);
         var sliced = buffer.slice(buffer.position(), length);
         buffer.position(buffer.position() + length);
         return new ByteBufferBackedInputStream(sliced);
@@ -276,6 +342,48 @@ public final class BufferUtils {
         }
 
         writeLittleEndianInt24(m, s.length);
+        m.put(s);
+    }
+
+    public static void writeBytesBigEndian8(ByteBuffer m, byte[] s) {
+        if(s == null) {
+            return;
+        }
+
+        if (s.length == 0) {
+            writeBigEndianInt8(m, 0);
+            return;
+        }
+
+        writeBigEndianInt8(m, s.length);
+        m.put(s);
+    }
+
+    public static void writeBytesBigEndian16(ByteBuffer m, byte[] s) {
+        if(s == null) {
+            return;
+        }
+
+        if (s.length == 0) {
+            writeBigEndianInt16(m, 0);
+            return;
+        }
+
+        writeBigEndianInt16(m, s.length);
+        m.put(s);
+    }
+
+    public static void writeBytesBigEndian24(ByteBuffer m, byte[] s) {
+        if(s == null) {
+            return;
+        }
+
+        if (s.length == 0) {
+            writeBigEndianInt24(m, 0);
+            return;
+        }
+
+        writeBigEndianInt24(m, s.length);
         m.put(s);
     }
 
@@ -444,7 +552,7 @@ public final class BufferUtils {
         bs[++off] = ((byte) (n >> 8));
         bs[++off] = ((byte) n);
     }
-    
+
     public record ScopedWrite(ByteBuffer buffer, int limit, int position) implements AutoCloseable {
         @Override
         public void close() {
@@ -488,6 +596,11 @@ public final class BufferUtils {
             len = Math.min(len, buf.remaining());
             buf.get(bytes, off, len);
             return len;
+        }
+
+        @Override
+        public int available() {
+            return buf.remaining();
         }
     }
 }

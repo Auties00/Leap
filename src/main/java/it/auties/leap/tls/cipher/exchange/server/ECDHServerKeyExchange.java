@@ -25,11 +25,11 @@ public class ECDHServerKeyExchange extends TlsServerKeyExchange {
     public ECDHServerKeyExchange(TlsKeyExchangeType type, ByteBuffer buffer, List<TlsSupportedGroup> supportedGroups) {
         super(type, TlsPreMasterSecretGenerator.ecdh());
         this.parameters = decodeParams(buffer, supportedGroups);
-        this.publicKey = readBytesLittleEndian8(buffer);
+        this.publicKey = readBytesBigEndian8(buffer);
     }
 
     private TlsECParameters decodeParams(ByteBuffer buffer, List<TlsSupportedGroup> supportedGroups) {
-        var ecType = readLittleEndianInt8(buffer);
+        var ecType = readBigEndianInt8(buffer);
         for(var supportedGroup : supportedGroups) {
             var decoder = supportedGroup.ellipticCurveParametersDeserializer()
                     .orElse(null);
@@ -42,7 +42,7 @@ public class ECDHServerKeyExchange extends TlsServerKeyExchange {
 
     @Override
     public void serialize(ByteBuffer buffer) {
-        writeBytesLittleEndian8(buffer, publicKey);
+        writeBytesBigEndian8(buffer, publicKey);
     }
 
     @Override

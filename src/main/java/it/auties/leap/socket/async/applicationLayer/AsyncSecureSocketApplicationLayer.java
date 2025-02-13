@@ -192,10 +192,10 @@ public class AsyncSecureSocketApplicationLayer extends AsyncSocketApplicationLay
         var encryptedMessagePosition = encryptedMessagePayloadBuffer.position() - TlsMessage.messageRecordHeaderLength();
         var encryptedMessageLength = encryptedMessagePayloadBuffer.remaining();
         encryptedMessagePayloadBuffer.position(encryptedMessagePosition);
-        writeLittleEndianInt8(encryptedMessagePayloadBuffer, finishedMessage.contentType().id());
-        writeLittleEndianInt8(encryptedMessagePayloadBuffer, finishedMessage.version().id().major());
-        writeLittleEndianInt8(encryptedMessagePayloadBuffer, finishedMessage.version().id().minor());
-        writeLittleEndianInt16(encryptedMessagePayloadBuffer, encryptedMessageLength);
+        writeBigEndianInt8(encryptedMessagePayloadBuffer, finishedMessage.contentType().id());
+        writeBigEndianInt8(encryptedMessagePayloadBuffer, finishedMessage.version().id().major());
+        writeBigEndianInt8(encryptedMessagePayloadBuffer, finishedMessage.version().id().minor());
+        writeBigEndianInt16(encryptedMessagePayloadBuffer, encryptedMessageLength);
         encryptedMessagePayloadBuffer.position(encryptedMessagePosition);
 
         return write(encryptedMessagePayloadBuffer)

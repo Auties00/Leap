@@ -20,11 +20,11 @@ public record ALPNExtension(
     private static final TlsExtensionDeserializer DECODER = new TlsExtensionDeserializer() {
         @Override
         public Optional<? extends Concrete> deserialize(ByteBuffer buffer, int type, TlsMode mode) {
-            var supportedProtocolsSize = readLittleEndianInt16(buffer);
+            var supportedProtocolsSize = readBigEndianInt16(buffer);
             var supportedProtocols = new ArrayList<byte[]>();
             try(var _ = scopedRead(buffer, supportedProtocolsSize)) {
                 while (buffer.hasRemaining()) {
-                    supportedProtocols.add(readBytesLittleEndian8(buffer));
+                    supportedProtocols.add(readBytesBigEndian8(buffer));
                 }
             }
             var extension = new ALPNExtension(supportedProtocols, supportedProtocolsSize);
@@ -50,9 +50,9 @@ public record ALPNExtension(
 
     @Override
     public void serializeExtensionPayload(ByteBuffer buffer) {
-        writeLittleEndianInt16(buffer, supportedProtocolsSize);
+        writeBigEndianInt16(buffer, supportedProtocolsSize);
         for (var protocolName : supportedProtocols) {
-            writeBytesLittleEndian8(buffer, protocolName);
+            writeBytesBigEndian8(buffer, protocolName);
         }
     }
 

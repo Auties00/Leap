@@ -6,16 +6,13 @@ module it.auties.leap {
 
     exports it.auties.leap.socket;
     exports it.auties.leap.socket.async;
-    exports it.auties.leap.socket.async.client;
     // exports it.auties.leap.socket.async.server;
     exports it.auties.leap.socket.blocking;
-    exports it.auties.leap.socket.blocking.client;
     // exports it.auties.leap.socket.blocking.server;
 
     exports it.auties.leap.tls.certificate;
 
     exports it.auties.leap.tls.cipher;
-    exports it.auties.leap.tls.cipher.auth;
     exports it.auties.leap.tls.cipher.exchange;
     exports it.auties.leap.tls.cipher.engine;
     exports it.auties.leap.tls.cipher.mode;

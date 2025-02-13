@@ -35,8 +35,8 @@ public sealed abstract class KeyExchangeMessage extends TlsHandshakeMessage {
                     .orElseThrow()
                     .keyExchangeFactory()
                     .decodeRemoteKeyExchange(context, buffer);
-            var signatureAlgorithmId = readLittleEndianInt16(buffer);
-            var signature = readBytesLittleEndian16(buffer);
+            var signatureAlgorithmId = readBigEndianInt16(buffer);
+            var signature = readBytesBigEndian16(buffer);
             return new Server(metadata.version(), metadata.source(), remoteParameters, signatureAlgorithmId, signature);
         }
 
@@ -70,8 +70,8 @@ public sealed abstract class KeyExchangeMessage extends TlsHandshakeMessage {
         @Override
         public void serializeHandshakePayload(ByteBuffer buffer) {
             parameters.serialize(buffer);
-            writeLittleEndianInt16(buffer, signatureAlgorithm);
-            writeBytesLittleEndian16(buffer, signature);
+            writeBigEndianInt16(buffer, signatureAlgorithm);
+            writeBytesBigEndian16(buffer, signature);
         }
 
         @Override
@@ -101,7 +101,7 @@ public sealed abstract class KeyExchangeMessage extends TlsHandshakeMessage {
         }
 
         public static Client of(TlsContext ignoredEngine, ByteBuffer buffer, Metadata metadata) {
-            var messageLength = readLittleEndianInt24(buffer);
+            var messageLength = readBigEndianInt24(buffer);
             try(var _ = scopedRead(buffer, messageLength)) {
                 return new Client(metadata.version(), metadata.source(), readBuffer(buffer, buffer.remaining()));
             }

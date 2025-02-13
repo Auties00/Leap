@@ -12,13 +12,13 @@ import java.util.Objects;
 import java.util.Optional;
 
 import static it.auties.leap.tls.util.BufferUtils.INT16_LENGTH;
-import static it.auties.leap.tls.util.BufferUtils.readLittleEndianInt8;
+import static it.auties.leap.tls.util.BufferUtils.readBigEndianInt8;
 
 public sealed abstract class PaddingExtension {
     private static final TlsExtensionDeserializer DECODER = new TlsExtensionDeserializer() {
         @Override
         public Optional<? extends TlsExtension.Concrete> deserialize(ByteBuffer buffer, int type, TlsMode mode) {
-            var padding = readLittleEndianInt8(buffer);
+            var padding = readBigEndianInt8(buffer);
             var extension = new Concrete(padding);
             return Optional.of(extension);
         }

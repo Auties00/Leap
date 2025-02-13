@@ -6,8 +6,8 @@ import java.nio.ByteBuffer;
 import java.security.SecureRandom;
 import java.util.Arrays;
 
-import static it.auties.leap.tls.util.BufferUtils.readBytesLittleEndian8;
-import static it.auties.leap.tls.util.BufferUtils.writeBytesLittleEndian8;
+import static it.auties.leap.tls.util.BufferUtils.readBytesBigEndian8;
+import static it.auties.leap.tls.util.BufferUtils.writeBytesBigEndian8;
 
 public final class TlsSharedSecret {
     private static final int LENGTH = 32;
@@ -29,7 +29,7 @@ public final class TlsSharedSecret {
     }
 
     public static TlsSharedSecret of(ByteBuffer buffer) {
-        var data = readBytesLittleEndian8(buffer);
+        var data = readBytesBigEndian8(buffer);
         if (data.length != LENGTH) {
             throw new TlsException("Expected shared secret to have length " + LENGTH);
         }
@@ -37,7 +37,7 @@ public final class TlsSharedSecret {
     }
 
     public void serialize(ByteBuffer buffer) {
-        writeBytesLittleEndian8(buffer, data);
+        writeBytesBigEndian8(buffer, data);
     }
 
     public byte[] data() {

@@ -19,10 +19,10 @@ public abstract sealed class SupportedGroupsExtension {
     private static final TlsExtensionDeserializer DECODER = new TlsExtensionDeserializer() {
         @Override
         public Optional<? extends Concrete> deserialize(ByteBuffer buffer, int type, TlsMode mode) {
-            var groupsSize = readLittleEndianInt16(buffer);
+            var groupsSize = readBigEndianInt16(buffer);
             var groups = new ArrayList<Integer>(groupsSize);
             for (var i = 0; i < groupsSize; i++) {
-                var groupId = readLittleEndianInt16(buffer);
+                var groupId = readBigEndianInt16(buffer);
                 groups.add(groupId);
             }
             var extension = new SupportedGroupsExtension.Concrete(groups);
@@ -48,9 +48,9 @@ public abstract sealed class SupportedGroupsExtension {
         @Override
         public void serializeExtensionPayload(ByteBuffer buffer) {
             var size = groups.size() * INT16_LENGTH;
-            writeLittleEndianInt16(buffer, size);
+            writeBigEndianInt16(buffer, size);
             for (var ecPointFormat : groups) {
-                writeLittleEndianInt16(buffer, ecPointFormat);
+                writeBigEndianInt16(buffer, ecPointFormat);
             }
         }
 

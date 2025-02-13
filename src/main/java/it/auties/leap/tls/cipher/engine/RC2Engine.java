@@ -80,10 +80,10 @@ public final class RC2Engine extends TlsCipherEngine.Block {
     }
 
     private void encryptBlock(ByteBuffer input, ByteBuffer output) {
-        var x10 = readLittleEndianInt16(input);
-        var x32 = readLittleEndianInt16(input);
-        var x54 = readLittleEndianInt16(input);
-        var x76 = readLittleEndianInt16(input);
+        var x10 = readBigEndianInt16(input);
+        var x32 = readBigEndianInt16(input);
+        var x54 = readBigEndianInt16(input);
+        var x76 = readBigEndianInt16(input);
 
         for (var i = 0; i <= 16; i += 4) {
             x10 = rotateWordLeft(x10 + (x32 & ~x76) + (x54 & x76) + workingKey[i], 1);
@@ -116,17 +116,17 @@ public final class RC2Engine extends TlsCipherEngine.Block {
             x76 = rotateWordLeft(x76 + (x10 & ~x54) + (x32 & x54) + workingKey[i + 3], 5);
         }
 
-        writeLittleEndianInt16(output, x10);
-        writeLittleEndianInt16(output, x32);
-        writeLittleEndianInt16(output, x54);
-        writeLittleEndianInt16(output, x76);
+        writeBigEndianInt16(output, x10);
+        writeBigEndianInt16(output, x32);
+        writeBigEndianInt16(output, x54);
+        writeBigEndianInt16(output, x76);
     }
 
     private void decryptBlock(ByteBuffer input, ByteBuffer output) {
-        var x10 = readLittleEndianInt16(input);
-        var x32 = readLittleEndianInt16(input);
-        var x54 = readLittleEndianInt16(input);
-        var x76 = readLittleEndianInt16(input);
+        var x10 = readBigEndianInt16(input);
+        var x32 = readBigEndianInt16(input);
+        var x54 = readBigEndianInt16(input);
+        var x76 = readBigEndianInt16(input);
 
         for (var i = 60; i >= 44; i -= 4) {
             x76 = rotateWordLeft(x76, 11) - ((x10 & ~x54) + (x32 & x54) + workingKey[i + 3]);
@@ -159,10 +159,10 @@ public final class RC2Engine extends TlsCipherEngine.Block {
             x10 = rotateWordLeft(x10, 15) - ((x32 & ~x76) + (x54 & x76) + workingKey[i]);
         }
 
-        writeLittleEndianInt16(output, x10);
-        writeLittleEndianInt16(output, x32);
-        writeLittleEndianInt16(output, x54);
-        writeLittleEndianInt16(output, x76);
+        writeBigEndianInt16(output, x10);
+        writeBigEndianInt16(output, x32);
+        writeBigEndianInt16(output, x54);
+        writeBigEndianInt16(output, x76);
     }
 
     private int rotateWordLeft(int x, int y) {

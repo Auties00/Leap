@@ -81,12 +81,12 @@ public final class SHA384Hash implements TlsHash {
 
             processBlock();
 
-            BufferUtils.writeLittleEndianInt64(h1, output, offset);
-            BufferUtils.writeLittleEndianInt64(h2, output, offset + 8);
-            BufferUtils.writeLittleEndianInt64(h3, output, offset + 16);
-            BufferUtils.writeLittleEndianInt64(h4, output, offset + 24);
-            BufferUtils.writeLittleEndianInt64(h5, output, offset + 32);
-            BufferUtils.writeLittleEndianInt64(h6, output, offset + 40);
+            BufferUtils.writeBigEndianInt64(h1, output, offset);
+            BufferUtils.writeBigEndianInt64(h2, output, offset + 8);
+            BufferUtils.writeBigEndianInt64(h3, output, offset + 16);
+            BufferUtils.writeBigEndianInt64(h4, output, offset + 24);
+            BufferUtils.writeBigEndianInt64(h5, output, offset + 32);
+            BufferUtils.writeBigEndianInt64(h6, output, offset + 40);
 
             reset();
 

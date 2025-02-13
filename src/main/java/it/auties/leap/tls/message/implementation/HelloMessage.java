@@ -67,35 +67,35 @@ public sealed abstract class HelloMessage extends TlsHandshakeMessage {
         }
 
         public static Client of(TlsContext context, ByteBuffer buffer, Metadata metadata) {
-            var versionId = TlsVersionId.of(readLittleEndianInt16(buffer));
+            var versionId = TlsVersionId.of(readBigEndianInt16(buffer));
             var tlsVersion = TlsVersion.of(versionId)
                     .orElseThrow(() -> new IllegalArgumentException("Unknown version: " + versionId));
             var clientRandom = TlsRandomData.of(buffer);
             var sessionId = TlsSharedSecret.of(buffer);
             var cookie = TlsCookie.of(metadata.version(), buffer)
                     .orElse(null);
-            var ciphersLength = readLittleEndianInt16(buffer);
+            var ciphersLength = readBigEndianInt16(buffer);
             var ciphers = new ArrayList<Integer>();
             try(var _ = scopedRead(buffer, ciphersLength)) {
                 while (buffer.hasRemaining()) {
-                    var cipherId = readLittleEndianInt16(buffer);
+                    var cipherId = readBigEndianInt16(buffer);
                     ciphers.add(cipherId);
                 }
             }
             var compressions = new ArrayList<Byte>();
-            var compressionsLength = readLittleEndianInt16(buffer);
+            var compressionsLength = readBigEndianInt16(buffer);
             try(var _ = scopedRead(buffer, compressionsLength)) {
                 while (buffer.hasRemaining()) {
-                    var compressionId = readLittleEndianInt8(buffer);
+                    var compressionId = readBigEndianInt8(buffer);
                     compressions.add(compressionId);
                 }
             }
             var extensions = new ArrayList<TlsExtension.Concrete>();
-            var extensionsLength = readLittleEndianInt16(buffer);
+            var extensionsLength = readBigEndianInt16(buffer);
             try(var _ = scopedRead(buffer, extensionsLength)) {
                 while (buffer.hasRemaining()) {
-                    var extensionType = readLittleEndianInt16(buffer);
-                    var extensionLength = readLittleEndianInt16(buffer);
+                    var extensionType = readBigEndianInt16(buffer);
+                    var extensionLength = readBigEndianInt16(buffer);
                     if(extensionLength == 0) {
                         continue;
                     }
@@ -135,7 +135,7 @@ public sealed abstract class HelloMessage extends TlsHandshakeMessage {
                 case DTLS13 -> TlsVersion.DTLS12;
                 default -> version;
             };
-            writeLittleEndianInt16(payload, encodedVersion.id().value());
+            writeBigEndianInt16(payload, encodedVersion.id().value());
 
             randomData.serialize(payload);
 
@@ -146,31 +146,31 @@ public sealed abstract class HelloMessage extends TlsHandshakeMessage {
             }
 
             var ciphersLength = getCiphersCount() * INT16_LENGTH;
-            writeLittleEndianInt16(payload, ciphersLength);
+            writeBigEndianInt16(payload, ciphersLength);
             if(ciphersIds != null) {
                 for (var cipher : ciphersIds) {
-                    writeLittleEndianInt16(payload, cipher);
+                    writeBigEndianInt16(payload, cipher);
                 }
             }else if(ciphers != null) {
                 for (var cipher : ciphers) {
-                    writeLittleEndianInt16(payload, cipher.id());
+                    writeBigEndianInt16(payload, cipher.id());
                 }
             }
 
             var compressionsLength = getCompressionsCount() * INT8_LENGTH;
-            writeLittleEndianInt8(payload, compressionsLength);
+            writeBigEndianInt8(payload, compressionsLength);
             if(compressionsIds != null) {
                 for (var compression : compressionsIds) {
-                    writeLittleEndianInt8(payload, compression);
+                    writeBigEndianInt8(payload, compression);
                 }
             }else if(compressions != null ) {
                 for (var compression : compressions) {
-                    writeLittleEndianInt8(payload, compression.id());
+                    writeBigEndianInt8(payload, compression.id());
                 }
             }
 
             if(!extensions.isEmpty()) {
-                writeLittleEndianInt16(payload, extensionsLength);
+                writeBigEndianInt16(payload, extensionsLength);
                 for (var extension : extensions) {
                     extension.serializeExtension(payload);
                 }
@@ -299,7 +299,7 @@ public sealed abstract class HelloMessage extends TlsHandshakeMessage {
         }
 
         public static Server of(TlsContext context, ByteBuffer buffer, Metadata metadata) {
-            var tlsVersionId = readLittleEndianInt16(buffer);
+            var tlsVersionId = readBigEndianInt16(buffer);
             var tlsVersion = TlsVersion.of(tlsVersionId)
                     .orElseThrow(() -> new IllegalArgumentException("Cannot decode TLS message, unknown protocol version: " + tlsVersionId));
 
@@ -307,9 +307,9 @@ public sealed abstract class HelloMessage extends TlsHandshakeMessage {
 
             var sessionId = TlsSharedSecret.of(buffer);
 
-            var cipherId = readLittleEndianInt16(buffer);
+            var cipherId = readBigEndianInt16(buffer);
 
-            var compressionMethodId = readLittleEndianInt8(buffer);
+            var compressionMethodId = readBigEndianInt8(buffer);
 
             var extensionTypeToDecoder = context.config()
                     .extensions()
@@ -317,11 +317,11 @@ public sealed abstract class HelloMessage extends TlsHandshakeMessage {
                     .collect(Collectors.toUnmodifiableMap(TlsExtension::extensionType, TlsExtension::decoder));
             var extensions = new ArrayList<TlsExtension>();
             if(buffer.remaining() >= INT16_LENGTH) {
-                var extensionsLength = readLittleEndianInt16(buffer);
+                var extensionsLength = readBigEndianInt16(buffer);
                 try (var _ = scopedRead(buffer, extensionsLength)) {
                     while (buffer.hasRemaining()) {
-                        var extensionType = readLittleEndianInt16(buffer);
-                        var extensionLength = readLittleEndianInt16(buffer);
+                        var extensionType = readBigEndianInt16(buffer);
+                        var extensionLength = readBigEndianInt16(buffer);
                         if (extensionLength == 0) {
                             continue;
                         }

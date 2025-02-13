@@ -15,7 +15,7 @@ import java.util.Optional;
 import java.util.Set;
 
 import static it.auties.leap.tls.util.BufferUtils.INT16_LENGTH;
-import static it.auties.leap.tls.util.BufferUtils.writeLittleEndianInt16;
+import static it.auties.leap.tls.util.BufferUtils.writeBigEndianInt16;
 
 public sealed interface TlsExtension {
     List<TlsVersion> RENEGOTIATION_INFO_VERSIONS = List.of(
@@ -543,8 +543,8 @@ public sealed interface TlsExtension {
 
     non-sealed interface Concrete extends TlsExtension {
         default void serializeExtension(ByteBuffer buffer) {
-            writeLittleEndianInt16(buffer, extensionType());
-            writeLittleEndianInt16(buffer, extensionPayloadLength());
+            writeBigEndianInt16(buffer, extensionType());
+            writeBigEndianInt16(buffer, extensionPayloadLength());
             serializeExtensionPayload(buffer);
         }
 

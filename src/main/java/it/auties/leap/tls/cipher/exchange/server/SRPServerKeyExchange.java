@@ -24,18 +24,18 @@ public final class SRPServerKeyExchange extends TlsServerKeyExchange {
 
     public SRPServerKeyExchange(ByteBuffer buffer) {
         super(TlsKeyExchangeType.EPHEMERAL, TlsPreMasterSecretGenerator.srp());
-        this.srpN = readBytesLittleEndian16(buffer);
-        this.srpG = readBytesLittleEndian16(buffer);
-        this.srpS = readBytesLittleEndian8(buffer);
-        this.srpB = readBytesLittleEndian16(buffer);
+        this.srpN = readBytesBigEndian16(buffer);
+        this.srpG = readBytesBigEndian16(buffer);
+        this.srpS = readBytesBigEndian8(buffer);
+        this.srpB = readBytesBigEndian16(buffer);
     }
 
     @Override
     public void serialize(ByteBuffer buffer) {
-        writeBytesLittleEndian16(buffer, srpN);
-        writeBytesLittleEndian16(buffer, srpG);
-        writeBytesLittleEndian8(buffer, srpS);
-        writeBytesLittleEndian16(buffer, srpB);
+        writeBytesBigEndian16(buffer, srpN);
+        writeBytesBigEndian16(buffer, srpG);
+        writeBytesBigEndian8(buffer, srpS);
+        writeBytesBigEndian16(buffer, srpB);
     }
 
     @Override

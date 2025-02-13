@@ -23,31 +23,31 @@ public final class ExplicitChar2Parameters implements TlsECParameters {
 
         @Override
         public TlsECParameters deserialize(ByteBuffer input) {
-            var m = readLittleEndianInt16(input);
-            var basis = readLittleEndianInt8(input);
+            var m = readBigEndianInt16(input);
+            var basis = readBigEndianInt8(input);
             return switch (basis) {
                 case BASIS_TRINOMIAL -> {
-                    var k = new BigInteger(1, readBytesLittleEndian8(input))
+                    var k = new BigInteger(1, readBytesBigEndian8(input))
                             .intValueExact();
-                    var a = readBytesLittleEndian8(input);
-                    var b = readBytesLittleEndian8(input);
-                    var encoding = readBytesLittleEndian8(input);
-                    var order = readBytesLittleEndian8(input);
-                    var cofactor = readBytesLittleEndian8(input);
+                    var a = readBytesBigEndian8(input);
+                    var b = readBytesBigEndian8(input);
+                    var encoding = readBytesBigEndian8(input);
+                    var order = readBytesBigEndian8(input);
+                    var cofactor = readBytesBigEndian8(input);
                     yield new ExplicitChar2Parameters(m, basis, k, a, b, encoding, order, cofactor);
                 }
                 case BASIS_PENTANOMIAL -> {
-                    var k1 = new BigInteger(1, readBytesLittleEndian8(input))
+                    var k1 = new BigInteger(1, readBytesBigEndian8(input))
                             .intValueExact();
-                    var k2 = new BigInteger(1, readBytesLittleEndian8(input))
+                    var k2 = new BigInteger(1, readBytesBigEndian8(input))
                             .intValueExact();
-                    var k3 = new BigInteger(1, readBytesLittleEndian8(input))
+                    var k3 = new BigInteger(1, readBytesBigEndian8(input))
                             .intValueExact();
-                    var a = readBytesLittleEndian8(input);
-                    var b = readBytesLittleEndian8(input);
-                    var encoding = readBytesLittleEndian8(input);
-                    var order = readBytesLittleEndian8(input);
-                    var cofactor = readBytesLittleEndian8(input);
+                    var a = readBytesBigEndian8(input);
+                    var b = readBytesBigEndian8(input);
+                    var encoding = readBytesBigEndian8(input);
+                    var order = readBytesBigEndian8(input);
+                    var cofactor = readBytesBigEndian8(input);
                     yield new ExplicitChar2Parameters(m, basis, k1, k2, k3, a, b, encoding, order, cofactor);
                 }
                 default -> throw new TlsException("Unknown basis: " + basis);
@@ -89,22 +89,22 @@ public final class ExplicitChar2Parameters implements TlsECParameters {
 
     @Override
     public void serialize(ByteBuffer buffer) {
-        writeLittleEndianInt16(buffer, m);
-        writeLittleEndianInt8(buffer, basis);
+        writeBigEndianInt16(buffer, m);
+        writeBigEndianInt8(buffer, basis);
         switch (basis) {
-            case BASIS_TRINOMIAL -> writeLittleEndianInt8(buffer, k1);
+            case BASIS_TRINOMIAL -> writeBigEndianInt8(buffer, k1);
             case BASIS_PENTANOMIAL -> {
-                writeLittleEndianInt8(buffer, k1);
-                writeLittleEndianInt8(buffer, k2);
-                writeLittleEndianInt8(buffer, k3);
+                writeBigEndianInt8(buffer, k1);
+                writeBigEndianInt8(buffer, k2);
+                writeBigEndianInt8(buffer, k3);
             }
             default -> throw new TlsException("Unknown basis: " + basis);
         }
-        writeBytesLittleEndian8(buffer, a);
-        writeBytesLittleEndian8(buffer, b);
-        writeBytesLittleEndian8(buffer, encoding);
-        writeBytesLittleEndian8(buffer, order);
-        writeBytesLittleEndian8(buffer, cofactor);
+        writeBytesBigEndian8(buffer, a);
+        writeBytesBigEndian8(buffer, b);
+        writeBytesBigEndian8(buffer, encoding);
+        writeBytesBigEndian8(buffer, order);
+        writeBytesBigEndian8(buffer, cofactor);
     }
 
     @Override

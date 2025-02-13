@@ -18,12 +18,12 @@ public final class RSAClientKeyExchange extends TlsClientKeyExchange {
 
     public RSAClientKeyExchange(ByteBuffer buffer) {
         super(TlsKeyExchangeType.EPHEMERAL, TlsPreMasterSecretGenerator.rsa());
-        this.preMasterSecret = readBytesLittleEndian16(buffer);
+        this.preMasterSecret = readBytesBigEndian16(buffer);
     }
 
     @Override
     public void serialize(ByteBuffer buffer) {
-        writeBytesLittleEndian16(buffer, preMasterSecret);
+        writeBytesBigEndian16(buffer, preMasterSecret);
     }
 
     @Override

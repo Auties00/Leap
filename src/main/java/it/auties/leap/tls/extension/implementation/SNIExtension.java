@@ -19,16 +19,16 @@ public sealed abstract class SNIExtension {
     private static final TlsExtensionDeserializer DECODER = new TlsExtensionDeserializer() {
         @Override
         public Optional<? extends TlsExtension.Concrete> deserialize(ByteBuffer buffer, int type, TlsMode mode) {
-            var listLength = readLittleEndianInt16(buffer);
+            var listLength = readBigEndianInt16(buffer);
             if(listLength == 0) {
                 return Optional.empty();
             }
 
             try(var _ = scopedRead(buffer, listLength)) {
-                var nameTypeId = readLittleEndianInt8(buffer);
+                var nameTypeId = readBigEndianInt8(buffer);
                 var nameType = NameType.of(nameTypeId)
                         .orElseThrow(() -> new IllegalArgumentException("Unknown name type: " + nameTypeId));
-                var nameBytes = readBytesLittleEndian16(buffer);
+                var nameBytes = readBytesBigEndian16(buffer);
                 var extension = new Concrete(nameBytes, nameType);
                 return Optional.of(extension);
             }
@@ -52,11 +52,11 @@ public sealed abstract class SNIExtension {
         @Override
         public void serializeExtensionPayload(ByteBuffer buffer) {
             var listLength = INT8_LENGTH + INT16_LENGTH + name.length;
-            writeLittleEndianInt16(buffer, listLength);
+            writeBigEndianInt16(buffer, listLength);
 
-            writeLittleEndianInt8(buffer, nameType.id());
+            writeBigEndianInt8(buffer, nameType.id());
 
-            writeBytesLittleEndian16(buffer, name);
+            writeBytesBigEndian16(buffer, name);
         }
 
         @Override

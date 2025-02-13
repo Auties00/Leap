@@ -13,7 +13,7 @@ import java.util.Objects;
 import java.util.Optional;
 
 import static it.auties.leap.tls.util.BufferUtils.*;
-import static it.auties.leap.tls.util.BufferUtils.readLittleEndianInt8;
+import static it.auties.leap.tls.util.BufferUtils.readBigEndianInt8;
 
 public record PSKExchangeModesExtension(
         List<Byte> modes
@@ -21,10 +21,10 @@ public record PSKExchangeModesExtension(
     private static final TlsExtensionDeserializer DECODER = new TlsExtensionDeserializer(){
         @Override
         public Optional<? extends Concrete> deserialize(ByteBuffer buffer, int type, TlsMode mode) {
-            var modesSize = readLittleEndianInt16(buffer);
+            var modesSize = readBigEndianInt16(buffer);
             var modes = new ArrayList<Byte>(modesSize);
             for(var i = 0; i < modesSize; i++) {
-                var modeId = readLittleEndianInt8(buffer);
+                var modeId = readBigEndianInt8(buffer);
                 modes.add(modeId);
             }
             var extension = new PSKExchangeModesExtension(modes);
@@ -45,9 +45,9 @@ public record PSKExchangeModesExtension(
 
     @Override
     public void serializeExtensionPayload(ByteBuffer buffer) {
-        writeLittleEndianInt8(buffer, modes.size());
+        writeBigEndianInt8(buffer, modes.size());
         for (var mode : modes) {
-            writeLittleEndianInt8(buffer, mode);
+            writeBigEndianInt8(buffer, mode);
         }
     }
 

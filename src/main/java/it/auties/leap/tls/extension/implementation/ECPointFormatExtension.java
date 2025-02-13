@@ -25,10 +25,10 @@ public record ECPointFormatExtension(
     private static final TlsExtensionDeserializer DECODER = new TlsExtensionDeserializer() {
         @Override
         public Optional<? extends Concrete> deserialize(ByteBuffer buffer, int type, TlsMode mode) {
-            var ecPointFormatsSize = readLittleEndianInt8(buffer);
+            var ecPointFormatsSize = readBigEndianInt8(buffer);
             var ecPointFormats = new ArrayList<Byte>();
             for(var i = 0; i < ecPointFormatsSize; i++) {
-                var ecPointFormatId = readLittleEndianInt8(buffer);
+                var ecPointFormatId = readBigEndianInt8(buffer);
                 ecPointFormats.add(ecPointFormatId);
             }
             var extension = new ECPointFormatExtension(ecPointFormats);
@@ -53,9 +53,9 @@ public record ECPointFormatExtension(
 
     @Override
     public void serializeExtensionPayload(ByteBuffer buffer) {
-        writeLittleEndianInt8(buffer, ecPointFormats.size());
+        writeBigEndianInt8(buffer, ecPointFormats.size());
         for (var ecPointFormat : ecPointFormats) {
-            writeLittleEndianInt8(buffer, ecPointFormat);
+            writeBigEndianInt8(buffer, ecPointFormat);
         }
     }
 

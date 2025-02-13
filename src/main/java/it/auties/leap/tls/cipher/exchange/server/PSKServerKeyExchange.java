@@ -17,12 +17,12 @@ public final class PSKServerKeyExchange extends TlsServerKeyExchange {
     }
 
     public PSKServerKeyExchange(ByteBuffer buffer) {
-        this(readBytesLittleEndian16(buffer));
+        this(readBytesBigEndian16(buffer));
     }
 
     @Override
     public void serialize(ByteBuffer buffer) {
-        writeBytesLittleEndian16(buffer, identityKeyHint);
+        writeBytesBigEndian16(buffer, identityKeyHint);
     }
 
     @Override

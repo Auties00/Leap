@@ -24,10 +24,10 @@ public record SignatureAlgorithmsExtension(
     private static final TlsExtensionDeserializer DECODER = new TlsExtensionDeserializer() {
         @Override
         public Optional<? extends Concrete> deserialize(ByteBuffer buffer, int type, TlsMode mode) {
-            var algorithmsSize = readLittleEndianInt16(buffer);
+            var algorithmsSize = readBigEndianInt16(buffer);
             var algorithms = new ArrayList<Integer>(algorithmsSize);
             for (var i = 0; i < algorithmsSize; i++) {
-                var algorithmId = readLittleEndianInt16(buffer);
+                var algorithmId = readBigEndianInt16(buffer);
                 algorithms.add(algorithmId);
             }
             var extension = new SignatureAlgorithmsExtension(algorithms);
@@ -76,9 +76,9 @@ public record SignatureAlgorithmsExtension(
     @Override
     public void serializeExtensionPayload(ByteBuffer buffer) {
         var size = algorithms.size() * INT16_LENGTH;
-        writeLittleEndianInt16(buffer, size);
+        writeBigEndianInt16(buffer, size);
         for (var ecPointFormat : algorithms) {
-            writeLittleEndianInt16(buffer, ecPointFormat);
+            writeBigEndianInt16(buffer, ecPointFormat);
         }
     }
 

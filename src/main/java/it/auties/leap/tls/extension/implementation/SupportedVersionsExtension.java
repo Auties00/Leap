@@ -24,20 +24,20 @@ public abstract sealed class SupportedVersionsExtension {
         public Optional<? extends Concrete> deserialize(ByteBuffer buffer, int type, TlsMode mode) {
             return switch (mode) {
                 case CLIENT -> {
-                    var payloadSize = readLittleEndianInt8(buffer);
+                    var payloadSize = readBigEndianInt8(buffer);
                     var versions = new ArrayList<TlsVersionId>();
                     try (var _ = scopedRead(buffer, payloadSize)) {
                         var versionsSize = payloadSize / INT16_LENGTH;
                         for (var i = 0; i < versionsSize; i++) {
-                            var versionId = TlsVersionId.of(readLittleEndianInt8(buffer), readLittleEndianInt8(buffer));
+                            var versionId = TlsVersionId.of(readBigEndianInt8(buffer), readBigEndianInt8(buffer));
                             versions.add(versionId);
                         }
                     }
                     yield Optional.of(new Client.Concrete(versions));
                 }
                 case SERVER -> {
-                    var major = readLittleEndianInt8(buffer);
-                    var minor = readLittleEndianInt8(buffer);
+                    var major = readBigEndianInt8(buffer);
+                    var minor = readBigEndianInt8(buffer);
                     var versionId = TlsVersionId.of(major, minor);
                     yield Optional.of(new Server(versionId));
                 }
@@ -62,8 +62,8 @@ public abstract sealed class SupportedVersionsExtension {
 
         @Override
         public void serializeExtensionPayload(ByteBuffer buffer) {
-            writeLittleEndianInt8(buffer, tlsVersion.major());
-            writeLittleEndianInt8(buffer, tlsVersion.minor());
+            writeBigEndianInt8(buffer, tlsVersion.major());
+            writeBigEndianInt8(buffer, tlsVersion.minor());
         }
 
         @Override
@@ -120,10 +120,10 @@ public abstract sealed class SupportedVersionsExtension {
             @Override
             public void serializeExtensionPayload(ByteBuffer buffer) {
                 var payloadSize = tlsVersions.size() * INT16_LENGTH;
-                writeLittleEndianInt8(buffer, payloadSize);
+                writeBigEndianInt8(buffer, payloadSize);
                 for (var tlsVersion : tlsVersions) {
-                    writeLittleEndianInt8(buffer, tlsVersion.major());
-                    writeLittleEndianInt8(buffer, tlsVersion.minor());
+                    writeBigEndianInt8(buffer, tlsVersion.major());
+                    writeBigEndianInt8(buffer, tlsVersion.minor());
                 }
             }
 

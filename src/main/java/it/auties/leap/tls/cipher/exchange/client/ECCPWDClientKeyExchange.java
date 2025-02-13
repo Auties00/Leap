@@ -20,14 +20,14 @@ public final class ECCPWDClientKeyExchange extends TlsClientKeyExchange {
 
     public ECCPWDClientKeyExchange(ByteBuffer buffer) {
         super(TlsKeyExchangeType.EPHEMERAL, TlsPreMasterSecretGenerator.eccpwd());
-        this.publicKey = readBytesLittleEndian8(buffer);
-        this.password = readBytesLittleEndian8(buffer);
+        this.publicKey = readBytesBigEndian8(buffer);
+        this.password = readBytesBigEndian8(buffer);
     }
 
     @Override
     public void serialize(ByteBuffer buffer) {
-        writeBytesLittleEndian8(buffer, publicKey);
-        writeBytesLittleEndian8(buffer, password);
+        writeBytesBigEndian8(buffer, publicKey);
+        writeBytesBigEndian8(buffer, password);
     }
 
     @Override

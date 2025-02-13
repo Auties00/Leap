@@ -27,10 +27,10 @@ public final class AlertMessage extends TlsMessage {
     }
 
     public static AlertMessage of(TlsContext ignoredEngine, ByteBuffer buffer, Metadata metadata) {
-        var levelId = readLittleEndianInt8(buffer);
+        var levelId = readBigEndianInt8(buffer);
         var level = AlertMessage.Level.of(levelId)
                 .orElseThrow(() -> new IllegalArgumentException("Cannot decode TLS message, unknown alert level: " + levelId));
-        var typeId = readLittleEndianInt8(buffer);
+        var typeId = readBigEndianInt8(buffer);
         var type = AlertMessage.Type.of(typeId)
                 .orElseThrow(() -> new IllegalArgumentException("Cannot decode TLS message, unknown alert type: " + typeId));
         return new AlertMessage(metadata.version(), metadata.source(), level, type);
@@ -53,8 +53,8 @@ public final class AlertMessage extends TlsMessage {
 
     @Override
     public void serializeMessagePayload(ByteBuffer buffer) {
-        writeLittleEndianInt8(buffer, level.id());
-        writeLittleEndianInt8(buffer, type.id());
+        writeBigEndianInt8(buffer, level.id());
+        writeBigEndianInt8(buffer, type.id());
     }
 
     @Override

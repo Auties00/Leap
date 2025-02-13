@@ -6,8 +6,8 @@ import java.nio.ByteBuffer;
 import java.util.Arrays;
 import java.util.Optional;
 
-import static it.auties.leap.tls.util.BufferUtils.readBytesLittleEndian8;
-import static it.auties.leap.tls.util.BufferUtils.writeBytesLittleEndian8;
+import static it.auties.leap.tls.util.BufferUtils.readBytesBigEndian8;
+import static it.auties.leap.tls.util.BufferUtils.writeBytesBigEndian8;
 
 public final class TlsCookie {
     private static final TlsCookie EMPTY = new TlsCookie(new byte[0]);
@@ -24,7 +24,7 @@ public final class TlsCookie {
     public static Optional<TlsCookie> of(TlsVersion version, ByteBuffer buffer) {
         return switch (version.protocol()) {
             case TCP -> {
-                var data = readBytesLittleEndian8(buffer);
+                var data = readBytesBigEndian8(buffer);
                 yield Optional.of(new TlsCookie(data));
             }
             case UDP -> Optional.empty();
@@ -32,7 +32,7 @@ public final class TlsCookie {
     }
 
     public void serialize(ByteBuffer buffer) {
-        writeBytesLittleEndian8(buffer, data);
+        writeBytesBigEndian8(buffer, data);
     }
 
     public byte[] data() {

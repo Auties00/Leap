@@ -18,12 +18,12 @@ public final class SRPClientKeyExchange extends TlsClientKeyExchange {
 
     public SRPClientKeyExchange(ByteBuffer buffer) {
         super(TlsKeyExchangeType.EPHEMERAL, TlsPreMasterSecretGenerator.srp());
-        this.srpA = readBytesLittleEndian16(buffer);
+        this.srpA = readBytesBigEndian16(buffer);
     }
 
     @Override
     public void serialize(ByteBuffer buffer) {
-        writeBytesLittleEndian16(buffer, srpA);
+        writeBytesBigEndian16(buffer, srpA);
     }
 
     @Override

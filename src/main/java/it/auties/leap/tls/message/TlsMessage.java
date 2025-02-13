@@ -54,10 +54,10 @@ public sealed abstract class TlsMessage
         var messagePayloadLength = messagePayloadLength();
         var recordLength = messageRecordHeaderLength() + messagePayloadLength;
         try(var _ = scopedWrite(payload, recordLength, true)) {
-            writeLittleEndianInt8(payload, contentType().id());
-            writeLittleEndianInt8(payload, version().id().major());
-            writeLittleEndianInt8(payload, version().id().minor());
-            writeLittleEndianInt16(payload, messagePayloadLength);
+            writeBigEndianInt8(payload, contentType().id());
+            writeBigEndianInt8(payload, version().id().major());
+            writeBigEndianInt8(payload, version().id().minor());
+            writeBigEndianInt16(payload, messagePayloadLength);
             serializeMessagePayload(payload);
         }
     }
@@ -138,14 +138,14 @@ public sealed abstract class TlsMessage
         }
 
         public static Metadata of(ByteBuffer buffer) {
-            var contentTypeId = readLittleEndianInt8(buffer);
+            var contentTypeId = readBigEndianInt8(buffer);
             var contentType = ContentType.of(contentTypeId)
                     .orElseThrow(() -> new IllegalArgumentException("Cannot decode TLS message, unknown content type: " + contentTypeId));
-            var protocolVersionMajor = readLittleEndianInt8(buffer);
-            var protocolVersionMinor = readLittleEndianInt8(buffer);
+            var protocolVersionMajor = readBigEndianInt8(buffer);
+            var protocolVersionMinor = readBigEndianInt8(buffer);
             var protocolVersion = TlsVersion.of(protocolVersionMajor, protocolVersionMinor)
                     .orElseThrow(() -> new IllegalArgumentException("Cannot decode TLS message, unknown protocol version: major %s, minor %s".formatted(protocolVersionMajor, protocolVersionMinor)));
-            var messageLength = readLittleEndianInt16(buffer);
+            var messageLength = readBigEndianInt16(buffer);
             return new Metadata(contentType, protocolVersion, messageLength);
         }
 

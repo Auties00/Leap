@@ -17,8 +17,8 @@ public abstract sealed class TlsHandshakeMessage extends TlsMessage
     }
 
     public static TlsHandshakeMessage of(TlsContext context, ByteBuffer buffer, Metadata metadata) {
-        var id = readLittleEndianInt8(buffer);
-        var messageLength = readLittleEndianInt24(buffer);
+        var id = readBigEndianInt8(buffer);
+        var messageLength = readBigEndianInt24(buffer);
         try (var _ = scopedRead(buffer, messageLength)) {
             return switch (context.selectedMode().orElse(null)) {
                 case CLIENT -> switch (id) {
@@ -59,10 +59,10 @@ public abstract sealed class TlsHandshakeMessage extends TlsMessage
 
     @Override
     public void serializeMessagePayload(ByteBuffer buffer) {
-        writeLittleEndianInt8(buffer, id());
+        writeBigEndianInt8(buffer, id());
         var handshakePayloadLength = handshakePayloadLength();
         if (handshakePayloadLength > 0) {
-            writeLittleEndianInt24(buffer, handshakePayloadLength);
+            writeBigEndianInt24(buffer, handshakePayloadLength);
             serializeHandshakePayload(buffer);
         }
     }

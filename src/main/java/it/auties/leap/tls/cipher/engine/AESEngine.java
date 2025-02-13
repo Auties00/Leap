@@ -59,16 +59,16 @@ public final class AESEngine extends TlsCipherEngine.Block {
     }
 
     private void handle128BitsKey(byte[] key, int[][] blocks) {
-        var col0 = readLittleEndianInt32(key, 0);
+        var col0 = readBigEndianInt32(key, 0);
         blocks[0][0] = col0;
 
-        var col1 = readLittleEndianInt32(key, 4);
+        var col1 = readBigEndianInt32(key, 4);
         blocks[0][1] = col1;
 
-        var col2 = readLittleEndianInt32(key, 8);
+        var col2 = readBigEndianInt32(key, 8);
         blocks[0][2] = col2;
 
-        var col3 = readLittleEndianInt32(key, 12);
+        var col3 = readBigEndianInt32(key, 12);
         blocks[0][3] = col3;
 
         for (var i = 1; i <= 10; ++i) {
@@ -85,28 +85,28 @@ public final class AESEngine extends TlsCipherEngine.Block {
     }
     
     private void handle256BitsKey(byte[] key, int[][] blocks) {
-        var col0 = readLittleEndianInt32(key, 0);
+        var col0 = readBigEndianInt32(key, 0);
         blocks[0][0] = col0;
 
-        var col1 = readLittleEndianInt32(key, 4);
+        var col1 = readBigEndianInt32(key, 4);
         blocks[0][1] = col1;
 
-        var col2 = readLittleEndianInt32(key, 8);
+        var col2 = readBigEndianInt32(key, 8);
         blocks[0][2] = col2;
 
-        var col3 = readLittleEndianInt32(key, 12);
+        var col3 = readBigEndianInt32(key, 12);
         blocks[0][3] = col3;
 
-        var col4 = readLittleEndianInt32(key, 16);
+        var col4 = readBigEndianInt32(key, 16);
         blocks[1][0] = col4;
 
-        var col5 = readLittleEndianInt32(key, 20);
+        var col5 = readBigEndianInt32(key, 20);
         blocks[1][1] = col5;
 
-        var col6 = readLittleEndianInt32(key, 24);
+        var col6 = readBigEndianInt32(key, 24);
         blocks[1][2] = col6;
 
-        var col7 = readLittleEndianInt32(key, 28);
+        var col7 = readBigEndianInt32(key, 28);
         blocks[1][3] = col7;
 
         var i = 2;
@@ -185,10 +185,10 @@ public final class AESEngine extends TlsCipherEngine.Block {
     }
 
     private void encryptBlock(ByteBuffer input, ByteBuffer output) {
-        var c0 = readLittleEndianInt32(input);
-        var c1 = readLittleEndianInt32(input);
-        var c2 = readLittleEndianInt32(input);
-        var c3 = readLittleEndianInt32(input);
+        var c0 = readBigEndianInt32(input);
+        var c1 = readBigEndianInt32(input);
+        var c2 = readBigEndianInt32(input);
+        var c3 = readBigEndianInt32(input);
 
         var t0 = c0 ^ workingKey[0][0];
         var t1 = c1 ^ workingKey[0][1];
@@ -216,17 +216,17 @@ public final class AESEngine extends TlsCipherEngine.Block {
         c2 = (s[r2 & 255] & 255) ^ ((S_BOX[(r3 >> 8) & 255] & 255) << 8) ^ ((S_BOX[(r0 >> 16) & 255] & 255) << 16) ^ (S_BOX[(r1 >> 24) & 255] << 24) ^ workingKey[r][2];
         c3 = (s[r3 & 255] & 255) ^ ((s[(r0 >> 8) & 255] & 255) << 8) ^ ((s[(r1 >> 16) & 255] & 255) << 16) ^ (S_BOX[(r2 >> 24) & 255] << 24) ^ workingKey[r][3];
 
-        writeLittleEndianInt32(output, c0);
-        writeLittleEndianInt32(output, c1);
-        writeLittleEndianInt32(output, c2);
-        writeLittleEndianInt32(output, c3);
+        writeBigEndianInt32(output, c0);
+        writeBigEndianInt32(output, c1);
+        writeBigEndianInt32(output, c2);
+        writeBigEndianInt32(output, c3);
     }
 
     private void decryptBlock(ByteBuffer input, ByteBuffer output) {
-        var c0 = readLittleEndianInt32(input);
-        var c1 = readLittleEndianInt32(input);
-        var c2 = readLittleEndianInt32(input);
-        var c3 = readLittleEndianInt32(input);
+        var c0 = readBigEndianInt32(input);
+        var c1 = readBigEndianInt32(input);
+        var c2 = readBigEndianInt32(input);
+        var c3 = readBigEndianInt32(input);
 
         int t0 = c0 ^ workingKey[rounds][0];
         int t1 = c1 ^ workingKey[rounds][1];
@@ -254,9 +254,9 @@ public final class AESEngine extends TlsCipherEngine.Block {
         c2 = (s[r2 & 255] & 255) ^ ((S_BOX_INVERSE[(r1 >> 8) & 255] & 255) << 8) ^ ((S_BOX_INVERSE[(r0 >> 16) & 255] & 255) << 16) ^ (s[(r3 >> 24) & 255] << 24) ^ workingKey[0][2];
         c3 = (S_BOX_INVERSE[r3 & 255] & 255) ^ ((s[(r2 >> 8) & 255] & 255) << 8) ^ ((s[(r1 >> 16) & 255] & 255) << 16) ^ (s[(r0 >> 24) & 255] << 24) ^ workingKey[0][3];
 
-        writeLittleEndianInt32(output, c0);
-        writeLittleEndianInt32(output, c1);
-        writeLittleEndianInt32(output, c2);
-        writeLittleEndianInt32(output, c3);
+        writeBigEndianInt32(output, c0);
+        writeBigEndianInt32(output, c1);
+        writeBigEndianInt32(output, c2);
+        writeBigEndianInt32(output, c3);
     }
 }

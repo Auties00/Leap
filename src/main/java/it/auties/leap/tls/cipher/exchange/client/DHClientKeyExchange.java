@@ -31,12 +31,12 @@ public final class DHClientKeyExchange extends TlsClientKeyExchange {
 
     public DHClientKeyExchange(TlsKeyExchangeType type, ByteBuffer buffer) {
         super(type, TlsPreMasterSecretGenerator.dh());
-        this.y = readBytesLittleEndian8(buffer);
+        this.y = readBytesBigEndian8(buffer);
     }
 
     @Override
     public void serialize(ByteBuffer buffer) {
-        writeBytesLittleEndian8(buffer, y);
+        writeBytesBigEndian8(buffer, y);
     }
 
     @Override

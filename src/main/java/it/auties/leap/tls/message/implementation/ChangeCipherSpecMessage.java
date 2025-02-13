@@ -33,7 +33,7 @@ public sealed abstract class ChangeCipherSpecMessage extends TlsHandshakeMessage
         }
 
         public static Server of(TlsVersion tlsVersion, TlsSource source, ByteBuffer buffer) {
-            var messageId = readLittleEndianInt8(buffer);
+            var messageId = readBigEndianInt8(buffer);
             if(messageId != ID) {
                 throw new TlsException("Cannot decode TLS message, invalid change cipher spec message id: " + messageId);
             }
@@ -58,7 +58,7 @@ public sealed abstract class ChangeCipherSpecMessage extends TlsHandshakeMessage
 
         @Override
         public void serializeHandshakePayload(ByteBuffer buffer) {
-            writeLittleEndianInt8(buffer, id());
+            writeBigEndianInt8(buffer, id());
         }
 
         @Override
@@ -106,7 +106,7 @@ public sealed abstract class ChangeCipherSpecMessage extends TlsHandshakeMessage
 
         @Override
         public void serializeHandshakePayload(ByteBuffer buffer) {
-            writeLittleEndianInt8(buffer, id());
+            writeBigEndianInt8(buffer, id());
         }
 
         @Override

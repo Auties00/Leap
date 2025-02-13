@@ -20,14 +20,14 @@ public final class RSAServerKeyExchange extends TlsServerKeyExchange {
 
     public RSAServerKeyExchange(ByteBuffer buffer) {
         super(TlsKeyExchangeType.EPHEMERAL, TlsPreMasterSecretGenerator.rsa());
-        this.modulus = readBytesLittleEndian16(buffer);
-        this.exponent = readBytesLittleEndian16(buffer);
+        this.modulus = readBytesBigEndian16(buffer);
+        this.exponent = readBytesBigEndian16(buffer);
     }
 
     @Override
     public void serialize(ByteBuffer buffer) {
-        writeBytesLittleEndian16(buffer, modulus);
-        writeBytesLittleEndian16(buffer, exponent);
+        writeBytesBigEndian16(buffer, modulus);
+        writeBytesBigEndian16(buffer, exponent);
     }
 
     @Override

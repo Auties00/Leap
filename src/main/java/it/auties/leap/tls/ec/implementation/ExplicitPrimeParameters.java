@@ -18,12 +18,12 @@ public final class ExplicitPrimeParameters implements TlsECParameters {
 
         @Override
         public TlsECParameters deserialize(ByteBuffer input) {
-            var prime = readBytesLittleEndian8(input);
-            var a = readBytesLittleEndian8(input);
-            var b = readBytesLittleEndian8(input);
-            var encoding = readBytesLittleEndian8(input);
-            var order = readBytesLittleEndian8(input);
-            var cofactor = readBytesLittleEndian8(input);
+            var prime = readBytesBigEndian8(input);
+            var a = readBytesBigEndian8(input);
+            var b = readBytesBigEndian8(input);
+            var encoding = readBytesBigEndian8(input);
+            var order = readBytesBigEndian8(input);
+            var cofactor = readBytesBigEndian8(input);
             return new ExplicitPrimeParameters(prime, a, b, encoding, order, cofactor);
         }
     };
@@ -50,12 +50,12 @@ public final class ExplicitPrimeParameters implements TlsECParameters {
 
     @Override
     public void serialize(ByteBuffer buffer) {
-        writeBytesLittleEndian8(buffer, prime);
-        writeBytesLittleEndian8(buffer, a);
-        writeBytesLittleEndian8(buffer, b);
-        writeBytesLittleEndian8(buffer, encoding);
-        writeBytesLittleEndian8(buffer, order);
-        writeBytesLittleEndian8(buffer, cofactor);
+        writeBytesBigEndian8(buffer, prime);
+        writeBytesBigEndian8(buffer, a);
+        writeBytesBigEndian8(buffer, b);
+        writeBytesBigEndian8(buffer, encoding);
+        writeBytesBigEndian8(buffer, order);
+        writeBytesBigEndian8(buffer, cofactor);
     }
 
     @Override

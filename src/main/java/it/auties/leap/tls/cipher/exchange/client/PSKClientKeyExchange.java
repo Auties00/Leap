@@ -18,12 +18,12 @@ public final class PSKClientKeyExchange extends TlsClientKeyExchange {
 
     public PSKClientKeyExchange(ByteBuffer buffer) {
         super(TlsKeyExchangeType.EPHEMERAL, TlsPreMasterSecretGenerator.psk());
-        this.identityKey = readBytesLittleEndian16(buffer);
+        this.identityKey = readBytesBigEndian16(buffer);
     }
 
     @Override
     public void serialize(ByteBuffer buffer) {
-        writeBytesLittleEndian16(buffer, identityKey);
+        writeBytesBigEndian16(buffer, identityKey);
     }
 
     @Override

@@ -30,16 +30,16 @@ public final class DHServerKeyExchange extends TlsServerKeyExchange {
 
     public DHServerKeyExchange(TlsKeyExchangeType type, ByteBuffer buffer) {
         super(type, TlsPreMasterSecretGenerator.dh());
-        this.p = readBytesLittleEndian16(buffer);
-        this.g = readBytesLittleEndian16(buffer);
-        this.y = readBytesLittleEndian16(buffer);
+        this.p = readBytesBigEndian16(buffer);
+        this.g = readBytesBigEndian16(buffer);
+        this.y = readBytesBigEndian16(buffer);
     }
 
     @Override
     public void serialize(ByteBuffer buffer) {
-        writeBytesLittleEndian16(buffer, p);
-        writeBytesLittleEndian16(buffer, g);
-        writeBytesLittleEndian16(buffer, y);
+        writeBytesBigEndian16(buffer, p);
+        writeBytesBigEndian16(buffer, g);
+        writeBytesBigEndian16(buffer, y);
     }
 
     @Override

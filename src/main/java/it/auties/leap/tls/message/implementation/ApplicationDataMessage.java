@@ -33,10 +33,10 @@ public final class ApplicationDataMessage extends TlsMessage {
 
         var newReadPosition = message.position() - messageRecordHeaderLength();
         message.position(newReadPosition);
-        writeLittleEndianInt8(message, ContentType.APPLICATION_DATA.id());
-        writeLittleEndianInt8(message, version.id().major());
-        writeLittleEndianInt8(message, version.id().minor());
-        writeLittleEndianInt16(message, messageLength);
+        writeBigEndianInt8(message, ContentType.APPLICATION_DATA.id());
+        writeBigEndianInt8(message, version.id().major());
+        writeBigEndianInt8(message, version.id().minor());
+        writeBigEndianInt16(message, messageLength);
         message.position(newReadPosition);
     }
 

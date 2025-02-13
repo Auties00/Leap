@@ -19,7 +19,7 @@ public final class NamedCurveParameters implements TlsECParameters {
 
         @Override
         public TlsECParameters deserialize(ByteBuffer input) {
-            var namedGroup = readLittleEndianInt16(input);
+            var namedGroup = readBigEndianInt16(input);
             return new NamedCurveParameters(namedGroup);
         }
     };
@@ -36,7 +36,7 @@ public final class NamedCurveParameters implements TlsECParameters {
 
     @Override
     public void serialize(ByteBuffer buffer) {
-        writeLittleEndianInt16(buffer, namedGroup);
+        writeBigEndianInt16(buffer, namedGroup);
     }
 
     @Override
