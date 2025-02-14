@@ -2,12 +2,14 @@ package it.auties.leap.tls.hash.implementation;
 
 import it.auties.leap.tls.hash.TlsHash;
 import it.auties.leap.tls.hash.TlsHashFactory;
-import it.auties.leap.tls.util.BufferUtils;
 
 import java.nio.ByteBuffer;
 import java.util.Arrays;
 
-import static it.auties.leap.tls.util.BufferUtils.*;;
+import static it.auties.leap.tls.util.BufferUtils.readLittleEndianInt32;
+import static it.auties.leap.tls.util.BufferUtils.writeLittleEndianInt32;
+
+;
 
 public final class MD5Hash implements TlsHash {
     private static final int BLOCK_LENGTH = 4;
@@ -69,17 +71,11 @@ public final class MD5Hash implements TlsHash {
 
     @Override
     public void update(ByteBuffer input) {
-        var inOff = input.position();
         var len = input.remaining();
-
-        //
-        // fill the current word
-        //
-        int i = 0;
         if (xBufOff != 0) {
-            while (i < len) {
-                xBuf[xBufOff++] = input.get(inOff + i++);
-                if (xBufOff == 4) {
+            while (input.hasRemaining()) {
+                xBuf[xBufOff++] = input.get();
+                if (xBufOff == BLOCK_LENGTH) {
                     processWord(xBuf, 0);
                     xBufOff = 0;
                     break;
@@ -87,19 +83,12 @@ public final class MD5Hash implements TlsHash {
             }
         }
 
-        //
-        // process whole words.
-        //
-        int limit = len - 3;
-        for (; i < limit; i += 4) {
+        while (input.remaining() >= BLOCK_LENGTH) {
             processWord(input);
         }
 
-        //
-        // load in the remainder.
-        //
-        while (i < len) {
-            xBuf[xBufOff++] = input.get(inOff + i++);
+        while (input.hasRemaining()) {
+            xBuf[xBufOff++] = input.get();
         }
 
         byteCount += len;
@@ -109,9 +98,6 @@ public final class MD5Hash implements TlsHash {
     public void update(byte[] in, int inOff, int len) {
         len = Math.max(0, len);
 
-        //
-        // fill the current word
-        //
         int i = 0;
         if (xBufOff != 0) {
             while (i < len) {
@@ -124,17 +110,11 @@ public final class MD5Hash implements TlsHash {
             }
         }
 
-        //
-        // process whole words.
-        //
         int limit = len - 3;
         for (; i < limit; i += 4) {
             processWord(in, inOff + i);
         }
 
-        //
-        // load in the remainder.
-        //
         while (i < len) {
             xBuf[xBufOff++] = in[inOff + i++];
         }

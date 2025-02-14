@@ -78,9 +78,6 @@ public final class SHA256Hash implements TlsHash {
     public void update(byte[] in, int inOff, int len) {
         len = Math.max(0, len);
 
-        //
-        // fill the current word
-        //
         int i = 0;
         if (xBufOff != 0) {
             while (i < len) {
@@ -93,17 +90,11 @@ public final class SHA256Hash implements TlsHash {
             }
         }
 
-        //
-        // process whole words.
-        //
         int limit = len - 3;
         for (; i < limit; i += 4) {
             processWord(in, inOff + i);
         }
 
-        //
-        // load in the remainder.
-        //
         while (i < len) {
             xBuf[xBufOff++] = in[inOff + i++];
         }
@@ -113,16 +104,11 @@ public final class SHA256Hash implements TlsHash {
 
     @Override
     public void update(ByteBuffer input) {
-        var inOff = input.position();
         var len = input.remaining();
 
-        //
-        // fill the current word
-        //
-        int i = 0;
         if (xBufOff != 0) {
-            while (i < len) {
-                xBuf[xBufOff++] = input.get(inOff + i++);
+            while (input.hasRemaining()) {
+                xBuf[xBufOff++] = input.get();
                 if (xBufOff == 4) {
                     processWord(xBuf, 0);
                     xBufOff = 0;
@@ -131,19 +117,12 @@ public final class SHA256Hash implements TlsHash {
             }
         }
 
-        //
-        // process whole words.
-        //
-        int limit = len - 3;
-        for (; i < limit; i += 4) {
+        while (input.remaining() >= BLOCK_LENGTH) {
             processWord(input);
         }
 
-        //
-        // load in the remainder.
-        //
-        while (i < len) {
-            xBuf[xBufOff++] = input.get(inOff + i++);
+        while (input.hasRemaining()) {
+            xBuf[xBufOff++] = input.get();
         }
 
         byteCount += len;

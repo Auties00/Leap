@@ -139,9 +139,6 @@ public final class SHA384Hash implements TlsHash {
 
     @Override
     public void update(byte[] in, int inOff, int len) {
-        //
-        // fill the current word
-        //
         while ((xBufOff != 0) && (len > 0)) {
             update(in[inOff]);
 
@@ -149,9 +146,6 @@ public final class SHA384Hash implements TlsHash {
             len--;
         }
 
-        //
-        // process whole words.
-        //
         while (len >= xBuf.length) {
             processWord(in, inOff);
 
@@ -160,9 +154,6 @@ public final class SHA384Hash implements TlsHash {
             byteCount1 += xBuf.length;
         }
 
-        //
-        // load in the remainder.
-        //
         while (len > 0) {
             update(in[inOff]);
 
@@ -173,38 +164,17 @@ public final class SHA384Hash implements TlsHash {
 
     @Override
     public void update(ByteBuffer input) {
-        var inOff = input.position();
-        var len = input.remaining();
-
-        //
-        // fill the current word
-        //
-        while ((xBufOff != 0) && (len > 0)) {
-            update(input.get(inOff));
-
-            inOff++;
-            len--;
+        while ((xBufOff != 0) && input.hasRemaining()) {
+            update(input.get());
         }
 
-        //
-        // process whole words.
-        //
-        while (len >= xBuf.length) {
+        while (input.remaining() >= xBuf.length) {
             processWord(input);
-
-            inOff += xBuf.length;
-            len -= xBuf.length;
             byteCount1 += xBuf.length;
         }
 
-        //
-        // load in the remainder.
-        //
-        while (len > 0) {
-            update(input.get(inOff));
-
-            inOff++;
-            len--;
+        while (input.hasRemaining()) {
+            update(input.get());
         }
     }
 

@@ -98,14 +98,12 @@ public final class SHA1Hash implements TlsHash {
 
     @Override
     public void update(ByteBuffer input) {
-        var inOff = input.position();
         var len = input.remaining();
 
-        int i = 0;
         if (xBufOff != 0) {
-            while (i < len) {
-                xBuf[xBufOff++] = input.get(inOff + i++);
-                if (xBufOff == 4) {
+            while (input.hasRemaining()) {
+                xBuf[xBufOff++] = input.get();
+                if (xBufOff == BLOCK_LENGTH) {
                     processWord(xBuf, 0);
                     xBufOff = 0;
                     break;
@@ -113,13 +111,12 @@ public final class SHA1Hash implements TlsHash {
             }
         }
 
-        int limit = len - 3;
-        for (; i < limit; i += 4) {
+        while (input.remaining() >= BLOCK_LENGTH) {
             processWord(input);
         }
 
-        while (i < len) {
-            xBuf[xBufOff++] = input.get(inOff + i++);
+        while (input.hasRemaining()) {
+            xBuf[xBufOff++] = input.get();
         }
 
         byteCount += len;

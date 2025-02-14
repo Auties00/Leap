@@ -4,6 +4,7 @@ import it.auties.leap.tls.hash.TlsHash;
 import it.auties.leap.tls.hash.TlsHashFactory;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
 
+import java.nio.ByteBuffer;
 import java.security.MessageDigest;
 import java.security.Security;
 import java.util.HexFormat;
@@ -31,9 +32,9 @@ public class HashIntegrity {
 
     private static void test(String name, TlsHash cmd) {
         System.out.println(name);
-        var message = new byte[8192];
+        var message = new byte[8197];
         ThreadLocalRandom.current().nextBytes(message);
-        var message1 = new byte[8192];
+        var message1 = new byte[8197];
         ThreadLocalRandom.current().nextBytes(message1);
         try {
             var jmd = MessageDigest.getInstance(name);
@@ -43,8 +44,8 @@ public class HashIntegrity {
         }catch (Throwable e) {
             System.err.println(e.getMessage());
         }
-        cmd.update(message);
-        cmd.update(message1);
+        cmd.update(ByteBuffer.wrap(message));
+        cmd.update(ByteBuffer.wrap(message1));
         System.out.println(HexFormat.of().formatHex(cmd.digest(true)));
         System.out.println();
     }

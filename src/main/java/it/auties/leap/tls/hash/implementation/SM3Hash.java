@@ -2,12 +2,12 @@ package it.auties.leap.tls.hash.implementation;
 
 import it.auties.leap.tls.hash.TlsHash;
 import it.auties.leap.tls.hash.TlsHashFactory;
-import it.auties.leap.tls.util.BufferUtils;
 
 import java.nio.ByteBuffer;
 import java.util.Arrays;
 
-import static it.auties.leap.tls.util.BufferUtils.*;
+import static it.auties.leap.tls.util.BufferUtils.readBigEndianInt32;
+import static it.auties.leap.tls.util.BufferUtils.writeBigEndianInt32;
 
 public final class SM3Hash implements TlsHash {
     private static final int BLOCK_LENGTH = 4;
@@ -96,12 +96,10 @@ public final class SM3Hash implements TlsHash {
     @Override
     public void update(ByteBuffer input) {
         var len = input.remaining();
-        var inOff = input.position();
 
-        int i = 0;
         if (bufferOffset != 0) {
-            while (i < len) {
-                xBuf[bufferOffset++] = input.get(inOff + i++);
+            while (input.hasRemaining()) {
+                xBuf[bufferOffset++] = input.get();
                 if (bufferOffset == 4) {
                     processWord(xBuf, 0);
                     bufferOffset = 0;
@@ -109,13 +107,13 @@ public final class SM3Hash implements TlsHash {
                 }
             }
         }
-        int limit = len - 3;
-        for (; i < limit; i += 4) {
+
+        while (input.remaining() >= BLOCK_LENGTH) {
             processWord(input);
         }
 
-        while (i < len) {
-            xBuf[bufferOffset++] = input.get(inOff + i++);
+        while (input.hasRemaining()) {
+            xBuf[bufferOffset++] = input.get();
         }
 
         byteCount += len;

@@ -83,25 +83,18 @@ public final class GOSTR341112_256_Hash implements TlsHash {
 
     @Override
     public void update(ByteBuffer input) {
-        var offset = input.position();
-        var len = input.remaining();
-        while (bOff != 64 && len > 0) {
-            update(input.get(offset++));
-            len--;
+        while (bOff != 64 && input.hasRemaining()) {
+            update(input.get());
         }
-        while (len >= 64) {
-            input.get(offset, tmp, 0, 64);
+        while (input.remaining() >= 64) {
+            input.get(tmp, 0, 64);
             reverse(tmp, block);
             g_N(h, n, block);
             addMod512(n, 512);
             addMod512(sigma, block);
-
-            len -= 64;
-            offset += 64;
         }
-        while (len > 0) {
-            update(input.get(offset++));
-            len--;
+        while (input.hasRemaining()) {
+            update(input.get());
         }
     }
 

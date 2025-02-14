@@ -58,7 +58,9 @@ public abstract sealed class TlsExchangeAuthenticator {
             mac.update(additional);
         }
 
+        var position = buffer.position();
         mac.update(buffer);
+        buffer.position(position);
         return Optional.of(mac.doFinal());
     }
 
