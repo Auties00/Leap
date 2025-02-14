@@ -7,52 +7,56 @@ import it.auties.leap.tls.hash.TlsHmac;
 import java.nio.ByteBuffer;
 
 public sealed abstract class TlsCipherMode {
-    public static TlsCipherMode poly1305() {
-        return new Poly1305Mode();
+    public static TlsCipherMode poly1305(TlsCipherEngine engine) {
+        return new Poly1305Mode(engine);
     }
 
-    public static TlsCipherMode ctr() {
-        return new CTRMode();
+    public static TlsCipherMode ctr(TlsCipherEngine engine) {
+        return new CTRMode(engine);
     }
 
-    public static TlsCipherMode gcm() {
-        return new GCMMode();
+    public static TlsCipherMode gcm(TlsCipherEngine engine) {
+        return new GCMMode(engine);
     }
 
-    public static TlsCipherMode cbc() {
-        return new CBCMode();
+    public static TlsCipherMode cbc(TlsCipherEngine engine) {
+        return new CBCMode(engine);
     }
 
-    public static TlsCipherMode cbcExport() {
-        return new CBCMode();
+    public static TlsCipherMode cbcExport(TlsCipherEngine engine) {
+        return new CBCMode(engine);
     }
 
-    public static TlsCipherMode ccm() {
-        return new CCMMode();
+    public static TlsCipherMode ccm(TlsCipherEngine engine) {
+        return new CCMMode(engine);
     }
 
-    public static TlsCipherMode ccm8() {
-        return new CCMMode();
+    public static TlsCipherMode ccm8(TlsCipherEngine engine) {
+        return new CCMMode(engine);
     }
 
-    public static TlsCipherMode none() {
+    public static TlsCipherMode none(TlsCipherEngine engine) {
         return NoneMode.instance();
     }
 
-    public static TlsCipherMode mgmLight() {
+    public static TlsCipherMode mgmLight(TlsCipherEngine engine) {
         throw new UnsupportedOperationException();
     }
 
-    public static TlsCipherMode mgmStrong() {
+    public static TlsCipherMode mgmStrong(TlsCipherEngine engine) {
         throw new UnsupportedOperationException();
     }
 
+    protected final TlsCipherEngine engine;
     protected TlsExchangeAuthenticator authenticator;
-    protected TlsCipherEngine engine;
     protected byte[] fixedIv;
     protected boolean initialized;
 
-    public void init(TlsExchangeAuthenticator authenticator, TlsCipherEngine engine, byte[] fixedIv) {
+    protected TlsCipherMode(TlsCipherEngine engine) {
+        this.engine = engine;
+    }
+
+    public void init(TlsExchangeAuthenticator authenticator, byte[] fixedIv) {
         if(engine != null && !engine.isInitialized()) {
             throw new TlsException("Engine is not initialized");
         }
@@ -62,7 +66,6 @@ public sealed abstract class TlsCipherMode {
         }
         
         this.authenticator = authenticator;
-        this.engine = engine;
         this.fixedIv = fixedIv;
         this.initialized = true;
     }
@@ -179,12 +182,11 @@ public sealed abstract class TlsCipherMode {
     }
 
     public abstract non-sealed static class Block extends TlsCipherMode {
-        @Override
-        public void init(TlsExchangeAuthenticator authenticator, TlsCipherEngine engine, byte[] fixedIv) {
+        protected Block(TlsCipherEngine engine) {
             if(engine != null && !(engine instanceof TlsCipherEngine.Block)) {
                 throw new TlsException("Expected block engine");
             }
-            super.init(authenticator, engine, fixedIv);
+            super(engine);
         }
 
         @Override
@@ -194,12 +196,11 @@ public sealed abstract class TlsCipherMode {
     }
 
     public abstract non-sealed static class Stream extends TlsCipherMode {
-        @Override
-        public void init(TlsExchangeAuthenticator authenticator, TlsCipherEngine engine, byte[] fixedIv) {
+        protected Stream(TlsCipherEngine engine) {
             if(engine != null && !(engine instanceof TlsCipherEngine.Stream)) {
                 throw new TlsException("Expected stream engine");
             }
-            super.init(authenticator, engine, fixedIv);
+            super(engine);
         }
 
         @Override

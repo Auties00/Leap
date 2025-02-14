@@ -9,7 +9,7 @@ import it.auties.leap.tls.version.TlsVersion;
 
 import java.nio.ByteBuffer;
 
-import static it.auties.leap.tls.util.BufferUtils.writeBytes;
+import static it.auties.leap.tls.util.BufferUtils.*;;
 
 public sealed abstract class FinishedMessage extends TlsHandshakeMessage {
     private static final int MIN_HASH_LENGTH = 12;
@@ -32,7 +32,7 @@ public sealed abstract class FinishedMessage extends TlsHandshakeMessage {
         }
 
         public static Server of(TlsContext ignoredEngine, ByteBuffer buffer, Metadata metadata) {
-            var hash = BufferUtils.readBytes(buffer, buffer.remaining());
+            var hash = readBytes(buffer, buffer.remaining());
             return new Server(metadata.version(), metadata.source(), hash);
         }
 
@@ -76,7 +76,7 @@ public sealed abstract class FinishedMessage extends TlsHandshakeMessage {
         }
 
         public static Client of(TlsContext ignoredEngine, ByteBuffer buffer, Metadata metadata) {
-            var hash = BufferUtils.readBytes(buffer, buffer.remaining());
+            var hash = readBytes(buffer, buffer.remaining());
             return new Client(metadata.version(), metadata.source(), hash);
         }
 

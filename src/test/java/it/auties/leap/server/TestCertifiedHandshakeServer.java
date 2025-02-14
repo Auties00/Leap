@@ -5,6 +5,7 @@ import java.io.*;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.security.KeyStore;
+import java.util.Arrays;
 
 public class TestCertifiedHandshakeServer {
     private static final int PORT = 8082;
@@ -26,6 +27,7 @@ public class TestCertifiedHandshakeServer {
         // Create the SSLContext using the key and trust managers
         SSLContext sslContext = SSLContext.getInstance("TLS");
         sslContext.init(keyManagerFactory.getKeyManagers(), trustManagerFactory.getTrustManagers(), null);
+        System.out.println(Arrays.toString(sslContext.getDefaultSSLParameters().getCipherSuites()));
 
         // Create the SSLServerSocketFactory
         SSLServerSocketFactory serverSocketFactory = sslContext.getServerSocketFactory();

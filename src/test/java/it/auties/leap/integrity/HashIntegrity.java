@@ -18,9 +18,11 @@ public class HashIntegrity {
 
     private static final Map<String, TlsHashFactory> HASH_FACTORIES = Map.of(
             "SHA1", TlsHashFactory.sha1(),
-            "MD5", TlsHashFactory.md5(),
+            "SHA256", TlsHashFactory.sha256(),
             "SHA384", TlsHashFactory.sha384(),
-            "SHA256", TlsHashFactory.sha256()
+            "MD5", TlsHashFactory.md5(),
+            "SM3", TlsHashFactory.sm3(),
+            "GOST3411-2012-256", TlsHashFactory.gostr341112_256()
     );
     public static void main(String[] args) {
         for(var hashFactory : HASH_FACTORIES.entrySet()) {

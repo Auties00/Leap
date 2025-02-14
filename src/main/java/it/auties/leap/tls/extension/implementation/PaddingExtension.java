@@ -11,8 +11,7 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 
-import static it.auties.leap.tls.util.BufferUtils.INT16_LENGTH;
-import static it.auties.leap.tls.util.BufferUtils.readBigEndianInt8;
+import static it.auties.leap.tls.util.BufferUtils.*;
 
 public sealed abstract class PaddingExtension {
     private static final TlsExtensionDeserializer DECODER = new TlsExtensionDeserializer() {

@@ -51,5 +51,5 @@ public interface TlsCipherModeFactory {
         return CTROMacMode.factory();
     }
 
-    TlsCipherMode newCipherMode();
+    TlsCipherMode newCipherMode(TlsCipherEngine engine);
 }

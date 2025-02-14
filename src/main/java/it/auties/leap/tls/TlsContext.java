@@ -31,7 +31,7 @@ import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
-import static it.auties.leap.tls.util.BufferUtils.readBytes;
+import static it.auties.leap.tls.util.BufferUtils.*;
 import static it.auties.leap.tls.util.TlsKeyConstants.*;
 
 public class TlsContext {
@@ -528,12 +528,12 @@ public class TlsContext {
         var localCipherEngine = negotiatedCipher.engineFactory()
                 .newCipherEngine();
         var localCipherMode = negotiatedCipher.modeFactory()
-                .newCipherMode();
+                .newCipherMode(localCipherEngine);
 
         var remoteCipherEngine = negotiatedCipher.engineFactory()
                 .newCipherEngine();
         var remoteCipherMode = negotiatedCipher.modeFactory()
-                .newCipherMode();
+                .newCipherMode(remoteCipherEngine);
 
         this.localCipher = localCipherMode;
         this.remoteCipher = remoteCipherMode;
@@ -544,8 +544,8 @@ public class TlsContext {
         int keyLength;
         try {
             keyLength = localCipherEngine.keyLength();
-        }catch (Throwable throwable) {
-            keyLength = 128 / 8;
+        }catch (NullPointerException e) {
+            keyLength = 16;
         }
         var ivLength = localCipherMode.ivLength()
                 .fixed();
@@ -579,8 +579,8 @@ public class TlsContext {
         if (keyLength == 0) {
             localCipherEngine.init(true, null);
             remoteCipherEngine.init(false, null);
-            localCipherMode.init(null, localCipherEngine, null);
-            remoteCipherMode.init(null, remoteCipherEngine, null);
+            localCipherMode.init(null, null);
+            remoteCipherMode.init(null, null);
             return;
         }
 
@@ -609,8 +609,8 @@ public class TlsContext {
 
             localCipherEngine.init(true, localKey);
             remoteCipherEngine.init(false, remoteKey);
-            localCipherMode.init(localAuthenticator, localCipherEngine, localIv);
-            remoteCipherMode.init(remoteAuthenticator, remoteCipherEngine, remoteIv);
+            localCipherMode.init(localAuthenticator, localIv);
+            remoteCipherMode.init(remoteAuthenticator, remoteIv);
             return;
         }
 
@@ -640,8 +640,8 @@ public class TlsContext {
                 remoteCipherEngine.init(false, remoteKey);
 
                 if (ivLength == 0) {
-                    localCipherMode.init(localAuthenticator, localCipherEngine, new byte[0]);
-                    remoteCipherMode.init(remoteAuthenticator, remoteCipherEngine, new byte[0]);
+                    localCipherMode.init(localAuthenticator, new byte[0]);
+                    remoteCipherMode.init(remoteAuthenticator, new byte[0]);
                 }else {
                     md5.update(clientRandom);
                     md5.update(serverRandom);
@@ -659,8 +659,8 @@ public class TlsContext {
                         case CLIENT -> serverIv;
                         case SERVER -> clientIv;
                     };
-                    localCipherMode.init(localAuthenticator, localCipherEngine, localIv);
-                    remoteCipherMode.init(remoteAuthenticator, remoteCipherEngine, remoteIv);
+                    localCipherMode.init(localAuthenticator, localIv);
+                    remoteCipherMode.init(remoteAuthenticator, remoteIv);
                 }
             }
 
@@ -682,8 +682,8 @@ public class TlsContext {
                 remoteCipherEngine.init(false, remoteKey);
                 
                 if (ivLength == 0) {
-                    localCipherMode.init(localAuthenticator, localCipherEngine, new byte[0]);
-                    remoteCipherMode.init(remoteAuthenticator, remoteCipherEngine, new byte[0]);
+                    localCipherMode.init(localAuthenticator, new byte[0]);
+                    remoteCipherMode.init(remoteAuthenticator, new byte[0]);
                 }else {
                     var block = TlsPRF.tls10Prf(null, LABEL_IV_BLOCK, seed, ivLength << 1);
                     var clientIv = Arrays.copyOf(block, ivLength);
@@ -698,8 +698,8 @@ public class TlsContext {
                         case SERVER -> clientIv;
                     };
                     
-                    localCipherMode.init(localAuthenticator, localCipherEngine, localIv);
-                    remoteCipherMode.init(remoteAuthenticator, remoteCipherEngine, remoteIv);
+                    localCipherMode.init(localAuthenticator, localIv);
+                    remoteCipherMode.init(remoteAuthenticator, remoteIv);
                 }
             }
 

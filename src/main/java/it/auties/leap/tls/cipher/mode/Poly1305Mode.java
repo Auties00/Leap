@@ -15,6 +15,10 @@ import java.security.GeneralSecurityException;
 public final class Poly1305Mode extends TlsCipherMode.Stream {
     private static final TlsCipherModeFactory FACTORY = Poly1305Mode::new;
 
+    public Poly1305Mode(TlsCipherEngine engine) {
+        super(engine);
+    }
+
     public static TlsCipherModeFactory factory() {
         return FACTORY;
     }
@@ -25,8 +29,8 @@ public final class Poly1305Mode extends TlsCipherMode.Stream {
     private Cipher cipher;
 
     @Override
-    public void init(TlsExchangeAuthenticator authenticator, TlsCipherEngine engine, byte[] fixedIv) {
-        super.init(authenticator, engine, fixedIv);
+    public void init(TlsExchangeAuthenticator authenticator, byte[] fixedIv) {
+        super.init(authenticator, fixedIv);
         try {
             this.mode = engine.forEncryption() ? Cipher.ENCRYPT_MODE : Cipher.DECRYPT_MODE;
             this.secretKey = new SecretKeySpec(engine.key(), "ChaCha20");

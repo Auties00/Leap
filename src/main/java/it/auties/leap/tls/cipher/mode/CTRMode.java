@@ -9,16 +9,20 @@ import java.nio.ByteBuffer;
 public final class CTRMode extends TlsCipherMode.Block {
     private static final TlsCipherModeFactory FACTORY = CNTImitMode::new;
 
+    public CTRMode(TlsCipherEngine engine) {
+        super(engine);
+    }
+
     public static TlsCipherModeFactory factory() {
         return FACTORY;
     }
 
     @Override
-    public void init(TlsExchangeAuthenticator authenticator, TlsCipherEngine engine, byte[] fixedIv) {
+    public void init(TlsExchangeAuthenticator authenticator, byte[] fixedIv) {
         if(!(engine instanceof MagmaEngine)) {
             throw new TlsException("CTR mode is supported only by Magma engines");
         }
-        super.init(authenticator, engine, fixedIv);
+        super.init(authenticator, fixedIv);
     }
 
     @Override

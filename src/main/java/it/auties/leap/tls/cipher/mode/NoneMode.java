@@ -6,7 +6,11 @@ import java.nio.ByteBuffer;
 
 public final class NoneMode extends TlsCipherMode.Block {
     private static final NoneMode INSTANCE = new NoneMode();
-    private static final TlsCipherModeFactory FACTORY = () -> INSTANCE;
+    private static final TlsCipherModeFactory FACTORY = (_) -> INSTANCE;
+
+    public NoneMode() {
+        super(null);
+    }
 
     public static NoneMode instance() {
         return INSTANCE;
@@ -17,8 +21,8 @@ public final class NoneMode extends TlsCipherMode.Block {
     }
 
     @Override
-    public void init(TlsExchangeAuthenticator authenticator, TlsCipherEngine engine, byte[] fixedIv) {
-        super.init(authenticator, engine, fixedIv);
+    public void init(TlsExchangeAuthenticator authenticator, byte[] fixedIv) {
+        super.init(authenticator, fixedIv);
     }
 
     @Override

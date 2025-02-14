@@ -10,16 +10,20 @@ import java.nio.ByteBuffer;
 public final class CTROMacMode extends TlsCipherMode.Block {
     private static final TlsCipherModeFactory FACTORY = CTROMacMode::new;
 
+    public CTROMacMode(TlsCipherEngine engine) {
+        super(engine);
+    }
+
     public static TlsCipherModeFactory factory() {
         return FACTORY;
     }
 
     @Override
-    public void init(TlsExchangeAuthenticator authenticator, TlsCipherEngine engine, byte[] fixedIv) {
+    public void init(TlsExchangeAuthenticator authenticator, byte[] fixedIv) {
         if(!(engine instanceof KuznyechikEngine) && !(engine instanceof MagmaEngine)) {
             throw new TlsException("CTR_OMAC mode is supported only by Kuznyechik and Magma engines");
         }
-        super.init(authenticator, engine, fixedIv);
+        super.init(authenticator, fixedIv);
     }
 
     @Override

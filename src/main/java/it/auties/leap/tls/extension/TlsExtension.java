@@ -14,8 +14,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 
-import static it.auties.leap.tls.util.BufferUtils.INT16_LENGTH;
-import static it.auties.leap.tls.util.BufferUtils.writeBigEndianInt16;
+import static it.auties.leap.tls.util.BufferUtils.*;
 
 public sealed interface TlsExtension {
     List<TlsVersion> RENEGOTIATION_INFO_VERSIONS = List.of(

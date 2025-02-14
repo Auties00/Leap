@@ -2,10 +2,11 @@ package it.auties.leap.tls.hash.implementation;
 
 import it.auties.leap.tls.hash.TlsHash;
 import it.auties.leap.tls.hash.TlsHashFactory;
-import it.auties.leap.tls.util.BufferUtils;
 
 import java.nio.ByteBuffer;
 import java.util.Arrays;
+
+import static it.auties.leap.tls.util.BufferUtils.*;
 
 public final class SHA384Hash implements TlsHash {
     private static final int BLOCK_LENGTH = 8;
@@ -81,12 +82,12 @@ public final class SHA384Hash implements TlsHash {
 
             processBlock();
 
-            BufferUtils.writeBigEndianInt64(h1, output, offset);
-            BufferUtils.writeBigEndianInt64(h2, output, offset + 8);
-            BufferUtils.writeBigEndianInt64(h3, output, offset + 16);
-            BufferUtils.writeBigEndianInt64(h4, output, offset + 24);
-            BufferUtils.writeBigEndianInt64(h5, output, offset + 32);
-            BufferUtils.writeBigEndianInt64(h6, output, offset + 40);
+            writeBigEndianInt64(h1, output, offset);
+            writeBigEndianInt64(h2, output, offset + 8);
+            writeBigEndianInt64(h3, output, offset + 16);
+            writeBigEndianInt64(h4, output, offset + 24);
+            writeBigEndianInt64(h5, output, offset + 32);
+            writeBigEndianInt64(h6, output, offset + 40);
 
             reset();
 
@@ -209,7 +210,7 @@ public final class SHA384Hash implements TlsHash {
 
 
     private void processWord(byte[] in, int inOff) {
-        w[wOff] = BufferUtils.readBigEndianInt64(in, inOff);
+        w[wOff] = readBigEndianInt64(in, inOff);
 
         if (++wOff == 16) {
             processBlock();
@@ -217,7 +218,7 @@ public final class SHA384Hash implements TlsHash {
     }
 
     private void processWord(ByteBuffer in) {
-        w[wOff] =  BufferUtils.readBigEndianInt64(in);
+        w[wOff] =  readBigEndianInt64(in);
 
         if (++wOff == 16) {
             processBlock();

@@ -14,13 +14,17 @@ public final class CBCMode extends TlsCipherMode.Block {
     private ByteBuffer cbcV;
     private ByteBuffer cbcNextV;
 
+    public CBCMode(TlsCipherEngine engine) {
+        super(engine);
+    }
+
     public static TlsCipherModeFactory factory() {
         return FACTORY;
     }
 
     @Override
-    public void init(TlsExchangeAuthenticator authenticator, TlsCipherEngine engine, byte[] fixedIv) {
-        super.init(authenticator, engine, fixedIv);
+    public void init(TlsExchangeAuthenticator authenticator, byte[] fixedIv) {
+        super.init(authenticator, fixedIv);
         this.cbcV = ByteBuffer.allocate(engine().blockLength());
         this.cbcNextV = ByteBuffer.allocate(engine().blockLength());
         this.random = new SecureRandom();

@@ -335,7 +335,7 @@ public final class AsyncWinTransportSocketLayer extends AsyncNativeTransportSock
         private final Set<Long> handles;
         private final ConcurrentMap<Long, CompletableFuture<Integer>> futures;
         private MemorySegment completionPort;
-        private ExecutorService executor;
+        private Thread portTask;
 
         private CompletionPort() {
             this.arena = Arena.ofAuto();
@@ -363,12 +363,7 @@ public final class AsyncWinTransportSocketLayer extends AsyncNativeTransportSock
                     throw new IllegalStateException("Cannot create socket completion port");
                 }
                 this.completionPort = completionPort;
-                if (executor != null && !executor.isShutdown()) {
-                    return;
-                }
-
-                this.executor = Executors.newSingleThreadExecutor();
-                executor.submit(this);
+                this.portTask = Thread.startVirtualThread(this);
             }
         }
 
@@ -403,8 +398,9 @@ public final class AsyncWinTransportSocketLayer extends AsyncNativeTransportSock
                 WindowsKernel.CloseHandle(completionPort);
             }
 
-            if (executor != null && !executor.isShutdown()) {
-                executor.shutdownNow();
+            if (portTask != null) {
+                portTask.interrupt();
+                portTask = null;
             }
         }
 

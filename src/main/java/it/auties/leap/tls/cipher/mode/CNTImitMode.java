@@ -14,12 +14,16 @@ public final class CNTImitMode extends TlsCipherMode.Block {
         return FACTORY;
     }
 
+    public CNTImitMode(TlsCipherEngine engine) {
+        super(engine);
+    }
+
     @Override
-    public void init(TlsExchangeAuthenticator authenticator, TlsCipherEngine engine, byte[] fixedIv) {
+    public void init(TlsExchangeAuthenticator authenticator, byte[] fixedIv) {
         if(!(engine instanceof KuznyechikEngine) && !(engine instanceof MagmaEngine)) {
             throw new TlsException("CNT_IMIT mode is supported only by Kuznyechik and Magma engines");
         }
-        super.init(authenticator, engine, fixedIv);
+        super.init(authenticator, fixedIv);
     }
 
     @Override

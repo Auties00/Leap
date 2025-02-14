@@ -6,7 +6,7 @@ import it.auties.leap.tls.key.TlsPreMasterSecretGenerator;
 
 import java.nio.ByteBuffer;
 
-import static it.auties.leap.tls.util.BufferUtils.writeBytes;
+import static it.auties.leap.tls.util.BufferUtils.*;;
 
 // https://www.ietf.org/archive/id/draft-smyshlyaev-tls12-gost-suites-18.html
 public final class GOSTR256ClientKeyExchange extends TlsClientKeyExchange {

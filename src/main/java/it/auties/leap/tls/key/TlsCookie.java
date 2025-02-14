@@ -6,8 +6,7 @@ import java.nio.ByteBuffer;
 import java.util.Arrays;
 import java.util.Optional;
 
-import static it.auties.leap.tls.util.BufferUtils.readBytesBigEndian8;
-import static it.auties.leap.tls.util.BufferUtils.writeBytesBigEndian8;
+import static it.auties.leap.tls.util.BufferUtils.*;
 
 public final class TlsCookie {
     private static final TlsCookie EMPTY = new TlsCookie(new byte[0]);

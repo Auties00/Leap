@@ -39,13 +39,17 @@ public final class CCMMode extends TlsCipherMode.Block {
 
     private SecureRandom random;
 
+    public CCMMode(TlsCipherEngine engine) {
+        super(engine);
+    }
+
     public static TlsCipherModeFactory factory() {
         return FACTORY;
     }
 
     @Override
-    public void init(TlsExchangeAuthenticator authenticator, TlsCipherEngine engine, byte[] fixedIv) {
-        super.init(authenticator, engine, fixedIv);
+    public void init(TlsExchangeAuthenticator authenticator, byte[] fixedIv) {
+        super.init(authenticator, fixedIv);
         this.random = new SecureRandom();
         // In this design, we expect fixedIv.length == NONCE_LENGTH - EXPLICIT_NONCE_LENGTH.
         if (fixedIv.length != NONCE_LENGTH - EXPLICIT_NONCE_LENGTH) {

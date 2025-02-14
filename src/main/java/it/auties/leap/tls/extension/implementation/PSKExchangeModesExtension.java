@@ -13,7 +13,6 @@ import java.util.Objects;
 import java.util.Optional;
 
 import static it.auties.leap.tls.util.BufferUtils.*;
-import static it.auties.leap.tls.util.BufferUtils.readBigEndianInt8;
 
 public record PSKExchangeModesExtension(
         List<Byte> modes

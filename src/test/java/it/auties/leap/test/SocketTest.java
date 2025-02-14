@@ -19,9 +19,10 @@ import java.util.List;
 
 public class SocketTest {
     public static void main(String[] args) throws IOException {
-        // TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256
+        // TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA384
         var ciphers = List.of(
-                TlsCipher.ecdheRsaWithAes128GcmSha256()
+                TlsCipher.ecdheEcdsaWithAes256CbcSha384(),
+                TlsCipher.ecdheRsaWithAes256CbcSha384()
         );
         var extensions = List.of(
                 TlsExtension.serverNameIndication(),

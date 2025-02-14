@@ -38,13 +38,17 @@ public final class GCMMode extends TlsCipherMode.Block {
      */
     private byte[] H;
 
+    public GCMMode(TlsCipherEngine engine) {
+        super(engine);
+    }
+
     public static TlsCipherModeFactory factory() {
         return FACTORY;
     }
 
     @Override
-    public void init(TlsExchangeAuthenticator authenticator, TlsCipherEngine engine, byte[] fixedIv) {
-        super.init(authenticator, engine, fixedIv);
+    public void init(TlsExchangeAuthenticator authenticator, byte[] fixedIv) {
+        super.init(authenticator, fixedIv);
         this.random = new SecureRandom();
         // In TLS AES-GCM the fixed IV must be NONCE_LENGTH - EXPLICIT_NONCE_LENGTH bytes.
         if (fixedIv.length != NONCE_LENGTH - EXPLICIT_NONCE_LENGTH) {

@@ -7,13 +7,17 @@ import java.nio.ByteBuffer;
 public final class MGMStrongMode extends TlsCipherMode.Block {
     private static final TlsCipherModeFactory FACTORY = MGMStrongMode::new;
 
+    public MGMStrongMode(TlsCipherEngine engine) {
+        super(engine);
+    }
+
     public static TlsCipherModeFactory factory() {
         return FACTORY;
     }
 
     @Override
-    public void init(TlsExchangeAuthenticator authenticator, TlsCipherEngine engine, byte[] fixedIv) {
-        super.init(authenticator, engine, fixedIv);
+    public void init(TlsExchangeAuthenticator authenticator, byte[] fixedIv) {
+        super.init(authenticator, fixedIv);
     }
 
     @Override

@@ -7,6 +7,8 @@ import it.auties.leap.tls.util.BufferUtils;
 import java.nio.ByteBuffer;
 import java.util.Arrays;
 
+import static it.auties.leap.tls.util.BufferUtils.*;
+
 public final class SM3Hash implements TlsHash {
     private static final int BLOCK_LENGTH = 4;
     private static final int[] T = {2043430169, -208106958, -416213915, -832427829, -1664855657, 965255983, 1930511966, -433943364, -867886727, -1735773453, 823420391, 1646840782, -1001285732, -2002571463, 289824371, 579648742, -1651869049, 991229199, 1982458398, -330050500, -660100999, -1320201997, 1654563303, -985840690, -1971681379, 351604539, 703209078, 1406418156, -1482130984, 1330705329, -1633556638, 1027854021, 2055708042, -183551212, -367102423, -734204845, -1468409689, 1358147919, -1578671458, 1137624381, -2019718534, 255530229, 511060458, 1022120916, 2044241832, -206483632, -412967263, -825934525, -1651869049, 991229199, 1982458398, -330050500, -660100999, -1320201997, 1654563303, -985840690, -1971681379, 351604539, 703209078, 1406418156, -1482130984, 1330705329, -1633556638, 1027854021};
@@ -134,8 +136,8 @@ public final class SM3Hash implements TlsHash {
 
             processBlock();
 
-            for(var i : v) {
-                BufferUtils.writeBigEndianInt32(i, buf, offset);
+            for (var i = 0; i < v.length; i++) {
+                writeBigEndianInt32(v[i], buf, i * 4);
             }
 
             reset();
@@ -167,14 +169,14 @@ public final class SM3Hash implements TlsHash {
     }
 
     private void processWord(byte[] in, int inOff) {
-        inwords[xOff++] = BufferUtils.readBigEndianInt32(in, inOff);
+        inwords[xOff++] = readBigEndianInt32(in, inOff);
         if (this.xOff >= 16) {
             processBlock();
         }
     }
 
     private void processWord(ByteBuffer in) {
-        inwords[xOff++] = BufferUtils.readBigEndianInt32(in);
+        inwords[xOff++] = readBigEndianInt32(in);
         if (this.xOff >= 16) {
             processBlock();
         }

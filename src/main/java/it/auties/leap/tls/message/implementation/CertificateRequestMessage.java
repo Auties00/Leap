@@ -32,7 +32,7 @@ public sealed abstract class CertificateRequestMessage extends TlsHandshakeMessa
         }
 
         public static Server of(TlsContext ignoredEngine, ByteBuffer buffer, Metadata metadata) {
-            var certificatesLength = BufferUtils.readBigEndianInt8(buffer);
+            var certificatesLength = readBigEndianInt8(buffer);
             var certificateTypes = new ArrayList<Byte>();
             try(var _ = scopedRead(buffer, certificatesLength)) {
                 while (buffer.hasRemaining()) {

@@ -2,10 +2,11 @@ package it.auties.leap.tls.hash.implementation;
 
 import it.auties.leap.tls.hash.TlsHash;
 import it.auties.leap.tls.hash.TlsHashFactory;
-import it.auties.leap.tls.util.BufferUtils;
 
 import java.nio.ByteBuffer;
 import java.util.Arrays;
+
+import static it.auties.leap.tls.util.BufferUtils.*;
 
 public final class SHA256Hash implements TlsHash {
     private static final int BLOCK_LENGTH = 4;
@@ -149,7 +150,7 @@ public final class SHA256Hash implements TlsHash {
     }
 
     private void processWord(byte[] in, int inOff) {
-        x[xOff] = BufferUtils.readBigEndianInt32(in, inOff);
+        x[xOff] = readBigEndianInt32(in, inOff);
 
         if (++xOff == 16) {
             processBlock();
@@ -157,7 +158,7 @@ public final class SHA256Hash implements TlsHash {
     }
 
     private void processWord(ByteBuffer in) {
-        x[xOff] = BufferUtils.readBigEndianInt32(in);
+        x[xOff] = readBigEndianInt32(in);
 
         if (++xOff == 16) {
             processBlock();
@@ -189,14 +190,14 @@ public final class SHA256Hash implements TlsHash {
 
             processBlock();
 
-            BufferUtils.writeBigEndianInt32(h1, output, offset);
-            BufferUtils.writeBigEndianInt32(h2, output, offset + 4);
-            BufferUtils.writeBigEndianInt32(h3, output, offset + 8);
-            BufferUtils.writeBigEndianInt32(h4, output, offset + 12);
-            BufferUtils.writeBigEndianInt32(h5, output, offset + 16);
-            BufferUtils.writeBigEndianInt32(h6, output, offset + 20);
-            BufferUtils.writeBigEndianInt32(h7, output, offset + 24);
-            BufferUtils.writeBigEndianInt32(h8, output, offset + 28);
+            writeBigEndianInt32(h1, output, offset);
+            writeBigEndianInt32(h2, output, offset + 4);
+            writeBigEndianInt32(h3, output, offset + 8);
+            writeBigEndianInt32(h4, output, offset + 12);
+            writeBigEndianInt32(h5, output, offset + 16);
+            writeBigEndianInt32(h6, output, offset + 20);
+            writeBigEndianInt32(h7, output, offset + 24);
+            writeBigEndianInt32(h8, output, offset + 28);
 
             reset();
 

@@ -7,7 +7,7 @@ import it.auties.leap.tls.util.BufferUtils;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 
-import static it.auties.leap.tls.util.BufferUtils.writeBigEndianInt32;
+import static it.auties.leap.tls.util.BufferUtils.*;;
 
 public class ChaCha20Engine extends TlsCipherEngine.Stream {
     private final static int STATE_SIZE = 16;
@@ -19,7 +19,7 @@ public class ChaCha20Engine extends TlsCipherEngine.Stream {
         var chars = ("expand 16-byte k" + "expand 32-byte k").getBytes(StandardCharsets.US_ASCII);
         var tauSigma = new int[8];
         for(var i = 0; i < tauSigma.length; i++) {
-            tauSigma[i] = BufferUtils.readBigEndianInt32(chars, i * 4);
+            tauSigma[i] = readBigEndianInt32(chars, i * 4);
         }
         TAU_SIGMA = tauSigma;
     }
@@ -42,10 +42,10 @@ public class ChaCha20Engine extends TlsCipherEngine.Stream {
         packTauOrSigma(key.length, engineState);
 
         for (var i = 0; i < 4; i++) {
-            engineState[4 + i] = BufferUtils.readBigEndianInt32(key, i * 4);
+            engineState[4 + i] = readBigEndianInt32(key, i * 4);
         }
         for (var i = 0; i < 4; i++) {
-            engineState[8 + i] = BufferUtils.readBigEndianInt32(key, key.length - 16 + i * 4);
+            engineState[8 + i] = readBigEndianInt32(key, key.length - 16 + i * 4);
         }
     }
 
