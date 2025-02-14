@@ -32,11 +32,6 @@ public final class CNTImitMode extends TlsCipherMode.Block {
     }
 
     @Override
-    public void doFinal(byte contentType, ByteBuffer input, ByteBuffer output) {
-        throw new UnsupportedOperationException();
-    }
-
-    @Override
     public void reset() {
         throw new UnsupportedOperationException();
     }

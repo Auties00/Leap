@@ -133,11 +133,6 @@ public final class CCMMode extends TlsCipherMode.Block {
     }
 
     @Override
-    public void doFinal(byte contentType, ByteBuffer input, ByteBuffer output) {
-        // No finalization step is needed.
-    }
-
-    @Override
     public void reset() {
         // CCM mode is stateless per record.
     }

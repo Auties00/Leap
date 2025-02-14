@@ -19,6 +19,10 @@ public final class SEEDEngine extends TlsCipherEngine.Block {
 
     private int[] workingKey;
 
+    public SEEDEngine() {
+        super(16);
+    }
+
     public static TlsCipherEngineFactory factory() {
         return FACTORY;
     }

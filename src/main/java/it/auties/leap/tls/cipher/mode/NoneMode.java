@@ -32,12 +32,6 @@ public final class NoneMode extends TlsCipherMode.Block {
     }
 
     @Override
-    public void doFinal(byte contentType, ByteBuffer input, ByteBuffer output) {
-        addMac(input, contentType);
-        move(input, output);
-    }
-
-    @Override
     public void reset() {
 
     }

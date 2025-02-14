@@ -170,9 +170,8 @@ public class AsyncSecureSocketApplicationLayer extends AsyncSocketApplicationLay
 
         var leftPadding = tlsContext.localCipher()
                 .orElseThrow(() -> new InternalError("Missing negotiated cipher"))
-                .engine()
-                .exportedKeyLength()
-                .orElse(0);
+                .ivLength()
+                .total();
         var reservedSpace = TlsMessage.messageRecordHeaderLength() + leftPadding;
         var messagePayloadBuffer = writeBuffer()
                 .position(reservedSpace);
@@ -310,9 +309,8 @@ public class AsyncSecureSocketApplicationLayer extends AsyncSocketApplicationLay
         // Serialize the message
         var leftPadding = tlsContext.localCipher()
                 .orElseThrow(() -> new InternalError("Missing negotiated cipher"))
-                .engine()
-                .exportedKeyLength()
-                .orElse(0);
+                .ivLength()
+                .total();
         var plaintext = writeBuffer()
                 .position(TlsMessage.messageRecordHeaderLength() + leftPadding);
         var dataMessage = new ApplicationDataMessage(

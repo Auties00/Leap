@@ -7,19 +7,32 @@ import java.nio.ByteBuffer;
 import java.util.OptionalInt;
 
 public sealed abstract class TlsCipherEngine permits TlsCipherEngine.Block, TlsCipherEngine.Stream {
-    public static TlsCipherEngine aes() {
-        return new AESEngine();
+    public static TlsCipherEngine aes128() {
+        return new AESEngine(16);
     }
 
-    public static TlsCipherEngine aria() {
-        return new ARIAEngine();
+    public static TlsCipherEngine aes256() {
+        return new AESEngine(32);
+    }
+
+
+    public static TlsCipherEngine aria128() {
+        return new ARIAEngine(16);
+    }
+
+    public static TlsCipherEngine aria256() {
+        return new ARIAEngine(32);
     }
     
-    public static TlsCipherEngine camellia() {
-        return new CamelliaEngine();
+    public static TlsCipherEngine camellia128() {
+        return new CamelliaEngine(16);
     }
 
-    public static TlsCipherEngine des() {
+    public static TlsCipherEngine camellia256() {
+        return new CamelliaEngine(32);
+    }
+
+    public static TlsCipherEngine des40() {
         return new DESEngine();
     }
     
@@ -39,12 +52,20 @@ public sealed abstract class TlsCipherEngine permits TlsCipherEngine.Block, TlsC
         return new MagmaEngine();
     }
 
-    public static TlsCipherEngine rc2() {
-        return new RC2Engine();
+    public static TlsCipherEngine rc2_40() {
+        return new RC2Engine(5);
     }
 
-    public static TlsCipherEngine rc4() {
-        return new RC4Engine();
+    public static TlsCipherEngine rc2_128() {
+        return new RC2Engine(16);
+    }
+
+    public static TlsCipherEngine rc4_40() {
+        return new RC4Engine(5);
+    }
+
+    public static TlsCipherEngine rc4_128() {
+        return new RC4Engine(16);
     }
 
     public static TlsCipherEngine seed() {
@@ -63,17 +84,22 @@ public sealed abstract class TlsCipherEngine permits TlsCipherEngine.Block, TlsC
         return new ChaCha20Engine();
     }
 
+    protected final int keyLength;
     protected byte[] key;
     protected boolean forEncryption;
     protected boolean initialized;
 
-    private TlsCipherEngine() {
-        
+    protected TlsCipherEngine(int keyLength) {
+        this.keyLength = keyLength;
     }
     
     public void init(boolean forEncryption, byte[] key) {
         if(initialized) {
             throw new TlsException("Engine is already initialized");
+        }
+
+        if ((keyLength != 0 || key != null) && (key == null || key.length != keyLength)) {
+            throw new TlsException("Unexpected key size");
         }
 
         this.forEncryption = forEncryption;
@@ -88,7 +114,7 @@ public sealed abstract class TlsCipherEngine permits TlsCipherEngine.Block, TlsC
     }
 
     public int keyLength() {
-        return key.length;
+        return keyLength;
     }
     
     public OptionalInt exportedKeyLength() {
@@ -104,16 +130,16 @@ public sealed abstract class TlsCipherEngine permits TlsCipherEngine.Block, TlsC
     }
 
     public static abstract non-sealed class Block extends TlsCipherEngine {
-        protected Block() {
-            
+        protected Block(int keyLength) {
+            super(keyLength);
         }
 
         public abstract int blockLength();
     }
 
     public static abstract non-sealed class Stream extends TlsCipherEngine {
-        protected Stream() {
-            
+        protected Stream(int keyLength) {
+            super(keyLength);
         }
     }
 }

@@ -15,6 +15,10 @@ public final class IDEAEngine extends TlsCipherEngine.Block {
 
     private int[] workingKey;
 
+    public IDEAEngine() {
+        super(16);
+    }
+
     public static TlsCipherEngineFactory factory() {
         return FACTORY;
     }

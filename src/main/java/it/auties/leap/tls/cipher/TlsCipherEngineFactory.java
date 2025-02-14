@@ -3,19 +3,31 @@ package it.auties.leap.tls.cipher;
 import it.auties.leap.tls.cipher.engine.*;
 
 public interface TlsCipherEngineFactory {
-    static TlsCipherEngineFactory aes() {
-        return AESEngine.factory();
+    static TlsCipherEngineFactory aes128() {
+        return AESEngine.factory128();
     }
 
-    static TlsCipherEngineFactory aria() {
-        return ARIAEngine.factory();
+    static TlsCipherEngineFactory aes256() {
+        return AESEngine.factory256();
     }
 
-    static TlsCipherEngineFactory camellia() {
-        return CamelliaEngine.factory();
+    static TlsCipherEngineFactory aria128() {
+        return ARIAEngine.factory128();
     }
 
-    static TlsCipherEngineFactory des() {
+    static TlsCipherEngineFactory aria256() {
+        return ARIAEngine.factory256();
+    }
+
+    static TlsCipherEngineFactory camellia128() {
+        return CamelliaEngine.factory128();
+    }
+
+    static TlsCipherEngineFactory camellia256() {
+        return CamelliaEngine.factory256();
+    }
+
+    static TlsCipherEngineFactory des40() {
         return DESEngine.factory();
     }
 
@@ -35,12 +47,20 @@ public interface TlsCipherEngineFactory {
         return MagmaEngine.factory();
     }
 
-    static TlsCipherEngineFactory rc2() {
-        return RC2Engine.factory();
+    static TlsCipherEngineFactory rc2_40() {
+        return RC2Engine.factory40();
     }
 
-    static TlsCipherEngineFactory rc4() {
-        return RC4Engine.factory();
+    static TlsCipherEngineFactory rc2_128() {
+        return RC2Engine.factory128();
+    }
+
+    static TlsCipherEngineFactory rc4_40() {
+        return RC4Engine.factory40();
+    }
+
+    static TlsCipherEngineFactory rc4_128() {
+        return RC4Engine.factory128();
     }
 
     static TlsCipherEngineFactory seed() {

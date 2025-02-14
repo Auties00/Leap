@@ -52,15 +52,6 @@ public final class Poly1305Mode extends TlsCipherMode.Stream {
     }
 
     @Override
-    public void doFinal(byte contentType, ByteBuffer input, ByteBuffer output) {
-        try {
-            cipher.doFinal(input, output);
-        } catch (GeneralSecurityException exception) {
-            throw new InternalError("Cannot doFinal engine", exception);
-        }
-    }
-
-    @Override
     public void reset() {
         try {
             cipher.init(

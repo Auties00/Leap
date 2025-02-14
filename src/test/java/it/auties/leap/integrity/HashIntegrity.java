@@ -4,7 +4,6 @@ import it.auties.leap.tls.hash.TlsHash;
 import it.auties.leap.tls.hash.TlsHashFactory;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
 
-import javax.crypto.spec.SecretKeySpec;
 import java.security.MessageDigest;
 import java.security.Security;
 import java.util.HexFormat;
@@ -36,16 +35,13 @@ public class HashIntegrity {
         ThreadLocalRandom.current().nextBytes(message);
         var message1 = new byte[8192];
         ThreadLocalRandom.current().nextBytes(message1);
-        var keyBytes = new byte[32];
-        ThreadLocalRandom.current().nextBytes(keyBytes);
-        var key = new SecretKeySpec(keyBytes, name);
         try {
             var jmd = MessageDigest.getInstance(name);
             jmd.update(message);
             jmd.update(message1);
             System.out.println(HexFormat.of().formatHex(jmd.digest()));
         }catch (Throwable e) {
-            System.err.println(e);
+            System.err.println(e.getMessage());
         }
         cmd.update(message);
         cmd.update(message1);

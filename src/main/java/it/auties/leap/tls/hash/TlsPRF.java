@@ -43,16 +43,16 @@ public final class TlsPRF {
 
     private static byte[] getOpad(int mdPRFBlockSize) {
         return switch (mdPRFBlockSize) {
-            case 64 -> HMAC_OPAD_64;
-            case 128 -> HMAC_OPAD_128;
+            case 64 -> HMAC_OPAD_64.clone();
+            case 128 -> HMAC_OPAD_128.clone();
             default -> throw new RuntimeException("Unexpected block size.");
         };
     }
 
     private static byte[] getIpad(int mdPRFBlockSize) {
         return switch (mdPRFBlockSize) {
-            case 64 -> HMAC_IPAD_64;
-            case 128 -> HMAC_IPAD_128;
+            case 64 -> HMAC_IPAD_64.clone();
+            case 128 -> HMAC_IPAD_128.clone();
             default -> throw new RuntimeException("Unexpected block size.");
         };
     }

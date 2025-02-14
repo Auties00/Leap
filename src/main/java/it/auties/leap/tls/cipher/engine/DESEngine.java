@@ -9,6 +9,10 @@ public class DESEngine extends DESBaseEngine {
 
     private int[] workingKey;
 
+    public DESEngine() {
+        super(8);
+    }
+
     @Override
     public void init(boolean forEncryption, byte[] key) {
         super.init(forEncryption, key);

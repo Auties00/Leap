@@ -7,14 +7,23 @@ import java.nio.ByteBuffer;
 
 public final class RC4Engine extends TlsCipherEngine.Stream {
     private final static int STATE_LENGTH = 256;
-    private static final TlsCipherEngineFactory FACTORY = RC4Engine::new;
+    private static final TlsCipherEngineFactory FACTORY_40 = () -> new RC4Engine(5);
+    private static final TlsCipherEngineFactory FACTORY_128 = () -> new RC4Engine(16);
 
     private byte[] engineState;
     private int x;
     private int y;
 
-    public static TlsCipherEngineFactory factory() {
-        return FACTORY;
+    public RC4Engine(int keyLength) {
+        super(keyLength);
+    }
+
+    public static TlsCipherEngineFactory factory40() {
+        return FACTORY_40;
+    }
+
+    public static TlsCipherEngineFactory factory128() {
+        return FACTORY_128;
     }
 
     @Override

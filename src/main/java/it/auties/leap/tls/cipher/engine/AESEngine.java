@@ -20,14 +20,23 @@ public final class AESEngine extends TlsCipherEngine.Block {
     private static final int M3 = 0x0000001b;
     private static final int M4 = 0xC0C0C0C0;
     private static final int M5 = 0x3f3f3f3f;
-    private static final TlsCipherEngineFactory FACTORY = AESEngine::new;
+    private static final TlsCipherEngineFactory FACTORY_128 = () -> new AESEngine(16);
+    private static final TlsCipherEngineFactory FACTORY_256 = () -> new AESEngine(32);
 
     private int rounds;
     private int[][] workingKey;
     private byte[] s;
 
-    public static TlsCipherEngineFactory factory() {
-        return FACTORY;
+    public AESEngine(int keyLength) {
+        super(keyLength);
+    }
+
+    public static TlsCipherEngineFactory factory128() {
+        return FACTORY_128;
+    }
+
+    public static TlsCipherEngineFactory factory256() {
+        return FACTORY_256;
     }
 
     @Override

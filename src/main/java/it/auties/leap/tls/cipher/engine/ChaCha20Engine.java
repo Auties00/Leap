@@ -8,6 +8,10 @@ import java.nio.ByteBuffer;
 public class ChaCha20Engine extends TlsCipherEngine.Stream {
     private static final TlsCipherEngineFactory FACTORY = ChaCha20Engine::new;
 
+    public ChaCha20Engine() {
+        super(32);
+    }
+
     @Override
     public void init(boolean forEncryption, byte[] key) {
         super.init(forEncryption, key);

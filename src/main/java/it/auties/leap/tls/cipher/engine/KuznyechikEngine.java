@@ -43,6 +43,10 @@ public final class KuznyechikEngine extends TlsCipherEngine.Block {
 
     private byte[][] subKeys;
 
+    public KuznyechikEngine() {
+        super(32);
+    }
+
     public static TlsCipherEngineFactory factory() {
         return FACTORY;
     }

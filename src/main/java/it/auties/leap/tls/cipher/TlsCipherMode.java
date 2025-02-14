@@ -72,8 +72,6 @@ public sealed abstract class TlsCipherMode {
 
     public abstract void update(byte contentType, ByteBuffer input, ByteBuffer output, byte[] sequence);
 
-    public abstract void doFinal(byte contentType, ByteBuffer input, ByteBuffer output);
-
     public abstract void reset();
 
     public abstract TlsCipherEngine engine();
@@ -179,6 +177,10 @@ public sealed abstract class TlsCipherMode {
         usedLen += 13 - (blockLen - minimalPaddingLen);
         return 0x01 + (int) (Math.ceil(fullLen / (1.0d * blockLen)) -
                 Math.ceil(usedLen / (1.0d * blockLen))) * blockLen;
+    }
+
+    public boolean isAEAD() {
+        return false;
     }
 
     public abstract non-sealed static class Block extends TlsCipherMode {

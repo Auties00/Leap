@@ -14,6 +14,10 @@ public final class MagmaEngine extends TlsCipherEngine.Block {
 
     private int[] workingKey;
 
+    public MagmaEngine() {
+        super(32);
+    }
+
     public static TlsCipherEngineFactory factory() {
         return FACTORY;
     }

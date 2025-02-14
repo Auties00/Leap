@@ -31,7 +31,7 @@ import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
-import static it.auties.leap.tls.util.BufferUtils.*;
+import static it.auties.leap.tls.util.BufferUtils.readBytes;
 import static it.auties.leap.tls.util.TlsKeyConstants.*;
 
 public class TlsContext {
@@ -507,6 +507,7 @@ public class TlsContext {
     }
 
     private void initKeys(byte[] preMasterSecret) {
+        System.out.println("Pre master secret: " + Arrays.toString(preMasterSecret));
         this.localMasterSecretKey = TlsMasterSecretKey.of(
                 mode,
                 localConfig.version(),
@@ -541,14 +542,22 @@ public class TlsContext {
         var macLength = negotiatedCipher.hashFactory()
                 .length();
         var expandedKeyLength = localCipherEngine.exportedKeyLength();
-        int keyLength;
-        try {
-            keyLength = localCipherEngine.keyLength();
-        }catch (NullPointerException e) {
-            keyLength = 16;
-        }
-        var ivLength = localCipherMode.ivLength()
-                .fixed();
+        var keyLength = localCipherEngine.keyLength();
+
+        var ivLength = switch (localCipher) {
+            case TlsCipherMode.Block block -> {
+                if (block.isAEAD()) {
+                    yield localCipher.ivLength().fixed();
+                }
+
+                if(localConfig.version().id().value() >= TlsVersion.TLS11.id().value()) {
+                    yield 0;
+                }
+
+                yield localCipher.ivLength().total();
+            }
+            case TlsCipherMode.Stream _ -> localCipher.ivLength().total();
+        };
 
         var keyBlockLen = (macLength + keyLength + (expandedKeyLength.isPresent() ? 0 : ivLength)) * 2;
         var keyBlock = generateBlock(localConfig.version(), negotiatedCipher.hashFactory(), localMasterSecretKey.data(), clientRandom, serverRandom, keyBlockLen);
@@ -596,8 +605,8 @@ public class TlsContext {
                 case SERVER -> clientKey;
             };
 
-            var clientIv = readBytes(keyBlock, ivLength);
-            var serverIv = readBytes(keyBlock, ivLength);
+            var clientIv = ivLength == 0 ? null : readBytes(keyBlock, ivLength);
+            var serverIv = ivLength == 0 ? null : readBytes(keyBlock, ivLength);
             var localIv = switch (mode) {
                 case CLIENT -> clientIv;
                 case SERVER -> serverIv;

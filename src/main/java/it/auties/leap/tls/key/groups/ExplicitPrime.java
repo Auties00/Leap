@@ -43,7 +43,7 @@ public final class ExplicitPrime implements TlsSupportedGroup {
     }
 
     @Override
-    public byte[] dumpRemotePublicKey(TlsContext context) {
+    public byte[] dumpLocalPublicKey(TlsContext context) {
         throw new UnsupportedOperationException();
     }
 

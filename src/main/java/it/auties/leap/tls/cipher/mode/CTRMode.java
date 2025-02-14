@@ -31,11 +31,6 @@ public final class CTRMode extends TlsCipherMode.Block {
     }
 
     @Override
-    public void doFinal(byte contentType, ByteBuffer input, ByteBuffer output) {
-
-    }
-
-    @Override
     public void reset() {
 
     }

@@ -67,19 +67,31 @@ public class ECDHKeyExchangeFactory implements TlsKeyExchangeFactory {
                 .toGroup(context)
                 .generateLocalKeyPair(context);
         context.setLocalKeyPair(keyPair);
-        return new ECDHClientKeyExchange(type, keyPair.getPublic().getEncoded());
+        return new ECDHClientKeyExchange(type, getLocalPublicKey(context));
     }
 
     private ECDHServerKeyExchange newServerKeyExchange(TlsContext context) {
-        for(var group : context.supportedGroups()) {
-            var parameters = group.toEllipticCurveParameters();
-            if(parameters.isPresent()) {
-                var keyPair = group.generateLocalKeyPair(context);
-                context.setLocalKeyPair(keyPair);
-                return new ECDHServerKeyExchange(type, parameters.get(), keyPair.getPublic().getEncoded());
-            }
+        if(context.supportedGroups().isEmpty()) {
+            throw new TlsException("No group was selected");
         }
-        throw new TlsException("No supported group provides ec support: " + context.supportedGroups());
+
+        var group = context.supportedGroups()
+                .getFirst();
+        var parameters = group.toEllipticCurveParameters()
+                .orElseThrow(() -> new TlsException("No supported group provides ec support: " + context.supportedGroups()));
+        var keyPair = group.generateLocalKeyPair(context);
+        context.setLocalKeyPair(keyPair);
+        return new ECDHServerKeyExchange(type, parameters, keyPair.getPublic().getEncoded());
+    }
+
+    private byte[] getLocalPublicKey(TlsContext context) {
+        if(context.supportedGroups().isEmpty()) {
+            throw new TlsException("No group was selected");
+        }
+
+        return context.supportedGroups()
+                .getFirst()
+                .dumpLocalPublicKey(context);
     }
 
     @Override

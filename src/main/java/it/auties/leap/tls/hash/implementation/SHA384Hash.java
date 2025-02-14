@@ -218,7 +218,7 @@ public final class SHA384Hash implements TlsHash {
     }
 
     private void processWord(ByteBuffer in) {
-        w[wOff] =  readBigEndianInt64(in);
+        w[wOff] = readBigEndianInt64(in);
 
         if (++wOff == 16) {
             processBlock();

@@ -236,7 +236,7 @@ public interface TlsSupportedGroup {
     int id();
     boolean dtls();
     KeyPair generateLocalKeyPair(TlsContext context);
-    byte[] dumpRemotePublicKey(TlsContext context);
+    byte[] dumpLocalPublicKey(TlsContext context);
     PublicKey parseRemotePublicKey(TlsContext context);
     byte[] computeSharedSecret(TlsContext context);
     Optional<TlsECParameters> toEllipticCurveParameters();

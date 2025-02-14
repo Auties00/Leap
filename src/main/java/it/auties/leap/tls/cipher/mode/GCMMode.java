@@ -205,11 +205,6 @@ public final class GCMMode extends TlsCipherMode.Block {
     }
 
     @Override
-    public void doFinal(byte contentType, ByteBuffer input, ByteBuffer output) {
-        // No finalization step is required.
-    }
-
-    @Override
     public void reset() {
         // GCM mode is stateless per record.
     }

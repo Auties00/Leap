@@ -12,14 +12,18 @@ import it.auties.leap.tls.exception.TlsException;
 import it.auties.leap.tls.key.TlsSupportedGroup;
 import it.auties.leap.tls.util.KeyUtils;
 import org.bouncycastle.jce.ECNamedCurveTable;
+import org.bouncycastle.jce.interfaces.ECPublicKey;
 import org.bouncycastle.jce.spec.ECNamedCurveParameterSpec;
 
 import javax.crypto.KeyAgreement;
+import javax.crypto.interfaces.DHPublicKey;
 import javax.crypto.spec.DHParameterSpec;
 import javax.crypto.spec.DHPublicKeySpec;
 import java.math.BigInteger;
 import java.security.*;
+import java.security.interfaces.XECPublicKey;
 import java.security.spec.*;
+import java.util.Arrays;
 import java.util.Optional;
 
 public final class NamedCurve implements TlsSupportedGroup {
@@ -416,22 +420,14 @@ public final class NamedCurve implements TlsSupportedGroup {
     }
 
     @Override
-    public byte[] dumpRemotePublicKey(TlsContext context) {
-        var mode = context.selectedMode()
+    public byte[] dumpLocalPublicKey(TlsContext context) {
+        var localKeyPair = context.localKeyPair()
                 .orElseThrow(() -> new TlsException("No mode was selected"));
-        var remoteKeyExchange = context.remoteKeyExchange()
-                .orElseThrow(() -> new TlsException("Missing remote key exchange"));
-        return switch (mode) {
-            case CLIENT -> switch (remoteKeyExchange) {
-                case ECDHServerKeyExchange serverKeyExchange -> serverKeyExchange.publicKey();
-                case DHServerKeyExchange serverKeyExchange -> serverKeyExchange.y();
-                default -> throw new TlsException("Unsupported spec");
-            };
-            case SERVER -> switch (remoteKeyExchange) {
-                case ECDHClientKeyExchange clientKeyExchange -> clientKeyExchange.publicKey();
-                case ECDHServerKeyExchange serverKeyExchange -> serverKeyExchange.publicKey();
-                default -> throw new TlsException("Unsupported spec");
-            };
+        return switch (localKeyPair.getPublic()) {
+            case XECPublicKey publicKey -> KeyUtils.toUnsignedLittleEndianBytes(publicKey.getU());
+            case DHPublicKey publicKey -> KeyUtils.toUnsignedLittleEndianBytes(publicKey.getY());
+            case ECPublicKey publicKey -> publicKey.getQ().getEncoded(false);
+            default -> throw new TlsException("Unsupported key type");
         };
     }
 
@@ -450,6 +446,13 @@ public final class NamedCurve implements TlsSupportedGroup {
             case EPHEMERAL -> parseRemotePublicKey(context);
         };
         try {
+            System.out.printf(
+                    """
+                            Local public key: %s
+                            Remote public key: %s
+                            %n""", Arrays.toString(KeyUtils.toUnsignedLittleEndianBytes(((XECPublicKey) context.localKeyPair().get().getPublic()).getU())),
+                    Arrays.toString(KeyUtils.toUnsignedLittleEndianBytes(((XECPublicKey) publicKey).getU()))
+            );
             var keyAgreement = KeyAgreement.getInstance(algorithm);
             keyAgreement.init(privateKey, spec);
             keyAgreement.doPhase(publicKey, true);

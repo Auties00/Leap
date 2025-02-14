@@ -467,7 +467,7 @@ public sealed interface TlsExtension {
     int RENEGOTIATION_INFO_TYPE = 65281;
 
     static TlsExtension extendedMasterSecret() {
-        return ExtendedMasterSecretExtension.instance();
+        return ExtendedMasterSecretExtension.Configurable.instance();
     }
 
     static TlsExtension encryptThenMac() {
