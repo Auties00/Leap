@@ -5,7 +5,6 @@ import it.auties.leap.tls.TlsSource;
 import it.auties.leap.tls.message.TlsHandshakeMessage;
 import it.auties.leap.tls.version.TlsVersion;
 
-import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.security.cert.CertificateEncodingException;
 import java.security.cert.CertificateException;
@@ -108,11 +107,6 @@ public sealed abstract class CertificateMessage extends TlsHandshakeMessage {
                 var certificates = new ArrayList<X509Certificate>();
                 while (buffer.hasRemaining()) {
                     var certificateSource = readStreamBigEndian24(buffer);
-                    try {
-                        System.out.println("Remaining: " + certificateSource.available());
-                    } catch (IOException e) {
-                        throw new RuntimeException(e);
-                    }
                     var certificate = (X509Certificate) factory.generateCertificate(certificateSource);
                     certificates.add(certificate);
                 }

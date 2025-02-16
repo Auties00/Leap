@@ -114,8 +114,6 @@ public class AsyncSecureSocketApplicationLayer extends AsyncSocketApplicationLay
     }
 
     private CompletableFuture<Void> sendClientKeyExchange() {
-        System.out.println("Sending client key exchange");
-
         var keyExchangeMessage = new KeyExchangeMessage.Client(
                 tlsConfig.version(),
                 TlsSource.LOCAL,
@@ -134,7 +132,6 @@ public class AsyncSecureSocketApplicationLayer extends AsyncSocketApplicationLay
             return CompletableFuture.completedFuture(null);
         }
 
-        System.out.println("Sending client verify");
         var clientVerifyCertificate = new CertificateVerifyMessage.Client(
                 tlsConfig.version(),
                 TlsSource.LOCAL
@@ -148,7 +145,6 @@ public class AsyncSecureSocketApplicationLayer extends AsyncSocketApplicationLay
     }
 
     private CompletableFuture<Void> sendClientChangeCipher() {
-        System.out.println("Sending client change cipher");
         var changeCipherSpec = new ChangeCipherSpecMessage.Client(
                 tlsConfig.version(),
                 TlsSource.LOCAL
@@ -182,11 +178,9 @@ public class AsyncSecureSocketApplicationLayer extends AsyncSocketApplicationLay
         var encryptedMessagePayloadBuffer = messagePayloadBuffer.duplicate()
                 .limit(messagePayloadBuffer.capacity())
                 .position(reservedSpace);
-        tlsContext.encrypt(
-                TlsMessage.ContentType.HANDSHAKE.id(),
-                messagePayloadBuffer,
-                encryptedMessagePayloadBuffer
-        );
+        tlsContext.localCipher()
+                .orElseThrow(() -> new TlsException("Cannot encrypt a message before enabling the local cipher"))
+                .update(TlsMessage.ContentType.HANDSHAKE.id(), messagePayloadBuffer, encryptedMessagePayloadBuffer, null);
 
         var encryptedMessagePosition = encryptedMessagePayloadBuffer.position() - TlsMessage.messageRecordHeaderLength();
         var encryptedMessageLength = encryptedMessagePayloadBuffer.remaining();
@@ -276,7 +270,9 @@ public class AsyncSecureSocketApplicationLayer extends AsyncSocketApplicationLay
         return transportLayer.readFully(buffer).thenAccept(_ -> {
             if (tlsContext.isRemoteCipherEnabled()) {
                 var plainBuffer = plainBuffer();
-                tlsContext.decrypt(metadata.contentType().id(), buffer, plainBuffer);
+                tlsContext.remoteCipher()
+                        .orElseThrow(() -> new TlsException("Cannot decrypt a message before enabling the remote cipher"))
+                        .update(metadata.contentType().id(), buffer, plainBuffer, null);
                 metadata.setMessageLength(plainBuffer.remaining());
                 var message = TlsMessage.of(tlsContext, plainBuffer, metadata);
                 tlsContext.handleMessage(message);
@@ -324,11 +320,9 @@ public class AsyncSecureSocketApplicationLayer extends AsyncSocketApplicationLay
         var encrypted = plaintext.duplicate()
                 .limit(plaintext.capacity())
                 .position(TlsMessage.messageRecordHeaderLength() + leftPadding);
-        tlsContext.encrypt(
-                TlsMessage.ContentType.APPLICATION_DATA.id(),
-                plaintext,
-                encrypted
-        );
+        tlsContext.localCipher()
+                .orElseThrow(() -> new TlsException("Cannot encrypt a message before enabling the local cipher"))
+                .update(TlsMessage.ContentType.APPLICATION_DATA.id(), plaintext, encrypted, null);
         ApplicationDataMessage.serializeInline(
                 tlsConfig.version(),
                 encrypted

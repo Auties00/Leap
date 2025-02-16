@@ -19,8 +19,8 @@ public sealed abstract class ChangeCipherSpecMessage extends TlsHandshakeMessage
 
     public static ChangeCipherSpecMessage of(TlsContext context, ByteBuffer buffer, Metadata metadata) {
         return switch(context.selectedMode().orElse(null)) {
-            case CLIENT -> ChangeCipherSpecMessage.Client.of(metadata.version(), metadata.source(), buffer);
-            case SERVER -> ChangeCipherSpecMessage.Server.of(metadata.version(), metadata.source(), buffer);
+            case CLIENT -> ChangeCipherSpecMessage.Server.of(metadata.version(), metadata.source(), buffer);
+            case SERVER -> ChangeCipherSpecMessage.Client.of(metadata.version(), metadata.source(), buffer);
             case null -> throw new TlsException("No engine mode has been selected yet");
         };
     }

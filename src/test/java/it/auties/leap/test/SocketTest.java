@@ -21,8 +21,7 @@ public class SocketTest {
     public static void main(String[] args) throws IOException {
         // TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA384
         var ciphers = List.of(
-                TlsCipher.ecdheEcdsaWithAes256CbcSha384(),
-                TlsCipher.ecdheRsaWithAes256CbcSha384()
+                TlsCipher.ecdheRsaWithAes256GcmSha384()
         );
         var extensions = List.of(
                 TlsExtension.serverNameIndication(),
@@ -56,20 +55,22 @@ public class SocketTest {
                         .build()
         ) {
             socket.connect(new InetSocketAddress("localhost", 8082)).join();
-            var message = ByteBuffer.allocate(1024);
-            socket.read(message).join();
-            System.out.println(StandardCharsets.UTF_8.decode(message));
+            {
+                var message = ByteBuffer.allocate(1024);
+                socket.read(message).join();
+                System.out.print(StandardCharsets.UTF_8.decode(message));
+            }
             {
                 socket.write(StandardCharsets.UTF_8.encode("Hello World\n")).join();
                 var message1 = ByteBuffer.allocate(1024);
                 socket.read(message1).join();
-                System.out.println(StandardCharsets.UTF_8.decode(message1));
+                System.out.print(StandardCharsets.UTF_8.decode(message1));
             }
             {
                 socket.write(StandardCharsets.UTF_8.encode("Hello World123\n")).join();
                 var message1 = ByteBuffer.allocate(1024);
                 socket.read(message1).join();
-                System.out.println(StandardCharsets.UTF_8.decode(message1));
+                System.out.print(StandardCharsets.UTF_8.decode(message1));
             }
         }
     }

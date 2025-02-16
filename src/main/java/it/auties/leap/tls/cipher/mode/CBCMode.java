@@ -6,7 +6,6 @@ import it.auties.leap.tls.version.TlsVersion;
 
 import java.nio.ByteBuffer;
 import java.security.SecureRandom;
-import java.util.Arrays;
 
 public final class CBCMode extends TlsCipherMode.Block {
     private static final TlsCipherModeFactory FACTORY = CBCMode::new;
@@ -51,27 +50,17 @@ public final class CBCMode extends TlsCipherMode.Block {
             var inputPositionWithNonce = input.position() - nonce.length;
             input.put(inputPositionWithNonce, nonce);
             input.position(inputPositionWithNonce);
-
+            // TODO: This assumes that input and output have the same array backing them
+            output.position(inputPositionWithNonce);
             var plaintextLength = addPadding(input);
-            System.out.println("Plain message: " + Arrays.toString(Arrays.copyOfRange(input.array(), input.position(), input.limit())));
-            System.out.println("Length: " + plaintextLength);
             if(plaintextLength != encryptBlock(input, output)) {
-                throw new RuntimeException("Unexpected number of plaintext bytes");
+                throw new TlsException("Unexpected number of plaintext bytes");
             }
-
-            var outputLimit = output.position();
-            output.limit(outputLimit);
-            output.position(outputLimit - plaintextLength);
-            System.out.println("Cipher message: " + Arrays.toString(Arrays.copyOfRange(output.array(), output.position(), output.limit())));
-            System.out.println("Length: " + plaintextLength);
         }else {
             var cipheredLength = input.remaining();
-            var outputPosition = output.position();
             if(cipheredLength != decryptBlock(input, output)) {
-                throw new RuntimeException("Unexpected number of ciphered bytes");
+                throw new TlsException("Unexpected number of ciphered bytes");
             }
-            output.limit(output.position());
-            output.position(outputPosition + engine().blockLength());
             removePadding(output);
             checkCbcMac(output, contentType, sequence);
         }
@@ -131,33 +120,49 @@ public final class CBCMode extends TlsCipherMode.Block {
     private int encryptBlock(ByteBuffer input, ByteBuffer output) {
         var initialPosition = output.position();
         var blockLength = engine().blockLength();
+        for (var i = 0; i < blockLength; i++) {
+            cbcV.put(i, (byte) (cbcV.get(i) ^ input.get()));
+        }
+        engine.update(cbcV.position(0), output);
         while (input.hasRemaining()) {
             for (var i = 0; i < blockLength; i++) {
-                cbcV.put(i, (byte) (cbcV.get(i) ^ input.get()));
+                cbcV.put(i, (byte) (output.get(output.position() - blockLength + i) ^ input.get()));
             }
             engine.update(cbcV.position(0), output);
         }
-        return output.position() - initialPosition;
+        var result = output.position() - initialPosition;
+        output.limit(output.position());
+        output.position(initialPosition);
+        return result;
     }
 
     private int decryptBlock(ByteBuffer input, ByteBuffer output) {
         var initialPosition = output.position();
-        cbcNextV.clear();
-        for(var i = 0; i < engine().blockLength(); i++) {
-            cbcNextV.put(input.get());
+        var blockLength = engine().blockLength();
+        while (input.hasRemaining()) {
+            var blockPosition = output.position();
+
+            for(var i = 0; i < blockLength; i++) {
+                cbcNextV.put(i, input.get(input.position() + i));
+            }
+
+            engine.update(input, output);
+
+            for (int i = 0; i < blockLength; i++) {
+                var position = blockPosition + i;
+                output.put(position, (byte) (output.get(position) ^ cbcV.get(i)));
+            }
+
+            var tmp = cbcV;
+            cbcV = cbcNextV;
+            cbcNextV = tmp;
         }
 
-        var outputPosition = output.position();
-        engine.update(input, output);
-        for (int i = 0; i < engine().blockLength(); i++) {
-            var position = outputPosition + i;
-            output.put(position, (byte) (output.get(position) ^ cbcV.get(i)));
-        }
+        var result = output.position() - initialPosition;
+        output.limit(output.position());
+        output.position(initialPosition + blockLength);
 
-        var tmp = cbcV;
-        cbcV = cbcNextV;
-        cbcNextV = tmp;
-        return output.position() - initialPosition;
+        return result;
     }
 
     @Override

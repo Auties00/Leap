@@ -112,7 +112,6 @@ public class TlsContext {
 
     public void handleMessage(TlsMessage message) {
         processedMessageTypes.add(message.type());
-        System.out.println("Handling " + message.getClass().getName());
         switch (message) {
             case HelloRequestMessage.Server _ -> {
                 // This message will be ignored by the client if the client is currently negotiating a session.
@@ -166,7 +165,6 @@ public class TlsContext {
                                 .collect(Collectors.toUnmodifiableMap(TlsCompression::id, Function.identity(), (element, _) -> element));
                     }
                     case REMOTE -> {
-                        System.out.println("Selected cipher: " + serverHelloMessage.cipher());
                         this.remoteRandomData = serverHelloMessage.randomData();
                         this.remoteSessionId = serverHelloMessage.sessionId();
                         this.negotiatedCipher = serverHelloMessage.cipherId()
@@ -333,22 +331,6 @@ public class TlsContext {
         }
     }
 
-    public void encrypt(byte contentType, ByteBuffer input, ByteBuffer output) {
-        if(localCipher == null) {
-            throw new TlsException("Cannot encrypt a message before enabling the local cipher");
-        }
-
-        localCipher.update(contentType, input, output, null);
-    }
-
-    public void decrypt(byte contentType, ByteBuffer input, ByteBuffer output) {
-        if(remoteCipher == null) {
-            throw new TlsException("Cannot decrypt a message before enabling the remote cipher");
-        }
-
-       remoteCipher.update(contentType, input, output, null);
-    }
-
     public Optional<ByteBuffer> lastBufferedMessage() {
         return bufferedMessages.isEmpty() ? Optional.empty() : Optional.ofNullable(bufferedMessages.peek());
     }
@@ -507,7 +489,6 @@ public class TlsContext {
     }
 
     private void initKeys(byte[] preMasterSecret) {
-        System.out.println("Pre master secret: " + Arrays.toString(preMasterSecret));
         this.localMasterSecretKey = TlsMasterSecretKey.of(
                 mode,
                 localConfig.version(),

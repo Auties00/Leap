@@ -366,4 +366,9 @@ public final class GCMMode extends TlsCipherMode.Block {
         }
         return shifted;
     }
+
+    @Override
+    public boolean isAEAD() {
+        return true;
+    }
 }

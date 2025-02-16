@@ -14,7 +14,6 @@ public final class TlsMasterSecretKey {
     private static final int LENGTH = 48;
     private final byte[] data;
     private TlsMasterSecretKey(byte[] data) {
-        System.out.println("Master secret: " + Arrays.toString(data));
         this.data = data;
     }
 
@@ -78,7 +77,6 @@ public final class TlsMasterSecretKey {
                         length(),
                         cipher.hashFactory().newHash()
                 );
-                System.out.printf("Master secret: %s%n", Arrays.toString(result));
                 yield new TlsMasterSecretKey(result);
             }
         };

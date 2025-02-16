@@ -37,11 +37,11 @@ public final class AsyncSocketClient implements SocketClient, AsyncSocketIO {
     }
 
     public CompletableFuture<Void> read(ByteBuffer buffer) {
-        return applicationLayer.write(buffer);
+        return applicationLayer.read(buffer);
     }
 
     public CompletableFuture<Void> readFully(ByteBuffer buffer) {
-        return applicationLayer.write(buffer);
+        return applicationLayer.readFully(buffer);
     }
 
     public static AsyncSocketClientBuilder newBuilder(SocketProtocol protocol) {

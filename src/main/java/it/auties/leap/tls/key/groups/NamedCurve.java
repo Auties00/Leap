@@ -23,7 +23,6 @@ import java.math.BigInteger;
 import java.security.*;
 import java.security.interfaces.XECPublicKey;
 import java.security.spec.*;
-import java.util.Arrays;
 import java.util.Optional;
 
 public final class NamedCurve implements TlsSupportedGroup {
@@ -446,13 +445,6 @@ public final class NamedCurve implements TlsSupportedGroup {
             case EPHEMERAL -> parseRemotePublicKey(context);
         };
         try {
-            System.out.printf(
-                    """
-                            Local public key: %s
-                            Remote public key: %s
-                            %n""", Arrays.toString(KeyUtils.toUnsignedLittleEndianBytes(((XECPublicKey) context.localKeyPair().get().getPublic()).getU())),
-                    Arrays.toString(KeyUtils.toUnsignedLittleEndianBytes(((XECPublicKey) publicKey).getU()))
-            );
             var keyAgreement = KeyAgreement.getInstance(algorithm);
             keyAgreement.init(privateKey, spec);
             keyAgreement.doPhase(publicKey, true);

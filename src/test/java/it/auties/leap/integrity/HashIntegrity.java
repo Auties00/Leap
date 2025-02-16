@@ -7,7 +7,7 @@ import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import java.nio.ByteBuffer;
 import java.security.MessageDigest;
 import java.security.Security;
-import java.util.HexFormat;
+import java.util.Arrays;
 import java.util.Map;
 import java.util.concurrent.ThreadLocalRandom;
 
@@ -24,29 +24,34 @@ public class HashIntegrity {
             "SM3", TlsHashFactory.sm3(),
             "GOST3411-2012-256", TlsHashFactory.gostr341112_256()
     );
-    public static void main(String[] args) {
+    public static void main(String[] args) throws Throwable {
         for(var hashFactory : HASH_FACTORIES.entrySet()) {
             test(hashFactory.getKey(), hashFactory.getValue().newHash());
         }
     }
 
-    private static void test(String name, TlsHash cmd) {
-        System.out.println(name);
+    private static void test(String name, TlsHash lmd) throws Throwable {
         var message = new byte[8197];
         ThreadLocalRandom.current().nextBytes(message);
         var message1 = new byte[8197];
         ThreadLocalRandom.current().nextBytes(message1);
-        try {
-            var jmd = MessageDigest.getInstance(name);
-            jmd.update(message);
-            jmd.update(message1);
-            System.out.println(HexFormat.of().formatHex(jmd.digest()));
-        }catch (Throwable e) {
-            System.err.println(e.getMessage());
+        var jmd = MessageDigest.getInstance(name);
+        jmd.update(message);
+        jmd.update(message1);
+        var jmdResult = jmd.digest();
+        var message3 = ByteBuffer.wrap(message);
+        lmd.update(message3);
+        if(message3.hasRemaining()) {
+            throw new NullPointerException();
         }
-        cmd.update(ByteBuffer.wrap(message));
-        cmd.update(ByteBuffer.wrap(message1));
-        System.out.println(HexFormat.of().formatHex(cmd.digest(true)));
-        System.out.println();
+        var message4 = ByteBuffer.wrap(message1);
+        lmd.update(message4);
+        if(message4.hasRemaining()) {
+            throw new NullPointerException();
+        }
+        var cmdResult = lmd.digest(true);
+        if(!Arrays.equals(jmdResult, cmdResult)) {
+            throw new NullPointerException();
+        }
     }
 }

@@ -8,7 +8,6 @@ import it.auties.leap.tls.key.TlsPreMasterSecretGenerator;
 import it.auties.leap.tls.key.TlsSupportedGroup;
 
 import java.nio.ByteBuffer;
-import java.util.Arrays;
 import java.util.List;
 
 import static it.auties.leap.tls.util.BufferUtils.*;
@@ -27,7 +26,6 @@ public class ECDHServerKeyExchange extends TlsServerKeyExchange {
         super(type, TlsPreMasterSecretGenerator.ecdh());
         this.parameters = decodeParams(buffer, supportedGroups);
         this.publicKey = readBytesBigEndian8(buffer);
-        System.out.println("Server public key: " + Arrays.toString(publicKey));
     }
 
     private TlsECParameters decodeParams(ByteBuffer buffer, List<TlsSupportedGroup> supportedGroups) {
