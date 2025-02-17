@@ -161,7 +161,7 @@ public final class ARIAEngine extends TlsCipherEngine.Block {
     }
 
     @Override
-    public void update(ByteBuffer input, ByteBuffer output) {
+    public void cipher(ByteBuffer input, ByteBuffer output) {
         byte[] z = new byte[BLOCK_SIZE];
         input.get(z);
 

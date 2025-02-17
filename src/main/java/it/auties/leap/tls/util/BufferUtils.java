@@ -470,9 +470,14 @@ public final class BufferUtils {
     }
 
     public static void assertNotEquals(ByteBuffer first, ByteBuffer second) {
-        if(first == second || (!first.isDirect() && !first.isDirect() && first.array() == second.array())) {
+        if(equals(first, second)) {
             throw new UnsupportedOperationException("The message buffer cannot be the same as the output buffer");
         }
+    }
+
+    public static boolean equals(ByteBuffer first, ByteBuffer second) {
+        return first == second
+                || (!first.isDirect() && !first.isDirect() && first.array() == second.array());
     }
 
     public static long bigEndianToLong(byte[] bs, int off) {

@@ -107,7 +107,7 @@ public sealed abstract class TlsCipherEngine permits TlsCipherEngine.Block, TlsC
         this.initialized = true;
     }
 
-    public abstract void update(ByteBuffer input, ByteBuffer output);
+    public abstract void cipher(ByteBuffer input, ByteBuffer output);
 
     public byte[] key() {
         return key;

@@ -527,7 +527,7 @@ public class TlsContext {
 
         var ivLength = switch (localCipher) {
             case TlsCipherMode.Block block -> {
-                if (block.isAEAD()) {
+                if (block instanceof TlsCipherMode.AEAD) {
                     yield localCipher.ivLength().fixed();
                 }
 

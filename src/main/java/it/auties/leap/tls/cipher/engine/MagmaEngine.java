@@ -47,7 +47,7 @@ public final class MagmaEngine extends TlsCipherEngine.Block {
     }
 
     @Override
-    public void update(ByteBuffer input, ByteBuffer output) {
+    public void cipher(ByteBuffer input, ByteBuffer output) {
         var n1 = readBigEndianInt32(input);
         var n2 = readBigEndianInt32(input);
 

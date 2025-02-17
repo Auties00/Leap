@@ -27,7 +27,7 @@ public final class CNTImitMode extends TlsCipherMode.Block {
     }
 
     @Override
-    public void update(byte contentType, ByteBuffer input, ByteBuffer output, byte[] sequence) {
+    public void cipher(byte contentType, ByteBuffer input, ByteBuffer output, byte[] sequence) {
         throw new UnsupportedOperationException();
     }
 

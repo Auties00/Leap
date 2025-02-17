@@ -46,7 +46,7 @@ public final class RC4Engine extends TlsCipherEngine.Stream {
     }
 
     @Override
-    public void update(ByteBuffer input, ByteBuffer output) {
+    public void cipher(ByteBuffer input, ByteBuffer output) {
         var len = input.remaining();
         for (var i = 0; i < len; i++) {
             x = (x + 1) & 0xff;

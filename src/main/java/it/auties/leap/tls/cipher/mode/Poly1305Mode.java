@@ -43,7 +43,7 @@ public final class Poly1305Mode extends TlsCipherMode.Stream {
     }
 
     @Override
-    public void update(byte contentType, ByteBuffer input, ByteBuffer output, byte[] sequence) {
+    public void cipher(byte contentType, ByteBuffer input, ByteBuffer output, byte[] sequence) {
         try {
             cipher.update(input, output);
         } catch (GeneralSecurityException exception) {

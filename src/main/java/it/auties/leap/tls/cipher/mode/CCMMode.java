@@ -59,7 +59,7 @@ public final class CCMMode extends TlsCipherMode.Block {
     }
 
     @Override
-    public void update(byte contentType, ByteBuffer input, ByteBuffer output, byte[] sequence) {
+    public void cipher(byte contentType, ByteBuffer input, ByteBuffer output, byte[] sequence) {
         if (engine().forEncryption()) {
             // === ENCRYPTION ===
             byte[] plaintext = new byte[input.remaining()];
@@ -371,7 +371,7 @@ public final class CCMMode extends TlsCipherMode.Block {
     private byte[] encryptBlock(byte[] block) {
         ByteBuffer inputBuffer = ByteBuffer.wrap(block);
         ByteBuffer outputBuffer = ByteBuffer.allocate(engine().blockLength());
-        engine().update(inputBuffer, outputBuffer);
+        engine().cipher(inputBuffer, outputBuffer);
         return outputBuffer.array();
     }
 

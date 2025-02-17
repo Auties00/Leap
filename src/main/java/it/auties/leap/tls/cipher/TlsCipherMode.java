@@ -70,7 +70,7 @@ public sealed abstract class TlsCipherMode {
         this.initialized = true;
     }
 
-    public abstract void update(byte contentType, ByteBuffer input, ByteBuffer output, byte[] sequence);
+    public abstract void cipher(byte contentType, ByteBuffer input, ByteBuffer output, byte[] sequence);
 
     public abstract void reset();
 
@@ -179,10 +179,6 @@ public sealed abstract class TlsCipherMode {
                 Math.ceil(usedLen / (1.0d * blockLen))) * blockLen;
     }
 
-    public boolean isAEAD() {
-        return false;
-    }
-
     public abstract non-sealed static class Block extends TlsCipherMode {
         protected Block(TlsCipherEngine engine) {
             if(engine != null && !(engine instanceof TlsCipherEngine.Block)) {
@@ -209,5 +205,9 @@ public sealed abstract class TlsCipherMode {
         public TlsCipherEngine.Stream engine() {
             return (TlsCipherEngine.Stream) engine;
         }
+    }
+
+    public interface AEAD {
+        void updateAAD(ByteBuffer input);
     }
 }

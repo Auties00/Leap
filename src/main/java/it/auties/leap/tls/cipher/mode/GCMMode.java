@@ -1,45 +1,41 @@
 package it.auties.leap.tls.cipher.mode;
 
 import it.auties.leap.tls.cipher.*;
-import it.auties.leap.tls.exception.TlsException;
+import org.bouncycastle.math.raw.Interleave;
+import org.bouncycastle.util.Arrays;
+import org.bouncycastle.util.Longs;
+import org.bouncycastle.util.Pack;
 
 import java.nio.ByteBuffer;
-import java.security.SecureRandom;
-import java.util.Arrays;
 
-/**
- * An example implementation of TLS’s AES–GCM cipher mode.
- * <p>
- * In TLS, the 12–byte nonce is constructed by concatenating a fixed IV (the “implicit nonce”)
- * with an explicit (per–record) IV. The AAD is built from the TLS record header.
- * <p>
- * This implementation “manually” combines CTR encryption with a GHASH computation.
- * For a production system, please consider using a well–vetted library.
- */
-public final class GCMMode extends TlsCipherMode.Block {
+
+public final class GCMMode extends TlsCipherMode.Block implements TlsCipherMode.AEAD {
+    private static final int MAC_SIZE = 12;
     private static final TlsCipherModeFactory FACTORY = GCMMode::new;
-    /**
-     * Total nonce length in bytes (recommended 12 for AES–GCM).
-     */
-    private static final int NONCE_LENGTH = 12;
-    /**
-     * Length of the explicit (per–record) nonce.
-     * For example, if NONCE_LENGTH is 12 and fixed IV is 4 bytes, then EXPLICIT_NONCE_LENGTH is 8.
-     */
-    private static final int EXPLICIT_NONCE_LENGTH = 8;
-    /**
-     * Authentication tag length in bytes.
-     */
-    private static final int TAG_LENGTH = 16;
 
-    private SecureRandom random;
-    /**
-     * The GCM hash subkey H, computed as E_K(0^128).
-     */
+    private final Tables4kGCMMultiplier multiplier;
+    private BasicGCMExponentiator exp;
+
+    // These fields are set by init and not modified by processing
     private byte[] H;
+    private byte[] J0;
+
+    // These fields are modified during processing
+    private byte[] bufBlock;
+    private byte[] macBlock;
+    private byte[] S, S_at, S_atPre;
+    private byte[] counter;
+    private int blocksRemaining;
+    private int bufOff;
+    private long totalLength;
+    private byte[] atBlock;
+    private int atBlockPos;
+    private long atLength;
+    private long atLengthPre;
 
     public GCMMode(TlsCipherEngine engine) {
         super(engine);
+        this.multiplier = new Tables4kGCMMultiplier();
     }
 
     public static TlsCipherModeFactory factory() {
@@ -49,326 +45,680 @@ public final class GCMMode extends TlsCipherMode.Block {
     @Override
     public void init(TlsExchangeAuthenticator authenticator, byte[] fixedIv) {
         super.init(authenticator, fixedIv);
-        this.random = new SecureRandom();
-        // In TLS AES-GCM the fixed IV must be NONCE_LENGTH - EXPLICIT_NONCE_LENGTH bytes.
-        if (fixedIv.length != NONCE_LENGTH - EXPLICIT_NONCE_LENGTH) {
-            throw new IllegalArgumentException("Invalid fixed IV length for GCM mode: expected " +
-                    (NONCE_LENGTH - EXPLICIT_NONCE_LENGTH) + " bytes, got " + fixedIv.length);
-        }
-        // Compute the hash subkey H = E_K(0^128)
-        byte[] zeroBlock = new byte[engine().blockLength()];
-        this.H = encryptBlock(zeroBlock);
+        int bufLength = engine.forEncryption() ? engine().blockLength() : (engine().blockLength() + MAC_SIZE);
+        this.bufBlock = new byte[bufLength];
+        this.H = new byte[engine().blockLength()];
+        engine.cipher(ByteBuffer.wrap(H), ByteBuffer.wrap(H));
+        multiplier.init(H);
+        this.S = new byte[engine().blockLength()];
+        this.S_at = new byte[engine().blockLength()];
+        this.S_atPre = new byte[engine().blockLength()];
+        this.atBlock = new byte[engine().blockLength()];
+        this.atBlockPos = 0;
+        this.atLength = 0;
+        this.atLengthPre = 0;
+        this.blocksRemaining = -2;      // page 8, len(P) <= 2^39 - 256, 1 block used by tag but done on J0
+        this.bufOff = 0;
+        this.totalLength = 0;
     }
 
     @Override
-    public void update(byte contentType, ByteBuffer input, ByteBuffer output, byte[] sequence) {
+    public void updateAAD(ByteBuffer input) {
+        if (atBlockPos > 0) {
+            int available = engine().blockLength() - atBlockPos;
+            if (input.remaining() < available) {
+                for (var i = 0; i < input.remaining(); i++) {
+                    atBlock[atBlockPos++] = input.get();
+                }
+                return;
+            }
+
+            for (var i = 0; i < available; i++) {
+                atBlock[atBlockPos++] = input.get();
+            }
+
+            gHASHBlock(S_at, atBlock);
+            atLength += engine().blockLength();
+        }
+
+        int inOff = input.position();
+        int inLimit = inOff + input.remaining() - engine().blockLength();
+
+        while (inOff <= inLimit) {
+            gHASHBlock(S_at, input.array(), inOff);
+            atLength += engine().blockLength();
+            inOff += engine().blockLength();
+        }
+
+        atBlockPos = engine().blockLength() + inLimit - inOff;
+        System.arraycopy(input.array(), inOff, atBlock, 0, atBlockPos);
+    }
+
+    @Override
+    public void cipher(byte contentType, ByteBuffer input, ByteBuffer output, byte[] sequence) {
+        this.J0 = new byte[engine().blockLength()];
+        System.arraycopy(fixedIv, 0, J0, 0, fixedIv.length);
+        var nonce = authenticator.sequenceNumber();
+        System.arraycopy(nonce, 0, J0, fixedIv.length, ivLength().dynamic());
+        output.put(output.position() - nonce.length, nonce);
+        this.J0[engine().blockLength() - 1] = 0x01;
+        this.counter = Arrays.clone(J0);
+
+        var aad = authenticator.createAuthenticationBlock(contentType, input.remaining(), sequence);
+        updateAAD(ByteBuffer.wrap(aad));
+
+        int resultLen = 0;
+
+        var len = input.remaining();
+        var in = input.array();
+        var inOff = input.position();
+        var out = output.array();
+        var outOff = output.position();
         if (engine().forEncryption()) {
-            // === ENCRYPTION PATH ===
-            byte[] plaintext = new byte[input.remaining()];
-            input.get(plaintext);
-
-            // Generate an explicit nonce (per–record)
-            byte[] explicitNonce = new byte[EXPLICIT_NONCE_LENGTH];
-            random.nextBytes(explicitNonce);
-
-            // Build the full nonce: fixed IV || explicit nonce
-            byte[] nonce = new byte[NONCE_LENGTH];
-            System.arraycopy(fixedIv, 0, nonce, 0, fixedIv.length);
-            System.arraycopy(explicitNonce, 0, nonce, fixedIv.length, EXPLICIT_NONCE_LENGTH);
-
-            // Build AAD (13 bytes: 8–byte sequence || 1–byte contentType || 2–byte version || 2–byte length)
-            // The length field is the length of (ciphertext || tag)
-            int payloadLength = plaintext.length + TAG_LENGTH;
-            byte[] aad = new byte[13];
-            if(sequence != null) {
-                if (sequence.length != 8) {
-                    throw new IllegalArgumentException("Sequence must be 8 bytes");
+            if (bufOff > 0) {
+                int available = engine().blockLength() - bufOff;
+                if (len < available) {
+                    System.arraycopy(in, inOff, bufBlock, bufOff, len);
+                    bufOff += len;
+                    return;
                 }
-                System.arraycopy(sequence, 0, aad, 0, 8);
-            }
-            aad[8] = contentType;
-            var versionBytes = authenticator.version();
-            aad[9] = versionBytes.id().major();
-            aad[10] = versionBytes.id().minor();
-            aad[11] = (byte) (payloadLength >>> 8);
-            aad[12] = (byte) (payloadLength);
 
-            // Compute J0. For a 12–byte nonce, J0 = (nonce || 0x00000001)
-            byte[] J0 = new byte[16];
-            System.arraycopy(nonce, 0, J0, 0, NONCE_LENGTH);
-            J0[15] = 0x01;
-
-            // Encrypt plaintext using CTR mode with counter starting at inc(J0)
-            byte[] counter = Arrays.copyOf(J0, 16);
-            incrementCounter(counter);
-            int blockSize = engine().blockLength(); // should be 16 bytes
-            byte[] ciphertext = new byte[plaintext.length];
-            int blocks = (plaintext.length + blockSize - 1) / blockSize;
-            for (int i = 0; i < blocks; i++) {
-                byte[] keystream = encryptBlock(counter);
-                int offset = i * blockSize;
-                int len = Math.min(blockSize, plaintext.length - offset);
-                for (int j = 0; j < len; j++) {
-                    ciphertext[offset + j] = (byte) (plaintext[offset + j] ^ keystream[j]);
-                }
-                incrementCounter(counter);
+                System.arraycopy(in, inOff, bufBlock, bufOff, available);
+                encryptBlock(bufBlock, 0, out, outOff);
+                inOff += available;
+                len -= available;
+                resultLen = engine().blockLength();
+                //bufOff = 0;
             }
 
-            // Compute GHASH over AAD and ciphertext
-            byte[] S = ghash(H, aad, ciphertext);
+            int inLimit = inOff + len - engine().blockLength();
 
-            // Compute authentication tag: tag = E_K(J0) XOR S
-            byte[] E_J0 = encryptBlock(J0);
-            byte[] tag = new byte[TAG_LENGTH];
-            for (int i = 0; i < TAG_LENGTH; i++) {
-                tag[i] = (byte) (E_J0[i] ^ S[i]);
+            while (inOff <= inLimit) {
+                encryptBlock(in, inOff, out, outOff + resultLen);
+                inOff += engine().blockLength();
+                resultLen += engine().blockLength();
             }
 
-            // Output the TLS record: explicit nonce || ciphertext || tag
-            output.put(explicitNonce);
-            output.put(ciphertext);
-            output.put(tag);
+            bufOff = engine().blockLength() + inLimit - inOff;
+            System.arraycopy(in, inOff, bufBlock, 0, bufOff);
         } else {
-            // === DECRYPTION PATH ===
-            if (input.remaining() < EXPLICIT_NONCE_LENGTH + TAG_LENGTH) {
-                throw new TlsException("Input too short for explicit nonce and tag");
+            int available = bufBlock.length - bufOff;
+            if (len < available) {
+                System.arraycopy(in, inOff, bufBlock, bufOff, len);
+                bufOff += len;
+                return;
             }
-            // Read the explicit nonce.
-            byte[] explicitNonce = new byte[EXPLICIT_NONCE_LENGTH];
-            input.get(explicitNonce);
 
-            // Rebuild the full nonce.
-            byte[] nonce = new byte[NONCE_LENGTH];
-            System.arraycopy(fixedIv, 0, nonce, 0, fixedIv.length);
-            System.arraycopy(explicitNonce, 0, nonce, fixedIv.length, EXPLICIT_NONCE_LENGTH);
+            if (bufOff >= engine().blockLength()) {
+                decryptBlock(bufBlock, 0, out, outOff);
+                System.arraycopy(bufBlock, engine().blockLength(), bufBlock, 0, bufOff -= engine().blockLength());
+                resultLen = engine().blockLength();
 
-            // The remaining input is: ciphertext || tag
-            int remaining = input.remaining();
-            if (remaining < TAG_LENGTH) {
-                throw new TlsException("Input too short: missing tag");
-            }
-            int ciphertextLength = remaining - TAG_LENGTH;
-            byte[] ciphertext = new byte[ciphertextLength];
-            input.get(ciphertext);
-            byte[] receivedTag = new byte[TAG_LENGTH];
-            input.get(receivedTag);
-
-            // Rebuild the AAD exactly as in encryption.
-            int payloadLength = ciphertextLength + TAG_LENGTH;
-            byte[] aad = new byte[13];
-            if(sequence != null) {
-                if (sequence.length != 8) {
-                    throw new IllegalArgumentException("Sequence must be 8 bytes");
+                available += engine().blockLength();
+                if (len < available) {
+                    System.arraycopy(in, inOff, bufBlock, bufOff, len);
+                    bufOff += len;
+                    return;
                 }
-                System.arraycopy(sequence, 0, aad, 0, 8);
-            }
-            aad[8] = contentType;
-            var versionBytes = authenticator.version();
-            aad[9] = versionBytes.id().major();
-            aad[10] = versionBytes.id().minor();
-            aad[11] = (byte) (payloadLength >>> 8);
-            aad[12] = (byte) (payloadLength);
-
-            // Compute J0.
-            byte[] J0 = new byte[16];
-            System.arraycopy(nonce, 0, J0, 0, NONCE_LENGTH);
-            J0[15] = 0x01;
-
-            // Compute the expected tag.
-            byte[] S = ghash(H, aad, ciphertext);
-            byte[] E_J0 = encryptBlock(J0);
-            byte[] expectedTag = new byte[TAG_LENGTH];
-            for (int i = 0; i < TAG_LENGTH; i++) {
-                expectedTag[i] = (byte) (E_J0[i] ^ S[i]);
-            }
-            if (!Arrays.equals(expectedTag, receivedTag)) {
-                throw new TlsException("Invalid GCM authentication tag");
             }
 
-            // Decrypt ciphertext using CTR mode.
-            byte[] counter = Arrays.copyOf(J0, 16);
-            incrementCounter(counter);
-            int blockSize = engine().blockLength();
-            byte[] plaintext = new byte[ciphertextLength];
-            int blocks = (ciphertextLength + blockSize - 1) / blockSize;
-            for (int i = 0; i < blocks; i++) {
-                byte[] keystream = encryptBlock(counter);
-                int offset = i * blockSize;
-                int len = Math.min(blockSize, ciphertextLength - offset);
-                for (int j = 0; j < len; j++) {
-                    plaintext[offset + j] = (byte) (ciphertext[offset + j] ^ keystream[j]);
-                }
-                incrementCounter(counter);
+            int inLimit = inOff + len - bufBlock.length;
+
+            available = engine().blockLength() - bufOff;
+            System.arraycopy(in, inOff, bufBlock, bufOff, available);
+            decryptBlock(bufBlock, 0, out, outOff + resultLen);
+            inOff += available;
+            resultLen += engine().blockLength();
+            //bufOff = 0;
+
+            while (inOff <= inLimit) {
+                decryptBlock(in, inOff, out, outOff + resultLen);
+                inOff += engine().blockLength();
+                resultLen += engine().blockLength();
             }
-            output.put(plaintext);
+
+            bufOff = bufBlock.length + inLimit - inOff;
+            System.arraycopy(in, inOff, bufBlock, 0, bufOff);
+        }
+
+        int extra = bufOff;
+        outOff += resultLen;
+
+        if (extra > 0) {
+            processPartial(bufBlock, 0, extra, out, outOff);
+        }
+
+        atLength += atBlockPos;
+
+        if (atLength > atLengthPre) {
+            /*
+             *  Some AAD was sent after the cipher started. We determine the difference b/w the hash value
+             *  we actually used when the cipher started (S_atPre) and the final hash value calculated (S_at).
+             *  Then we carry this difference forward by multiplying by H^c, where c is the number of (full or
+             *  partial) cipher-text blocks produced, and adjust the current hash.
+             */
+
+            // Finish hash for partial AAD block
+            if (atBlockPos > 0) {
+                gHASHPartial(S_at, atBlock, 0, atBlockPos);
+            }
+
+            // Find the difference between the AAD hashes
+            if (atLengthPre > 0) {
+                GCMUtil.xor(S_at, S_atPre);
+            }
+
+            // Number of cipher-text blocks produced
+            long c = ((totalLength * 8) + 127) >>> 7;
+
+            // Calculate the adjustment factor
+            byte[] H_c = new byte[16];
+            if (exp == null)
+            {
+                exp = new BasicGCMExponentiator();
+                exp.init(H);
+            }
+            exp.exponentiateX(c, H_c);
+
+            // Carry the difference forward
+            GCMUtil.multiply(S_at, H_c);
+
+            // Adjust the current hash
+            GCMUtil.xor(S, S_at);
+        }
+
+        // Final gHASH
+        byte[] X = new byte[engine().blockLength()];
+        Pack.longToBigEndian(atLength * 8, X, 0);
+        Pack.longToBigEndian(totalLength * 8, X, 8);
+
+        gHASHBlock(S, X);
+
+        // T = MSBt(GCTRk(J0,S))
+        byte[] tag = new byte[engine().blockLength()];
+        engine.cipher(ByteBuffer.wrap(J0), ByteBuffer.wrap(tag));
+        GCMUtil.xor(tag, S);
+
+        resultLen += extra;
+
+        // We place into macBlock our calculated value for T
+        this.macBlock = new byte[MAC_SIZE];
+        System.arraycopy(tag, 0, macBlock, 0, MAC_SIZE);
+
+        if (engine.forEncryption()) {
+            // Append T to the message
+            System.arraycopy(macBlock, 0, out, outOff + bufOff, MAC_SIZE);
+            resultLen += MAC_SIZE;
+        } else {
+            // Retrieve the T value from the message and compare to calculated one
+            byte[] msgMac = new byte[MAC_SIZE];
+            System.arraycopy(bufBlock, extra, msgMac, 0, MAC_SIZE);
+            if (!Arrays.constantTimeAreEqual(this.macBlock, msgMac)) {
+                throw new RuntimeException("mac check in GCM failed");
+            }
+        }
+
+        reset(false);
+        output.position(output.position() - nonce.length);
+        output.limit(output.position() + resultLen);
+        System.out.println("LENGTH: " + output.remaining());
+    }
+
+    private void initCipher() {
+        if (atLength > 0) {
+            System.arraycopy(S_at, 0, S_atPre, 0, engine().blockLength());
+            atLengthPre = atLength;
+        }
+
+        // Finish hash for partial AAD block
+        if (atBlockPos > 0) {
+            gHASHPartial(S_atPre, atBlock, 0, atBlockPos);
+            atLengthPre += atBlockPos;
+        }
+
+        if (atLengthPre > 0) {
+            System.arraycopy(S_atPre, 0, S, 0, engine().blockLength());
         }
     }
 
-    @Override
     public void reset() {
-        // GCM mode is stateless per record.
+        reset(true);
+    }
+
+    private void reset(boolean clearMac) {
+        // note: we do not reset the nonce.
+
+        S = new byte[engine().blockLength()];
+        S_at = new byte[engine().blockLength()];
+        S_atPre = new byte[engine().blockLength()];
+        atBlock = new byte[engine().blockLength()];
+        atBlockPos = 0;
+        atLength = 0;
+        atLengthPre = 0;
+        counter = Arrays.clone(J0);
+        blocksRemaining = -2;
+        bufOff = 0;
+        totalLength = 0;
+
+        if (bufBlock != null) {
+            Arrays.fill(bufBlock, (byte) 0);
+        }
+
+        if (clearMac) {
+            macBlock = null;
+        }
+    }
+
+    private void decryptBlock(byte[] buf, int bufOff, byte[] out, int outOff) {
+        if ((out.length - outOff) < engine().blockLength()) {
+            throw new RuntimeException("Output buffer too short");
+        }
+        if (totalLength == 0) {
+            initCipher();
+        }
+
+        byte[] ctrBlock = new byte[engine().blockLength()];
+        getNextCTRBlock(ctrBlock);
+
+        gHASHBlock(S, buf, bufOff);
+        GCMUtil.xor(ctrBlock, 0, buf, bufOff, out, outOff);
+
+        totalLength += engine().blockLength();
+    }
+
+    private void encryptBlock(byte[] buf, int bufOff, byte[] out, int outOff) {
+        if ((out.length - outOff) < engine().blockLength()) {
+            throw new RuntimeException("Output buffer too short");
+        }
+        if (totalLength == 0) {
+            initCipher();
+        }
+
+        byte[] ctrBlock = new byte[engine().blockLength()];
+
+        getNextCTRBlock(ctrBlock);
+        GCMUtil.xor(ctrBlock, buf, bufOff);
+        gHASHBlock(S, ctrBlock);
+        System.arraycopy(ctrBlock, 0, out, outOff, engine().blockLength());
+
+        totalLength += engine().blockLength();
+    }
+
+    private void processPartial(byte[] buf, int off, int len, byte[] out, int outOff) {
+        byte[] ctrBlock = new byte[engine().blockLength()];
+        getNextCTRBlock(ctrBlock);
+
+        if (engine.forEncryption()) {
+            GCMUtil.xor(buf, off, ctrBlock, 0, len);
+            gHASHPartial(S, buf, off, len);
+        } else {
+            gHASHPartial(S, buf, off, len);
+            GCMUtil.xor(buf, off, ctrBlock, 0, len);
+        }
+
+        System.arraycopy(buf, off, out, outOff, len);
+        totalLength += len;
+    }
+
+    private void gHASH(byte[] Y, byte[] b, int len) {
+        for (int pos = 0; pos < len; pos += engine().blockLength()) {
+            int num = Math.min(len - pos, engine().blockLength());
+            gHASHPartial(Y, b, pos, num);
+        }
+    }
+
+    private void gHASHBlock(byte[] Y, byte[] b) {
+        GCMUtil.xor(Y, b);
+        multiplier.multiplyH(Y);
+    }
+
+    private void gHASHBlock(byte[] Y, byte[] b, int off) {
+        GCMUtil.xor(Y, b, off);
+        multiplier.multiplyH(Y);
+    }
+
+    private void gHASHPartial(byte[] Y, byte[] b, int off, int len) {
+        GCMUtil.xor(Y, b, off, len);
+        multiplier.multiplyH(Y);
+    }
+
+    private void getNextCTRBlock(byte[] block) {
+        if (blocksRemaining == 0) {
+            throw new IllegalStateException("Attempt to process too many blocks");
+        }
+        blocksRemaining--;
+
+        int c = 1;
+        c += counter[15] & 0xFF;
+        counter[15] = (byte) c;
+        c >>>= 8;
+        c += counter[14] & 0xFF;
+        counter[14] = (byte) c;
+        c >>>= 8;
+        c += counter[13] & 0xFF;
+        counter[13] = (byte) c;
+        c >>>= 8;
+        c += counter[12] & 0xFF;
+        counter[12] = (byte) c;
+
+        engine.cipher(ByteBuffer.wrap(counter), ByteBuffer.wrap(block));
     }
 
     @Override
     public TlsCipherIV ivLength() {
-        // Total nonce length is NONCE_LENGTH; explicit nonce length is EXPLICIT_NONCE_LENGTH.
-        return new TlsCipherIV(NONCE_LENGTH - EXPLICIT_NONCE_LENGTH, EXPLICIT_NONCE_LENGTH);
+        return new TlsCipherIV(4, 8);
     }
 
     @Override
     public int tagLength() {
-        return TAG_LENGTH;
+        return engine().blockLength();
     }
 
-    /*
-     * === Helper Methods ===
-     */
+    private static final class BasicGCMExponentiator {
+        private long[] x;
 
-    /**
-     * Encrypts a single block (of engine().blockLength() bytes) using the underlying block cipher in ECB mode.
-     *
-     * @param block the input block.
-     * @return the encrypted block.
-     */
-    private byte[] encryptBlock(byte[] block) {
-        ByteBuffer inputBuffer = ByteBuffer.wrap(block);
-        ByteBuffer outputBuffer = ByteBuffer.allocate(engine().blockLength());
-        engine().update(inputBuffer, outputBuffer);
-        return outputBuffer.array();
+        public void init(byte[] x) {
+            this.x = GCMUtil.asLongs(x);
+        }
+
+        public void exponentiateX(long pow, byte[] output) {
+            // Initial value is little-endian 1
+            long[] y = GCMUtil.oneAsLongs();
+
+            if (pow > 0) {
+                long[] powX = new long[GCMUtil.SIZE_LONGS];
+                GCMUtil.copy(x, powX);
+
+                do {
+                    if ((pow & 1L) != 0) {
+                        GCMUtil.multiply(y, powX);
+                    }
+                    GCMUtil.square(powX, powX);
+                    pow >>>= 1;
+                } while (pow > 0);
+            }
+
+            GCMUtil.asBytes(y, output);
+        }
     }
 
-    /**
-     * Increments the counter portion (the last 4 bytes) of the 16-byte counter block.
-     *
-     * @param counter the counter block.
-     */
-    private void incrementCounter(byte[] counter) {
-        // The counter is in the last 4 bytes (big-endian).
-        for (int i = counter.length - 1; i >= counter.length - 4; i--) {
-            counter[i]++;
-            if (counter[i] != 0) {
-                break;
+    private static final class Tables4kGCMMultiplier {
+        private byte[] H;
+        private long[][] T;
+
+        public void init(byte[] H) {
+            if (T == null) {
+                T = new long[256][2];
+            } else if (0 != GCMUtil.areEqual(this.H, H)) {
+                return;
+            }
+
+            this.H = new byte[GCMUtil.SIZE_BYTES];
+            GCMUtil.copy(H, this.H);
+
+            // T[0] = 0
+
+            // T[1] = H.p^7
+            GCMUtil.asLongs(this.H, T[1]);
+            GCMUtil.multiplyP7(T[1], T[1]);
+
+            for (int n = 2; n < 256; n += 2) {
+                // T[2.n] = T[n].p^-1
+                GCMUtil.divideP(T[n >> 1], T[n]);
+
+                // T[2.n + 1] = T[2.n] + T[1]
+                GCMUtil.xor(T[n], T[1], T[n + 1]);
             }
         }
-    }
 
-    /**
-     * Computes the GHASH function over the given AAD and ciphertext using the hash subkey H.
-     * <p>
-     * GHASH is defined over GF(2^128) with the polynomial
-     * x^128 + x^7 + x^2 + x + 1.
-     *
-     * @param H          the hash subkey.
-     * @param aad        the additional authenticated data.
-     * @param ciphertext the ciphertext.
-     * @return the 16–byte GHASH result.
-     */
-    private byte[] ghash(byte[] H, byte[] aad, byte[] ciphertext) {
-        int blockSize = 16;
-        byte[] X = new byte[blockSize]; // initialize to 0
+        public void multiplyH(byte[] x) {
+            long[] t = T[x[15] & 0xFF];
+            long z0 = t[0], z1 = t[1];
 
-        // Process AAD in 16-byte blocks.
-        X = processBlocks(X, aad);
-        // Process ciphertext in 16-byte blocks.
-        X = processBlocks(X, ciphertext);
+            for (int i = 14; i >= 0; --i) {
+                t = T[x[i] & 0xFF];
 
-        // Process the length block: 64-bit lengths (in bits) for AAD and ciphertext.
-        byte[] lengthBlock = new byte[blockSize];
-        long aadBits = ((long) aad.length) * 8;
-        long ciphertextBits = ((long) ciphertext.length) * 8;
-        for (int i = 0; i < 8; i++) {
-            lengthBlock[i] = (byte) (aadBits >>> (56 - 8 * i));
-        }
-        for (int i = 0; i < 8; i++) {
-            lengthBlock[8 + i] = (byte) (ciphertextBits >>> (56 - 8 * i));
-        }
-        X = multiplyGF(xorBlock(X, lengthBlock), H);
-        return X;
-    }
-
-    /**
-     * Processes the given data in 16–byte blocks, updating the GHASH value.
-     *
-     * @param X    the current GHASH accumulator.
-     * @param data the data to process.
-     * @return the updated GHASH accumulator.
-     */
-    private byte[] processBlocks(byte[] X, byte[] data) {
-        int blockSize = 16;
-        int fullBlocks = data.length / blockSize;
-        int remainder = data.length % blockSize;
-        for (int i = 0; i < fullBlocks; i++) {
-            byte[] block = Arrays.copyOfRange(data, i * blockSize, (i + 1) * blockSize);
-            X = multiplyGF(xorBlock(X, block), H);
-        }
-        if (remainder > 0) {
-            byte[] block = new byte[blockSize];
-            System.arraycopy(data, fullBlocks * blockSize, block, 0, remainder);
-            X = multiplyGF(xorBlock(X, block), H);
-        }
-        return X;
-    }
-
-    /**
-     * Multiplies two 128–bit blocks in GF(2^128) defined by the polynomial
-     * x^128 + x^7 + x^2 + x + 1.
-     *
-     * @param X the first 16–byte block.
-     * @param Y the second 16–byte block.
-     * @return the 16–byte product.
-     */
-    private byte[] multiplyGF(byte[] X, byte[] Y) {
-        byte[] Z = new byte[16];
-        byte[] V = Arrays.copyOf(Y, 16);
-        for (int i = 0; i < 128; i++) {
-            int bit = (X[i / 8] >> (7 - (i % 8))) & 1;
-            if (bit == 1) {
-                Z = xorBlock(Z, V);
+                long c = z1 << 56;
+                z1 = t[1] ^ ((z1 >>> 8) | (z0 << 56));
+                z0 = t[0] ^ (z0 >>> 8) ^ c ^ (c >>> 1) ^ (c >>> 2) ^ (c >>> 7);
             }
-            boolean msbSet = (V[0] & 0x80) != 0;
-            V = shiftLeft(V);
-            if (msbSet) {
-                // Reduction: XOR with 0x87 in the least significant byte.
-                V[15] ^= 0x87;
+
+            Pack.longToBigEndian(z0, x, 0);
+            Pack.longToBigEndian(z1, x, 8);
+        }
+    }
+
+    private static final class GCMUtil {
+        public static final int SIZE_BYTES = 16;
+        public static final int SIZE_LONGS = 2;
+
+        private static final int E1 = 0xe1000000;
+        private static final long E1L = (E1 & 0xFFFFFFFFL) << 32;
+
+        public static long[] oneAsLongs() {
+            long[] tmp = new long[SIZE_LONGS];
+            tmp[0] = 1L << 63;
+            return tmp;
+        }
+
+        public static byte areEqual(byte[] x, byte[] y) {
+            int d = 0;
+            for (int i = 0; i < SIZE_BYTES; ++i) {
+                d |= x[i] ^ y[i];
+            }
+            d = (d >>> 1) | (d & 1);
+            return (byte) ((d - 1) >> 31);
+        }
+
+        public static void asBytes(long[] x, byte[] z) {
+            Pack.longToBigEndian(x, 0, SIZE_LONGS, z, 0);
+        }
+
+        public static long[] asLongs(byte[] x) {
+            long[] z = new long[SIZE_LONGS];
+            Pack.bigEndianToLong(x, 0, z, 0, SIZE_LONGS);
+            return z;
+        }
+
+        public static void asLongs(byte[] x, long[] z) {
+            Pack.bigEndianToLong(x, 0, z, 0, SIZE_LONGS);
+        }
+
+        public static void copy(byte[] x, byte[] z) {
+            for (int i = 0; i < SIZE_BYTES; ++i) {
+                z[i] = x[i];
             }
         }
-        return Z;
-    }
 
-    /**
-     * XORs two byte arrays of equal length.
-     *
-     * @param a the first byte array.
-     * @param b the second byte array.
-     * @return the XOR result.
-     */
-    private byte[] xorBlock(byte[] a, byte[] b) {
-        byte[] result = new byte[a.length];
-        for (int i = 0; i < a.length; i++) {
-            result[i] = (byte) (a[i] ^ b[i]);
+        public static void copy(long[] x, long[] z) {
+            z[0] = x[0];
+            z[1] = x[1];
         }
-        return result;
-    }
 
-    /**
-     * Shifts the given 16–byte block left by 1 bit.
-     *
-     * @param block the block to shift.
-     * @return the shifted block.
-     */
-    private byte[] shiftLeft(byte[] block) {
-        byte[] shifted = new byte[block.length];
-        int carry = 0;
-        for (int i = block.length - 1; i >= 0; i--) {
-            int b = block[i] & 0xFF;
-            shifted[i] = (byte) ((b << 1) | carry);
-            carry = (b & 0x80) != 0 ? 1 : 0;
+        public static void divideP(long[] x, long[] z) {
+            long x0 = x[0], x1 = x[1];
+            long m = x0 >> 63;
+            x0 ^= (m & E1L);
+            z[0] = (x0 << 1) | (x1 >>> 63);
+            z[1] = (x1 << 1) | -m;
         }
-        return shifted;
-    }
 
-    @Override
-    public boolean isAEAD() {
-        return true;
+        public static void multiply(byte[] x, byte[] y) {
+            long[] t1 = asLongs(x);
+            long[] t2 = asLongs(y);
+            multiply(t1, t2);
+            asBytes(t1, x);
+        }
+
+        public static void multiply(long[] x, long[] y) {
+//        long x0 = x[0], x1 = x[1];
+//        long y0 = y[0], y1 = y[1];
+//        long z0 = 0, z1 = 0, z2 = 0;
+//
+//        for (int j = 0; j < 64; ++j)
+//        {
+//            long m0 = x0 >> 63; x0 <<= 1;
+//            z0 ^= (y0 & m0);
+//            z1 ^= (y1 & m0);
+//
+//            long m1 = x1 >> 63; x1 <<= 1;
+//            z1 ^= (y0 & m1);
+//            z2 ^= (y1 & m1);
+//
+//            long c = (y1 << 63) >> 8;
+//            y1 = (y1 >>> 1) | (y0 << 63);
+//            y0 = (y0 >>> 1) ^ (c & E1L);
+//        }
+//
+//        z0 ^= z2 ^ (z2 >>>  1) ^ (z2 >>>  2) ^ (z2 >>>  7);
+//        z1 ^=      (z2 <<  63) ^ (z2 <<  62) ^ (z2 <<  57);
+//
+//        x[0] = z0;
+//        x[1] = z1;
+
+            /*
+             * "Three-way recursion" as described in "Batch binary Edwards", Daniel J. Bernstein.
+             *
+             * Without access to the high part of a 64x64 product x * y, we use a bit reversal to calculate it:
+             *     rev(x) * rev(y) == rev((x * y) << 1)
+             */
+
+            long x0 = x[0], x1 = x[1];
+            long y0 = y[0], y1 = y[1];
+            long x0r = Longs.reverse(x0), x1r = Longs.reverse(x1);
+            long y0r = Longs.reverse(y0), y1r = Longs.reverse(y1);
+
+            long h0 = Longs.reverse(implMul64(x0r, y0r));
+            long h1 = implMul64(x0, y0) << 1;
+            long h2 = Longs.reverse(implMul64(x1r, y1r));
+            long h3 = implMul64(x1, y1) << 1;
+            long h4 = Longs.reverse(implMul64(x0r ^ x1r, y0r ^ y1r));
+            long h5 = implMul64(x0 ^ x1, y0 ^ y1) << 1;
+
+            long z0 = h0;
+            long z1 = h1 ^ h0 ^ h2 ^ h4;
+            long z2 = h2 ^ h1 ^ h3 ^ h5;
+            long z3 = h3;
+
+            z1 ^= z3 ^ (z3 >>> 1) ^ (z3 >>> 2) ^ (z3 >>> 7);
+//      z2 ^=      (z3 <<  63) ^ (z3 <<  62) ^ (z3 <<  57);
+            z2 ^= (z3 << 62) ^ (z3 << 57);
+
+            z0 ^= z2 ^ (z2 >>> 1) ^ (z2 >>> 2) ^ (z2 >>> 7);
+            z1 ^= (z2 << 63) ^ (z2 << 62) ^ (z2 << 57);
+
+            x[0] = z0;
+            x[1] = z1;
+        }
+
+        public static void multiplyP7(long[] x, long[] z) {
+            long x0 = x[0], x1 = x[1];
+            long c = x1 << 57;
+            z[0] = (x0 >>> 7) ^ c ^ (c >>> 1) ^ (c >>> 2) ^ (c >>> 7);
+            z[1] = (x1 >>> 7) | (x0 << 57);
+        }
+
+        public static void square(long[] x, long[] z) {
+            long[] t = new long[SIZE_LONGS * 2];
+            Interleave.expand64To128Rev(x[0], t, 0);
+            Interleave.expand64To128Rev(x[1], t, 2);
+
+            long z0 = t[0], z1 = t[1], z2 = t[2], z3 = t[3];
+
+            z1 ^= z3 ^ (z3 >>> 1) ^ (z3 >>> 2) ^ (z3 >>> 7);
+            z2 ^= (z3 << 63) ^ (z3 << 62) ^ (z3 << 57);
+
+            z0 ^= z2 ^ (z2 >>> 1) ^ (z2 >>> 2) ^ (z2 >>> 7);
+            z1 ^= (z2 << 63) ^ (z2 << 62) ^ (z2 << 57);
+
+            z[0] = z0;
+            z[1] = z1;
+        }
+
+        public static void xor(byte[] x, byte[] y) {
+            int i = 0;
+            do {
+                x[i] ^= y[i];
+                ++i;
+                x[i] ^= y[i];
+                ++i;
+                x[i] ^= y[i];
+                ++i;
+                x[i] ^= y[i];
+                ++i;
+            }
+            while (i < SIZE_BYTES);
+        }
+
+        public static void xor(byte[] x, byte[] y, int yOff) {
+            int i = 0;
+            do {
+                x[i] ^= y[yOff + i];
+                ++i;
+                x[i] ^= y[yOff + i];
+                ++i;
+                x[i] ^= y[yOff + i];
+                ++i;
+                x[i] ^= y[yOff + i];
+                ++i;
+            }
+            while (i < SIZE_BYTES);
+        }
+
+        public static void xor(byte[] x, int xOff, byte[] y, int yOff, byte[] z, int zOff) {
+            int i = 0;
+            do {
+                z[zOff + i] = (byte) (x[xOff + i] ^ y[yOff + i]);
+                ++i;
+                z[zOff + i] = (byte) (x[xOff + i] ^ y[yOff + i]);
+                ++i;
+                z[zOff + i] = (byte) (x[xOff + i] ^ y[yOff + i]);
+                ++i;
+                z[zOff + i] = (byte) (x[xOff + i] ^ y[yOff + i]);
+                ++i;
+            }
+            while (i < SIZE_BYTES);
+        }
+
+        public static void xor(byte[] x, byte[] y, int yOff, int yLen) {
+            while (--yLen >= 0) {
+                x[yLen] ^= y[yOff + yLen];
+            }
+        }
+
+        public static void xor(byte[] x, int xOff, byte[] y, int yOff, int len) {
+            while (--len >= 0) {
+                x[xOff + len] ^= y[yOff + len];
+            }
+        }
+
+        public static void xor(long[] x, long[] y, long[] z) {
+            z[0] = x[0] ^ y[0];
+            z[1] = x[1] ^ y[1];
+        }
+
+        private static long implMul64(long x, long y) {
+            long x0 = x & 0x1111111111111111L;
+            long x1 = x & 0x2222222222222222L;
+            long x2 = x & 0x4444444444444444L;
+            long x3 = x & 0x8888888888888888L;
+
+            long y0 = y & 0x1111111111111111L;
+            long y1 = y & 0x2222222222222222L;
+            long y2 = y & 0x4444444444444444L;
+            long y3 = y & 0x8888888888888888L;
+
+            long z0 = (x0 * y0) ^ (x1 * y3) ^ (x2 * y2) ^ (x3 * y1);
+            long z1 = (x0 * y1) ^ (x1 * y0) ^ (x2 * y3) ^ (x3 * y2);
+            long z2 = (x0 * y2) ^ (x1 * y1) ^ (x2 * y0) ^ (x3 * y3);
+            long z3 = (x0 * y3) ^ (x1 * y2) ^ (x2 * y1) ^ (x3 * y0);
+
+            z0 &= 0x1111111111111111L;
+            z1 &= 0x2222222222222222L;
+            z2 &= 0x4444444444444444L;
+            z3 &= 0x8888888888888888L;
+
+            return z0 | z1 | z2 | z3;
+        }
     }
 }

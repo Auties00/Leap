@@ -104,7 +104,7 @@ public final class KuznyechikEngine extends TlsCipherEngine.Block {
     }
 
     @Override
-    public void update(ByteBuffer input, ByteBuffer output) {
+    public void cipher(ByteBuffer input, ByteBuffer output) {
         var block = new byte[BLOCK_SIZE];
         input.get(block);
 

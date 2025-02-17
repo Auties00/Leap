@@ -2,6 +2,7 @@ package it.auties.leap.tls.cipher.mode;
 
 import it.auties.leap.tls.cipher.*;
 import it.auties.leap.tls.exception.TlsException;
+import it.auties.leap.tls.util.BufferUtils;
 import it.auties.leap.tls.version.TlsVersion;
 
 import java.nio.ByteBuffer;
@@ -34,11 +35,11 @@ public final class CBCMode extends TlsCipherMode.Block {
     }
 
     @Override
-    public void update(byte contentType, ByteBuffer input, ByteBuffer output, byte[] sequence) {
+    public void cipher(byte contentType, ByteBuffer input, ByteBuffer output, byte[] sequence) {
         switch (authenticator.version()) {
             case TLS10, DTLS10 -> throw new UnsupportedOperationException();
             case TLS11, TLS12, DTLS12 -> tls11Update(contentType, input, output, sequence);
-            case TLS13, DTLS13 -> throw new TlsException("AesCbc ciphers are not allowed in (D)TLSv1.3");
+            case TLS13, DTLS13 -> throw new TlsException("CBC ciphers are not allowed in (D)TLSv1.3");
         }
     }
 
@@ -50,8 +51,9 @@ public final class CBCMode extends TlsCipherMode.Block {
             var inputPositionWithNonce = input.position() - nonce.length;
             input.put(inputPositionWithNonce, nonce);
             input.position(inputPositionWithNonce);
-            // TODO: This assumes that input and output have the same array backing them
-            output.position(inputPositionWithNonce);
+            if(BufferUtils.equals(input, output)) {
+                output.position(inputPositionWithNonce);
+            }
             var plaintextLength = addPadding(input);
             if(plaintextLength != encryptBlock(input, output)) {
                 throw new TlsException("Unexpected number of plaintext bytes");
@@ -123,12 +125,12 @@ public final class CBCMode extends TlsCipherMode.Block {
         for (var i = 0; i < blockLength; i++) {
             cbcV.put(i, (byte) (cbcV.get(i) ^ input.get()));
         }
-        engine.update(cbcV.position(0), output);
+        engine.cipher(cbcV.position(0), output);
         while (input.hasRemaining()) {
             for (var i = 0; i < blockLength; i++) {
                 cbcV.put(i, (byte) (output.get(output.position() - blockLength + i) ^ input.get()));
             }
-            engine.update(cbcV.position(0), output);
+            engine.cipher(cbcV.position(0), output);
         }
         var result = output.position() - initialPosition;
         output.limit(output.position());
@@ -146,7 +148,7 @@ public final class CBCMode extends TlsCipherMode.Block {
                 cbcNextV.put(i, input.get(input.position() + i));
             }
 
-            engine.update(input, output);
+            engine.cipher(input, output);
 
             for (int i = 0; i < blockLength; i++) {
                 var position = blockPosition + i;

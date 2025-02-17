@@ -38,7 +38,7 @@ public final class DESEdeEngine extends DESBaseEngine {
     }
 
     @Override
-    public void update(ByteBuffer input, ByteBuffer output) {
+    public void cipher(ByteBuffer input, ByteBuffer output) {
         var temp = ByteBuffer.allocate(BLOCK_SIZE);
         if (forEncryption) {
             desFunc(input, output, workingKey1);

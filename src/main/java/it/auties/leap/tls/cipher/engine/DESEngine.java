@@ -24,7 +24,7 @@ public class DESEngine extends DESBaseEngine {
     }
 
     @Override
-    public void update(ByteBuffer input, ByteBuffer output) {
+    public void cipher(ByteBuffer input, ByteBuffer output) {
         desFunc(input, output, workingKey);
     }
 }

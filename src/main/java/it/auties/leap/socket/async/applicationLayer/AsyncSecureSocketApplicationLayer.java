@@ -180,7 +180,7 @@ public class AsyncSecureSocketApplicationLayer extends AsyncSocketApplicationLay
                 .position(reservedSpace);
         tlsContext.localCipher()
                 .orElseThrow(() -> new TlsException("Cannot encrypt a message before enabling the local cipher"))
-                .update(TlsMessage.ContentType.HANDSHAKE.id(), messagePayloadBuffer, encryptedMessagePayloadBuffer, null);
+                .cipher(TlsMessage.ContentType.HANDSHAKE.id(), messagePayloadBuffer, encryptedMessagePayloadBuffer, null);
 
         var encryptedMessagePosition = encryptedMessagePayloadBuffer.position() - TlsMessage.messageRecordHeaderLength();
         var encryptedMessageLength = encryptedMessagePayloadBuffer.remaining();
@@ -272,7 +272,7 @@ public class AsyncSecureSocketApplicationLayer extends AsyncSocketApplicationLay
                 var plainBuffer = plainBuffer();
                 tlsContext.remoteCipher()
                         .orElseThrow(() -> new TlsException("Cannot decrypt a message before enabling the remote cipher"))
-                        .update(metadata.contentType().id(), buffer, plainBuffer, null);
+                        .cipher(metadata.contentType().id(), buffer, plainBuffer, null);
                 metadata.setMessageLength(plainBuffer.remaining());
                 var message = TlsMessage.of(tlsContext, plainBuffer, metadata);
                 tlsContext.handleMessage(message);
@@ -322,7 +322,7 @@ public class AsyncSecureSocketApplicationLayer extends AsyncSocketApplicationLay
                 .position(TlsMessage.messageRecordHeaderLength() + leftPadding);
         tlsContext.localCipher()
                 .orElseThrow(() -> new TlsException("Cannot encrypt a message before enabling the local cipher"))
-                .update(TlsMessage.ContentType.APPLICATION_DATA.id(), plaintext, encrypted, null);
+                .cipher(TlsMessage.ContentType.APPLICATION_DATA.id(), plaintext, encrypted, null);
         ApplicationDataMessage.serializeInline(
                 tlsConfig.version(),
                 encrypted

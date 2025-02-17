@@ -17,7 +17,7 @@ import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 
-public class SocketTest {
+public class GCMSocketTest {
     public static void main(String[] args) throws IOException {
         // TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA384
         var ciphers = List.of(
@@ -28,7 +28,6 @@ public class SocketTest {
                 TlsExtension.ecPointFormats(),
                 TlsExtension.supportedGroups(),
                 TlsExtension.nextProtocolNegotiation(),
-                TlsExtension.alpn(List.of("http/1.1")),
                 TlsExtension.encryptThenMac(),
                 TlsExtension.extendedMasterSecret(),
                 // TlsExtension.postHandshakeAuth(),

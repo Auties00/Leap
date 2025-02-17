@@ -104,7 +104,7 @@ public final class IDEAEngine extends TlsCipherEngine.Block {
     }
 
     @Override
-    public void update(ByteBuffer input, ByteBuffer output) {
+    public void cipher(ByteBuffer input, ByteBuffer output) {
         var keyOff = 0;
         var x0 = readBigEndianInt16(input);
         var x1 = readBigEndianInt16(input);

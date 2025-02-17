@@ -323,7 +323,7 @@ public final class CamelliaEngine extends TlsCipherEngine.Block {
     }
 
     @Override
-    public void update(ByteBuffer input, ByteBuffer output) {
+    public void cipher(ByteBuffer input, ByteBuffer output) {
         if (keyLength() == 16) {
             processBlock128(input, output);
         } else {
