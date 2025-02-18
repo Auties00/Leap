@@ -29,8 +29,8 @@ public final class Poly1305Mode extends TlsCipherMode.Stream {
     private Cipher cipher;
 
     @Override
-    public void init(TlsExchangeAuthenticator authenticator, byte[] fixedIv) {
-        super.init(authenticator, fixedIv);
+    public void init(boolean forEncryption, byte[] key, byte[] fixedIv, TlsExchangeAuthenticator authenticator) {
+        super.init(forEncryption, key, fixedIv, authenticator);
         try {
             this.mode = engine.forEncryption() ? Cipher.ENCRYPT_MODE : Cipher.DECRYPT_MODE;
             this.secretKey = new SecretKeySpec(engine.key(), "ChaCha20");

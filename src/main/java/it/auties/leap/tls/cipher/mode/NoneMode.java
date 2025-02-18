@@ -21,8 +21,8 @@ public final class NoneMode extends TlsCipherMode.Block {
     }
 
     @Override
-    public void init(TlsExchangeAuthenticator authenticator, byte[] fixedIv) {
-        super.init(authenticator, fixedIv);
+    public void init(boolean forEncryption, byte[] key, byte[] fixedIv, TlsExchangeAuthenticator authenticator) {
+        super.init(forEncryption, key, fixedIv, authenticator);
     }
 
     @Override

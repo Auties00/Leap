@@ -21,7 +21,7 @@ public class GCMSocketTest {
     public static void main(String[] args) throws IOException {
         // TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA384
         var ciphers = List.of(
-                TlsCipher.ecdheRsaWithAes256GcmSha384()
+                TlsCipher.ecdheRsaWithAes128GcmSha256()
         );
         var extensions = List.of(
                 TlsExtension.serverNameIndication(),

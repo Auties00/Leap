@@ -15,10 +15,10 @@ public abstract sealed class TlsExchangeAuthenticator {
     public static TlsExchangeAuthenticator of(TlsVersion version, TlsHashFactory hashFactory, byte[] macKey) {
         return switch (version) {
             case TLS13 -> new TLS13();
-            case TLS12, TLS11, TLS10 -> new TLS10(version, TlsHmac.of(hashFactory.newHash()), macKey);
-            case SSL30 -> new SSL30(TlsHmac.of(hashFactory.newHash()), macKey);
+            case TLS12, TLS11, TLS10 -> new TLS10(version, hashFactory == null ? null : TlsHmac.of(hashFactory.newHash()), macKey);
+            case SSL30 -> new SSL30(hashFactory == null ? null : TlsHmac.of(hashFactory.newHash()), macKey);
             case DTLS13 -> new DTLS13();
-            case DTLS12, DTLS10 -> new DTLS10(version, TlsHmac.of(hashFactory.newHash()), macKey);
+            case DTLS12, DTLS10 -> new DTLS10(version, hashFactory == null ? null : TlsHmac.of(hashFactory.newHash()), macKey);
         };
     }
 

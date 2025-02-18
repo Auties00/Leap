@@ -56,9 +56,10 @@ public sealed abstract class TlsCipherMode {
         this.engine = engine;
     }
 
-    public void init(TlsExchangeAuthenticator authenticator, byte[] fixedIv) {
-        if(engine != null && !engine.isInitialized()) {
-            throw new TlsException("Engine is not initialized");
+    @SuppressWarnings("unused")
+    public void init(boolean forEncryption, byte[] key, byte[] fixedIv, TlsExchangeAuthenticator authenticator) {
+        if(engine != null && engine.isInitialized()) {
+            throw new TlsException("Engine already initialized");
         }
 
         if(initialized) {

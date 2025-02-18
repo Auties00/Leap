@@ -18,11 +18,11 @@ public final class CTRMode extends TlsCipherMode.Block {
     }
 
     @Override
-    public void init(TlsExchangeAuthenticator authenticator, byte[] fixedIv) {
+    public void init(boolean forEncryption, byte[] key, byte[] fixedIv, TlsExchangeAuthenticator authenticator) {
         if(!(engine instanceof MagmaEngine)) {
             throw new TlsException("CTR mode is supported only by Magma engines");
         }
-        super.init(authenticator, fixedIv);
+        super.init(forEncryption, key, fixedIv, authenticator);
     }
 
     @Override

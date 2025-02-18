@@ -24,8 +24,9 @@ public final class CBCMode extends TlsCipherMode.Block {
     }
 
     @Override
-    public void init(TlsExchangeAuthenticator authenticator, byte[] fixedIv) {
-        super.init(authenticator, fixedIv);
+    public void init(boolean forEncryption, byte[] key, byte[] fixedIv, TlsExchangeAuthenticator authenticator) {
+        super.init(forEncryption, key, fixedIv, authenticator);
+        engine.init(forEncryption, key);
         this.cbcV = ByteBuffer.allocate(engine().blockLength());
         if(fixedIv != null) {
             cbcV.put(0, fixedIv);

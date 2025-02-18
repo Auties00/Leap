@@ -1,26 +1,23 @@
 package it.auties.leap.tls.cipher.mode;
 
 import it.auties.leap.tls.cipher.*;
+import it.auties.leap.tls.util.BufferUtils;
 import org.bouncycastle.math.raw.Interleave;
 import org.bouncycastle.util.Arrays;
 import org.bouncycastle.util.Longs;
-import org.bouncycastle.util.Pack;
 
 import java.nio.ByteBuffer;
 
 
 public final class GCMMode extends TlsCipherMode.Block implements TlsCipherMode.AEAD {
-    private static final int MAC_SIZE = 12;
     private static final TlsCipherModeFactory FACTORY = GCMMode::new;
 
     private final Tables4kGCMMultiplier multiplier;
     private BasicGCMExponentiator exp;
 
-    // These fields are set by init and not modified by processing
     private byte[] H;
     private byte[] J0;
 
-    // These fields are modified during processing
     private byte[] bufBlock;
     private byte[] macBlock;
     private byte[] S, S_at, S_atPre;
@@ -33,6 +30,9 @@ public final class GCMMode extends TlsCipherMode.Block implements TlsCipherMode.
     private long atLength;
     private long atLengthPre;
 
+    // Can't rely on the engine's value as that is always set on encryption mode
+    private boolean forEncryption;
+
     public GCMMode(TlsCipherEngine engine) {
         super(engine);
         this.multiplier = new Tables4kGCMMultiplier();
@@ -43,9 +43,11 @@ public final class GCMMode extends TlsCipherMode.Block implements TlsCipherMode.
     }
 
     @Override
-    public void init(TlsExchangeAuthenticator authenticator, byte[] fixedIv) {
-        super.init(authenticator, fixedIv);
-        int bufLength = engine.forEncryption() ? engine().blockLength() : (engine().blockLength() + MAC_SIZE);
+    public void init(boolean forEncryption, byte[] key, byte[] fixedIv, TlsExchangeAuthenticator authenticator) {
+        super.init(forEncryption, key, fixedIv, authenticator);
+        engine.init(true, key);
+        this.forEncryption = forEncryption;
+        var bufLength = forEncryption ? engine().blockLength() : (engine().blockLength() + tagLength());
         this.bufBlock = new byte[bufLength];
         this.H = new byte[engine().blockLength()];
         engine.cipher(ByteBuffer.wrap(H), ByteBuffer.wrap(H));
@@ -94,103 +96,112 @@ public final class GCMMode extends TlsCipherMode.Block implements TlsCipherMode.
         System.arraycopy(input.array(), inOff, atBlock, 0, atBlockPos);
     }
 
-    @Override
-    public void cipher(byte contentType, ByteBuffer input, ByteBuffer output, byte[] sequence) {
-        this.J0 = new byte[engine().blockLength()];
-        System.arraycopy(fixedIv, 0, J0, 0, fixedIv.length);
-        var nonce = authenticator.sequenceNumber();
-        System.arraycopy(nonce, 0, J0, fixedIv.length, ivLength().dynamic());
-        output.put(output.position() - nonce.length, nonce);
-        this.J0[engine().blockLength() - 1] = 0x01;
-        this.counter = Arrays.clone(J0);
+    public void processAADBytes(byte[] in, int inOff, int len)
+    {
+        var BLOCK_SIZE = engine().blockLength();
 
-        var aad = authenticator.createAuthenticationBlock(contentType, input.remaining(), sequence);
-        updateAAD(ByteBuffer.wrap(aad));
-
-        int resultLen = 0;
-
-        var len = input.remaining();
-        var in = input.array();
-        var inOff = input.position();
-        var out = output.array();
-        var outOff = output.position();
-        if (engine().forEncryption()) {
-            if (bufOff > 0) {
-                int available = engine().blockLength() - bufOff;
-                if (len < available) {
-                    System.arraycopy(in, inOff, bufBlock, bufOff, len);
-                    bufOff += len;
-                    return;
-                }
-
-                System.arraycopy(in, inOff, bufBlock, bufOff, available);
-                encryptBlock(bufBlock, 0, out, outOff);
-                inOff += available;
-                len -= available;
-                resultLen = engine().blockLength();
-                //bufOff = 0;
-            }
-
-            int inLimit = inOff + len - engine().blockLength();
-
-            while (inOff <= inLimit) {
-                encryptBlock(in, inOff, out, outOff + resultLen);
-                inOff += engine().blockLength();
-                resultLen += engine().blockLength();
-            }
-
-            bufOff = engine().blockLength() + inLimit - inOff;
-            System.arraycopy(in, inOff, bufBlock, 0, bufOff);
-        } else {
-            int available = bufBlock.length - bufOff;
-            if (len < available) {
-                System.arraycopy(in, inOff, bufBlock, bufOff, len);
-                bufOff += len;
+        if (atBlockPos > 0)
+        {
+            int available = BLOCK_SIZE - atBlockPos;
+            if (len < available)
+            {
+                System.arraycopy(in, inOff, atBlock, atBlockPos, len);
+                atBlockPos += len;
                 return;
             }
 
-            if (bufOff >= engine().blockLength()) {
-                decryptBlock(bufBlock, 0, out, outOff);
-                System.arraycopy(bufBlock, engine().blockLength(), bufBlock, 0, bufOff -= engine().blockLength());
-                resultLen = engine().blockLength();
-
-                available += engine().blockLength();
-                if (len < available) {
-                    System.arraycopy(in, inOff, bufBlock, bufOff, len);
-                    bufOff += len;
-                    return;
-                }
-            }
-
-            int inLimit = inOff + len - bufBlock.length;
-
-            available = engine().blockLength() - bufOff;
-            System.arraycopy(in, inOff, bufBlock, bufOff, available);
-            decryptBlock(bufBlock, 0, out, outOff + resultLen);
+            System.arraycopy(in, inOff, atBlock, atBlockPos, available);
+            gHASHBlock(S_at, atBlock);
+            atLength += BLOCK_SIZE;
             inOff += available;
-            resultLen += engine().blockLength();
-            //bufOff = 0;
+            len -= available;
+            //atBlockPos = 0;
+        }
 
-            while (inOff <= inLimit) {
-                decryptBlock(in, inOff, out, outOff + resultLen);
-                inOff += engine().blockLength();
-                resultLen += engine().blockLength();
-            }
+        int inLimit = inOff + len - BLOCK_SIZE;
 
-            bufOff = bufBlock.length + inLimit - inOff;
-            System.arraycopy(in, inOff, bufBlock, 0, bufOff);
+        while (inOff <= inLimit)
+        {
+            gHASHBlock(S_at, in, inOff);
+            atLength += BLOCK_SIZE;
+            inOff += BLOCK_SIZE;
+        }
+
+        atBlockPos = BLOCK_SIZE + inLimit - inOff;
+        System.arraycopy(in, inOff, atBlock, 0, atBlockPos);
+    }
+
+    @Override
+    public void cipher(byte contentType, ByteBuffer input, ByteBuffer output, byte[] sequence) {
+        var ivLength = ivLength();
+        var iv = new byte[ivLength.total()];
+        if (forEncryption) {
+            System.arraycopy(fixedIv, 0, iv, 0, fixedIv.length);
+            var nonce = authenticator.sequenceNumber();
+            System.arraycopy(nonce, 0, iv, fixedIv.length, nonce.length);
+            output.put(output.position() - nonce.length, nonce);
+        } else {
+            System.arraycopy(fixedIv, 0, iv, 0, fixedIv.length);
+            input.get(iv, fixedIv.length, ivLength.dynamic());
+        }
+
+        this.J0 = new byte[engine().blockLength()];
+        System.arraycopy(iv, 0, J0, 0, iv.length);
+        this.J0[J0.length - 1] = 0x01;
+        this.counter = Arrays.clone(J0);
+
+        var aad = authenticator.createAuthenticationBlock(contentType, input.remaining() - (forEncryption ? 0 : tagLength()), sequence);
+        processAADBytes(aad, 0, aad.length);
+
+        var resultLen = processBytes(input.array(), input.position(), input.remaining(), output.array(), output.position());
+        resultLen += doFinal(output.array(), output.position() + resultLen);
+
+        output.position(output.position() - (forEncryption ? ivLength.dynamic() : 0));
+        output.limit(output.position() + (forEncryption ? ivLength.dynamic() : 0) + resultLen);
+    }
+
+    public int doFinal(byte[] out, int outOff)
+    {
+        var macSize = tagLength();
+        var BLOCK_SIZE = engine().blockLength();
+
+        if (totalLength == 0)
+        {
+            initCipher();
         }
 
         int extra = bufOff;
-        outOff += resultLen;
 
-        if (extra > 0) {
+        if (forEncryption)
+        {
+            if ((out.length - outOff) < (extra + macSize))
+            {
+                throw new RuntimeException("Output buffer too short");
+            }
+        }
+        else
+        {
+            if (extra < macSize)
+            {
+                throw new RuntimeException("data too short");
+            }
+            extra -= macSize;
+
+            if ((out.length - outOff) < extra)
+            {
+                throw new RuntimeException("Output buffer too short");
+            }
+        }
+
+        if (extra > 0)
+        {
             processPartial(bufBlock, 0, extra, out, outOff);
         }
 
         atLength += atBlockPos;
 
-        if (atLength > atLengthPre) {
+        if (atLength > atLengthPre)
+        {
             /*
              *  Some AAD was sent after the cipher started. We determine the difference b/w the hash value
              *  we actually used when the cipher started (S_atPre) and the final hash value calculated (S_at).
@@ -199,12 +210,14 @@ public final class GCMMode extends TlsCipherMode.Block implements TlsCipherMode.
              */
 
             // Finish hash for partial AAD block
-            if (atBlockPos > 0) {
+            if (atBlockPos > 0)
+            {
                 gHASHPartial(S_at, atBlock, 0, atBlockPos);
             }
 
             // Find the difference between the AAD hashes
-            if (atLengthPre > 0) {
+            if (atLengthPre > 0)
+            {
                 GCMUtil.xor(S_at, S_atPre);
             }
 
@@ -228,40 +241,128 @@ public final class GCMMode extends TlsCipherMode.Block implements TlsCipherMode.
         }
 
         // Final gHASH
-        byte[] X = new byte[engine().blockLength()];
-        Pack.longToBigEndian(atLength * 8, X, 0);
-        Pack.longToBigEndian(totalLength * 8, X, 8);
+        byte[] X = new byte[BLOCK_SIZE];
+        BufferUtils.writeBigEndianInt64(atLength * 8, X, 0);
+        BufferUtils.writeBigEndianInt64(totalLength * 8, X, 8);
 
         gHASHBlock(S, X);
 
         // T = MSBt(GCTRk(J0,S))
-        byte[] tag = new byte[engine().blockLength()];
-        engine.cipher(ByteBuffer.wrap(J0), ByteBuffer.wrap(tag));
+        byte[] tag = new byte[BLOCK_SIZE];
+        engine().cipher(ByteBuffer.wrap(J0), ByteBuffer.wrap(tag));
         GCMUtil.xor(tag, S);
 
-        resultLen += extra;
+        int resultLen = extra;
 
         // We place into macBlock our calculated value for T
-        this.macBlock = new byte[MAC_SIZE];
-        System.arraycopy(tag, 0, macBlock, 0, MAC_SIZE);
+        this.macBlock = new byte[macSize];
+        System.arraycopy(tag, 0, macBlock, 0, macSize);
 
-        if (engine.forEncryption()) {
+        if (forEncryption)
+        {
             // Append T to the message
-            System.arraycopy(macBlock, 0, out, outOff + bufOff, MAC_SIZE);
-            resultLen += MAC_SIZE;
-        } else {
+            System.arraycopy(macBlock, 0, out, outOff + bufOff, macSize);
+            resultLen += macSize;
+        }
+        else
+        {
             // Retrieve the T value from the message and compare to calculated one
-            byte[] msgMac = new byte[MAC_SIZE];
-            System.arraycopy(bufBlock, extra, msgMac, 0, MAC_SIZE);
-            if (!Arrays.constantTimeAreEqual(this.macBlock, msgMac)) {
+            byte[] msgMac = new byte[macSize];
+            System.arraycopy(bufBlock, extra, msgMac, 0, macSize);
+            if (!Arrays.constantTimeAreEqual(this.macBlock, msgMac))
+            {
                 throw new RuntimeException("mac check in GCM failed");
             }
         }
 
         reset(false);
-        output.position(output.position() - nonce.length);
-        output.limit(output.position() + resultLen);
-        System.out.println("LENGTH: " + output.remaining());
+
+        return resultLen;
+    }
+
+    public int processBytes(byte[] in, int inOff, int len, byte[] out, int outOff)
+    {
+        int resultLen = 0;
+        var BLOCK_SIZE = engine().blockLength();
+
+        if (forEncryption)
+        {
+            if (bufOff > 0)
+            {
+                int available = BLOCK_SIZE - bufOff;
+                if (len < available)
+                {
+                    System.arraycopy(in, inOff, bufBlock, bufOff, len);
+                    bufOff += len;
+                    return 0;
+                }
+
+                System.arraycopy(in, inOff, bufBlock, bufOff, available);
+                encryptBlock(bufBlock, 0, out, outOff);
+                inOff += available;
+                len -= available;
+                resultLen = BLOCK_SIZE;
+                //bufOff = 0;
+            }
+
+            int inLimit = inOff + len - BLOCK_SIZE;
+
+            while (inOff <= inLimit)
+            {
+                encryptBlock(in, inOff, out, outOff + resultLen);
+                inOff += BLOCK_SIZE;
+                resultLen += BLOCK_SIZE;
+            }
+
+            bufOff = BLOCK_SIZE + inLimit - inOff;
+            System.arraycopy(in, inOff, bufBlock, 0, bufOff);
+        }
+        else
+        {
+            int available = bufBlock.length - bufOff;
+            if (len < available)
+            {
+                System.arraycopy(in, inOff, bufBlock, bufOff, len);
+                bufOff += len;
+                return 0;
+            }
+
+            if (bufOff >= BLOCK_SIZE)
+            {
+                decryptBlock(bufBlock, 0, out, outOff);
+                System.arraycopy(bufBlock, BLOCK_SIZE, bufBlock, 0, bufOff -= BLOCK_SIZE);
+                resultLen = BLOCK_SIZE;
+
+                available += BLOCK_SIZE;
+                if (len < available)
+                {
+                    System.arraycopy(in, inOff, bufBlock, bufOff, len);
+                    bufOff += len;
+                    return resultLen;
+                }
+            }
+
+            int inLimit = inOff + len - bufBlock.length;
+
+            available = BLOCK_SIZE - bufOff;
+            System.arraycopy(in, inOff, bufBlock, bufOff, available);
+            decryptBlock(bufBlock, 0, out, outOff + resultLen);
+            inOff += available;
+            resultLen += BLOCK_SIZE;
+            //bufOff = 0;
+
+            while (inOff <= inLimit)
+            {
+                decryptBlock(in, inOff, out, outOff + resultLen);
+                inOff += BLOCK_SIZE;
+                resultLen += BLOCK_SIZE;
+            }
+
+            bufOff = bufBlock.length + inLimit - inOff;
+            System.arraycopy(in, inOff, bufBlock, 0, bufOff);
+        }
+
+        return resultLen;
     }
 
     private void initCipher() {
@@ -309,11 +410,14 @@ public final class GCMMode extends TlsCipherMode.Block implements TlsCipherMode.
         }
     }
 
-    private void decryptBlock(byte[] buf, int bufOff, byte[] out, int outOff) {
-        if ((out.length - outOff) < engine().blockLength()) {
+    private void decryptBlock(byte[] buf, int bufOff, byte[] out, int outOff)
+    {
+        if ((out.length - outOff) < engine().blockLength())
+        {
             throw new RuntimeException("Output buffer too short");
         }
-        if (totalLength == 0) {
+        if (totalLength == 0)
+        {
             initCipher();
         }
 
@@ -326,11 +430,14 @@ public final class GCMMode extends TlsCipherMode.Block implements TlsCipherMode.
         totalLength += engine().blockLength();
     }
 
-    private void encryptBlock(byte[] buf, int bufOff, byte[] out, int outOff) {
-        if ((out.length - outOff) < engine().blockLength()) {
+    private void encryptBlock(byte[] buf, int bufOff, byte[] out, int outOff)
+    {
+        if ((out.length - outOff) < engine().blockLength())
+        {
             throw new RuntimeException("Output buffer too short");
         }
-        if (totalLength == 0) {
+        if (totalLength == 0)
+        {
             initCipher();
         }
 
@@ -344,27 +451,24 @@ public final class GCMMode extends TlsCipherMode.Block implements TlsCipherMode.
         totalLength += engine().blockLength();
     }
 
-    private void processPartial(byte[] buf, int off, int len, byte[] out, int outOff) {
+    private void processPartial(byte[] buf, int off, int len, byte[] out, int outOff)
+    {
         byte[] ctrBlock = new byte[engine().blockLength()];
         getNextCTRBlock(ctrBlock);
 
-        if (engine.forEncryption()) {
+        if (forEncryption)
+        {
             GCMUtil.xor(buf, off, ctrBlock, 0, len);
             gHASHPartial(S, buf, off, len);
-        } else {
+        }
+        else
+        {
             gHASHPartial(S, buf, off, len);
             GCMUtil.xor(buf, off, ctrBlock, 0, len);
         }
 
         System.arraycopy(buf, off, out, outOff, len);
         totalLength += len;
-    }
-
-    private void gHASH(byte[] Y, byte[] b, int len) {
-        for (int pos = 0; pos < len; pos += engine().blockLength()) {
-            int num = Math.min(len - pos, engine().blockLength());
-            gHASHPartial(Y, b, pos, num);
-        }
     }
 
     private void gHASHBlock(byte[] Y, byte[] b) {
@@ -483,8 +587,8 @@ public final class GCMMode extends TlsCipherMode.Block implements TlsCipherMode.
                 z0 = t[0] ^ (z0 >>> 8) ^ c ^ (c >>> 1) ^ (c >>> 2) ^ (c >>> 7);
             }
 
-            Pack.longToBigEndian(z0, x, 0);
-            Pack.longToBigEndian(z1, x, 8);
+            BufferUtils.writeBigEndianInt64(z0, x, 0);
+            BufferUtils.writeBigEndianInt64(z1, x, 8);
         }
     }
 
@@ -511,17 +615,21 @@ public final class GCMMode extends TlsCipherMode.Block implements TlsCipherMode.
         }
 
         public static void asBytes(long[] x, byte[] z) {
-            Pack.longToBigEndian(x, 0, SIZE_LONGS, z, 0);
+            for(int i = 0; i < SIZE_LONGS; ++i) {
+                BufferUtils.writeBigEndianInt64(x[i], z, i * 8);
+            }
         }
 
         public static long[] asLongs(byte[] x) {
             long[] z = new long[SIZE_LONGS];
-            Pack.bigEndianToLong(x, 0, z, 0, SIZE_LONGS);
+            asLongs(x, z);
             return z;
         }
 
         public static void asLongs(byte[] x, long[] z) {
-            Pack.bigEndianToLong(x, 0, z, 0, SIZE_LONGS);
+            for(int i = 0; i < SIZE_LONGS; ++i) {
+                z[i] = BufferUtils.readBigEndianInt64(x, i * 8);
+            }
         }
 
         public static void copy(byte[] x, byte[] z) {
