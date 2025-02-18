@@ -26,7 +26,7 @@ public class DHE_CBC_SocketTest {
         var extensions = List.of(
                 TlsExtension.serverNameIndication(),
                 TlsExtension.ecPointFormats(),
-                TlsExtension.supportedGroups(),
+
                 TlsExtension.nextProtocolNegotiation(),
                 TlsExtension.encryptThenMac(),
                 TlsExtension.extendedMasterSecret(),

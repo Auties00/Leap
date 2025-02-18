@@ -3,17 +3,18 @@ package it.auties.leap.tls;
 import it.auties.leap.tls.certificate.TlsClientCertificateType;
 import it.auties.leap.tls.cipher.TlsCipher;
 import it.auties.leap.tls.cipher.TlsCipherMode;
-import it.auties.leap.tls.mac.TlsExchangeMac;
 import it.auties.leap.tls.cipher.exchange.TlsKeyExchange;
 import it.auties.leap.tls.cipher.exchange.TlsKeyExchangeType;
 import it.auties.leap.tls.compression.TlsCompression;
 import it.auties.leap.tls.exception.TlsException;
 import it.auties.leap.tls.extension.TlsExtension;
+import it.auties.leap.tls.extension.implementation.SupportedGroupsExtension;
 import it.auties.leap.tls.hash.TlsHandshakeHash;
 import it.auties.leap.tls.hash.TlsHash;
 import it.auties.leap.tls.hash.TlsHashFactory;
 import it.auties.leap.tls.hash.TlsPRF;
 import it.auties.leap.tls.key.*;
+import it.auties.leap.tls.mac.TlsExchangeMac;
 import it.auties.leap.tls.message.TlsMessage;
 import it.auties.leap.tls.message.implementation.*;
 import it.auties.leap.tls.signature.TlsSignature;
@@ -95,9 +96,9 @@ public class TlsContext {
             case TCP -> null;
             case UDP -> TlsCookie.empty();
         };
-        this.localSupportedGroups = List.of();
         this.messageDigestBuffer = new ByteArrayOutputStream(); // TODO: Calculate optimal space
         this.bufferedMessages = new LinkedList<>();
+        setLocalSupportedGroups(SupportedGroupsExtension.Configurable.recommendedGroups());
     }
 
     public TlsConfig config() {

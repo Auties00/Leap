@@ -867,15 +867,15 @@ public final class TlsCipher {
         return TLS_DHE_PSK_WITH_CHACHA20_POLY1305_SHA256;
     }
 
-    public static TlsCipher dhePskWithNullSha() {
+    public static TlsCipher dhePskWithNoneSha() {
         return TLS_DHE_PSK_WITH_NULL_SHA;
     }
 
-    public static TlsCipher dhePskWithNullSha256() {
+    public static TlsCipher dhePskWithNoneSha256() {
         return TLS_DHE_PSK_WITH_NULL_SHA256;
     }
 
-    public static TlsCipher dhePskWithNullSha384() {
+    public static TlsCipher dhePskWithNoneSha384() {
         return TLS_DHE_PSK_WITH_NULL_SHA384;
     }
 
@@ -1091,7 +1091,7 @@ public final class TlsCipher {
         return TLS_ECDH_ANON_WITH_AES_256_CBC_SHA;
     }
 
-    public static TlsCipher ecdhAnonWithNullSha() {
+    public static TlsCipher ecdhAnonWithNoneSha() {
         return TLS_ECDH_ANON_WITH_NULL_SHA;
     }
 
@@ -1159,7 +1159,7 @@ public final class TlsCipher {
         return TLS_ECDH_ECDSA_WITH_CAMELLIA_256_GCM_SHA384;
     }
 
-    public static TlsCipher ecdhEcdsaWithNullSha() {
+    public static TlsCipher ecdhEcdsaWithNoneSha() {
         return TLS_ECDH_ECDSA_WITH_NULL_SHA;
     }
 
@@ -1247,7 +1247,7 @@ public final class TlsCipher {
         return TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305_SHA256;
     }
 
-    public static TlsCipher ecdheEcdsaWithNullSha() {
+    public static TlsCipher ecdheEcdsaWithNoneSha() {
         return TLS_ECDHE_ECDSA_WITH_NULL_SHA;
     }
 
@@ -1311,15 +1311,15 @@ public final class TlsCipher {
         return TLS_ECDHE_PSK_WITH_CHACHA20_POLY1305_SHA256;
     }
 
-    public static TlsCipher ecdhePskWithNullSha() {
+    public static TlsCipher ecdhePskWithNoneSha() {
         return TLS_ECDHE_PSK_WITH_NULL_SHA;
     }
 
-    public static TlsCipher ecdhePskWithNullSha256() {
+    public static TlsCipher ecdhePskWithNoneSha256() {
         return TLS_ECDHE_PSK_WITH_NULL_SHA256;
     }
 
-    public static TlsCipher ecdhePskWithNullSha384() {
+    public static TlsCipher ecdhePskWithNoneSha384() {
         return TLS_ECDHE_PSK_WITH_NULL_SHA384;
     }
 
@@ -1391,7 +1391,7 @@ public final class TlsCipher {
         return TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305_SHA256;
     }
 
-    public static TlsCipher ecdheRsaWithNullSha() {
+    public static TlsCipher ecdheRsaWithNoneSha() {
         return TLS_ECDHE_RSA_WITH_NULL_SHA;
     }
 
@@ -1459,7 +1459,7 @@ public final class TlsCipher {
         return TLS_ECDH_RSA_WITH_CAMELLIA_256_GCM_SHA384;
     }
 
-    public static TlsCipher ecdhRsaWithNullSha() {
+    public static TlsCipher ecdhRsaWithNoneSha() {
         return TLS_ECDH_RSA_WITH_NULL_SHA;
     }
 
@@ -1551,7 +1551,7 @@ public final class TlsCipher {
         return TLS_KRB5_WITH_RC4_128_SHA;
     }
 
-    public static TlsCipher nullWithNullNull() {
+    public static TlsCipher noneWithNoneNone() {
         return TLS_NULL_WITH_NULL_NULL;
     }
 
@@ -1643,15 +1643,15 @@ public final class TlsCipher {
         return TLS_PSK_WITH_CHACHA20_POLY1305_SHA256;
     }
 
-    public static TlsCipher pskWithNullSha() {
+    public static TlsCipher pskWithNoneSha() {
         return TLS_PSK_WITH_NULL_SHA;
     }
 
-    public static TlsCipher pskWithNullSha256() {
+    public static TlsCipher pskWithNoneSha256() {
         return TLS_PSK_WITH_NULL_SHA256;
     }
 
-    public static TlsCipher pskWithNullSha384() {
+    public static TlsCipher pskWithNoneSha384() {
         return TLS_PSK_WITH_NULL_SHA384;
     }
 
@@ -1735,15 +1735,15 @@ public final class TlsCipher {
         return TLS_RSA_PSK_WITH_CHACHA20_POLY1305_SHA256;
     }
 
-    public static TlsCipher rsaPskWithNullSha() {
+    public static TlsCipher rsaPskWithNoneSha() {
         return TLS_RSA_PSK_WITH_NULL_SHA;
     }
 
-    public static TlsCipher rsaPskWithNullSha256() {
+    public static TlsCipher rsaPskWithNoneSha256() {
         return TLS_RSA_PSK_WITH_NULL_SHA256;
     }
 
-    public static TlsCipher rsaPskWithNullSha384() {
+    public static TlsCipher rsaPskWithNoneSha384() {
         return TLS_RSA_PSK_WITH_NULL_SHA384;
     }
 
@@ -1843,15 +1843,15 @@ public final class TlsCipher {
         return TLS_RSA_WITH_IDEA_CBC_SHA;
     }
 
-    public static TlsCipher rsaWithNullMd5() {
+    public static TlsCipher rsaWithNoneMd5() {
         return TLS_RSA_WITH_NULL_MD5;
     }
 
-    public static TlsCipher rsaWithNullSha() {
+    public static TlsCipher rsaWithNoneSha() {
         return TLS_RSA_WITH_NULL_SHA;
     }
 
-    public static TlsCipher rsaWithNullSha256() {
+    public static TlsCipher rsaWithNoneSha256() {
         return TLS_RSA_WITH_NULL_SHA256;
     }
 

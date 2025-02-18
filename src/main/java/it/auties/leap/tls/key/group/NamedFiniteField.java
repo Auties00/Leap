@@ -142,6 +142,7 @@ public final class NamedFiniteField implements TlsSupportedFiniteField {
 
         var params = serverKeyExchange.getOrParsePublicKey()
                 .getParams();
-        return params.getG().equals(spec.getG()) && params.getP().equals(spec.getP());
+        return params.getG().equals(spec.getG())
+                && params.getP().equals(spec.getP());
     }
 }

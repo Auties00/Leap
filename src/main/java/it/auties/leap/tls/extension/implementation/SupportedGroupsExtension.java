@@ -97,10 +97,16 @@ public abstract sealed class SupportedGroupsExtension {
     }
 
     public static final class Configurable extends SupportedGroupsExtension implements TlsExtension.Configurable {
-        private static final SupportedGroupsExtension.Configurable RECOMMENDED = new SupportedGroupsExtension.Configurable(List.of(
+        private static final List<TlsSupportedGroup> RECOMMENDED_GROUPS = List.of(
                 TlsSupportedCurve.x25519(),
+                TlsSupportedCurve.x448(),
+                TlsSupportedFiniteField.ffdhe2048(),
+                TlsSupportedFiniteField.ffdhe3072(),
+                TlsSupportedFiniteField.ffdhe4096(),
+                TlsSupportedFiniteField.ffdhe6144(),
                 TlsSupportedFiniteField.ffdhe8192()
-        ));
+        );
+        private static final SupportedGroupsExtension.Configurable RECOMMENDED = new SupportedGroupsExtension.Configurable(RECOMMENDED_GROUPS);
 
         private final List<TlsSupportedGroup> groups;
         public Configurable(List<TlsSupportedGroup> groups) {
@@ -109,6 +115,10 @@ public abstract sealed class SupportedGroupsExtension {
 
         public static TlsExtension recommended() {
             return RECOMMENDED;
+        }
+
+        public static List<TlsSupportedGroup> recommendedGroups() {
+            return RECOMMENDED_GROUPS;
         }
 
         public List<TlsSupportedGroup> groups() {
