@@ -4,7 +4,6 @@ import it.auties.leap.tls.cipher.exchange.TlsClientKeyExchange;
 import it.auties.leap.tls.cipher.exchange.TlsKeyExchangeType;
 import it.auties.leap.tls.exception.TlsException;
 import it.auties.leap.tls.key.TlsPreMasterSecretGenerator;
-import it.auties.leap.tls.util.KeyUtils;
 
 import javax.crypto.interfaces.DHPublicKey;
 import javax.crypto.spec.DHPublicKeySpec;
@@ -56,7 +55,7 @@ public final class DHClientKeyExchange extends TlsClientKeyExchange {
         try {
             var keyFactory = KeyFactory.getInstance("DH");
             var dhPubKeySpecs = new DHPublicKeySpec(
-                    KeyUtils.fromUnsignedLittleEndianBytes(publicKey),
+                    new BigInteger(1, publicKey),
                     p,
                     g
             );

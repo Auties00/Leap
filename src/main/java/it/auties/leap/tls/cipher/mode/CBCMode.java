@@ -15,7 +15,6 @@ public final class CBCMode extends TlsCipherMode.Block {
     private SecureRandom random;
     private ByteBuffer cbcV;
     private ByteBuffer cbcNextV;
-
     public CBCMode(TlsCipherEngine engine) {
         super(engine);
     }

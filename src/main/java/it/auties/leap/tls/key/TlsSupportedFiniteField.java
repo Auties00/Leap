@@ -1,5 +1,6 @@
 package it.auties.leap.tls.key;
 
+import it.auties.leap.tls.cipher.exchange.TlsServerKeyExchange;
 import it.auties.leap.tls.key.group.NamedFiniteField;
 
 public non-sealed interface TlsSupportedFiniteField extends TlsSupportedGroup {
@@ -22,4 +23,6 @@ public non-sealed interface TlsSupportedFiniteField extends TlsSupportedGroup {
     static TlsSupportedFiniteField ffdhe8192() {
         return NamedFiniteField.ffdhe8192();
     }
+
+    boolean accepts(TlsServerKeyExchange exchange);
 }

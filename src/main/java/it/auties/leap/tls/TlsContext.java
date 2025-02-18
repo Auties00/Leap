@@ -524,6 +524,7 @@ public class TlsContext {
                 localRandomData,
                 remoteRandomData
         );
+        System.out.println("Master secret: " + Arrays.toString(localMasterSecretKey.data()));
         var clientRandom = switch (mode) {
             case CLIENT -> localRandomData.data();
             case SERVER -> remoteRandomData.data();
@@ -622,6 +623,23 @@ public class TlsContext {
                 case SERVER -> clientIv;
             };
 
+            System.out.println("""
+            ______________________________
+            Client mac: %s
+            Server mac: %s
+            Client IV: %s
+            Server IV: %s
+            Client Key: %s
+            Server Key: %s
+            ______________________________
+            """.formatted(
+                    clientMacKey == null ? "none" : Arrays.toString(clientMacKey),
+                    serverMacKey == null ? "none" : Arrays.toString(serverMacKey),
+                    clientIv == null ? "none" : Arrays.toString(clientIv),
+                    serverIv == null ? "none" : Arrays.toString(serverIv),
+                    clientKey == null ? "none" : Arrays.toString(clientKey),
+                    serverKey == null ? "none" : Arrays.toString(serverKey)
+            ));
             localCipherMode.init(true, localKey, localIv, localAuthenticator);
             remoteCipherMode.init(false, remoteKey, remoteIv, remoteAuthenticator);
             return;

@@ -18,7 +18,7 @@ public final class SHA256Hash implements TlsHash {
 
         @Override
         public int length() {
-            return 64;
+            return 32;
         }
     };
 

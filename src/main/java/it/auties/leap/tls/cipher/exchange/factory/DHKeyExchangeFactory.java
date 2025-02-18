@@ -7,10 +7,11 @@ import it.auties.leap.tls.cipher.exchange.TlsKeyExchangeType;
 import it.auties.leap.tls.cipher.exchange.client.DHClientKeyExchange;
 import it.auties.leap.tls.cipher.exchange.server.DHServerKeyExchange;
 import it.auties.leap.tls.exception.TlsException;
-import it.auties.leap.tls.util.KeyUtils;
+import it.auties.leap.tls.key.TlsSupportedFiniteField;
 
 import javax.crypto.interfaces.DHPublicKey;
 import java.nio.ByteBuffer;
+import java.util.Arrays;
 import java.util.NoSuchElementException;
 
 public class DHKeyExchangeFactory implements TlsKeyExchangeFactory {
@@ -46,15 +47,23 @@ public class DHKeyExchangeFactory implements TlsKeyExchangeFactory {
         };
     }
 
-    // TODO: HERE
     private DHClientKeyExchange newClientKeyExchange(TlsContext context) {
-        var group = context.localPreferredFiniteField()
-                .orElseThrow(() -> new NoSuchElementException("No supported group is a finite field"));
-        var keyPair = group.generateLocalKeyPair(context);
-        context.setLocalKeyPair(keyPair);
-        var publicKey = (DHPublicKey) keyPair.getPublic();
-        var y = KeyUtils.toUnsignedLittleEndianBytes(publicKey.getY());
-        return new DHClientKeyExchange(type, y);
+        var remoteDhKeyExchange = context.remoteKeyExchange()
+                .map(entry -> entry instanceof DHServerKeyExchange serverKeyExchange ? serverKeyExchange : null)
+                .orElseThrow(() -> new TlsException("Missing remote DH key exchange"));
+        for(var group : context.localSupportedGroups()) {
+            if(group instanceof TlsSupportedFiniteField finiteField) {
+                if(finiteField.accepts(remoteDhKeyExchange)) {
+                    var keyPair = finiteField.generateLocalKeyPair(context);
+                    context.setLocalKeyPair(keyPair);
+                    var y = ((DHPublicKey) keyPair.getPublic()).getY()
+                            .toByteArray();
+                    System.out.println("Local public key: " + Arrays.toString(y));
+                    return new DHClientKeyExchange(type, y);
+                }
+            }
+        }
+        throw new TlsException("Unsupported DH group");
     }
 
     private DHServerKeyExchange newServerKeyExchange(TlsContext context) {
@@ -63,9 +72,14 @@ public class DHKeyExchangeFactory implements TlsKeyExchangeFactory {
         var keyPair = group.generateLocalKeyPair(context);
         context.setLocalKeyPair(keyPair);
         var publicKey = (DHPublicKey) keyPair.getPublic();
-        var p = publicKey.getParams().getP().toByteArray();
-        var g = publicKey.getParams().getG().toByteArray();
-        var y = KeyUtils.toUnsignedLittleEndianBytes(publicKey.getY());
+        var p = publicKey.getParams()
+                .getP()
+                .toByteArray();
+        var g = publicKey.getParams()
+                .getG()
+                .toByteArray();
+        var y = publicKey.getY()
+                .toByteArray();
         return new DHServerKeyExchange(type, p, g, y);
     }
 

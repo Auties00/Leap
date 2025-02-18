@@ -19,7 +19,7 @@ public final class GOSTR341112_256_Hash implements TlsHash {
 
         @Override
         public int length() {
-            return 64;
+            return 32;
         }
     };
 

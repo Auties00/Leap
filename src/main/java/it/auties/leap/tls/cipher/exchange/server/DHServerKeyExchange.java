@@ -4,10 +4,8 @@ import it.auties.leap.tls.cipher.exchange.TlsKeyExchangeType;
 import it.auties.leap.tls.cipher.exchange.TlsServerKeyExchange;
 import it.auties.leap.tls.exception.TlsException;
 import it.auties.leap.tls.key.TlsPreMasterSecretGenerator;
-import it.auties.leap.tls.util.KeyUtils;
 
 import javax.crypto.interfaces.DHPublicKey;
-import javax.crypto.spec.DHParameterSpec;
 import javax.crypto.spec.DHPublicKeySpec;
 import java.math.BigInteger;
 import java.nio.ByteBuffer;
@@ -62,7 +60,7 @@ public final class DHServerKeyExchange extends TlsServerKeyExchange {
         return publicKey;
     }
 
-    public DHPublicKey getOrParsePublicKey(DHParameterSpec spec) {
+    public DHPublicKey getOrParsePublicKey() {
         if(parsedPublicKey != null) {
             return parsedPublicKey;
         }
@@ -71,12 +69,8 @@ public final class DHServerKeyExchange extends TlsServerKeyExchange {
             var keyFactory = KeyFactory.getInstance("DH");
             var p = new BigInteger(1, this.p);
             var g = new BigInteger(1, this.g);
-            if(!spec.getP().equals(p) || !spec.getG().equals(g)) {
-                throw new TlsException("Invalid remote DH public key: parameters mismatch");
-            }
-
             var dhPubKeySpecs = new DHPublicKeySpec(
-                    KeyUtils.fromUnsignedLittleEndianBytes(publicKey),
+                    new BigInteger(1, publicKey),
                     p,
                     g
             );
