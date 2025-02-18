@@ -2,10 +2,9 @@ package it.auties.leap.tls.util;
 
 import java.math.BigInteger;
 
-// This implementation favors in place transformations when possible
-public final class KeyUtils {
-    // Thanks to dave_thompson_085 for answering my question a couple of years ago
-    // https://stackoverflow.com/questions/67332030/java-11-curve25519-implementation-doesnt-behave-as-signals-libary
+// Thanks to dave_thompson_085 for answering my question a couple of years ago
+// https://stackoverflow.com/questions/67332030/java-11-curve25519-implementation-doesnt-behave-as-signals-libary
+public final class ECKeyUtils {
     public static byte[] toUnsignedLittleEndianBytes(BigInteger value) {
         if (value.signum() < 0) {
             throw new IllegalArgumentException("Negative value not supported for unsigned conversion.");

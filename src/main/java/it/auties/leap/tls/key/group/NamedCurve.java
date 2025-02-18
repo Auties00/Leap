@@ -8,7 +8,7 @@ import it.auties.leap.tls.ec.TlsECParametersDeserializer;
 import it.auties.leap.tls.ec.implementation.NamedCurveParameters;
 import it.auties.leap.tls.exception.TlsException;
 import it.auties.leap.tls.key.TlsSupportedCurve;
-import it.auties.leap.tls.util.KeyUtils;
+import it.auties.leap.tls.util.ECKeyUtils;
 import org.bouncycastle.jce.ECNamedCurveTable;
 import org.bouncycastle.jce.interfaces.ECPublicKey;
 import org.bouncycastle.jce.spec.ECNamedCurveParameterSpec;
@@ -339,7 +339,7 @@ public final class NamedCurve implements TlsSupportedCurve {
                         }
                     };
                     var keyFactory = KeyFactory.getInstance(algorithm);
-                    var xecPublicKeySpec = new XECPublicKeySpec(namedParameterSpec, KeyUtils.fromUnsignedLittleEndianBytes(key));
+                    var xecPublicKeySpec = new XECPublicKeySpec(namedParameterSpec, ECKeyUtils.fromUnsignedLittleEndianBytes(key));
                     yield keyFactory.generatePublic(xecPublicKeySpec);
                 }
                 default -> throw new TlsException("Unsupported spec");
@@ -356,8 +356,8 @@ public final class NamedCurve implements TlsSupportedCurve {
         var localKeyPair = context.localKeyPair()
                 .orElseThrow(() -> new TlsException("No mode was selected"));
         return switch (localKeyPair.getPublic()) {
-            case XECPublicKey publicKey -> KeyUtils.toUnsignedLittleEndianBytes(publicKey.getU());
-            case DHPublicKey publicKey -> KeyUtils.toUnsignedLittleEndianBytes(publicKey.getY());
+            case XECPublicKey publicKey -> ECKeyUtils.toUnsignedLittleEndianBytes(publicKey.getU());
+            case DHPublicKey publicKey -> ECKeyUtils.toUnsignedLittleEndianBytes(publicKey.getY());
             case ECPublicKey publicKey -> publicKey.getQ().getEncoded(false);
             default -> throw new TlsException("Unsupported key type");
         };
