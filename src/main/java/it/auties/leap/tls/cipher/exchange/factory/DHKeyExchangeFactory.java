@@ -7,10 +7,11 @@ import it.auties.leap.tls.cipher.exchange.TlsKeyExchangeType;
 import it.auties.leap.tls.cipher.exchange.client.DHClientKeyExchange;
 import it.auties.leap.tls.cipher.exchange.server.DHServerKeyExchange;
 import it.auties.leap.tls.exception.TlsException;
+import it.auties.leap.tls.util.KeyUtils;
 
+import javax.crypto.interfaces.DHPublicKey;
 import java.nio.ByteBuffer;
-import java.security.GeneralSecurityException;
-import java.security.KeyPairGenerator;
+import java.util.NoSuchElementException;
 
 public class DHKeyExchangeFactory implements TlsKeyExchangeFactory {
     private static final DHKeyExchangeFactory STATIC = new DHKeyExchangeFactory(TlsKeyExchangeType.STATIC);
@@ -38,22 +39,6 @@ public class DHKeyExchangeFactory implements TlsKeyExchangeFactory {
     }
 
     @Override
-    public TlsKeyExchange newRemoteKeyExchange(TlsContext context) {
-        return switch (context.selectedMode().orElseThrow(() -> new TlsException("No mode was selected"))) {
-            case SERVER -> newClientKeyExchange(context);
-            case CLIENT -> newServerKeyExchange(context);
-        };
-    }
-
-    @Override
-    public TlsKeyExchange decodeLocalKeyExchange(TlsContext context, ByteBuffer buffer) {
-        return switch (context.selectedMode().orElseThrow(() -> new TlsException("No mode was selected"))) {
-            case CLIENT -> new DHClientKeyExchange(type, buffer);
-            case SERVER -> new DHServerKeyExchange(type, buffer);
-        };
-    }
-
-    @Override
     public TlsKeyExchange decodeRemoteKeyExchange(TlsContext context, ByteBuffer buffer) {
         return switch (context.selectedMode().orElseThrow(() -> new TlsException("No mode was selected"))) {
             case SERVER -> new DHClientKeyExchange(type, buffer);
@@ -61,30 +46,29 @@ public class DHKeyExchangeFactory implements TlsKeyExchangeFactory {
         };
     }
 
-    private TlsKeyExchange newClientKeyExchange(TlsContext context) {
-        var remotePublicKey = switch (type) {
-            case STATIC -> context.remotePublicKey()
-                    .orElseThrow(() -> new TlsException("Missing remote public key for static key exchange"));
-            case EPHEMERAL -> context.supportedGroups()
-                    .getFirst()
-                    .parseRemotePublicKey(context);
-        };
-        try {
-            var kpg = KeyPairGenerator.getInstance(remotePublicKey.getAlgorithm());
-            kpg.initialize(remotePublicKey.getParams());
-            var keyPair = kpg.generateKeyPair();
-            context.setLocalKeyPair(keyPair);
-            return new DHClientKeyExchange(type, keyPair.getPublic());
-        }catch (GeneralSecurityException exception) {
-            throw new TlsException("Cannot generate client DH key pair", exception);
-        }
+    // TODO: HERE
+    private DHClientKeyExchange newClientKeyExchange(TlsContext context) {
+        var group = context.localPreferredFiniteField()
+                .orElseThrow(() -> new NoSuchElementException("No supported group is a finite field"));
+        var keyPair = group.generateLocalKeyPair(context);
+        context.setLocalKeyPair(keyPair);
+        var publicKey = (DHPublicKey) keyPair.getPublic();
+        var y = KeyUtils.toUnsignedLittleEndianBytes(publicKey.getY());
+        return new DHClientKeyExchange(type, y);
     }
 
     private DHServerKeyExchange newServerKeyExchange(TlsContext context) {
-        return context.localKeyPair()
-                .map(keyPair -> new DHServerKeyExchange(type, keyPair.getPublic()))
-                .orElseThrow(() -> new TlsException("Missing keypair"));
+        var group = context.localPreferredFiniteField()
+                .orElseThrow(() -> new NoSuchElementException("No supported group is a finite field"));
+        var keyPair = group.generateLocalKeyPair(context);
+        context.setLocalKeyPair(keyPair);
+        var publicKey = (DHPublicKey) keyPair.getPublic();
+        var p = publicKey.getParams().getP().toByteArray();
+        var g = publicKey.getParams().getG().toByteArray();
+        var y = KeyUtils.toUnsignedLittleEndianBytes(publicKey.getY());
+        return new DHServerKeyExchange(type, p, g, y);
     }
+
 
     @Override
     public TlsKeyExchangeType type() {

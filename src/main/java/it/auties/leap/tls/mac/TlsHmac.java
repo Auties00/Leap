@@ -1,4 +1,6 @@
-package it.auties.leap.tls.hash;
+package it.auties.leap.tls.mac;
+
+import it.auties.leap.tls.hash.TlsHash;
 
 import java.nio.ByteBuffer;
 

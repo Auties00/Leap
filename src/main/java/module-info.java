@@ -29,4 +29,5 @@ module it.auties.leap {
     exports it.auties.leap.tls.psk;
     exports it.auties.leap.tls.cipher.exchange.client;
     exports it.auties.leap.tls.cipher.exchange.server;
+    exports it.auties.leap.tls.mac;
 }

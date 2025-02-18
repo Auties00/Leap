@@ -4,6 +4,8 @@ import it.auties.leap.tls.TlsContext;
 import it.auties.leap.tls.TlsMode;
 import it.auties.leap.tls.extension.TlsExtension;
 import it.auties.leap.tls.extension.TlsExtensionDeserializer;
+import it.auties.leap.tls.key.TlsSupportedCurve;
+import it.auties.leap.tls.key.TlsSupportedFiniteField;
 import it.auties.leap.tls.key.TlsSupportedGroup;
 import it.auties.leap.tls.version.TlsVersion;
 
@@ -95,7 +97,10 @@ public abstract sealed class SupportedGroupsExtension {
     }
 
     public static final class Configurable extends SupportedGroupsExtension implements TlsExtension.Configurable {
-        private static final SupportedGroupsExtension.Configurable RECOMMENDED = new SupportedGroupsExtension.Configurable(List.of(TlsSupportedGroup.x25519()));
+        private static final SupportedGroupsExtension.Configurable RECOMMENDED = new SupportedGroupsExtension.Configurable(List.of(
+                TlsSupportedCurve.x25519(),
+                TlsSupportedFiniteField.ffdhe8192()
+        ));
 
         private final List<TlsSupportedGroup> groups;
         public Configurable(List<TlsSupportedGroup> groups) {
@@ -112,7 +117,7 @@ public abstract sealed class SupportedGroupsExtension {
 
         @Override
         public Optional<? extends TlsExtension.Concrete> newInstance(TlsContext context) {
-            context.setSupportedGroups(groups);
+            context.setLocalSupportedGroups(groups);
             return Optional.of(new SupportedGroupsExtension.Concrete(groups.stream().map(TlsSupportedGroup::id).toList()));
         }
 

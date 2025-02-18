@@ -1,18 +1,17 @@
-package it.auties.leap.tls.cipher;
+package it.auties.leap.tls.mac;
 
 import it.auties.leap.tls.hash.TlsHashFactory;
-import it.auties.leap.tls.hash.TlsHmac;
 import it.auties.leap.tls.version.TlsVersion;
 
 import java.nio.ByteBuffer;
 import java.util.Arrays;
 import java.util.Optional;
 
-public abstract sealed class TlsExchangeAuthenticator {
+public abstract sealed class TlsExchangeMac {
     private static final int BLOCK_LENGTH = 8;
     private static final byte[] EMPTY_BUFFER = new byte[0];
 
-    public static TlsExchangeAuthenticator of(TlsVersion version, TlsHashFactory hashFactory, byte[] macKey) {
+    public static TlsExchangeMac of(TlsVersion version, TlsHashFactory hashFactory, byte[] macKey) {
         return switch (version) {
             case TLS13 -> new TLS13();
             case TLS12, TLS11, TLS10 -> new TLS10(version, hashFactory == null ? null : TlsHmac.of(hashFactory.newHash()), macKey);
@@ -26,7 +25,7 @@ public abstract sealed class TlsExchangeAuthenticator {
     final byte[] block;
     final boolean dtls;
     final TlsHmac mac;
-    private TlsExchangeAuthenticator(TlsVersion version, TlsHmac hmac, byte[] hmacKey, byte[] block, boolean dtls) {
+    private TlsExchangeMac(TlsVersion version, TlsHmac hmac, byte[] hmacKey, byte[] block, boolean dtls) {
         this.version = version;
         this.block = block;
         this.dtls = dtls;
@@ -101,7 +100,7 @@ public abstract sealed class TlsExchangeAuthenticator {
         }
     }
 
-    private static final class SSL30 extends TlsExchangeAuthenticator {
+    private static final class SSL30 extends TlsExchangeMac {
         private static final int BLOCK_SIZE = 11;
 
         private SSL30(TlsHmac hmac, byte[] hmacKey) {
@@ -122,7 +121,7 @@ public abstract sealed class TlsExchangeAuthenticator {
         }
     }
 
-    private static final class TLS10 extends TlsExchangeAuthenticator {
+    private static final class TLS10 extends TlsExchangeMac {
         private static final int BLOCK_SIZE = 13;
 
         private TLS10(TlsVersion version, TlsHmac hmac, byte[] hmacKey) {
@@ -152,7 +151,7 @@ public abstract sealed class TlsExchangeAuthenticator {
         }
     }
 
-    private static final class TLS13 extends TlsExchangeAuthenticator {
+    private static final class TLS13 extends TlsExchangeMac {
         private static final int BLOCK_SIZE = 13;
 
         private TLS13() {
@@ -175,7 +174,7 @@ public abstract sealed class TlsExchangeAuthenticator {
         }
     }
 
-    private static final class DTLS10 extends TlsExchangeAuthenticator {
+    private static final class DTLS10 extends TlsExchangeMac {
         private static final int BLOCK_SIZE = 13;
 
         private DTLS10(TlsVersion version, TlsHmac hmac, byte[] hmacKey) {
@@ -206,7 +205,7 @@ public abstract sealed class TlsExchangeAuthenticator {
         }
     }
 
-    private static final class DTLS13 extends TlsExchangeAuthenticator {
+    private static final class DTLS13 extends TlsExchangeMac {
         private static final int BLOCK_SIZE = 13;
 
         private DTLS13() {

@@ -1,6 +1,7 @@
 package it.auties.leap.tls.cipher.mode;
 
 import it.auties.leap.tls.cipher.*;
+import it.auties.leap.tls.mac.TlsExchangeMac;
 
 import javax.crypto.Cipher;
 import javax.crypto.SecretKey;
@@ -29,7 +30,7 @@ public final class Poly1305Mode extends TlsCipherMode.Stream {
     private Cipher cipher;
 
     @Override
-    public void init(boolean forEncryption, byte[] key, byte[] fixedIv, TlsExchangeAuthenticator authenticator) {
+    public void init(boolean forEncryption, byte[] key, byte[] fixedIv, TlsExchangeMac authenticator) {
         super.init(forEncryption, key, fixedIv, authenticator);
         try {
             this.mode = engine.forEncryption() ? Cipher.ENCRYPT_MODE : Cipher.DECRYPT_MODE;

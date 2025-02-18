@@ -3,8 +3,6 @@ package it.auties.leap.tls.cipher.exchange;
 import it.auties.leap.tls.cipher.exchange.client.*;
 import it.auties.leap.tls.key.TlsPreMasterSecretGenerator;
 
-import java.security.PublicKey;
-
 public non-sealed abstract class TlsClientKeyExchange extends TlsKeyExchange {
     protected TlsClientKeyExchange(TlsKeyExchangeType type, TlsPreMasterSecretGenerator generator) {
         super(type, generator);
@@ -14,11 +12,11 @@ public non-sealed abstract class TlsClientKeyExchange extends TlsKeyExchange {
         return NoneClientKeyExchange.instance();
     }
 
-    public static TlsClientKeyExchange dh(PublicKey publicKey) {
+    public static TlsClientKeyExchange dh(byte[] publicKey) {
         return new DHClientKeyExchange(TlsKeyExchangeType.STATIC, publicKey);
     }
 
-    public static TlsClientKeyExchange dhe(PublicKey publicKey) {
+    public static TlsClientKeyExchange dhe(byte[] publicKey) {
         return new DHClientKeyExchange(TlsKeyExchangeType.EPHEMERAL, publicKey);
     }
 

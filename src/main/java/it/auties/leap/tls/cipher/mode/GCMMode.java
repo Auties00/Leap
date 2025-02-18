@@ -1,6 +1,7 @@
 package it.auties.leap.tls.cipher.mode;
 
 import it.auties.leap.tls.cipher.*;
+import it.auties.leap.tls.mac.TlsExchangeMac;
 import it.auties.leap.tls.util.BufferUtils;
 import org.bouncycastle.math.raw.Interleave;
 import org.bouncycastle.util.Arrays;
@@ -9,7 +10,7 @@ import org.bouncycastle.util.Longs;
 import java.nio.ByteBuffer;
 
 
-public final class GCMMode extends TlsCipherMode.Block implements TlsCipherMode.AEAD {
+public final class GCMMode extends TlsCipherMode.Block {
     private static final TlsCipherModeFactory FACTORY = GCMMode::new;
 
     private final Tables4kGCMMultiplier multiplier;
@@ -43,7 +44,7 @@ public final class GCMMode extends TlsCipherMode.Block implements TlsCipherMode.
     }
 
     @Override
-    public void init(boolean forEncryption, byte[] key, byte[] fixedIv, TlsExchangeAuthenticator authenticator) {
+    public void init(boolean forEncryption, byte[] key, byte[] fixedIv, TlsExchangeMac authenticator) {
         super.init(forEncryption, key, fixedIv, authenticator);
         engine.init(true, key);
         this.forEncryption = forEncryption;
@@ -64,47 +65,12 @@ public final class GCMMode extends TlsCipherMode.Block implements TlsCipherMode.
         this.totalLength = 0;
     }
 
-    @Override
-    public void updateAAD(ByteBuffer input) {
-        if (atBlockPos > 0) {
-            int available = engine().blockLength() - atBlockPos;
-            if (input.remaining() < available) {
-                for (var i = 0; i < input.remaining(); i++) {
-                    atBlock[atBlockPos++] = input.get();
-                }
-                return;
-            }
-
-            for (var i = 0; i < available; i++) {
-                atBlock[atBlockPos++] = input.get();
-            }
-
-            gHASHBlock(S_at, atBlock);
-            atLength += engine().blockLength();
-        }
-
-        int inOff = input.position();
-        int inLimit = inOff + input.remaining() - engine().blockLength();
-
-        while (inOff <= inLimit) {
-            gHASHBlock(S_at, input.array(), inOff);
-            atLength += engine().blockLength();
-            inOff += engine().blockLength();
-        }
-
-        atBlockPos = engine().blockLength() + inLimit - inOff;
-        System.arraycopy(input.array(), inOff, atBlock, 0, atBlockPos);
-    }
-
-    public void processAADBytes(byte[] in, int inOff, int len)
-    {
+    public void processAADBytes(byte[] in, int inOff, int len) {
         var BLOCK_SIZE = engine().blockLength();
 
-        if (atBlockPos > 0)
-        {
+        if (atBlockPos > 0) {
             int available = BLOCK_SIZE - atBlockPos;
-            if (len < available)
-            {
+            if (len < available) {
                 System.arraycopy(in, inOff, atBlock, atBlockPos, len);
                 atBlockPos += len;
                 return;
@@ -120,8 +86,7 @@ public final class GCMMode extends TlsCipherMode.Block implements TlsCipherMode.
 
         int inLimit = inOff + len - BLOCK_SIZE;
 
-        while (inOff <= inLimit)
-        {
+        while (inOff <= inLimit) {
             gHASHBlock(S_at, in, inOff);
             atLength += BLOCK_SIZE;
             inOff += BLOCK_SIZE;
@@ -160,48 +125,26 @@ public final class GCMMode extends TlsCipherMode.Block implements TlsCipherMode.
         output.limit(output.position() + (forEncryption ? ivLength.dynamic() : 0) + resultLen);
     }
 
-    public int doFinal(byte[] out, int outOff)
-    {
+    public int doFinal(byte[] out, int outOff) {
         var macSize = tagLength();
         var BLOCK_SIZE = engine().blockLength();
 
-        if (totalLength == 0)
-        {
+        if (totalLength == 0) {
             initCipher();
         }
 
         int extra = bufOff;
-
-        if (forEncryption)
-        {
-            if ((out.length - outOff) < (extra + macSize))
-            {
-                throw new RuntimeException("Output buffer too short");
-            }
-        }
-        else
-        {
-            if (extra < macSize)
-            {
-                throw new RuntimeException("data too short");
-            }
+        if (!forEncryption) {
             extra -= macSize;
-
-            if ((out.length - outOff) < extra)
-            {
-                throw new RuntimeException("Output buffer too short");
-            }
         }
 
-        if (extra > 0)
-        {
+        if (extra > 0) {
             processPartial(bufBlock, 0, extra, out, outOff);
         }
 
         atLength += atBlockPos;
 
-        if (atLength > atLengthPre)
-        {
+        if (atLength > atLengthPre) {
             /*
              *  Some AAD was sent after the cipher started. We determine the difference b/w the hash value
              *  we actually used when the cipher started (S_atPre) and the final hash value calculated (S_at).
@@ -210,14 +153,12 @@ public final class GCMMode extends TlsCipherMode.Block implements TlsCipherMode.
              */
 
             // Finish hash for partial AAD block
-            if (atBlockPos > 0)
-            {
+            if (atBlockPos > 0) {
                 gHASHPartial(S_at, atBlock, 0, atBlockPos);
             }
 
             // Find the difference between the AAD hashes
-            if (atLengthPre > 0)
-            {
+            if (atLengthPre > 0) {
                 GCMUtil.xor(S_at, S_atPre);
             }
 
@@ -226,8 +167,7 @@ public final class GCMMode extends TlsCipherMode.Block implements TlsCipherMode.
 
             // Calculate the adjustment factor
             byte[] H_c = new byte[16];
-            if (exp == null)
-            {
+            if (exp == null) {
                 exp = new BasicGCMExponentiator();
                 exp.init(H);
             }
@@ -258,19 +198,15 @@ public final class GCMMode extends TlsCipherMode.Block implements TlsCipherMode.
         this.macBlock = new byte[macSize];
         System.arraycopy(tag, 0, macBlock, 0, macSize);
 
-        if (forEncryption)
-        {
+        if (forEncryption) {
             // Append T to the message
             System.arraycopy(macBlock, 0, out, outOff + bufOff, macSize);
             resultLen += macSize;
-        }
-        else
-        {
+        } else {
             // Retrieve the T value from the message and compare to calculated one
             byte[] msgMac = new byte[macSize];
             System.arraycopy(bufBlock, extra, msgMac, 0, macSize);
-            if (!Arrays.constantTimeAreEqual(this.macBlock, msgMac))
-            {
+            if (!Arrays.constantTimeAreEqual(this.macBlock, msgMac)) {
                 throw new RuntimeException("mac check in GCM failed");
             }
         }
@@ -280,18 +216,14 @@ public final class GCMMode extends TlsCipherMode.Block implements TlsCipherMode.
         return resultLen;
     }
 
-    public int processBytes(byte[] in, int inOff, int len, byte[] out, int outOff)
-    {
+    public int processBytes(byte[] in, int inOff, int len, byte[] out, int outOff) {
         int resultLen = 0;
         var BLOCK_SIZE = engine().blockLength();
 
-        if (forEncryption)
-        {
-            if (bufOff > 0)
-            {
+        if (forEncryption) {
+            if (bufOff > 0) {
                 int available = BLOCK_SIZE - bufOff;
-                if (len < available)
-                {
+                if (len < available) {
                     System.arraycopy(in, inOff, bufBlock, bufOff, len);
                     bufOff += len;
                     return 0;
@@ -307,8 +239,7 @@ public final class GCMMode extends TlsCipherMode.Block implements TlsCipherMode.
 
             int inLimit = inOff + len - BLOCK_SIZE;
 
-            while (inOff <= inLimit)
-            {
+            while (inOff <= inLimit) {
                 encryptBlock(in, inOff, out, outOff + resultLen);
                 inOff += BLOCK_SIZE;
                 resultLen += BLOCK_SIZE;
@@ -316,26 +247,21 @@ public final class GCMMode extends TlsCipherMode.Block implements TlsCipherMode.
 
             bufOff = BLOCK_SIZE + inLimit - inOff;
             System.arraycopy(in, inOff, bufBlock, 0, bufOff);
-        }
-        else
-        {
+        } else {
             int available = bufBlock.length - bufOff;
-            if (len < available)
-            {
+            if (len < available) {
                 System.arraycopy(in, inOff, bufBlock, bufOff, len);
                 bufOff += len;
                 return 0;
             }
 
-            if (bufOff >= BLOCK_SIZE)
-            {
+            if (bufOff >= BLOCK_SIZE) {
                 decryptBlock(bufBlock, 0, out, outOff);
                 System.arraycopy(bufBlock, BLOCK_SIZE, bufBlock, 0, bufOff -= BLOCK_SIZE);
                 resultLen = BLOCK_SIZE;
 
                 available += BLOCK_SIZE;
-                if (len < available)
-                {
+                if (len < available) {
                     System.arraycopy(in, inOff, bufBlock, bufOff, len);
                     bufOff += len;
                     return resultLen;
@@ -351,8 +277,7 @@ public final class GCMMode extends TlsCipherMode.Block implements TlsCipherMode.
             resultLen += BLOCK_SIZE;
             //bufOff = 0;
 
-            while (inOff <= inLimit)
-            {
+            while (inOff <= inLimit) {
                 decryptBlock(in, inOff, out, outOff + resultLen);
                 inOff += BLOCK_SIZE;
                 resultLen += BLOCK_SIZE;
@@ -410,14 +335,11 @@ public final class GCMMode extends TlsCipherMode.Block implements TlsCipherMode.
         }
     }
 
-    private void decryptBlock(byte[] buf, int bufOff, byte[] out, int outOff)
-    {
-        if ((out.length - outOff) < engine().blockLength())
-        {
+    private void decryptBlock(byte[] buf, int bufOff, byte[] out, int outOff) {
+        if ((out.length - outOff) < engine().blockLength()) {
             throw new RuntimeException("Output buffer too short");
         }
-        if (totalLength == 0)
-        {
+        if (totalLength == 0) {
             initCipher();
         }
 
@@ -430,14 +352,11 @@ public final class GCMMode extends TlsCipherMode.Block implements TlsCipherMode.
         totalLength += engine().blockLength();
     }
 
-    private void encryptBlock(byte[] buf, int bufOff, byte[] out, int outOff)
-    {
-        if ((out.length - outOff) < engine().blockLength())
-        {
+    private void encryptBlock(byte[] buf, int bufOff, byte[] out, int outOff) {
+        if ((out.length - outOff) < engine().blockLength()) {
             throw new RuntimeException("Output buffer too short");
         }
-        if (totalLength == 0)
-        {
+        if (totalLength == 0) {
             initCipher();
         }
 
@@ -451,18 +370,14 @@ public final class GCMMode extends TlsCipherMode.Block implements TlsCipherMode.
         totalLength += engine().blockLength();
     }
 
-    private void processPartial(byte[] buf, int off, int len, byte[] out, int outOff)
-    {
+    private void processPartial(byte[] buf, int off, int len, byte[] out, int outOff) {
         byte[] ctrBlock = new byte[engine().blockLength()];
         getNextCTRBlock(ctrBlock);
 
-        if (forEncryption)
-        {
+        if (forEncryption) {
             GCMUtil.xor(buf, off, ctrBlock, 0, len);
             gHASHPartial(S, buf, off, len);
-        }
-        else
-        {
+        } else {
             gHASHPartial(S, buf, off, len);
             GCMUtil.xor(buf, off, ctrBlock, 0, len);
         }
@@ -615,7 +530,7 @@ public final class GCMMode extends TlsCipherMode.Block implements TlsCipherMode.
         }
 
         public static void asBytes(long[] x, byte[] z) {
-            for(int i = 0; i < SIZE_LONGS; ++i) {
+            for (int i = 0; i < SIZE_LONGS; ++i) {
                 BufferUtils.writeBigEndianInt64(x[i], z, i * 8);
             }
         }
@@ -627,7 +542,7 @@ public final class GCMMode extends TlsCipherMode.Block implements TlsCipherMode.
         }
 
         public static void asLongs(byte[] x, long[] z) {
-            for(int i = 0; i < SIZE_LONGS; ++i) {
+            for (int i = 0; i < SIZE_LONGS; ++i) {
                 z[i] = BufferUtils.readBigEndianInt64(x, i * 8);
             }
         }
@@ -754,8 +669,7 @@ public final class GCMMode extends TlsCipherMode.Block implements TlsCipherMode.
                 ++i;
                 x[i] ^= y[i];
                 ++i;
-            }
-            while (i < SIZE_BYTES);
+            } while (i < SIZE_BYTES);
         }
 
         public static void xor(byte[] x, byte[] y, int yOff) {
@@ -769,8 +683,7 @@ public final class GCMMode extends TlsCipherMode.Block implements TlsCipherMode.
                 ++i;
                 x[i] ^= y[yOff + i];
                 ++i;
-            }
-            while (i < SIZE_BYTES);
+            } while (i < SIZE_BYTES);
         }
 
         public static void xor(byte[] x, int xOff, byte[] y, int yOff, byte[] z, int zOff) {
@@ -784,8 +697,7 @@ public final class GCMMode extends TlsCipherMode.Block implements TlsCipherMode.
                 ++i;
                 z[zOff + i] = (byte) (x[xOff + i] ^ y[yOff + i]);
                 ++i;
-            }
-            while (i < SIZE_BYTES);
+            } while (i < SIZE_BYTES);
         }
 
         public static void xor(byte[] x, byte[] y, int yOff, int yLen) {

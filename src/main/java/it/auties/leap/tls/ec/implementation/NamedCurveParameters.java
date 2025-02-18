@@ -4,7 +4,7 @@ import it.auties.leap.tls.TlsContext;
 import it.auties.leap.tls.ec.TlsECParameters;
 import it.auties.leap.tls.ec.TlsECParametersDeserializer;
 import it.auties.leap.tls.exception.TlsException;
-import it.auties.leap.tls.key.TlsSupportedGroup;
+import it.auties.leap.tls.key.TlsSupportedCurve;
 
 import java.nio.ByteBuffer;
 
@@ -45,11 +45,12 @@ public final class NamedCurveParameters implements TlsECParameters {
     }
 
     @Override
-    public TlsSupportedGroup toGroup(TlsContext context) {
-        return context.supportedGroups()
+    public TlsSupportedCurve toGroup(TlsContext context) {
+        return context.localSupportedGroups()
                 .stream()
-                .filter(entry -> entry.id() == namedGroup)
+                .filter(entry -> entry instanceof TlsSupportedCurve && entry.id() == namedGroup)
                 .findFirst()
+                .map(entry -> (TlsSupportedCurve) entry)
                 .orElseThrow(() -> new TlsException("No supported group matches the id " + namedGroup));
     }
 }

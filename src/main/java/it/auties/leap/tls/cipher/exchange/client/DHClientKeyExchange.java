@@ -4,13 +4,16 @@ import it.auties.leap.tls.cipher.exchange.TlsClientKeyExchange;
 import it.auties.leap.tls.cipher.exchange.TlsKeyExchangeType;
 import it.auties.leap.tls.exception.TlsException;
 import it.auties.leap.tls.key.TlsPreMasterSecretGenerator;
+import it.auties.leap.tls.util.KeyUtils;
 
 import javax.crypto.interfaces.DHPublicKey;
+import javax.crypto.spec.DHPublicKeySpec;
+import java.math.BigInteger;
 import java.nio.ByteBuffer;
-import java.security.PublicKey;
+import java.security.GeneralSecurityException;
+import java.security.KeyFactory;
 
 import static it.auties.leap.tls.util.BufferUtils.*;
-import static it.auties.leap.tls.util.KeyUtils.toUnsignedLittleEndianBytes;
 
 // This structure conveys the client's Diffie-Hellman public value
 //       (Yc) if it was not already included in the client's certificate.
@@ -18,33 +21,48 @@ import static it.auties.leap.tls.util.KeyUtils.toUnsignedLittleEndianBytes;
 //       PublicValueEncoding. This structure is a variant of the client
 //       key exchange message, not a message in itself.
 public final class DHClientKeyExchange extends TlsClientKeyExchange {
-    private final byte[] y;
+    private final byte[] publicKey;
+    private DHPublicKey parsedPublicKey;
 
-    public DHClientKeyExchange(TlsKeyExchangeType type, PublicKey publicKey) {
-        if(!(publicKey instanceof DHPublicKey dhPublicKey)) {
-            throw new TlsException("Invalid DH public key");
-        }
-
+    public DHClientKeyExchange(TlsKeyExchangeType type, byte[] publicKey) {
         super(type, TlsPreMasterSecretGenerator.dh());
-        this.y = toUnsignedLittleEndianBytes(dhPublicKey.getY());
+        this.publicKey = publicKey;
     }
 
     public DHClientKeyExchange(TlsKeyExchangeType type, ByteBuffer buffer) {
         super(type, TlsPreMasterSecretGenerator.dh());
-        this.y = readBytesBigEndian8(buffer);
+        this.publicKey = readBytesBigEndian16(buffer);
     }
 
     @Override
     public void serialize(ByteBuffer buffer) {
-        writeBytesBigEndian8(buffer, y);
+        writeBytesBigEndian16(buffer, publicKey);
     }
 
     @Override
     public int length() {
-        return INT8_LENGTH + y.length;
+        return INT16_LENGTH + publicKey.length;
     }
 
-    public byte[] y() {
-        return y;
+    public byte[] publicKey() {
+        return publicKey;
+    }
+
+    public DHPublicKey getOrParsePublicKey(BigInteger p, BigInteger g) {
+        if(parsedPublicKey != null) {
+            return parsedPublicKey;
+        }
+
+        try {
+            var keyFactory = KeyFactory.getInstance("DH");
+            var dhPubKeySpecs = new DHPublicKeySpec(
+                    KeyUtils.fromUnsignedLittleEndianBytes(publicKey),
+                    p,
+                    g
+            );
+            return parsedPublicKey = (DHPublicKey) keyFactory.generatePublic(dhPubKeySpecs);
+        }catch (GeneralSecurityException exception) {
+            throw new TlsException("Cannot parse DH key", exception);
+        }
     }
 }

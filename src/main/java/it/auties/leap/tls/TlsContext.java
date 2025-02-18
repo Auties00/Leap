@@ -3,7 +3,7 @@ package it.auties.leap.tls;
 import it.auties.leap.tls.certificate.TlsClientCertificateType;
 import it.auties.leap.tls.cipher.TlsCipher;
 import it.auties.leap.tls.cipher.TlsCipherMode;
-import it.auties.leap.tls.cipher.TlsExchangeAuthenticator;
+import it.auties.leap.tls.mac.TlsExchangeMac;
 import it.auties.leap.tls.cipher.exchange.TlsKeyExchange;
 import it.auties.leap.tls.cipher.exchange.TlsKeyExchangeType;
 import it.auties.leap.tls.compression.TlsCompression;
@@ -56,8 +56,8 @@ public class TlsContext {
     private volatile TlsCipherMode remoteCipher;
     private volatile TlsMasterSecretKey localMasterSecretKey;
 
-    private volatile TlsExchangeAuthenticator localAuthenticator;
-    private volatile TlsExchangeAuthenticator remoteAuthenticator;
+    private volatile TlsExchangeMac localAuthenticator;
+    private volatile TlsExchangeMac remoteAuthenticator;
 
     private volatile List<TlsClientCertificateType> remoteCertificateTypes;
     private volatile List<TlsSignature> remoteCertificateAlgorithms;
@@ -72,7 +72,9 @@ public class TlsContext {
 
     private volatile TlsCookie dtlsCookie;
 
-    private volatile List<TlsSupportedGroup> supportedGroups;
+    private volatile List<TlsSupportedGroup> localSupportedGroups;
+    private volatile TlsSupportedCurve localPreferredEllipticCurve;
+    private volatile TlsSupportedFiniteField localPreferredFiniteField;
     private volatile boolean extendedMasterSecret;
     
     private final Queue<ByteBuffer> bufferedMessages;
@@ -93,7 +95,7 @@ public class TlsContext {
             case TCP -> null;
             case UDP -> TlsCookie.empty();
         };
-        this.supportedGroups = List.of();
+        this.localSupportedGroups = List.of();
         this.messageDigestBuffer = new ByteArrayOutputStream(); // TODO: Calculate optimal space
         this.bufferedMessages = new LinkedList<>();
     }
@@ -293,8 +295,32 @@ public class TlsContext {
         return Optional.ofNullable(dtlsCookie);
     }
 
-    public void setSupportedGroups(List<TlsSupportedGroup> supportedGroups) {
-        this.supportedGroups = supportedGroups;
+    public void setLocalSupportedGroups(List<TlsSupportedGroup> localSupportedGroups) {
+        this.localSupportedGroups = localSupportedGroups;
+        TlsSupportedCurve curve = null;
+        TlsSupportedFiniteField field = null;
+        lookup: {
+            for(var group : localSupportedGroups) {
+                switch (group) {
+                    case TlsSupportedCurve currentCurve -> {
+                        if (curve == null) {
+                            curve = currentCurve;
+                        }else if(field != null) {
+                            break lookup;
+                        }
+                    }
+                    case TlsSupportedFiniteField currentField -> {
+                        if (field == null) {
+                            field = currentField;
+                        }else if(curve != null) {
+                            break lookup;
+                        }
+                    }
+                }
+            }
+        }
+        localPreferredEllipticCurve = curve;
+        localPreferredFiniteField = field;
     }
 
     public void enableExtendedMasterSecret() {
@@ -519,14 +545,16 @@ public class TlsContext {
 
         this.localCipher = localCipherMode;
         this.remoteCipher = remoteCipherMode;
-        
-        var macLength = localCipher instanceof TlsCipherMode.AEAD ? 0 : negotiatedCipher.hashFactory().length();
+
+        // If I understand correctly the MAC isn't used for AEAD ciphers as the cipher concatenates the tag to the message
+
+        var macLength = localCipher.isAEAD() ? 0 : negotiatedCipher.hashFactory().length();
         var expandedKeyLength = localCipherEngine.exportedKeyLength();
         var keyLength = localCipherEngine.keyLength();
 
         var ivLength = switch (localCipher) {
             case TlsCipherMode.Block block -> {
-                if (block instanceof TlsCipherMode.AEAD) {
+                if (block.isAEAD()) {
                     yield localCipher.ivLength().fixed();
                 }
 
@@ -554,12 +582,12 @@ public class TlsContext {
             case SERVER -> clientMacKey;
         };
 
-        var localAuthenticator = TlsExchangeAuthenticator.of(
+        var localAuthenticator = TlsExchangeMac.of(
                 localConfig.version(),
                 localMacKey == null ? null : negotiatedCipher.hashFactory(),
                 localMacKey
         );
-        var remoteAuthenticator = TlsExchangeAuthenticator.of(
+        var remoteAuthenticator = TlsExchangeMac.of(
                 localConfig.version(),
                 remoteMacKey == null ? null : negotiatedCipher.hashFactory(),
                 remoteMacKey
@@ -762,7 +790,15 @@ public class TlsContext {
         this.localKeyPair = keyPair;
     }
 
-    public List<TlsSupportedGroup> supportedGroups() {
-        return supportedGroups;
+    public Optional<TlsSupportedFiniteField> localPreferredFiniteField() {
+        return Optional.ofNullable(localPreferredFiniteField);
+    }
+
+    public Optional<TlsSupportedCurve> localPreferredEllipticCurve() {
+        return Optional.ofNullable(localPreferredEllipticCurve);
+    }
+
+    public List<TlsSupportedGroup> localSupportedGroups() {
+        return localSupportedGroups;
     }
 }

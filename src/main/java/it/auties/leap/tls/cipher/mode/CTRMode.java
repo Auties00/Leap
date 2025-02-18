@@ -3,6 +3,7 @@ package it.auties.leap.tls.cipher.mode;
 import it.auties.leap.tls.cipher.*;
 import it.auties.leap.tls.cipher.engine.MagmaEngine;
 import it.auties.leap.tls.exception.TlsException;
+import it.auties.leap.tls.mac.TlsExchangeMac;
 
 import java.nio.ByteBuffer;
 
@@ -18,7 +19,7 @@ public final class CTRMode extends TlsCipherMode.Block {
     }
 
     @Override
-    public void init(boolean forEncryption, byte[] key, byte[] fixedIv, TlsExchangeAuthenticator authenticator) {
+    public void init(boolean forEncryption, byte[] key, byte[] fixedIv, TlsExchangeMac authenticator) {
         if(!(engine instanceof MagmaEngine)) {
             throw new TlsException("CTR mode is supported only by Magma engines");
         }

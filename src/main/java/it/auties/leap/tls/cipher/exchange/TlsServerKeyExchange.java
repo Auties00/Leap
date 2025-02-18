@@ -4,8 +4,6 @@ import it.auties.leap.tls.cipher.exchange.server.*;
 import it.auties.leap.tls.ec.TlsECParameters;
 import it.auties.leap.tls.key.TlsPreMasterSecretGenerator;
 
-import java.security.PublicKey;
-
 public non-sealed abstract class TlsServerKeyExchange extends TlsKeyExchange {
     protected TlsServerKeyExchange(TlsKeyExchangeType type, TlsPreMasterSecretGenerator generator) {
         super(type, generator);
@@ -15,12 +13,12 @@ public non-sealed abstract class TlsServerKeyExchange extends TlsKeyExchange {
         return NoneServerKeyExchange.instance();
     }
 
-    public static TlsServerKeyExchange dh(PublicKey publicKey) {
-        return new DHServerKeyExchange(TlsKeyExchangeType.STATIC, publicKey);
+    public static TlsServerKeyExchange dh(byte[] p, byte[] g, byte[] publicKey) {
+        return new DHServerKeyExchange(TlsKeyExchangeType.STATIC, p, g, publicKey);
     }
 
-    public static TlsServerKeyExchange dhe(PublicKey publicKey) {
-        return new DHServerKeyExchange(TlsKeyExchangeType.EPHEMERAL, publicKey);
+    public static TlsServerKeyExchange dhe(byte[] p, byte[] g, byte[] publicKey) {
+        return new DHServerKeyExchange(TlsKeyExchangeType.EPHEMERAL, p, g, publicKey);
     }
 
     public static TlsServerKeyExchange eccpwd(byte[] salt, TlsECParameters params, byte[] publicKey, byte[] password) {

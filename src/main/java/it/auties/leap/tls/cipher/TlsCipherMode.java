@@ -2,7 +2,8 @@ package it.auties.leap.tls.cipher;
 
 import it.auties.leap.tls.cipher.mode.*;
 import it.auties.leap.tls.exception.TlsException;
-import it.auties.leap.tls.hash.TlsHmac;
+import it.auties.leap.tls.mac.TlsExchangeMac;
+import it.auties.leap.tls.mac.TlsHmac;
 
 import java.nio.ByteBuffer;
 
@@ -48,7 +49,7 @@ public sealed abstract class TlsCipherMode {
     }
 
     protected final TlsCipherEngine engine;
-    protected TlsExchangeAuthenticator authenticator;
+    protected TlsExchangeMac authenticator;
     protected byte[] fixedIv;
     protected boolean initialized;
 
@@ -57,7 +58,7 @@ public sealed abstract class TlsCipherMode {
     }
 
     @SuppressWarnings("unused")
-    public void init(boolean forEncryption, byte[] key, byte[] fixedIv, TlsExchangeAuthenticator authenticator) {
+    public void init(boolean forEncryption, byte[] key, byte[] fixedIv, TlsExchangeMac authenticator) {
         if(engine != null && engine.isInitialized()) {
             throw new TlsException("Engine already initialized");
         }
@@ -80,6 +81,10 @@ public sealed abstract class TlsCipherMode {
     public abstract TlsCipherIV ivLength();
 
     public abstract int tagLength();
+
+    public boolean isAEAD() {
+        return tagLength() != 0;
+    }
 
     public boolean isInitialized() {
         return initialized;
@@ -206,9 +211,5 @@ public sealed abstract class TlsCipherMode {
         public TlsCipherEngine.Stream engine() {
             return (TlsCipherEngine.Stream) engine;
         }
-    }
-
-    public interface AEAD {
-        void updateAAD(ByteBuffer input);
     }
 }

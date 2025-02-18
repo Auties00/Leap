@@ -5,6 +5,7 @@ import it.auties.leap.tls.cipher.exchange.TlsServerKeyExchange;
 import it.auties.leap.tls.ec.TlsECParameters;
 import it.auties.leap.tls.exception.TlsException;
 import it.auties.leap.tls.key.TlsPreMasterSecretGenerator;
+import it.auties.leap.tls.key.TlsSupportedCurve;
 import it.auties.leap.tls.key.TlsSupportedGroup;
 
 import java.nio.ByteBuffer;
@@ -31,10 +32,11 @@ public class ECDHServerKeyExchange extends TlsServerKeyExchange {
     private TlsECParameters decodeParams(ByteBuffer buffer, List<TlsSupportedGroup> supportedGroups) {
         var ecType = readBigEndianInt8(buffer);
         for(var supportedGroup : supportedGroups) {
-            var decoder = supportedGroup.ellipticCurveParametersDeserializer()
-                    .orElse(null);
-            if(decoder != null && decoder.type() == ecType) {
-                return decoder.deserialize(buffer);
+            if(supportedGroup instanceof TlsSupportedCurve ec) {
+                var decoder = ec.parametersDeserializer();
+                if (decoder.type() == ecType) {
+                    return decoder.deserialize(buffer);
+                }
             }
         }
         throw new TlsException("Cannot decode parameters, no decoder for ec curve type: " + ecType);

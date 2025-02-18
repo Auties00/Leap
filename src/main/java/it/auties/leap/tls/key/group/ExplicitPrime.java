@@ -1,16 +1,14 @@
-package it.auties.leap.tls.key.groups;
+package it.auties.leap.tls.key.group;
 
 import it.auties.leap.tls.TlsContext;
 import it.auties.leap.tls.ec.TlsECParameters;
 import it.auties.leap.tls.ec.TlsECParametersDeserializer;
 import it.auties.leap.tls.ec.implementation.ExplicitPrimeParameters;
-import it.auties.leap.tls.key.TlsSupportedGroup;
+import it.auties.leap.tls.key.TlsSupportedCurve;
 
 import java.security.KeyPair;
-import java.security.PublicKey;
-import java.util.Optional;
 
-public final class ExplicitPrime implements TlsSupportedGroup {
+public final class ExplicitPrime implements TlsSupportedCurve {
     private final ExplicitPrimeParameters parameters;
 
     public ExplicitPrime(ExplicitPrimeParameters parameters) {
@@ -28,13 +26,13 @@ public final class ExplicitPrime implements TlsSupportedGroup {
     }
 
     @Override
-    public Optional<TlsECParameters> toEllipticCurveParameters() {
-        return Optional.of(parameters);
+    public TlsECParameters toParameters() {
+        return parameters;
     }
 
     @Override
-    public Optional<TlsECParametersDeserializer> ellipticCurveParametersDeserializer() {
-        return Optional.of(TlsECParametersDeserializer.explicitPrime());
+    public TlsECParametersDeserializer parametersDeserializer() {
+        return TlsECParametersDeserializer.explicitPrime();
     }
 
     @Override
@@ -44,11 +42,6 @@ public final class ExplicitPrime implements TlsSupportedGroup {
 
     @Override
     public byte[] dumpLocalPublicKey(TlsContext context) {
-        throw new UnsupportedOperationException();
-    }
-
-    @Override
-    public PublicKey parseRemotePublicKey(TlsContext context) {
         throw new UnsupportedOperationException();
     }
 

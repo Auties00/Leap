@@ -27,20 +27,6 @@ public class NoneKeyExchangeFactory implements TlsKeyExchangeFactory {
     }
 
     @Override
-    public TlsKeyExchange newRemoteKeyExchange(TlsContext context) {
-        return getServer(context);
-    }
-
-    @Override
-    public TlsKeyExchange decodeLocalKeyExchange(TlsContext context, ByteBuffer buffer) {
-        if(buffer.hasRemaining()) {
-            throw new TlsException("Expected empty buffer");
-        }
-
-        return getClient(context);
-    }
-
-    @Override
     public TlsKeyExchange decodeRemoteKeyExchange(TlsContext context, ByteBuffer buffer) {
         if(buffer.hasRemaining()) {
             throw new TlsException("Expected empty buffer");

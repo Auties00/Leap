@@ -1,6 +1,7 @@
 package it.auties.leap.tls.cipher.mode;
 
 import it.auties.leap.tls.cipher.*;
+import it.auties.leap.tls.mac.TlsExchangeMac;
 
 import java.nio.ByteBuffer;
 
@@ -16,7 +17,7 @@ public final class MGMLightMode extends TlsCipherMode.Block {
     }
 
     @Override
-    public void init(boolean forEncryption, byte[] key, byte[] fixedIv, TlsExchangeAuthenticator authenticator) {
+    public void init(boolean forEncryption, byte[] key, byte[] fixedIv, TlsExchangeMac authenticator) {
         super.init(forEncryption, key, fixedIv, authenticator);
     }
 

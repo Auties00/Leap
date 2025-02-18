@@ -4,7 +4,7 @@ import it.auties.leap.tls.TlsContext;
 import it.auties.leap.tls.ec.TlsECParameters;
 import it.auties.leap.tls.ec.TlsECParametersDeserializer;
 import it.auties.leap.tls.exception.TlsException;
-import it.auties.leap.tls.key.TlsSupportedGroup;
+import it.auties.leap.tls.key.TlsSupportedCurve;
 
 import java.math.BigInteger;
 import java.nio.ByteBuffer;
@@ -128,7 +128,7 @@ public final class ExplicitChar2Parameters implements TlsECParameters {
     }
 
     @Override
-    public TlsSupportedGroup toGroup(TlsContext context) {
-        return TlsSupportedGroup.explicitChar2(this);
+    public TlsSupportedCurve toGroup(TlsContext context) {
+        return TlsSupportedCurve.explicitChar2(this);
     }
 }

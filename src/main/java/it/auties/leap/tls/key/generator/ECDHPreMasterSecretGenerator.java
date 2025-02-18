@@ -1,6 +1,8 @@
 package it.auties.leap.tls.key.generator;
 
 import it.auties.leap.tls.TlsContext;
+import it.auties.leap.tls.cipher.exchange.server.ECDHServerKeyExchange;
+import it.auties.leap.tls.exception.TlsException;
 import it.auties.leap.tls.key.TlsPreMasterSecretGenerator;
 
 public final class ECDHPreMasterSecretGenerator implements TlsPreMasterSecretGenerator {
@@ -15,8 +17,28 @@ public final class ECDHPreMasterSecretGenerator implements TlsPreMasterSecretGen
     
     @Override
     public byte[] generatePreMasterSecret(TlsContext context) {
-        return context.supportedGroups()
-                .getFirst()
+        var mode = context.selectedMode()
+                .orElseThrow(() -> new TlsException("No mode was selected yet"));
+        var serverKeyExchange = switch (mode) {
+            case CLIENT -> {
+                var remoteKeyExchange = context.remoteKeyExchange()
+                        .orElseThrow(() -> new TlsException("Missing remote key exchange"));
+                if(!(remoteKeyExchange instanceof ECDHServerKeyExchange that)) {
+                    throw new TlsException("Unsupported key");
+                }
+                yield that;
+            }
+            case SERVER -> {
+                var localKeyExchange = context.localKeyExchange()
+                        .orElseThrow(() -> new TlsException("Missing local key exchange"));
+                if(!(localKeyExchange instanceof ECDHServerKeyExchange that)) {
+                    throw new TlsException("Unsupported key");
+                }
+                yield that;
+            }
+        };
+        return serverKeyExchange.parameters()
+                .toGroup(context)
                 .computeSharedSecret(context);
     }
 }

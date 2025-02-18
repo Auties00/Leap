@@ -3,7 +3,7 @@ package it.auties.leap.tls.ec.implementation;
 import it.auties.leap.tls.TlsContext;
 import it.auties.leap.tls.ec.TlsECParameters;
 import it.auties.leap.tls.ec.TlsECParametersDeserializer;
-import it.auties.leap.tls.key.TlsSupportedGroup;
+import it.auties.leap.tls.key.TlsSupportedCurve;
 
 import java.nio.ByteBuffer;
 
@@ -69,7 +69,7 @@ public final class ExplicitPrimeParameters implements TlsECParameters {
     }
 
     @Override
-    public TlsSupportedGroup toGroup(TlsContext context) {
-        return TlsSupportedGroup.explicitPrime(this);
+    public TlsSupportedCurve toGroup(TlsContext context) {
+        return TlsSupportedCurve.explicitPrime(this);
     }
 }

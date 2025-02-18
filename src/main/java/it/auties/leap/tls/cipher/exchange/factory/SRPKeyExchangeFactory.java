@@ -24,16 +24,6 @@ public class SRPKeyExchangeFactory implements TlsKeyExchangeFactory {
     }
 
     @Override
-    public TlsKeyExchange newRemoteKeyExchange(TlsContext context) {
-        throw new UnsupportedOperationException();
-    }
-
-    @Override
-    public TlsKeyExchange decodeLocalKeyExchange(TlsContext context, ByteBuffer buffer) {
-        throw new UnsupportedOperationException();
-    }
-
-    @Override
     public TlsKeyExchange decodeRemoteKeyExchange(TlsContext context, ByteBuffer buffer) {
         throw new UnsupportedOperationException();
     }
