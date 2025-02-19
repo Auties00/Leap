@@ -1,10 +1,10 @@
 package it.auties.leap.tls.ec;
 
-import it.auties.leap.tls.TlsContext;
+import it.auties.leap.tls.context.TlsContext;
 import it.auties.leap.tls.ec.implementation.ExplicitChar2Parameters;
 import it.auties.leap.tls.ec.implementation.ExplicitPrimeParameters;
 import it.auties.leap.tls.ec.implementation.NamedCurveParameters;
-import it.auties.leap.tls.key.TlsSupportedCurve;
+import it.auties.leap.tls.group.TlsSupportedCurve;
 
 import java.nio.ByteBuffer;
 

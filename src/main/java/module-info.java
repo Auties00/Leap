@@ -20,14 +20,23 @@ module it.auties.leap {
     exports it.auties.leap.tls.exception;
     exports it.auties.leap.tls.extension;
     exports it.auties.leap.tls.hash;
-    exports it.auties.leap.tls.key;
+    exports it.auties.leap.tls.random;
     exports it.auties.leap.tls.signature;
     exports it.auties.leap.tls.compression;
     exports it.auties.leap.tls.util;
-    exports it.auties.leap.tls;
     exports it.auties.leap.tls.ec;
     exports it.auties.leap.tls.psk;
     exports it.auties.leap.tls.cipher.exchange.client;
     exports it.auties.leap.tls.cipher.exchange.server;
     exports it.auties.leap.tls.mac;
+    exports it.auties.leap.tls.group;
+    exports it.auties.leap.tls.secret;
+    exports it.auties.leap.tls.context;
+    exports it.auties.leap.tls.cipher.auth;
+    exports it.auties.leap.tls.cipher.engine.implementation;
+    exports it.auties.leap.tls.cipher.exchange.client.implementation;
+    exports it.auties.leap.tls.cipher.exchange.factory;
+    exports it.auties.leap.tls.cipher.exchange.factory.implementation;
+    exports it.auties.leap.tls.cipher.exchange.server.implementation;
+    exports it.auties.leap.tls.cipher.mode.implementation;
 }

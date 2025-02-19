@@ -1,10 +1,10 @@
 package it.auties.leap.tls.extension;
 
-import it.auties.leap.tls.TlsContext;
+import it.auties.leap.tls.context.TlsContext;
 import it.auties.leap.tls.extension.implementation.*;
 import it.auties.leap.tls.ec.TlsECPointFormat;
 import it.auties.leap.tls.psk.TlsPSKExchangeMode;
-import it.auties.leap.tls.key.TlsSupportedGroup;
+import it.auties.leap.tls.group.TlsSupportedGroup;
 import it.auties.leap.tls.signature.TlsSignature;
 import it.auties.leap.tls.version.TlsVersion;
 import it.auties.leap.tls.version.TlsVersionId;

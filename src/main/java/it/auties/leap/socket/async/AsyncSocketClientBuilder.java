@@ -2,7 +2,7 @@ package it.auties.leap.socket.async;
 
 import it.auties.leap.socket.SocketClientBuilder;
 import it.auties.leap.socket.SocketProtocol;
-import it.auties.leap.tls.TlsConfig;
+import it.auties.leap.tls.context.TlsConfig;
 
 import java.net.URI;
 import java.util.Objects;

@@ -1,7 +1,7 @@
 package it.auties.leap.tls.certificate.implementation;
 
 import it.auties.leap.tls.certificate.TlsCertificatesHandler;
-import it.auties.leap.tls.TlsSource;
+import it.auties.leap.tls.context.TlsSource;
 
 import javax.net.ssl.TrustManagerFactory;
 import javax.net.ssl.X509TrustManager;

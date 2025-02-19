@@ -1,9 +1,9 @@
 package it.auties.leap.tls.message.implementation;
 
-import it.auties.leap.tls.TlsContext;
-import it.auties.leap.tls.TlsSource;
-import it.auties.leap.tls.cipher.exchange.TlsClientKeyExchange;
-import it.auties.leap.tls.cipher.exchange.TlsServerKeyExchange;
+import it.auties.leap.tls.context.TlsContext;
+import it.auties.leap.tls.context.TlsSource;
+import it.auties.leap.tls.cipher.exchange.client.TlsClientKeyExchange;
+import it.auties.leap.tls.cipher.exchange.server.TlsServerKeyExchange;
 import it.auties.leap.tls.message.TlsHandshakeMessage;
 import it.auties.leap.tls.version.TlsVersion;
 

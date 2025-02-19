@@ -2,7 +2,7 @@ package it.auties.leap.tls.certificate;
 
 import it.auties.leap.tls.certificate.implementation.IgnoreCertificatesHandler;
 import it.auties.leap.tls.certificate.implementation.SunValidateCertificatesHandler;
-import it.auties.leap.tls.TlsSource;
+import it.auties.leap.tls.context.TlsSource;
 
 import java.net.InetSocketAddress;
 import java.security.cert.X509Certificate;

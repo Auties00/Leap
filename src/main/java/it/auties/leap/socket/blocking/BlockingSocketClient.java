@@ -49,12 +49,12 @@ public final class BlockingSocketClient implements SocketClient, BlockingSocketI
 
     @Override
     public void read(ByteBuffer buffer) {
-        applicationLayer.write(buffer);
+        applicationLayer.read(buffer);
     }
 
     @Override
     public void readFully(ByteBuffer buffer) {
-        applicationLayer.write(buffer);
+        applicationLayer.readFully(buffer);
     }
 
     @Override

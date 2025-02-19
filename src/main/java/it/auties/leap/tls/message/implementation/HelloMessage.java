@@ -1,15 +1,15 @@
 package it.auties.leap.tls.message.implementation;
 
-import it.auties.leap.tls.TlsContext;
-import it.auties.leap.tls.TlsMode;
-import it.auties.leap.tls.TlsSource;
+import it.auties.leap.tls.context.TlsContext;
+import it.auties.leap.tls.context.TlsMode;
+import it.auties.leap.tls.context.TlsSource;
 import it.auties.leap.tls.cipher.TlsCipher;
 import it.auties.leap.tls.compression.TlsCompression;
 import it.auties.leap.tls.exception.TlsException;
 import it.auties.leap.tls.extension.TlsExtension;
-import it.auties.leap.tls.key.TlsCookie;
-import it.auties.leap.tls.key.TlsRandomData;
-import it.auties.leap.tls.key.TlsSharedSecret;
+import it.auties.leap.tls.random.TlsRandomCookie;
+import it.auties.leap.tls.random.TlsClientRandom;
+import it.auties.leap.tls.random.TlsSessionId;
 import it.auties.leap.tls.message.TlsHandshakeMessage;
 import it.auties.leap.tls.version.TlsVersion;
 import it.auties.leap.tls.version.TlsVersionId;
@@ -30,9 +30,9 @@ public sealed abstract class HelloMessage extends TlsHandshakeMessage {
     public static final class Client extends HelloMessage {
         public static final int ID = 0x01;
 
-        private final TlsRandomData randomData;
-        private final TlsSharedSecret sessionId;
-        private final TlsCookie cookie;
+        private final TlsClientRandom randomData;
+        private final TlsSessionId sessionId;
+        private final TlsRandomCookie cookie;
         private final List<Integer> ciphersIds;
         private final List<TlsCipher> ciphers;
         private final List<Byte> compressionsIds;
@@ -40,7 +40,7 @@ public sealed abstract class HelloMessage extends TlsHandshakeMessage {
         private final List<TlsExtension.Concrete> extensions;
         private final int extensionsLength;
 
-        private Client(TlsVersion version, TlsSource source, TlsRandomData randomData, TlsSharedSecret sessionId, TlsCookie cookie, List<Integer> ciphersIds, List<TlsCipher> ciphers, List<Byte> compressionsIds, List<TlsCompression> compressions, List<TlsExtension.Concrete> extensions, int extensionsLength) {
+        private Client(TlsVersion version, TlsSource source, TlsClientRandom randomData, TlsSessionId sessionId, TlsRandomCookie cookie, List<Integer> ciphersIds, List<TlsCipher> ciphers, List<Byte> compressionsIds, List<TlsCompression> compressions, List<TlsExtension.Concrete> extensions, int extensionsLength) {
             super(version, source);
             this.randomData = randomData;
             this.sessionId = sessionId;
@@ -53,7 +53,7 @@ public sealed abstract class HelloMessage extends TlsHandshakeMessage {
             this.extensionsLength = extensionsLength;
         }
 
-        public Client(TlsVersion tlsVersion, TlsSource source, TlsRandomData randomData, TlsSharedSecret sessionId, TlsCookie cookie, List<TlsCipher> ciphers, List<TlsCompression> compressions, List<TlsExtension.Concrete> extensions, int extensionsLength) {
+        public Client(TlsVersion tlsVersion, TlsSource source, TlsClientRandom randomData, TlsSessionId sessionId, TlsRandomCookie cookie, List<TlsCipher> ciphers, List<TlsCompression> compressions, List<TlsExtension.Concrete> extensions, int extensionsLength) {
             super(tlsVersion, source);
             this.randomData = randomData;
             this.sessionId = sessionId;
@@ -70,9 +70,9 @@ public sealed abstract class HelloMessage extends TlsHandshakeMessage {
             var versionId = TlsVersionId.of(readBigEndianInt16(buffer));
             var tlsVersion = TlsVersion.of(versionId)
                     .orElseThrow(() -> new IllegalArgumentException("Unknown version: " + versionId));
-            var clientRandom = TlsRandomData.of(buffer);
-            var sessionId = TlsSharedSecret.of(buffer);
-            var cookie = TlsCookie.of(metadata.version(), buffer)
+            var clientRandom = TlsClientRandom.of(buffer);
+            var sessionId = TlsSessionId.of(buffer);
+            var cookie = TlsRandomCookie.of(metadata.version(), buffer)
                     .orElse(null);
             var ciphersLength = readBigEndianInt16(buffer);
             var ciphers = new ArrayList<Integer>();
@@ -204,20 +204,20 @@ public sealed abstract class HelloMessage extends TlsHandshakeMessage {
             }
         }
 
-        public static int getMessagePayloadLength(TlsCookie cookie, int ciphers, int compressions) {
+        public static int getMessagePayloadLength(TlsRandomCookie cookie, int ciphers, int compressions) {
             return INT16_LENGTH
-                    + TlsRandomData.length()
-                    + INT8_LENGTH + TlsSharedSecret.length()
+                    + TlsClientRandom.length()
+                    + INT8_LENGTH + TlsSessionId.length()
                     + (cookie != null ? INT8_LENGTH + cookie.length() : 0)
                     + INT16_LENGTH + ciphers * INT16_LENGTH
                     + INT8_LENGTH + compressions * INT8_LENGTH;
         }
 
-        public TlsRandomData randomData() {
+        public TlsClientRandom randomData() {
             return randomData;
         }
 
-        public TlsSharedSecret sessionId() {
+        public TlsSessionId sessionId() {
             return sessionId;
         }
 
@@ -241,14 +241,14 @@ public sealed abstract class HelloMessage extends TlsHandshakeMessage {
     public static final class Server extends HelloMessage {
         public static final byte ID = 0x02;
 
-        private final TlsRandomData randomData;
-        private final TlsSharedSecret sessionId;
+        private final TlsClientRandom randomData;
+        private final TlsSessionId sessionId;
         private final TlsCipher cipher;
         private final Integer cipherId;
         private final TlsCompression compression;
         private final Byte compressionId;
         private final List<TlsExtension> extensions;
-        public Server(TlsVersion version, TlsSource source, TlsRandomData randomData, TlsSharedSecret sessionId, TlsCipher cipher, List<TlsExtension> extensions, TlsCompression compression) {
+        public Server(TlsVersion version, TlsSource source, TlsClientRandom randomData, TlsSessionId sessionId, TlsCipher cipher, List<TlsExtension> extensions, TlsCompression compression) {
             super(version, source);
             this.randomData = randomData;
             this.sessionId = sessionId;
@@ -259,7 +259,7 @@ public sealed abstract class HelloMessage extends TlsHandshakeMessage {
             this.compression = compression;
         }
 
-        private Server(TlsVersion version, TlsSource source, TlsRandomData randomData, TlsSharedSecret sessionId, int cipherId, List<TlsExtension> extensions, byte compressionId) {
+        private Server(TlsVersion version, TlsSource source, TlsClientRandom randomData, TlsSessionId sessionId, int cipherId, List<TlsExtension> extensions, byte compressionId) {
             super(version, source);
             this.randomData = randomData;
             this.sessionId = sessionId;
@@ -270,11 +270,11 @@ public sealed abstract class HelloMessage extends TlsHandshakeMessage {
             this.compression = null;
         }
 
-        public TlsRandomData randomData() {
+        public TlsClientRandom randomData() {
             return randomData;
         }
 
-        public TlsSharedSecret sessionId() {
+        public TlsSessionId sessionId() {
             return sessionId;
         }
 
@@ -303,9 +303,9 @@ public sealed abstract class HelloMessage extends TlsHandshakeMessage {
             var tlsVersion = TlsVersion.of(tlsVersionId)
                     .orElseThrow(() -> new IllegalArgumentException("Cannot decode TLS message, unknown protocol version: " + tlsVersionId));
 
-            var serverRandom = TlsRandomData.of(buffer);
+            var serverRandom = TlsClientRandom.of(buffer);
 
-            var sessionId = TlsSharedSecret.of(buffer);
+            var sessionId = TlsSessionId.of(buffer);
 
             var cipherId = readBigEndianInt16(buffer);
 

@@ -1,103 +1,32 @@
 package it.auties.leap.tls.compression;
 
-import it.auties.leap.tls.exception.TlsException;
+import it.auties.leap.tls.compression.implementation.Compressions;
+import it.auties.leap.tls.compression.implementation.DeflateCompression;
+import it.auties.leap.tls.compression.implementation.NoCompression;
+import it.auties.leap.tls.compression.implementation.ReservedCompression;
 
-import java.net.URI;
-import java.nio.ByteBuffer;
 import java.util.List;
-import java.util.zip.DataFormatException;
-import java.util.zip.Deflater;
-import java.util.zip.Inflater;
 
-public sealed interface TlsCompression extends TlsCompressionHandler {
+public sealed interface TlsCompression extends TlsCompressionHandler permits DeflateCompression, NoCompression, ReservedCompression {
     static TlsCompression none() {
-        return None.INSTANCE;
+        return NoCompression.instance();
     }
 
     static TlsCompression deflate() {
-        return Deflate.INSTANCE;
+        return DeflateCompression.instance();
+    }
+
+    static TlsCompression reservedForPrivateUse(byte id) {
+        return new ReservedCompression(id, null);
     }
 
     static TlsCompression reservedForPrivateUse(byte id, TlsCompressionHandler consumer) {
-        return new Reserved(id, consumer);
+        return new ReservedCompression(id, consumer);
     }
 
     static List<TlsCompression> allCompressions() {
-        return List.of(None.INSTANCE, Deflate.INSTANCE);
+        return Compressions.values();
     }
 
     byte id();
-
-    final class None implements TlsCompression {
-        private static final None INSTANCE = new None();
-
-        @Override
-        public byte id() {
-            return 0;
-        }
-
-        @Override
-        public void accept(ByteBuffer input, ByteBuffer output, boolean forCompression) {
-            output.put(input);
-        }
-    }
-
-    final class Deflate implements TlsCompression {
-        private static final Deflate INSTANCE = new Deflate();
-
-        @Override
-        public byte id() {
-            return 1;
-        }
-
-        @Override
-        public void accept(ByteBuffer input, ByteBuffer output, boolean forCompression) {
-            try {
-                if (forCompression) {
-                    var deflater = new Deflater();
-                    deflater.setInput(input);
-                    deflater.finish();
-                    var compressedDataLength = deflater.deflate(output);
-                    deflater.end();
-                    output.limit(output.position() + compressedDataLength);
-                } else {
-                    var inflater = new Inflater();
-                    inflater.setInput(input);
-                    var compressedDataLength = inflater.inflate(output);
-                    inflater.end();
-                    output.limit(output.position() + compressedDataLength);
-                }
-            } catch (DataFormatException exception) {
-                throw new TlsException("Cannot process data", exception);
-            }
-        }
-    }
-
-    final class Reserved implements TlsCompression {
-        private final byte id;
-        private final TlsCompressionHandler delegate;
-
-        private Reserved(byte id, TlsCompressionHandler delegate) {
-            if (id < -32 || id > -1) {
-                throw new TlsException(
-                        "Only values from 224-255 (decimal) inclusive are reserved for Private Use",
-                        URI.create("https://www.ietf.org/rfc/rfc3749.txt"),
-                        "2"
-                );
-            }
-
-            this.id = id;
-            this.delegate = delegate;
-        }
-
-        @Override
-        public byte id() {
-            return id;
-        }
-
-        @Override
-        public void accept(ByteBuffer input, ByteBuffer output, boolean forCompression) {
-            delegate.accept(input, output, forCompression);
-        }
-    }
 }

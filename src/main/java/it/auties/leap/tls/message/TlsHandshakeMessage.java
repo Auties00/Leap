@@ -1,7 +1,7 @@
 package it.auties.leap.tls.message;
 
-import it.auties.leap.tls.TlsContext;
-import it.auties.leap.tls.TlsSource;
+import it.auties.leap.tls.context.TlsContext;
+import it.auties.leap.tls.context.TlsSource;
 import it.auties.leap.tls.exception.TlsException;
 import it.auties.leap.tls.message.implementation.*;
 import it.auties.leap.tls.version.TlsVersion;

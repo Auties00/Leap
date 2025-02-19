@@ -1,6 +1,6 @@
 package it.auties.leap.tls.extension;
 
-import it.auties.leap.tls.TlsMode;
+import it.auties.leap.tls.context.TlsMode;
 
 import java.nio.ByteBuffer;
 import java.util.Optional;

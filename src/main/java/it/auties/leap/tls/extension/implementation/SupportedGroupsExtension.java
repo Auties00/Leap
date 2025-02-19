@@ -1,12 +1,12 @@
 package it.auties.leap.tls.extension.implementation;
 
-import it.auties.leap.tls.TlsContext;
-import it.auties.leap.tls.TlsMode;
+import it.auties.leap.tls.context.TlsContext;
+import it.auties.leap.tls.context.TlsMode;
 import it.auties.leap.tls.extension.TlsExtension;
 import it.auties.leap.tls.extension.TlsExtensionDeserializer;
-import it.auties.leap.tls.key.TlsSupportedCurve;
-import it.auties.leap.tls.key.TlsSupportedFiniteField;
-import it.auties.leap.tls.key.TlsSupportedGroup;
+import it.auties.leap.tls.group.TlsSupportedCurve;
+import it.auties.leap.tls.group.TlsSupportedFiniteField;
+import it.auties.leap.tls.group.TlsSupportedGroup;
 import it.auties.leap.tls.version.TlsVersion;
 
 import java.nio.ByteBuffer;

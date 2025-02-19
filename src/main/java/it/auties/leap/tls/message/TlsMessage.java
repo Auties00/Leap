@@ -1,7 +1,7 @@
 package it.auties.leap.tls.message;
 
-import it.auties.leap.tls.TlsContext;
-import it.auties.leap.tls.TlsSource;
+import it.auties.leap.tls.context.TlsContext;
+import it.auties.leap.tls.context.TlsSource;
 import it.auties.leap.tls.message.implementation.AlertMessage;
 import it.auties.leap.tls.message.implementation.ApplicationDataMessage;
 import it.auties.leap.tls.message.implementation.ChangeCipherSpecMessage;

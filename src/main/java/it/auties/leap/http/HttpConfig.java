@@ -1,6 +1,6 @@
 package it.auties.leap.http;
 
-import it.auties.leap.tls.TlsConfig;
+import it.auties.leap.tls.context.TlsConfig;
 
 import java.net.URI;
 import java.time.Duration;

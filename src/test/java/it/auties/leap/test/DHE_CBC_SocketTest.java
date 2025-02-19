@@ -3,7 +3,7 @@ package it.auties.leap.test;
 
 import it.auties.leap.socket.SocketClient;
 import it.auties.leap.socket.SocketProtocol;
-import it.auties.leap.tls.TlsConfig;
+import it.auties.leap.tls.context.TlsConfig;
 import it.auties.leap.tls.certificate.TlsCertificatesHandler;
 import it.auties.leap.tls.cipher.TlsCipher;
 import it.auties.leap.tls.compression.TlsCompression;
@@ -26,7 +26,7 @@ public class DHE_CBC_SocketTest {
         var extensions = List.of(
                 TlsExtension.serverNameIndication(),
                 TlsExtension.ecPointFormats(),
-
+                TlsExtension.supportedGroups(),
                 TlsExtension.nextProtocolNegotiation(),
                 TlsExtension.encryptThenMac(),
                 TlsExtension.extendedMasterSecret(),

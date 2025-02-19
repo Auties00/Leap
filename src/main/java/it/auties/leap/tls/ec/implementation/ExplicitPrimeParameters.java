@@ -1,9 +1,9 @@
 package it.auties.leap.tls.ec.implementation;
 
-import it.auties.leap.tls.TlsContext;
+import it.auties.leap.tls.context.TlsContext;
 import it.auties.leap.tls.ec.TlsECParameters;
 import it.auties.leap.tls.ec.TlsECParametersDeserializer;
-import it.auties.leap.tls.key.TlsSupportedCurve;
+import it.auties.leap.tls.group.TlsSupportedCurve;
 
 import java.nio.ByteBuffer;
 
