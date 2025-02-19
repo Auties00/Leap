@@ -310,10 +310,6 @@ public final class GCMMode extends TlsCipherMode.Block {
         }
     }
 
-    public void reset() {
-        reset(true);
-    }
-
     private void reset(boolean clearMac) {
         // note: we do not reset the nonce.
 

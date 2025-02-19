@@ -35,11 +35,6 @@ public final class CTRMode extends TlsCipherMode.Block {
     }
 
     @Override
-    public void reset() {
-
-    }
-
-    @Override
     public TlsCipherIV ivLength() {
         return new TlsCipherIV(4, 4);
     }

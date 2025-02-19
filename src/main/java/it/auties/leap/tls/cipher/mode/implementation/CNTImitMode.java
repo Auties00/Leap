@@ -36,11 +36,6 @@ public final class CNTImitMode extends TlsCipherMode.Block {
     }
 
     @Override
-    public void reset() {
-        throw new UnsupportedOperationException();
-    }
-
-    @Override
     public TlsCipherIV ivLength() {
         return switch (engine) {
             case KuznyechikEngine _ -> new TlsCipherIV(8, 8);

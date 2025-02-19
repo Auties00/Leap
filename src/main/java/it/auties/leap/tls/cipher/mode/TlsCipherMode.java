@@ -75,8 +75,6 @@ public sealed abstract class TlsCipherMode {
 
     public abstract void cipher(byte contentType, ByteBuffer input, ByteBuffer output, byte[] sequence);
 
-    public abstract void reset();
-
     public abstract TlsCipherEngine engine();
 
     public abstract TlsCipherIV ivLength();

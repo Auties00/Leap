@@ -35,11 +35,6 @@ public final class NoneMode extends TlsCipherMode.Block {
     }
 
     @Override
-    public void reset() {
-
-    }
-
-    @Override
     public TlsCipherIV ivLength() {
         return TlsCipherIV.none();
     }

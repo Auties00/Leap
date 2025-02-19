@@ -172,14 +172,6 @@ public final class CBCMode extends TlsCipherMode.Block {
     }
 
     @Override
-    public void reset() {
-        if(fixedIv != null) {
-            cbcV.put(0, fixedIv);
-        }
-        cbcNextV.clear();
-    }
-
-    @Override
     public TlsCipherIV ivLength() {
         return new TlsCipherIV(engine().blockLength(), 0);
     }

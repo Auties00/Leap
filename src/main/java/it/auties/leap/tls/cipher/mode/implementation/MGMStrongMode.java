@@ -30,11 +30,6 @@ public final class MGMStrongMode extends TlsCipherMode.Block {
     }
 
     @Override
-    public void reset() {
-        throw new UnsupportedOperationException();
-    }
-
-    @Override
     public TlsCipherIV ivLength() {
         var blockLength = engine().blockLength();
         return new TlsCipherIV(blockLength, blockLength - fixedIv.length);

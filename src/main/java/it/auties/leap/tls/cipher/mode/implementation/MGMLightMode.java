@@ -30,11 +30,6 @@ public final class MGMLightMode extends TlsCipherMode.Block {
     }
 
     @Override
-    public void reset() {
-        throw new UnsupportedOperationException();
-    }
-
-    @Override
     public TlsCipherIV ivLength() {
         var blockLength = engine().blockLength();
         return new TlsCipherIV(blockLength, blockLength - fixedIv.length);
