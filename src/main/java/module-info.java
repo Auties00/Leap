@@ -6,9 +6,7 @@ module it.auties.leap {
 
     exports it.auties.leap.socket;
     exports it.auties.leap.socket.async;
-    // exports it.auties.leap.socket.async.server;
     exports it.auties.leap.socket.blocking;
-    // exports it.auties.leap.socket.blocking.server;
 
     exports it.auties.leap.tls.certificate;
 
