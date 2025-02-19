@@ -3,6 +3,8 @@ package it.auties.leap.socket.blocking;
 import it.auties.leap.socket.SocketClient;
 import it.auties.leap.socket.SocketOption;
 import it.auties.leap.socket.SocketProtocol;
+import it.auties.leap.socket.blocking.applicationLayer.BlockingSocketApplicationLayer;
+import it.auties.leap.socket.blocking.tunnelLayer.BlockingSocketTunnelLayer;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;

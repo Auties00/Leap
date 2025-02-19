@@ -1,8 +1,8 @@
 package it.auties.leap.http.async;
 
-import it.auties.leap.http.HttpResponse;
-import it.auties.leap.http.HttpResponseDecoder;
-import it.auties.leap.http.HttpResponseHandler;
+import it.auties.leap.http.response.HttpResponse;
+import it.auties.leap.http.response.HttpResponseDecoder;
+import it.auties.leap.http.response.HttpResponseHandler;
 import it.auties.leap.socket.async.AsyncSocketIO;
 
 import java.util.concurrent.CompletableFuture;

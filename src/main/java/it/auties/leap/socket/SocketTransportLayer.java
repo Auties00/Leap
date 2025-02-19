@@ -1,7 +1,7 @@
 package it.auties.leap.socket;
 
-import it.auties.leap.socket.async.AsyncSocketTransportLayer;
-import it.auties.leap.socket.blocking.BlockingSocketTransportLayer;
+import it.auties.leap.socket.async.transportLayer.AsyncSocketTransportLayer;
+import it.auties.leap.socket.blocking.transportLayer.BlockingSocketTransportLayer;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;

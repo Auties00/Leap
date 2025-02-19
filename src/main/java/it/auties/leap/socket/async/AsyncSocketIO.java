@@ -1,6 +1,8 @@
 package it.auties.leap.socket.async;
 
 import it.auties.leap.socket.SocketIOProvider;
+import it.auties.leap.socket.async.applicationLayer.AsyncSocketApplicationLayer;
+import it.auties.leap.socket.async.transportLayer.AsyncSocketTransportLayer;
 
 import java.nio.ByteBuffer;
 import java.util.concurrent.CompletableFuture;

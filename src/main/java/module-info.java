@@ -37,4 +37,12 @@ module it.auties.leap {
     exports it.auties.leap.tls.cipher.exchange.factory.implementation;
     exports it.auties.leap.tls.cipher.exchange.server.implementation;
     exports it.auties.leap.tls.cipher.mode.implementation;
+    exports it.auties.leap.socket.blocking.applicationLayer;
+    exports it.auties.leap.socket.blocking.transportLayer;
+    exports it.auties.leap.socket.blocking.tunnelLayer;
+    exports it.auties.leap.socket.async.applicationLayer;
+    exports it.auties.leap.socket.async.transportLayer;
+    exports it.auties.leap.socket.async.tunnelLayer;
+    exports it.auties.leap.http.request;
+    exports it.auties.leap.http.response;
 }

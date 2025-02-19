@@ -1,7 +1,7 @@
 package it.auties.leap.socket;
 
-import it.auties.leap.socket.async.AsyncSocketTunnelLayerFactory;
-import it.auties.leap.socket.blocking.BlockingSocketTunnelLayerFactory;
+import it.auties.leap.socket.async.tunnelLayer.AsyncSocketTunnelLayerFactory;
+import it.auties.leap.socket.blocking.tunnelLayer.BlockingSocketTunnelLayerFactory;
 
 import java.net.URI;
 

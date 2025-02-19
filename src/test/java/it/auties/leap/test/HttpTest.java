@@ -1,10 +1,10 @@
 /*
 package it.auties.leap.test;
 
-import it.auties.leap.http.HttpResponseHandler;
+import it.auties.leap.http.response.HttpResponseHandler;
 import it.auties.leap.http.client.HttpClient;
 import it.auties.leap.http.HttpConfig;
-import it.auties.leap.http.HttpRequest;
+import it.auties.leap.http.request.HttpRequest;
 
 import java.net.URI;
 
