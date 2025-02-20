@@ -105,17 +105,17 @@ public final class CBCMode extends TlsCipherMode.Block {
         var toCheck = output.duplicate()
                 .position(offset + newLen);
         if(!toCheck.hasRemaining()) {
-            throw new RuntimeException("Padding length should be positive");
+            throw new TlsException("Padding length should be positive");
         }
 
         if (authenticator.version() == TlsVersion.SSL30) {
             if (padValue > engine().blockLength()) {
-                throw new RuntimeException("Padding length (" + padValue + ") of SSLv3 message should not be bigger than the block size (" + engine().blockLength() + ")");
+                throw new TlsException("Padding length (" + padValue + ") of SSLv3 message should not be bigger than the block size (" + engine().blockLength() + ")");
             }
         }else {
             while (toCheck.hasRemaining()) {
                 if (toCheck.get() != padValue) {
-                    throw new RuntimeException("Invalid TLS padding data");
+                    throw new TlsException("Invalid TLS padding data");
                 }
             }
         }

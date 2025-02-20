@@ -14,6 +14,9 @@ public final class CTRMode extends TlsCipherMode.Block {
     private static final TlsCipherModeFactory FACTORY = CNTImitMode::new;
 
     public CTRMode(TlsCipherEngine engine) {
+        if(!(engine instanceof MagmaEngine)) {
+            throw new TlsException("CTR mode is supported only by Magma engines");
+        }
         super(engine);
     }
 
@@ -23,9 +26,6 @@ public final class CTRMode extends TlsCipherMode.Block {
 
     @Override
     public void init(boolean forEncryption, byte[] key, byte[] fixedIv, TlsExchangeMac authenticator) {
-        if(!(engine instanceof MagmaEngine)) {
-            throw new TlsException("CTR mode is supported only by Magma engines");
-        }
         super.init(forEncryption, key, fixedIv, authenticator);
     }
 

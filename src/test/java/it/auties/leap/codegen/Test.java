@@ -18,6 +18,7 @@ public class Test {
     private static byte[] cipher(byte[] message) throws Throwable {
         var gcm = new ChaCha20Engine();
         gcm.init(true, new byte[]{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16});
+        gcm.initIV(new byte[]{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12});
         var output = ByteBuffer.allocate(1024);
         gcm.cipher(ByteBuffer.wrap(message), output);
         return Arrays.copyOfRange(output.array(), output.position(), output.limit());
@@ -25,7 +26,7 @@ public class Test {
 
     private static byte[] decipher(byte[] message) {
         var gcm = new ChaCha7539Engine();
-        gcm.init(true, new ParametersWithIV(new KeyParameter(new byte[]{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16}), new byte[12]));
+        gcm.init(true, new ParametersWithIV(new KeyParameter(new byte[]{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16}), new byte[]{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12}));
         var output = new byte[1024];
         var result = gcm.processBytes(message, 0, message.length, output, 0);
         return Arrays.copyOfRange(output, 0, result);

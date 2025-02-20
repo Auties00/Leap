@@ -19,14 +19,14 @@ public final class CNTImitMode extends TlsCipherMode.Block {
     }
 
     public CNTImitMode(TlsCipherEngine engine) {
+        if(!(engine instanceof KuznyechikEngine) && !(engine instanceof MagmaEngine)) {
+            throw new TlsException("CNT_IMIT mode is supported only by Kuznyechik and Magma engines");
+        }
         super(engine);
     }
 
     @Override
     public void init(boolean forEncryption, byte[] key, byte[] fixedIv, TlsExchangeMac authenticator) {
-        if(!(engine instanceof KuznyechikEngine) && !(engine instanceof MagmaEngine)) {
-            throw new TlsException("CNT_IMIT mode is supported only by Kuznyechik and Magma engines");
-        }
         super.init(forEncryption, key, fixedIv, authenticator);
     }
 

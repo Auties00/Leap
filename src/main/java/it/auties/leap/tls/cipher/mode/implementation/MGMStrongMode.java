@@ -1,9 +1,12 @@
 package it.auties.leap.tls.cipher.mode.implementation;
 
 import it.auties.leap.tls.cipher.engine.TlsCipherEngine;
+import it.auties.leap.tls.cipher.engine.implementation.KuznyechikEngine;
+import it.auties.leap.tls.cipher.engine.implementation.MagmaEngine;
 import it.auties.leap.tls.cipher.mode.TlsCipherIV;
 import it.auties.leap.tls.cipher.mode.TlsCipherMode;
 import it.auties.leap.tls.cipher.mode.TlsCipherModeFactory;
+import it.auties.leap.tls.exception.TlsException;
 import it.auties.leap.tls.mac.TlsExchangeMac;
 
 import java.nio.ByteBuffer;
@@ -12,6 +15,9 @@ public final class MGMStrongMode extends TlsCipherMode.Block {
     private static final TlsCipherModeFactory FACTORY = MGMStrongMode::new;
 
     public MGMStrongMode(TlsCipherEngine engine) {
+        if(!(engine instanceof KuznyechikEngine) && !(engine instanceof MagmaEngine)) {
+            throw new TlsException("MGM_S mode is supported only by Kuznyechik and Magma engines");
+        }
         super(engine);
     }
 

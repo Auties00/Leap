@@ -5,7 +5,8 @@ import it.auties.leap.tls.cipher.engine.TlsCipherEngineFactory;
 
 import java.nio.ByteBuffer;
 
-import static it.auties.leap.tls.util.BufferUtils.*;
+import static it.auties.leap.tls.util.BufferUtils.readLittleEndianInt32;
+import static it.auties.leap.tls.util.BufferUtils.writeLittleEndianInt32;
 
 public class ChaCha20Engine extends TlsCipherEngine.Stream {
     private final static int STATE_SIZE = 16;
@@ -35,9 +36,6 @@ public class ChaCha20Engine extends TlsCipherEngine.Stream {
         for (int i = 0; i < 8; i++) {
             engineState[4 + i] = readLittleEndianInt32(key, i * 4);
         }
-
-        resetCounter();
-        generateKeyStream(keyStream);
     }
 
     public static TlsCipherEngineFactory factory() {
@@ -184,4 +182,14 @@ public class ChaCha20Engine extends TlsCipherEngine.Stream {
             writeLittleEndianInt32(x[i], output, i * 4);
         }
     }
+
+    public void initIV(byte[] nonce) {
+        for(var i = 0; i < 3; ++i) {
+            engineState[13 + i] = readLittleEndianInt32(nonce, i * 4);
+        }
+        index = 0;
+        resetCounter();
+        generateKeyStream(keyStream);
+    }
+
 }

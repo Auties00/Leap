@@ -15,6 +15,9 @@ public final class CTROMacMode extends TlsCipherMode.Block {
     private static final TlsCipherModeFactory FACTORY = CTROMacMode::new;
 
     public CTROMacMode(TlsCipherEngine engine) {
+        if(!(engine instanceof KuznyechikEngine) && !(engine instanceof MagmaEngine)) {
+            throw new TlsException("CTR_OMAC mode is supported only by Kuznyechik and Magma engines");
+        }
         super(engine);
     }
 
@@ -24,9 +27,6 @@ public final class CTROMacMode extends TlsCipherMode.Block {
 
     @Override
     public void init(boolean forEncryption, byte[] key, byte[] fixedIv, TlsExchangeMac authenticator) {
-        if(!(engine instanceof KuznyechikEngine) && !(engine instanceof MagmaEngine)) {
-            throw new TlsException("CTR_OMAC mode is supported only by Kuznyechik and Magma engines");
-        }
         super.init(forEncryption, key, fixedIv, authenticator);
     }
 

@@ -3,7 +3,6 @@ package it.auties.leap.tls.cipher.mode.implementation;
 import it.auties.leap.tls.cipher.mode.TlsCipherIV;
 import it.auties.leap.tls.cipher.mode.TlsCipherMode;
 import it.auties.leap.tls.cipher.mode.TlsCipherModeFactory;
-import it.auties.leap.tls.mac.TlsExchangeMac;
 
 import java.nio.ByteBuffer;
 
@@ -21,11 +20,6 @@ public final class NoneMode extends TlsCipherMode.Block {
 
     public static TlsCipherModeFactory factory() {
         return FACTORY;
-    }
-
-    @Override
-    public void init(boolean forEncryption, byte[] key, byte[] fixedIv, TlsExchangeMac authenticator) {
-        super.init(forEncryption, key, fixedIv, authenticator);
     }
 
     @Override
