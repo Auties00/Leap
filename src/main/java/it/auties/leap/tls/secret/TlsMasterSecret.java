@@ -2,7 +2,6 @@ package it.auties.leap.tls.secret;
 
 import it.auties.leap.tls.context.TlsMode;
 import it.auties.leap.tls.cipher.TlsCipher;
-import it.auties.leap.tls.random.TlsClientRandom;
 import it.auties.leap.tls.version.TlsVersion;
 import it.auties.leap.tls.hash.TlsHash;
 import it.auties.leap.tls.hash.TlsPRF;
@@ -28,16 +27,16 @@ public final class TlsMasterSecret {
             TlsCipher cipher,
             byte[] preMasterKey,
             byte[] extendedMasterSecretSessionHash,
-            TlsClientRandom localRandomData,
-            TlsClientRandom remoteRandomData
+            byte[] localRandomData,
+            byte[] remoteRandomData
     ) {
         var clientRandom = switch (mode) {
-            case CLIENT -> localRandomData.data();
-            case SERVER -> remoteRandomData.data();
+            case CLIENT -> localRandomData;
+            case SERVER -> remoteRandomData;
         };
         var serverRandom = switch (mode) {
-            case SERVER -> localRandomData.data();
-            case CLIENT -> remoteRandomData.data();
+            case SERVER -> localRandomData;
+            case CLIENT -> remoteRandomData;
         };
         return switch (version) {
             case SSL30 -> {

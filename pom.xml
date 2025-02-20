@@ -49,7 +49,15 @@
             <artifactId>bcprov-debug-jdk18on</artifactId>
             <version>1.79</version>
         </dependency>
-        
+
+        <dependency>
+            <groupId>org.bouncycastle</groupId>
+            <artifactId>bctls-debug-jdk18on</artifactId>
+            <version>1.79</version>
+            <scope>test</scope>
+        </dependency>
+
+
         <dependency>
             <groupId>com.fasterxml.jackson.core</groupId>
             <artifactId>jackson-databind</artifactId>
