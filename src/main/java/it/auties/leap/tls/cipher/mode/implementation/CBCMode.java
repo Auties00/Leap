@@ -53,7 +53,7 @@ public final class CBCMode extends TlsCipherMode.Block {
 
     private void tls11Encrypt(TlsContext context, TlsMessage message, ByteBuffer output) {
         var input = output.duplicate();
-        message.serializeMessage(output);
+        message.serializeMessage(input);
         addMac(input, message.contentType().id());
         var nonce = new byte[engine().blockLength()];
         random.nextBytes(nonce);

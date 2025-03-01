@@ -41,7 +41,7 @@ public final class CCMMode extends TlsCipherMode.Block {
     @Override
     public void encrypt(TlsContext context, TlsMessage message, ByteBuffer output) {
         var input = output.duplicate();
-        message.serializeMessage(output);
+        message.serializeMessage(input);
 
         var ivLength = ivLength();
         var iv = new byte[ivLength.total()];

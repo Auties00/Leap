@@ -173,7 +173,6 @@ public class AsyncSecureSocketApplicationLayer extends AsyncSocketApplicationLay
         var reservedSpace = TlsMessage.messageRecordHeaderLength() + leftPadding;
         var messagePayloadBuffer = writeBuffer()
                 .position(reservedSpace);
-        finishedMessage.serializeMessagePayload(messagePayloadBuffer);
         messagePayloadBuffer.limit(messagePayloadBuffer.position())
                 .position(reservedSpace);
 
