@@ -3,6 +3,9 @@ package it.auties.leap.tls.message.implementation;
 import it.auties.leap.tls.context.TlsContext;
 import it.auties.leap.tls.context.TlsSource;
 import it.auties.leap.tls.message.TlsHandshakeMessage;
+import it.auties.leap.tls.message.TlsMessageContentType;
+import it.auties.leap.tls.message.TlsMessageMetadata;
+import it.auties.leap.tls.message.TlsMessageType;
 import it.auties.leap.tls.version.TlsVersion;
 
 import java.nio.ByteBuffer;
@@ -29,7 +32,7 @@ public sealed abstract class CertificateMessage extends TlsHandshakeMessage {
             this.certificates = certificates;
         }
 
-        public static Client of(TlsContext ignoredEngine, ByteBuffer buffer, Metadata metadata) {
+        public static Client of(TlsContext ignoredEngine, ByteBuffer buffer, TlsMessageMetadata metadata) {
             var certificatesLength = readBigEndianInt24(buffer);
             try(var _ = scopedRead(buffer, certificatesLength)) {
                 var factory = CertificateFactory.getInstance("X.509");
@@ -51,13 +54,13 @@ public sealed abstract class CertificateMessage extends TlsHandshakeMessage {
         }
 
         @Override
-        public Type type() {
-            return Type.CLIENT_CERTIFICATE;
+        public TlsMessageType type() {
+            return TlsMessageType.CLIENT_CERTIFICATE;
         }
 
         @Override
-        public ContentType contentType() {
-            return ContentType.HANDSHAKE;
+        public TlsMessageContentType contentType() {
+            return TlsMessageContentType.HANDSHAKE;
         }
 
         @Override
@@ -100,7 +103,7 @@ public sealed abstract class CertificateMessage extends TlsHandshakeMessage {
             this.certificates = certificates;
         }
 
-        public static Server of(TlsContext ignoredEngine, ByteBuffer buffer, Metadata metadata) {
+        public static Server of(TlsContext ignoredEngine, ByteBuffer buffer, TlsMessageMetadata metadata) {
             var certificatesLength = readBigEndianInt24(buffer);
             try(var _ = scopedRead(buffer, certificatesLength)) {
                 var factory = CertificateFactory.getInstance("X.509");
@@ -122,13 +125,13 @@ public sealed abstract class CertificateMessage extends TlsHandshakeMessage {
         }
 
         @Override
-        public Type type() {
-            return Type.SERVER_CERTIFICATE;
+        public TlsMessageType type() {
+            return TlsMessageType.SERVER_CERTIFICATE;
         }
 
         @Override
-        public ContentType contentType() {
-            return ContentType.HANDSHAKE;
+        public TlsMessageContentType contentType() {
+            return TlsMessageContentType.HANDSHAKE;
         }
 
         @Override

@@ -39,10 +39,6 @@ public non-sealed abstract class TlsServerKeyExchange extends TlsKeyExchange {
         return new PSKServerKeyExchange(identityKeyHint);
     }
 
-    public static TlsServerKeyExchange rsa(byte[] modulus, byte[] exponent) {
-        return new RSAServerKeyExchange(modulus, exponent);
-    }
-
     public static TlsServerKeyExchange srp(byte[] srpN, byte[] srpG, byte[] srpS, byte[] srpB) {
         return new SRPServerKeyExchange(srpN, srpG, srpS, srpB);
     }

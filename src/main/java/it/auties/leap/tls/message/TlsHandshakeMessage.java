@@ -16,7 +16,7 @@ public abstract sealed class TlsHandshakeMessage extends TlsMessage
         super(version, source);
     }
 
-    public static TlsHandshakeMessage of(TlsContext context, ByteBuffer buffer, Metadata metadata) {
+    public static TlsHandshakeMessage of(TlsContext context, ByteBuffer buffer, TlsMessageMetadata metadata) {
         var id = readBigEndianInt8(buffer);
         var messageLength = readBigEndianInt24(buffer);
         try (var _ = scopedRead(buffer, messageLength)) {

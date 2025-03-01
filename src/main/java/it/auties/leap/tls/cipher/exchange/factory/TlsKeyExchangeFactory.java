@@ -45,7 +45,7 @@ public interface TlsKeyExchangeFactory {
     }
 
     static TlsKeyExchangeFactory rsa() {
-        return RSAKeyExchangeFactory.ephemeralFactory();
+        return RSAKeyExchangeFactory.staticFactory();
     }
 
     static TlsKeyExchangeFactory srp() {

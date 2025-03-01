@@ -1,4 +1,4 @@
-jextract -t it.auties.leap.socket.common.linux --output "./../../src/main/java" dependencies.h --header-class-name LinuxKernel \
+jextract -t it.auties.leap.socket.kernel.linux --output "./../../src/main/java" dependencies.h --header-class-name LinuxKernel \
 --include-function socket \
 --include-function connect \
 --include-function read \
@@ -39,4 +39,11 @@ jextract -t it.auties.leap.socket.common.linux --output "./../../src/main/java" 
 --include-constant SHUT_RDWR \
 --include-function shutdown \
 --include-struct sockaddr_in \
---include-struct in_addr
+--include-struct in_addr \
+--include-function getsockopt \
+--include-typedef socklen_t \
+--include-constant SOL_SOCKET \
+--include-constant SO_ERROR \
+--include-constant IOSQE_IO_DRAIN \
+--include-constant MSG_PEEK \
+--include-constant MSG_DONTWAIT

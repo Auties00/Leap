@@ -5,6 +5,9 @@ import it.auties.leap.tls.context.TlsSource;
 import it.auties.leap.tls.cipher.exchange.client.TlsClientKeyExchange;
 import it.auties.leap.tls.cipher.exchange.server.TlsServerKeyExchange;
 import it.auties.leap.tls.message.TlsHandshakeMessage;
+import it.auties.leap.tls.message.TlsMessageContentType;
+import it.auties.leap.tls.message.TlsMessageMetadata;
+import it.auties.leap.tls.message.TlsMessageType;
 import it.auties.leap.tls.version.TlsVersion;
 
 import java.nio.ByteBuffer;
@@ -30,7 +33,7 @@ public sealed abstract class KeyExchangeMessage extends TlsHandshakeMessage {
             this.signature = signature;
         }
 
-        public static Server of(TlsContext context, ByteBuffer buffer, Metadata metadata) {
+        public static Server of(TlsContext context, ByteBuffer buffer, TlsMessageMetadata metadata) {
             var remoteParameters = (TlsServerKeyExchange) context.negotiatedCipher()
                     .orElseThrow()
                     .keyExchangeFactory()
@@ -46,8 +49,8 @@ public sealed abstract class KeyExchangeMessage extends TlsHandshakeMessage {
         }
 
         @Override
-        public Type type() {
-            return Type.SERVER_KEY_EXCHANGE;
+        public TlsMessageType type() {
+            return TlsMessageType.SERVER_KEY_EXCHANGE;
         }
 
         public TlsServerKeyExchange parameters() {
@@ -63,8 +66,8 @@ public sealed abstract class KeyExchangeMessage extends TlsHandshakeMessage {
         }
 
         @Override
-        public ContentType contentType() {
-            return ContentType.HANDSHAKE;
+        public TlsMessageContentType contentType() {
+            return TlsMessageContentType.HANDSHAKE;
         }
 
         @Override
@@ -100,7 +103,7 @@ public sealed abstract class KeyExchangeMessage extends TlsHandshakeMessage {
             this.remoteParameters = remoteParameters;
         }
 
-        public static Client of(TlsContext ignoredEngine, ByteBuffer buffer, Metadata metadata) {
+        public static Client of(TlsContext ignoredEngine, ByteBuffer buffer, TlsMessageMetadata metadata) {
             var messageLength = readBigEndianInt24(buffer);
             try(var _ = scopedRead(buffer, messageLength)) {
                 return new Client(metadata.version(), metadata.source(), readBuffer(buffer, buffer.remaining()));
@@ -121,13 +124,13 @@ public sealed abstract class KeyExchangeMessage extends TlsHandshakeMessage {
         }
 
         @Override
-        public Type type() {
-            return Type.CLIENT_KEY_EXCHANGE;
+        public TlsMessageType type() {
+            return TlsMessageType.CLIENT_KEY_EXCHANGE;
         }
 
         @Override
-        public ContentType contentType() {
-            return ContentType.HANDSHAKE;
+        public TlsMessageContentType contentType() {
+            return TlsMessageContentType.HANDSHAKE;
         }
 
         @Override

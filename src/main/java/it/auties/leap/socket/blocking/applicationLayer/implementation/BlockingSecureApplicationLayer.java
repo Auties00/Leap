@@ -5,6 +5,7 @@ import it.auties.leap.socket.blocking.applicationLayer.BlockingSocketApplication
 import it.auties.leap.socket.blocking.transportLayer.BlockingSocketTransportLayer;
 import it.auties.leap.tls.context.TlsConfig;
 
+import java.io.IOException;
 import java.nio.ByteBuffer;
 
 public class BlockingSecureApplicationLayer extends BlockingSocketApplicationLayer {
@@ -39,5 +40,10 @@ public class BlockingSecureApplicationLayer extends BlockingSocketApplicationLay
     @Override
     public void readFully(ByteBuffer buffer) {
         transportLayer.readFully(buffer);
+    }
+
+    @Override
+    public void close(boolean error) throws IOException {
+        transportLayer.close();
     }
 }

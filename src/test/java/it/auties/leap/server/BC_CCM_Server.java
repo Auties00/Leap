@@ -10,12 +10,15 @@ import org.bouncycastle.operator.ContentSigner;
 import org.bouncycastle.operator.jcajce.JcaContentSignerBuilder;
 
 import javax.net.ssl.*;
+import java.io.BufferedReader;
+import java.io.InputStreamReader;
+import java.io.PrintWriter;
 import java.math.BigInteger;
 import java.security.*;
 import java.security.cert.X509Certificate;
 import java.util.Date;
 
-public class TLSServer {
+public class BC_CCM_Server {
     public static void main(String[] args) throws Exception {
         System.setProperty("org.bouncycastle.jsse.level", "FINEST");
         // Register the BouncyCastle provider
@@ -56,7 +59,7 @@ public class TLSServer {
         keyStore.setKeyEntry(alias, keyPair.getPrivate(), password, new X509Certificate[]{certificate});
 
         // 4. Initialize a KeyManagerFactory with the KeyStore
-        KeyManagerFactory kmf = KeyManagerFactory.getInstance(KeyManagerFactory.getDefaultAlgorithm());
+        KeyManagerFactory kmf = KeyManagerFactory.getInstance("PKIX", "BCJSSE");
         kmf.init(keyStore, password);
 
         // Initialize the TrustManagerFactory with the truststore
@@ -86,14 +89,21 @@ public class TLSServer {
         }
     }
 
-    private static void handleClient(SSLSocket socket) {
-        try {
-            // Initiate the handshake to verify TLS parameters
-            socket.startHandshake();
-            // ... perform I/O with the client ...
-            socket.close();
-        } catch (Exception e) {
-            e.printStackTrace();
+    private static void handleClient(SSLSocket clientSocket) {
+        try (
+                BufferedReader in = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
+                PrintWriter out = new PrintWriter(clientSocket.getOutputStream(), true)
+        ) {
+            System.out.println("Sending message...");
+            out.println("Welcome to the server!");
+
+            String clientMessage;
+            while ((clientMessage = in.readLine()) != null) {
+                System.out.println("Received: " + clientMessage);
+                out.println("Echo: " + clientMessage);
+            }
+        }catch (Throwable throwable) {
+            System.err.println("Cannot handle connection: " + throwable.getLocalizedMessage());
         }
     }
 }

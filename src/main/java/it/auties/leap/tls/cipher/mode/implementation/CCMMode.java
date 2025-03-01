@@ -4,11 +4,24 @@ import it.auties.leap.tls.cipher.engine.TlsCipherEngine;
 import it.auties.leap.tls.cipher.mode.TlsCipherIV;
 import it.auties.leap.tls.cipher.mode.TlsCipherMode;
 import it.auties.leap.tls.cipher.mode.TlsCipherModeFactory;
+import it.auties.leap.tls.context.TlsContext;
 import it.auties.leap.tls.mac.TlsExchangeMac;
+import it.auties.leap.tls.message.TlsMessage;
+import it.auties.leap.tls.message.TlsMessageMetadata;
+import org.bouncycastle.jcajce.spec.AEADParameterSpec;
+import org.bouncycastle.jce.provider.BouncyCastleProvider;
 
+import javax.crypto.Cipher;
+import javax.crypto.spec.SecretKeySpec;
 import java.nio.ByteBuffer;
+import java.security.GeneralSecurityException;
+import java.security.Security;
 
 public final class CCMMode extends TlsCipherMode.Block {
+    static {
+        Security.addProvider(new BouncyCastleProvider());
+    }
+
     private static final TlsCipherModeFactory FACTORY = CCMMode::new;
 
     public CCMMode(TlsCipherEngine engine) {
@@ -22,17 +35,67 @@ public final class CCMMode extends TlsCipherMode.Block {
     @Override
     public void init(boolean forEncryption, byte[] key, byte[] fixedIv, TlsExchangeMac authenticator) {
         super.init(forEncryption, key, fixedIv, authenticator);
+        engine.init(forEncryption, key);
     }
 
     @Override
-    public void cipher(byte contentType, ByteBuffer input, ByteBuffer output, byte[] sequence) {
-        throw new UnsupportedOperationException();
+    public void encrypt(TlsContext context, TlsMessage message, ByteBuffer output) {
+        var input = output.duplicate();
+        message.serializeMessage(output);
+
+        var ivLength = ivLength();
+        var iv = new byte[ivLength.total()];
+        System.arraycopy(fixedIv, 0, iv, 0, fixedIv.length);
+        var nonce = authenticator.sequenceNumber();
+        System.arraycopy(nonce, 0, iv, fixedIv.length, nonce.length);
+        output.put(output.position() - nonce.length, nonce);
+        var offset = nonce.length;
+
+        var outputPosition = output.position();
+        try {
+            var temp = Cipher.getInstance("AES/CCM/NoPadding", "BC");
+            temp.init(engine.forEncryption() ? Cipher.ENCRYPT_MODE : Cipher.DECRYPT_MODE, new SecretKeySpec(engine.key(), "AES"), new AEADParameterSpec(iv, 16 * 8));
+            var aad = authenticator.createAuthenticationBlock(message.contentType().id(), input.remaining() - (engine.forEncryption() ? 0 : tagLength()), null);
+            temp.updateAAD(aad, 0, aad.length);
+            temp.doFinal(input, output);
+        }catch (GeneralSecurityException exception) {
+            throw new RuntimeException(exception);
+        }
+
+        output.limit(output.position());
+        output.position(outputPosition - offset);
+    }
+
+    @Override
+    public TlsMessage decrypt(TlsContext context, TlsMessageMetadata metadata, ByteBuffer input) {
+        var output = input.duplicate();
+        var ivLength = ivLength();
+        var iv = new byte[ivLength.total()];
+        var offset = 0;
+        System.arraycopy(fixedIv, 0, iv, 0, fixedIv.length);
+        input.get(iv, fixedIv.length, ivLength.dynamic());
+
+
+        var outputPosition = output.position();
+        try {
+            var temp = Cipher.getInstance("AES/CCM/NoPadding", "BC");
+            temp.init(engine.forEncryption() ? Cipher.ENCRYPT_MODE : Cipher.DECRYPT_MODE, new SecretKeySpec(engine.key(), "AES"), new AEADParameterSpec(iv, 16 * 8));
+            var aad = authenticator.createAuthenticationBlock(metadata.contentType().id(), input.remaining() - (engine.forEncryption() ? 0 : tagLength()), null);
+            temp.updateAAD(aad, 0, aad.length);
+            temp.doFinal(input, output);
+        }catch (GeneralSecurityException exception) {
+            throw new RuntimeException(exception);
+        }
+
+        output.limit(output.position());
+        output.position(outputPosition - offset);
+
+        return TlsMessage.of(context, output, metadata.withMessageLength(output.remaining()));
     }
 
     @Override
     public TlsCipherIV ivLength() {
-        var blockLength = engine().blockLength();
-        return new TlsCipherIV(blockLength, blockLength - fixedIv.length);
+        return new TlsCipherIV(4, 8);
     }
 
     @Override

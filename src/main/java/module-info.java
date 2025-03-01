@@ -18,7 +18,6 @@ module it.auties.leap {
     exports it.auties.leap.tls.exception;
     exports it.auties.leap.tls.extension;
     exports it.auties.leap.tls.hash;
-    exports it.auties.leap.tls.random;
     exports it.auties.leap.tls.signature;
     exports it.auties.leap.tls.compression;
     exports it.auties.leap.tls.util;
@@ -45,4 +44,5 @@ module it.auties.leap {
     exports it.auties.leap.socket.async.tunnelLayer;
     exports it.auties.leap.http.request;
     exports it.auties.leap.http.response;
+    exports it.auties.leap.tls.message;
 }

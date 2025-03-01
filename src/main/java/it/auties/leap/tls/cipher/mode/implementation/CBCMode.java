@@ -4,13 +4,17 @@ import it.auties.leap.tls.cipher.engine.TlsCipherEngine;
 import it.auties.leap.tls.cipher.mode.TlsCipherIV;
 import it.auties.leap.tls.cipher.mode.TlsCipherMode;
 import it.auties.leap.tls.cipher.mode.TlsCipherModeFactory;
+import it.auties.leap.tls.context.TlsContext;
 import it.auties.leap.tls.exception.TlsException;
 import it.auties.leap.tls.mac.TlsExchangeMac;
+import it.auties.leap.tls.message.TlsMessage;
+import it.auties.leap.tls.message.TlsMessageMetadata;
 import it.auties.leap.tls.util.BufferUtils;
 import it.auties.leap.tls.version.TlsVersion;
 
 import java.nio.ByteBuffer;
 import java.security.SecureRandom;
+import java.util.Arrays;
 
 public final class CBCMode extends TlsCipherMode.Block {
     private static final TlsCipherModeFactory FACTORY = CBCMode::new;
@@ -39,37 +43,51 @@ public final class CBCMode extends TlsCipherMode.Block {
     }
 
     @Override
-    public void cipher(byte contentType, ByteBuffer input, ByteBuffer output, byte[] sequence) {
+    public void encrypt(TlsContext context, TlsMessage message, ByteBuffer output) {
         switch (authenticator.version()) {
-            case TLS10, DTLS10 -> throw new UnsupportedOperationException();
-            case TLS11, TLS12, DTLS12 -> tls11Update(contentType, input, output, sequence);
+            case TLS10, DTLS10, SSL30 -> throw new UnsupportedOperationException();
+            case TLS11, TLS12, DTLS12 -> tls11Encrypt(context, message, output);
             case TLS13, DTLS13 -> throw new TlsException("CBC ciphers are not allowed in (D)TLSv1.3");
+        };
+    }
+
+    private void tls11Encrypt(TlsContext context, TlsMessage message, ByteBuffer output) {
+        var input = output.duplicate();
+        message.serializeMessage(output);
+        addMac(input, message.contentType().id());
+        var nonce = new byte[engine().blockLength()];
+        random.nextBytes(nonce);
+        System.out.println("IV: " + Arrays.toString(nonce));
+        var inputPositionWithNonce = input.position() - nonce.length;
+        input.put(inputPositionWithNonce, nonce);
+        input.position(inputPositionWithNonce);
+        if(BufferUtils.equals(input, output)) {
+            output.position(inputPositionWithNonce);
+        }
+        var plaintextLength = addPadding(input);
+        if(plaintextLength != encryptBlock(input, output)) {
+            throw new TlsException("Unexpected number of plaintext bytes");
         }
     }
 
-    private void tls11Update(byte contentType, ByteBuffer input, ByteBuffer output, byte[] sequence) {
-        if (engine.forEncryption()) {
-            addMac(input, contentType);
-            var nonce = new byte[engine().blockLength()];
-            random.nextBytes(nonce);
-            var inputPositionWithNonce = input.position() - nonce.length;
-            input.put(inputPositionWithNonce, nonce);
-            input.position(inputPositionWithNonce);
-            if(BufferUtils.equals(input, output)) {
-                output.position(inputPositionWithNonce);
-            }
-            var plaintextLength = addPadding(input);
-            if(plaintextLength != encryptBlock(input, output)) {
-                throw new TlsException("Unexpected number of plaintext bytes");
-            }
-        }else {
-            var cipheredLength = input.remaining();
-            if(cipheredLength != decryptBlock(input, output)) {
-                throw new TlsException("Unexpected number of ciphered bytes");
-            }
-            removePadding(output);
-            checkCbcMac(output, contentType, sequence);
+    @Override
+    public TlsMessage decrypt(TlsContext context, TlsMessageMetadata metadata, ByteBuffer input) {
+        return switch (authenticator.version()) {
+            case TLS10, DTLS10, SSL30 -> throw new UnsupportedOperationException();
+            case TLS11, TLS12, DTLS12 -> tls11Decrypt(context, metadata, input);
+            case TLS13, DTLS13 -> throw new TlsException("CBC ciphers are not allowed in (D)TLSv1.3");
+        };
+    }
+
+    private TlsMessage tls11Decrypt(TlsContext context, TlsMessageMetadata metadata, ByteBuffer input) {
+        var output = input.duplicate();
+        var cipheredLength = input.remaining();
+        if(cipheredLength != decryptBlock(input, output)) {
+            throw new TlsException("Unexpected number of ciphered bytes");
         }
+        removePadding(output);
+        checkCbcMac(output, metadata.contentType().id(), null);
+        return TlsMessage.of(context, output, metadata.withMessageLength(output.remaining()));
     }
 
     private int addPadding(ByteBuffer bb) {

@@ -2,11 +2,15 @@ package it.auties.leap.tls.cipher.mode;
 
 import it.auties.leap.tls.cipher.engine.TlsCipherEngine;
 import it.auties.leap.tls.cipher.mode.implementation.*;
+import it.auties.leap.tls.context.TlsContext;
 import it.auties.leap.tls.exception.TlsException;
 import it.auties.leap.tls.mac.TlsExchangeMac;
 import it.auties.leap.tls.mac.TlsHmac;
+import it.auties.leap.tls.message.TlsMessage;
+import it.auties.leap.tls.message.TlsMessageMetadata;
 
 import java.nio.ByteBuffer;
+import java.util.Arrays;
 
 public sealed abstract class TlsCipherMode {
     public static TlsCipherMode poly1305(TlsCipherEngine engine) {
@@ -73,7 +77,9 @@ public sealed abstract class TlsCipherMode {
         this.initialized = true;
     }
 
-    public abstract void cipher(byte contentType, ByteBuffer input, ByteBuffer output, byte[] sequence);
+    public abstract void encrypt(TlsContext context, TlsMessage message, ByteBuffer output);
+
+    public abstract TlsMessage decrypt(TlsContext context, TlsMessageMetadata metadata, ByteBuffer input);
 
     public abstract TlsCipherEngine engine();
 
@@ -97,6 +103,7 @@ public sealed abstract class TlsCipherMode {
 
         var hmac = authenticator.createAuthenticationHmacBlock(contentId, destination, null, false)
                 .orElseThrow(() -> new TlsException("Expected mac capabilities from an authenticator with an HMAC"));
+        System.out.println("Using HMAC: " + Arrays.toString(hmac));
         var hmacPosition = destination.limit();
         destination.limit(hmacPosition + hmac.length);
         destination.put(hmacPosition, hmac);

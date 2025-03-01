@@ -8,6 +8,9 @@ import it.auties.leap.tls.compression.TlsCompression;
 import it.auties.leap.tls.exception.TlsException;
 import it.auties.leap.tls.extension.TlsExtension;
 import it.auties.leap.tls.message.TlsHandshakeMessage;
+import it.auties.leap.tls.message.TlsMessageContentType;
+import it.auties.leap.tls.message.TlsMessageMetadata;
+import it.auties.leap.tls.message.TlsMessageType;
 import it.auties.leap.tls.version.TlsVersion;
 import it.auties.leap.tls.version.TlsVersionId;
 
@@ -67,7 +70,7 @@ public sealed abstract class HelloMessage extends TlsHandshakeMessage {
             this.extensionsLength = extensionsLength;
         }
 
-        public static Client of(TlsContext context, ByteBuffer buffer, Metadata metadata) {
+        public static Client of(TlsContext context, ByteBuffer buffer, TlsMessageMetadata metadata) {
             var versionId = TlsVersionId.of(readBigEndianInt16(buffer));
             var tlsVersion = TlsVersion.of(versionId)
                     .orElseThrow(() -> new IllegalArgumentException("Unknown version: " + versionId));
@@ -122,13 +125,13 @@ public sealed abstract class HelloMessage extends TlsHandshakeMessage {
         }
 
         @Override
-        public Type type() {
-            return Type.CLIENT_HELLO;
+        public TlsMessageType type() {
+            return TlsMessageType.CLIENT_HELLO;
         }
 
         @Override
-        public ContentType contentType() {
-            return ContentType.HANDSHAKE;
+        public TlsMessageContentType contentType() {
+            return TlsMessageContentType.HANDSHAKE;
         }
 
         @Override
@@ -301,7 +304,7 @@ public sealed abstract class HelloMessage extends TlsHandshakeMessage {
             return extensions;
         }
 
-        public static Server of(TlsContext context, ByteBuffer buffer, Metadata metadata) {
+        public static Server of(TlsContext context, ByteBuffer buffer, TlsMessageMetadata metadata) {
             var tlsVersionId = readBigEndianInt16(buffer);
             var tlsVersion = TlsVersion.of(tlsVersionId)
                     .orElseThrow(() -> new IllegalArgumentException("Cannot decode TLS message, unknown protocol version: " + tlsVersionId));
@@ -348,13 +351,13 @@ public sealed abstract class HelloMessage extends TlsHandshakeMessage {
         }
 
         @Override
-        public Type type() {
-            return Type.SERVER_HELLO;
+        public TlsMessageType type() {
+            return TlsMessageType.SERVER_HELLO;
         }
 
         @Override
-        public ContentType contentType() {
-            return ContentType.HANDSHAKE;
+        public TlsMessageContentType contentType() {
+            return TlsMessageContentType.HANDSHAKE;
         }
 
         @Override

@@ -4,6 +4,9 @@ import it.auties.leap.tls.context.TlsContext;
 import it.auties.leap.tls.context.TlsSource;
 import it.auties.leap.tls.exception.TlsException;
 import it.auties.leap.tls.message.TlsHandshakeMessage;
+import it.auties.leap.tls.message.TlsMessageContentType;
+import it.auties.leap.tls.message.TlsMessageMetadata;
+import it.auties.leap.tls.message.TlsMessageType;
 import it.auties.leap.tls.version.TlsVersion;
 
 import java.nio.ByteBuffer;
@@ -17,7 +20,7 @@ public sealed abstract class ChangeCipherSpecMessage extends TlsHandshakeMessage
         super(version, source);
     }
 
-    public static ChangeCipherSpecMessage of(TlsContext context, ByteBuffer buffer, Metadata metadata) {
+    public static ChangeCipherSpecMessage of(TlsContext context, ByteBuffer buffer, TlsMessageMetadata metadata) {
         return switch(context.selectedMode().orElse(null)) {
             case CLIENT -> ChangeCipherSpecMessage.Server.of(metadata.version(), metadata.source(), buffer);
             case SERVER -> ChangeCipherSpecMessage.Client.of(metadata.version(), metadata.source(), buffer);
@@ -47,13 +50,13 @@ public sealed abstract class ChangeCipherSpecMessage extends TlsHandshakeMessage
         }
 
         @Override
-        public Type type() {
-            return Type.SERVER_CHANGE_CIPHER_SPEC;
+        public TlsMessageType type() {
+            return TlsMessageType.SERVER_CHANGE_CIPHER_SPEC;
         }
 
         @Override
-        public ContentType contentType() {
-            return ContentType.CHANGE_CIPHER_SPEC;
+        public TlsMessageContentType contentType() {
+            return TlsMessageContentType.CHANGE_CIPHER_SPEC;
         }
 
         @Override
@@ -90,8 +93,8 @@ public sealed abstract class ChangeCipherSpecMessage extends TlsHandshakeMessage
         }
 
         @Override
-        public Type type() {
-            return Type.CLIENT_CHANGE_CIPHER_SPEC;
+        public TlsMessageType type() {
+            return TlsMessageType.CLIENT_CHANGE_CIPHER_SPEC;
         }
 
         @Override
@@ -100,8 +103,8 @@ public sealed abstract class ChangeCipherSpecMessage extends TlsHandshakeMessage
         }
 
         @Override
-        public ContentType contentType() {
-            return ContentType.CHANGE_CIPHER_SPEC;
+        public TlsMessageContentType contentType() {
+            return TlsMessageContentType.CHANGE_CIPHER_SPEC;
         }
 
         @Override

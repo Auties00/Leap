@@ -53,4 +53,5 @@ public class NoneKeyExchangeFactory implements TlsKeyExchangeFactory {
     public TlsKeyExchangeType type() {
         return TlsKeyExchangeType.EPHEMERAL;
     }
+
 }

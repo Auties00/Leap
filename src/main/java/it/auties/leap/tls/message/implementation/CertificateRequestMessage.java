@@ -3,6 +3,9 @@ package it.auties.leap.tls.message.implementation;
 import it.auties.leap.tls.context.TlsContext;
 import it.auties.leap.tls.context.TlsSource;
 import it.auties.leap.tls.message.TlsHandshakeMessage;
+import it.auties.leap.tls.message.TlsMessageContentType;
+import it.auties.leap.tls.message.TlsMessageMetadata;
+import it.auties.leap.tls.message.TlsMessageType;
 import it.auties.leap.tls.version.TlsVersion;
 
 import javax.security.auth.x500.X500Principal;
@@ -30,7 +33,7 @@ public sealed abstract class CertificateRequestMessage extends TlsHandshakeMessa
             this.authorities = authorities;
         }
 
-        public static Server of(TlsContext ignoredEngine, ByteBuffer buffer, Metadata metadata) {
+        public static Server of(TlsContext ignoredEngine, ByteBuffer buffer, TlsMessageMetadata metadata) {
             var certificatesLength = readBigEndianInt8(buffer);
             var certificateTypes = new ArrayList<Byte>();
             try(var _ = scopedRead(buffer, certificatesLength)) {
@@ -67,8 +70,8 @@ public sealed abstract class CertificateRequestMessage extends TlsHandshakeMessa
         }
 
         @Override
-        public Type type() {
-            return Type.SERVER_CERTIFICATE_REQUEST;
+        public TlsMessageType type() {
+            return TlsMessageType.SERVER_CERTIFICATE_REQUEST;
         }
 
         public List<Byte> types() {
@@ -84,8 +87,8 @@ public sealed abstract class CertificateRequestMessage extends TlsHandshakeMessa
         }
 
         @Override
-        public ContentType contentType() {
-            return ContentType.HANDSHAKE;
+        public TlsMessageContentType contentType() {
+            return TlsMessageContentType.HANDSHAKE;
         }
 
         @Override

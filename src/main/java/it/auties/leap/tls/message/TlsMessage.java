@@ -7,19 +7,14 @@ import it.auties.leap.tls.message.implementation.ApplicationDataMessage;
 import it.auties.leap.tls.message.implementation.ChangeCipherSpecMessage;
 import it.auties.leap.tls.version.TlsVersion;
 
+import java.nio.BufferUnderflowException;
 import java.nio.ByteBuffer;
-import java.util.Arrays;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Optional;
-import java.util.function.Function;
-import java.util.stream.Collectors;
 
 import static it.auties.leap.tls.util.BufferUtils.*;
 
 public sealed abstract class TlsMessage
         permits AlertMessage, ApplicationDataMessage, TlsHandshakeMessage {
-    public static TlsMessage of(TlsContext context, ByteBuffer buffer, Metadata metadata) {
+    public static TlsMessage of(TlsContext context, ByteBuffer buffer, TlsMessageMetadata metadata) {
         try(var _ = scopedRead(buffer, metadata.messageLength())) {
             return switch (metadata.contentType()) {
                 case HANDSHAKE -> TlsHandshakeMessage.of(context, buffer, metadata);
@@ -45,8 +40,8 @@ public sealed abstract class TlsMessage
     }
 
     public abstract byte id();
-    public abstract Type type();
-    public abstract ContentType contentType();
+    public abstract TlsMessageType type();
+    public abstract TlsMessageContentType contentType();
     public abstract void serializeMessagePayload(ByteBuffer buffer);
     public abstract int messagePayloadLength();
 
@@ -72,128 +67,18 @@ public sealed abstract class TlsMessage
         return INT8_LENGTH + INT8_LENGTH + INT8_LENGTH + INT16_LENGTH;
     }
 
-    public enum ContentType {
-        CHANGE_CIPHER_SPEC((byte) 20, "change_cipher_spec"),
-        ALERT((byte) 21, "alert"),
-        HANDSHAKE((byte) 22, "handshake"),
-        APPLICATION_DATA((byte) 23, "application_data");
-
-        private static final Map<Byte, ContentType> VALUES = Arrays.stream(values())
-                .collect(Collectors.toUnmodifiableMap(ContentType::id, Function.identity()));
-
-        public static Optional<ContentType> of(byte value) {
-            return Optional.ofNullable(VALUES.get(value));
+    public static void putRecord(TlsVersion version, TlsMessageContentType type, ByteBuffer message) {
+        var messageLength = message.remaining();
+        if(message.position() < messageRecordHeaderLength()) {
+            throw new BufferUnderflowException();
         }
 
-        private final byte id;
-        private final String contentName;
-        ContentType(byte id, String contentName) {
-            this.id = id;
-            this.contentName = contentName;
-        }
-
-        public byte id() {
-            return id;
-        }
-
-        public String contentName() {
-            return contentName;
-        }
-    }
-
-    public enum Type {
-        ALERT,
-        APPLICATION_DATA,
-
-        SERVER_HELLO_REQUEST,
-        SERVER_HELLO,
-        SERVER_CERTIFICATE,
-        SERVER_CERTIFICATE_REQUEST,
-        SERVER_KEY_EXCHANGE,
-        SERVER_CHANGE_CIPHER_SPEC,
-        SERVER_HELLO_DONE,
-        SERVER_FINISHED,
-
-        CLIENT_HELLO,
-        CLIENT_CERTIFICATE,
-        CLIENT_KEY_EXCHANGE,
-        CLIENT_CERTIFICATE_VERIFY,
-        CLIENT_CHANGE_CIPHER_SPEC,
-        CLIENT_FINISHED,
-
-        RESERVED
-    }
-
-    public static final class Metadata {
-        private static final int LENGTH = INT8_LENGTH + INT16_LENGTH + INT16_LENGTH;
-
-        private final ContentType contentType;
-        private final TlsVersion version;
-        private int messageLength;
-
-        public Metadata(ContentType contentType, TlsVersion version, int messageLength) {
-            this.contentType = contentType;
-            this.version = version;
-            this.messageLength = messageLength;
-        }
-
-        public static Metadata of(ByteBuffer buffer) {
-            var contentTypeId = readBigEndianInt8(buffer);
-            var contentType = ContentType.of(contentTypeId)
-                    .orElseThrow(() -> new IllegalArgumentException("Cannot decode TLS message, unknown content type: " + contentTypeId));
-            var protocolVersionMajor = readBigEndianInt8(buffer);
-            var protocolVersionMinor = readBigEndianInt8(buffer);
-            var protocolVersion = TlsVersion.of(protocolVersionMajor, protocolVersionMinor)
-                    .orElseThrow(() -> new IllegalArgumentException("Cannot decode TLS message, unknown protocol version: major %s, minor %s".formatted(protocolVersionMajor, protocolVersionMinor)));
-            var messageLength = readBigEndianInt16(buffer);
-            return new Metadata(contentType, protocolVersion, messageLength);
-        }
-
-        public TlsSource source() {
-            return TlsSource.REMOTE;
-        }
-
-        public static int length() {
-            return LENGTH;
-        }
-
-        public void setMessageLength(int messageLength) {
-            this.messageLength = messageLength;
-        }
-
-        public ContentType contentType() {
-            return contentType;
-        }
-
-        public TlsVersion version() {
-            return version;
-        }
-
-        public int messageLength() {
-            return messageLength;
-        }
-
-        @Override
-        public boolean equals(Object obj) {
-            if (obj == this) return true;
-            if (obj == null || obj.getClass() != this.getClass()) return false;
-            var that = (Metadata) obj;
-            return Objects.equals(this.contentType, that.contentType) &&
-                    Objects.equals(this.version, that.version) &&
-                    this.messageLength == that.messageLength;
-        }
-
-        @Override
-        public int hashCode() {
-            return Objects.hash(contentType, version, messageLength);
-        }
-
-        @Override
-        public String toString() {
-            return "Metadata[" +
-                    "contentType=" + contentType + ", " +
-                    "version=" + version + ", " +
-                    "messageLength=" + messageLength + ']';
-        }
+        var newReadPosition = message.position() - messageRecordHeaderLength();
+        message.position(newReadPosition);
+        writeBigEndianInt8(message, type.id());
+        writeBigEndianInt8(message, version.id().major());
+        writeBigEndianInt8(message, version.id().minor());
+        writeBigEndianInt16(message, messageLength);
+        message.position(newReadPosition);
     }
 }

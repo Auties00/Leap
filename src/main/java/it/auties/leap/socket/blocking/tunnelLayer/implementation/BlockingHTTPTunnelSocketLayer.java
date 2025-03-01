@@ -29,8 +29,7 @@ public final class BlockingHTTPTunnelSocketLayer extends BlockingSocketTunnelLay
 
     @Override
     public void connect(InetSocketAddress address) {
-        applicationLayer.transportLayer()
-                .connect(new InetSocketAddress(proxy.getHost(), proxy.getPort()));
+        applicationLayer.connect(new InetSocketAddress(proxy.getHost(), proxy.getPort()));
         sendAuthentication(address);
         readAuthenticationResponse(address);
     }
@@ -52,8 +51,7 @@ public final class BlockingHTTPTunnelSocketLayer extends BlockingSocketTunnelLay
                     throw new SocketException("HTTP : Cannot connect to value, status code " + response.statusCode());
                 }
 
-                applicationLayer.transportLayer()
-                        .setAddress(address);
+                applicationLayer        .setAddress(address);
             }
 
             case HttpResponse.Redirect<String> _ -> throw new SocketException("HTTP : Invalid redirect while connecting to value");

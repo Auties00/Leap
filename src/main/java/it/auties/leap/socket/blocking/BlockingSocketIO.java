@@ -1,12 +1,13 @@
 package it.auties.leap.socket.blocking;
 
+import it.auties.leap.socket.SocketIO;
 import it.auties.leap.socket.SocketIOProvider;
 import it.auties.leap.socket.blocking.applicationLayer.BlockingSocketApplicationLayer;
 import it.auties.leap.socket.blocking.transportLayer.BlockingSocketTransportLayer;
 
 import java.nio.ByteBuffer;
 
-public sealed interface BlockingSocketIO extends SocketIOProvider permits BlockingSocketApplicationLayer, BlockingSocketClient, BlockingSocketTransportLayer {
+public sealed interface BlockingSocketIO extends SocketIOProvider, SocketIO permits BlockingSocketApplicationLayer, BlockingSocketClient, BlockingSocketTransportLayer {
     default void write(byte[] data) {
         write(data, 0, data.length);
     }

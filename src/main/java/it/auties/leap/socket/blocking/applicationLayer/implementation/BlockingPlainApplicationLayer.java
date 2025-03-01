@@ -4,6 +4,7 @@ import it.auties.leap.socket.blocking.applicationLayer.BlockingSocketApplication
 import it.auties.leap.socket.blocking.applicationLayer.BlockingSocketApplicationLayerFactory;
 import it.auties.leap.socket.blocking.transportLayer.BlockingSocketTransportLayer;
 
+import java.io.IOException;
 import java.nio.ByteBuffer;
 
 public class BlockingPlainApplicationLayer extends BlockingSocketApplicationLayer {
@@ -35,5 +36,10 @@ public class BlockingPlainApplicationLayer extends BlockingSocketApplicationLaye
     @Override
     public void readFully(ByteBuffer buffer) {
         transportLayer.readFully(buffer);
+    }
+
+    @Override
+    public void close(boolean error) throws IOException {
+        transportLayer.close();
     }
 }

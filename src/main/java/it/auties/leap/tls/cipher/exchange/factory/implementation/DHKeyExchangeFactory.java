@@ -1,11 +1,11 @@
 package it.auties.leap.tls.cipher.exchange.factory.implementation;
 
-import it.auties.leap.tls.context.TlsContext;
 import it.auties.leap.tls.cipher.exchange.TlsKeyExchange;
-import it.auties.leap.tls.cipher.exchange.factory.TlsKeyExchangeFactory;
 import it.auties.leap.tls.cipher.exchange.TlsKeyExchangeType;
 import it.auties.leap.tls.cipher.exchange.client.implementation.DHClientKeyExchange;
+import it.auties.leap.tls.cipher.exchange.factory.TlsKeyExchangeFactory;
 import it.auties.leap.tls.cipher.exchange.server.implementation.DHServerKeyExchange;
+import it.auties.leap.tls.context.TlsContext;
 import it.auties.leap.tls.exception.TlsException;
 import it.auties.leap.tls.group.TlsSupportedFiniteField;
 
@@ -83,9 +83,9 @@ public class DHKeyExchangeFactory implements TlsKeyExchangeFactory {
         return new DHServerKeyExchange(type, p, g, y);
     }
 
-
     @Override
     public TlsKeyExchangeType type() {
         return type;
     }
+
 }

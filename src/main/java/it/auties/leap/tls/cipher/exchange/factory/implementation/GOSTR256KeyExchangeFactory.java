@@ -32,4 +32,5 @@ public class GOSTR256KeyExchangeFactory implements TlsKeyExchangeFactory {
     public TlsKeyExchangeType type() {
         return TlsKeyExchangeType.EPHEMERAL;
     }
+
 }

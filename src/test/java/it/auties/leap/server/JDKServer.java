@@ -7,7 +7,7 @@ import java.nio.file.Path;
 import java.security.KeyStore;
 import java.util.Arrays;
 
-public class TestCertifiedHandshakeServer {
+public class JDKServer {
     private static final int PORT = 8082;
 
     public static void main(String[] args) throws Exception {

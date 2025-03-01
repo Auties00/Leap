@@ -1,15 +1,18 @@
 package it.auties.leap.tls.message.implementation;
 
 import it.auties.leap.tls.context.TlsContext;
-import it.auties.leap.tls.util.BufferUtils;
 import it.auties.leap.tls.context.TlsSource;
-import it.auties.leap.tls.version.TlsVersion;
 import it.auties.leap.tls.message.TlsMessage;
+import it.auties.leap.tls.message.TlsMessageContentType;
+import it.auties.leap.tls.message.TlsMessageMetadata;
+import it.auties.leap.tls.message.TlsMessageType;
+import it.auties.leap.tls.util.BufferUtils;
+import it.auties.leap.tls.version.TlsVersion;
 
-import java.nio.BufferUnderflowException;
 import java.nio.ByteBuffer;
 
-import static it.auties.leap.tls.util.BufferUtils.*;
+import static it.auties.leap.tls.util.BufferUtils.readBuffer;
+import static it.auties.leap.tls.util.BufferUtils.writeBuffer;
 
 public final class ApplicationDataMessage extends TlsMessage {
     private static final int ID = 0x17;
@@ -20,24 +23,9 @@ public final class ApplicationDataMessage extends TlsMessage {
         this.message = message;
     }
 
-    public static ApplicationDataMessage of(TlsContext ignoredEngine, ByteBuffer buffer, Metadata metadata) {
+    public static ApplicationDataMessage of(TlsContext ignoredEngine, ByteBuffer buffer, TlsMessageMetadata metadata) {
         var message = readBuffer(buffer, buffer.remaining());
         return new ApplicationDataMessage(metadata.version(), metadata.source(), message);
-    }
-
-    public static void serializeInline(TlsVersion version, ByteBuffer message) {
-        var messageLength = message.remaining();
-        if(message.position() < messageRecordHeaderLength()) {
-           throw new BufferUnderflowException();
-        }
-
-        var newReadPosition = message.position() - messageRecordHeaderLength();
-        message.position(newReadPosition);
-        writeBigEndianInt8(message, ContentType.APPLICATION_DATA.id());
-        writeBigEndianInt8(message, version.id().major());
-        writeBigEndianInt8(message, version.id().minor());
-        writeBigEndianInt16(message, messageLength);
-        message.position(newReadPosition);
     }
 
     @Override
@@ -46,13 +34,13 @@ public final class ApplicationDataMessage extends TlsMessage {
     }
 
     @Override
-    public Type type() {
-        return Type.APPLICATION_DATA;
+    public TlsMessageType type() {
+        return TlsMessageType.APPLICATION_DATA;
     }
 
     @Override
-    public ContentType contentType() {
-        return ContentType.APPLICATION_DATA;
+    public TlsMessageContentType contentType() {
+        return TlsMessageContentType.APPLICATION_DATA;
     }
 
     @Override

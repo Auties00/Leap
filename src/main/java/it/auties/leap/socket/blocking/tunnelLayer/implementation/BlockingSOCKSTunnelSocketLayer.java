@@ -49,8 +49,7 @@ public final class BlockingSOCKSTunnelSocketLayer extends BlockingSocketTunnelLa
 
     @Override
     public void connect(InetSocketAddress address) {
-        applicationLayer.transportLayer()
-                .connect(new InetSocketAddress(proxy.getHost(), proxy.getPort()));
+        applicationLayer.connect(new InetSocketAddress(proxy.getHost(), proxy.getPort()));
         var authenticationResponse = sendAuthenticationRequest();
         var connectionResponse = sendAuthenticationData(authenticationResponse);
         sendConnectionData(connectionResponse, address);
@@ -164,18 +163,18 @@ public final class BlockingSOCKSTunnelSocketLayer extends BlockingSocketTunnelLa
             case IPV4 -> {
                 readOrThrow(4, "Cannot read IPV4 address");
                 readOrThrow(2, "Cannot read IPV4 port");
-                applicationLayer.transportLayer().setAddress(address);
+                applicationLayer.setAddress(address);
             }
             case IPV6 -> {
                 readOrThrow(16, "Cannot read IPV6 address");
                         readOrThrow(2, "Cannot read IPV6 port");
-                  applicationLayer.transportLayer().setAddress(address);
+                  applicationLayer.setAddress(address);
             }
             case DOMAIN_NAME -> {
                 var domainLengthBuffer = readOrThrow(1, "Cannot read domain name");
                 readOrThrow(Byte.toUnsignedInt(domainLengthBuffer.get()), "Cannot read domain hostname");
                 readOrThrow(2, "Cannot read domain port");
-                applicationLayer.transportLayer().setAddress(address);
+                applicationLayer.setAddress(address);
             }
               
             default -> throw new SocketException("Reply from SOCKS server contains wrong code");

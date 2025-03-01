@@ -4,10 +4,13 @@ package it.auties.leap.socket.kernel.linux;
 
 import java.lang.invoke.*;
 import java.lang.foreign.*;
+import java.nio.ByteOrder;
 import java.util.*;
+import java.util.function.*;
 import java.util.stream.*;
 
 import static java.lang.foreign.ValueLayout.*;
+import static java.lang.foreign.MemoryLayout.PathElement.*;
 
 public class LinuxKernel {
 
@@ -65,6 +68,24 @@ public class LinuxKernel {
     public static final AddressLayout C_POINTER = ValueLayout.ADDRESS
             .withTargetLayout(MemoryLayout.sequenceLayout(java.lang.Long.MAX_VALUE, JAVA_BYTE));
     public static final ValueLayout.OfLong C_LONG = ValueLayout.JAVA_LONG;
+    private static final int SOL_SOCKET = (int)1L;
+    /**
+     * {@snippet lang=c :
+     * #define SOL_SOCKET 1
+     * }
+     */
+    public static int SOL_SOCKET() {
+        return SOL_SOCKET;
+    }
+    private static final int SO_ERROR = (int)4L;
+    /**
+     * {@snippet lang=c :
+     * #define SO_ERROR 4
+     * }
+     */
+    public static int SO_ERROR() {
+        return SO_ERROR;
+    }
     private static final int __NR_io_uring_setup = (int)425L;
     /**
      * {@snippet lang=c :
@@ -119,6 +140,12 @@ public class LinuxKernel {
     public static int MAP_SHARED() {
         return MAP_SHARED;
     }
+    /**
+     * {@snippet lang=c :
+     * typedef __socklen_t socklen_t
+     * }
+     */
+    public static final OfInt socklen_t = LinuxKernel.C_INT;
 
     private static class close {
         public static final FunctionDescriptor DESC = FunctionDescriptor.of(
@@ -387,6 +414,24 @@ public class LinuxKernel {
     public static int SOCK_NONBLOCK() {
         return SOCK_NONBLOCK;
     }
+    private static final int MSG_PEEK = (int)2L;
+    /**
+     * {@snippet lang=c :
+     * enum <anonymous>.MSG_PEEK = 2
+     * }
+     */
+    public static int MSG_PEEK() {
+        return MSG_PEEK;
+    }
+    private static final int MSG_DONTWAIT = (int)64L;
+    /**
+     * {@snippet lang=c :
+     * enum <anonymous>.MSG_DONTWAIT = 64
+     * }
+     */
+    public static int MSG_DONTWAIT() {
+        return MSG_DONTWAIT;
+    }
     private static final int SHUT_RDWR = (int)2L;
     /**
      * {@snippet lang=c :
@@ -512,6 +557,68 @@ public class LinuxKernel {
                 traceDowncall("connect", __fd, __addr, __len);
             }
             return (int)mh$.invokeExact(__fd, __addr, __len);
+        } catch (Throwable ex$) {
+           throw new AssertionError("should not reach here", ex$);
+        }
+    }
+
+    private static class getsockopt {
+        public static final FunctionDescriptor DESC = FunctionDescriptor.of(
+            LinuxKernel.C_INT,
+            LinuxKernel.C_INT,
+            LinuxKernel.C_INT,
+            LinuxKernel.C_INT,
+            LinuxKernel.C_POINTER,
+            LinuxKernel.C_POINTER
+        );
+
+        public static final MemorySegment ADDR = LinuxKernel.findOrThrow("getsockopt");
+
+        public static final MethodHandle HANDLE = Linker.nativeLinker().downcallHandle(ADDR, DESC);
+    }
+
+    /**
+     * Function descriptor for:
+     * {@snippet lang=c :
+     * extern int getsockopt(int __fd, int __level, int __optname, void *restrict __optval, socklen_t *restrict __optlen)
+     * }
+     */
+    public static FunctionDescriptor getsockopt$descriptor() {
+        return getsockopt.DESC;
+    }
+
+    /**
+     * Downcall method handle for:
+     * {@snippet lang=c :
+     * extern int getsockopt(int __fd, int __level, int __optname, void *restrict __optval, socklen_t *restrict __optlen)
+     * }
+     */
+    public static MethodHandle getsockopt$handle() {
+        return getsockopt.HANDLE;
+    }
+
+    /**
+     * Address for:
+     * {@snippet lang=c :
+     * extern int getsockopt(int __fd, int __level, int __optname, void *restrict __optval, socklen_t *restrict __optlen)
+     * }
+     */
+    public static MemorySegment getsockopt$address() {
+        return getsockopt.ADDR;
+    }
+
+    /**
+     * {@snippet lang=c :
+     * extern int getsockopt(int __fd, int __level, int __optname, void *restrict __optval, socklen_t *restrict __optlen)
+     * }
+     */
+    public static int getsockopt(int __fd, int __level, int __optname, MemorySegment __optval, MemorySegment __optlen) {
+        var mh$ = getsockopt.HANDLE;
+        try {
+            if (TRACE_DOWNCALLS) {
+                traceDowncall("getsockopt", __fd, __level, __optname, __optval, __optlen);
+            }
+            return (int)mh$.invokeExact(__fd, __level, __optname, __optval, __optlen);
         } catch (Throwable ex$) {
            throw new AssertionError("should not reach here", ex$);
         }
@@ -700,6 +807,15 @@ public class LinuxKernel {
      */
     public static int AF_INET() {
         return AF_INET;
+    }
+    private static final int IOSQE_IO_DRAIN = (int)2L;
+    /**
+     * {@snippet lang=c :
+     * #define IOSQE_IO_DRAIN 2
+     * }
+     */
+    public static int IOSQE_IO_DRAIN() {
+        return IOSQE_IO_DRAIN;
     }
     private static final long IORING_OFF_SQ_RING = 0L;
     /**

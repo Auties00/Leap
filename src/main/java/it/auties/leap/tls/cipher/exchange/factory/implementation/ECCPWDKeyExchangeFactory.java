@@ -32,4 +32,5 @@ public class ECCPWDKeyExchangeFactory implements TlsKeyExchangeFactory {
     public TlsKeyExchangeType type() {
         return TlsKeyExchangeType.EPHEMERAL;
     }
+
 }

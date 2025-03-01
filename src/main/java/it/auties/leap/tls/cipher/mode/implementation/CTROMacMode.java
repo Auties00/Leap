@@ -6,8 +6,11 @@ import it.auties.leap.tls.cipher.engine.implementation.MagmaEngine;
 import it.auties.leap.tls.cipher.mode.TlsCipherIV;
 import it.auties.leap.tls.cipher.mode.TlsCipherMode;
 import it.auties.leap.tls.cipher.mode.TlsCipherModeFactory;
+import it.auties.leap.tls.context.TlsContext;
 import it.auties.leap.tls.exception.TlsException;
 import it.auties.leap.tls.mac.TlsExchangeMac;
+import it.auties.leap.tls.message.TlsMessage;
+import it.auties.leap.tls.message.TlsMessageMetadata;
 
 import java.nio.ByteBuffer;
 
@@ -31,7 +34,12 @@ public final class CTROMacMode extends TlsCipherMode.Block {
     }
 
     @Override
-    public void cipher(byte contentType, ByteBuffer input, ByteBuffer output, byte[] sequence) {
+    public void encrypt(TlsContext context, TlsMessage message, ByteBuffer output) {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public TlsMessage decrypt(TlsContext context, TlsMessageMetadata metadata, ByteBuffer input) {
         throw new UnsupportedOperationException();
     }
 

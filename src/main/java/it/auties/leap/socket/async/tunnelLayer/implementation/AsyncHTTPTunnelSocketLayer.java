@@ -31,8 +31,7 @@ public final class AsyncHTTPTunnelSocketLayer extends AsyncSocketTunnelLayer {
 
     @Override
     public CompletableFuture<Void> connect(InetSocketAddress address) {
-        return applicationLayer.transportLayer()
-                .connect(new InetSocketAddress(proxy.getHost(), proxy.getPort()))
+        return applicationLayer.connect(new InetSocketAddress(proxy.getHost(), proxy.getPort()))
                 .thenCompose(_ -> sendAuthentication(address))
                 .thenCompose(_ -> readAuthenticationResponse(address));
     }
@@ -51,8 +50,7 @@ public final class AsyncHTTPTunnelSocketLayer extends AsyncSocketTunnelLayer {
                     yield CompletableFuture.failedFuture(new SocketException("HTTP : Cannot connect to value, status code " + response.statusCode()));
                 }
 
-                applicationLayer.transportLayer()
-                        .setAddress(address);
+                applicationLayer        .setAddress(address);
                 yield CompletableFuture.completedFuture((Void) null);
             }
 

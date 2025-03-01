@@ -4,6 +4,9 @@ import it.auties.leap.tls.context.TlsContext;
 import it.auties.leap.tls.context.TlsSource;
 import it.auties.leap.tls.exception.TlsException;
 import it.auties.leap.tls.message.TlsHandshakeMessage;
+import it.auties.leap.tls.message.TlsMessageContentType;
+import it.auties.leap.tls.message.TlsMessageMetadata;
+import it.auties.leap.tls.message.TlsMessageType;
 import it.auties.leap.tls.version.TlsVersion;
 
 import java.net.URI;
@@ -21,7 +24,7 @@ public sealed abstract class HelloRequestMessage extends TlsHandshakeMessage{
             super(tlsVersion, source);
         }
 
-        public static Server of(TlsContext ignoredEngine, ByteBuffer buffer, Metadata metadata) {
+        public static Server of(TlsContext ignoredEngine, ByteBuffer buffer, TlsMessageMetadata metadata) {
             if(buffer.hasRemaining()) {
                 throw new TlsException("Expected server hello request message to have an empty payload", URI.create("https://datatracker.ietf.org/doc/html/rfc5246#section-7.4.9"), "7.4.1.1");
             }
@@ -35,13 +38,13 @@ public sealed abstract class HelloRequestMessage extends TlsHandshakeMessage{
         }
 
         @Override
-        public Type type() {
-            return Type.SERVER_HELLO_REQUEST;
+        public TlsMessageType type() {
+            return TlsMessageType.SERVER_HELLO_REQUEST;
         }
 
         @Override
-        public ContentType contentType() {
-            return ContentType.HANDSHAKE;
+        public TlsMessageContentType contentType() {
+            return TlsMessageContentType.HANDSHAKE;
         }
 
         @Override

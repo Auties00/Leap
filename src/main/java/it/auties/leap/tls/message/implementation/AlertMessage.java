@@ -2,6 +2,9 @@ package it.auties.leap.tls.message.implementation;
 
 import it.auties.leap.tls.context.TlsContext;
 import it.auties.leap.tls.context.TlsSource;
+import it.auties.leap.tls.message.TlsMessageContentType;
+import it.auties.leap.tls.message.TlsMessageMetadata;
+import it.auties.leap.tls.message.TlsMessageType;
 import it.auties.leap.tls.version.TlsVersion;
 import it.auties.leap.tls.message.TlsMessage;
 
@@ -17,21 +20,21 @@ import static it.auties.leap.tls.util.BufferUtils.*;
 public final class AlertMessage extends TlsMessage {
     private static final int LENGTH = INT8_LENGTH + INT8_LENGTH;
 
-    private final Level level;
-    private final Type type;
+    private final AlertLevel alertLevel;
+    private final AlertType alertType;
 
-    public AlertMessage(TlsVersion tlsVersion, TlsSource source, Level level, Type type) {
+    public AlertMessage(TlsVersion tlsVersion, TlsSource source, AlertLevel alertLevel, AlertType alertType) {
         super(tlsVersion, source);
-        this.level = level;
-        this.type = type;
+        this.alertLevel = alertLevel;
+        this.alertType = alertType;
     }
 
-    public static AlertMessage of(TlsContext ignoredEngine, ByteBuffer buffer, Metadata metadata) {
+    public static AlertMessage of(TlsContext ignoredEngine, ByteBuffer buffer, TlsMessageMetadata metadata) {
         var levelId = readBigEndianInt8(buffer);
-        var level = AlertMessage.Level.of(levelId)
+        var level = AlertLevel.of(levelId)
                 .orElseThrow(() -> new IllegalArgumentException("Cannot decode TLS message, unknown alert level: " + levelId));
         var typeId = readBigEndianInt8(buffer);
-        var type = AlertMessage.Type.of(typeId)
+        var type = AlertType.of(typeId)
                 .orElseThrow(() -> new IllegalArgumentException("Cannot decode TLS message, unknown alert type: " + typeId));
         return new AlertMessage(metadata.version(), metadata.source(), level, type);
     }
@@ -42,19 +45,27 @@ public final class AlertMessage extends TlsMessage {
     }
 
     @Override
-    public TlsMessage.Type type() {
-        return TlsMessage.Type.ALERT;
+    public TlsMessageType type() {
+        return TlsMessageType.ALERT;
+    }
+
+    public AlertLevel alertLevel() {
+        return alertLevel;
+    }
+
+    public AlertType alertType() {
+        return alertType;
     }
 
     @Override
-    public ContentType contentType() {
-        return ContentType.ALERT;
+    public TlsMessageContentType contentType() {
+        return TlsMessageContentType.ALERT;
     }
 
     @Override
     public void serializeMessagePayload(ByteBuffer buffer) {
-        writeBigEndianInt8(buffer, level.id());
-        writeBigEndianInt8(buffer, type.id());
+        writeBigEndianInt8(buffer, alertLevel.id());
+        writeBigEndianInt8(buffer, alertType.id());
     }
 
     @Override
@@ -66,12 +77,12 @@ public final class AlertMessage extends TlsMessage {
     public String toString() {
         return "AlertMessage[" +
                 "tlsVersion=" + version +
-                ", level=" + level +
-                ", type=" + type +
+                ", level=" + alertLevel +
+                ", type=" + alertType +
                 ']';
     }
 
-    public enum Type {
+    public enum AlertType {
         CLOSE_NOTIFY((byte) 0, "close_notify", false),
         UNEXPECTED_MESSAGE((byte) 10, "unexpected_message", false),
         BAD_RECORD_MAC((byte) 20, "bad_record_mac", false),
@@ -107,19 +118,19 @@ public final class AlertMessage extends TlsMessage {
         CERTIFICATE_REQUIRED((byte) 116, "certificate_required", true),
         NO_APPLICATION_PROTOCOL((byte) 120, "no_application_protocol", true);
         
-        private static final Map<Byte, Type> VALUES = Arrays.stream(values())
-                .collect(Collectors.toUnmodifiableMap(Type::id, Function.identity()));
+        private static final Map<Byte, AlertType> VALUES = Arrays.stream(values())
+                .collect(Collectors.toUnmodifiableMap(AlertType::id, Function.identity()));
 
         private final byte id;
         private final String description;
         private final boolean handshakeOnly;
-        Type(byte id, String description, boolean handshakeOnly) {
+        AlertType(byte id, String description, boolean handshakeOnly) {
             this.id = id;
             this.description = description;
             this.handshakeOnly = handshakeOnly;
         }
 
-        public static Optional<Type> of(byte id) {
+        public static Optional<AlertType> of(byte id) {
             return Optional.ofNullable(VALUES.get(id));
         }
 
@@ -136,21 +147,21 @@ public final class AlertMessage extends TlsMessage {
         }
     }
 
-    public enum Level {
+    public enum AlertLevel {
         WARNING((byte) 1, "warning"),
         FATAL((byte) 2, "fatal");
 
-        private static final Map<Byte, Level> VALUES = Arrays.stream(values())
-                .collect(Collectors.toUnmodifiableMap(Level::id, Function.identity()));
+        private static final Map<Byte, AlertLevel> VALUES = Arrays.stream(values())
+                .collect(Collectors.toUnmodifiableMap(AlertLevel::id, Function.identity()));
         
         private final byte id;
         private final String description;
-        Level(byte id, String description) {
+        AlertLevel(byte id, String description) {
             this.id = id;
             this.description = description;
         }
 
-        public static Optional<Level> of(byte level) {
+        public static Optional<AlertLevel> of(byte level) {
             return Optional.ofNullable(VALUES.get(level));
         }
 

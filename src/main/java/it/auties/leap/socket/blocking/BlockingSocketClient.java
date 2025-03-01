@@ -61,38 +61,32 @@ public final class BlockingSocketClient implements SocketClient, BlockingSocketI
 
     @Override
     public boolean isConnected() {
-        return applicationLayer.transportLayer()
-                .isConnected();
+        return applicationLayer.isConnected();
     }
 
     @Override
     public void close() throws IOException {
-        applicationLayer.transportLayer()
-                .close();
+        applicationLayer.close(false);
     }
 
     @Override
     public Optional<InetSocketAddress> address() {
-        return applicationLayer.transportLayer()
-                .address();
+        return applicationLayer.address();
     }
 
     @Override
     public void setAddress(InetSocketAddress address) {
-        applicationLayer.transportLayer()
-                .setAddress(address);
+        applicationLayer.setAddress(address);
     }
 
     @Override
     public <V> V getOption(SocketOption<V> option) {
-        return applicationLayer.transportLayer()
-                .getOption(option);
+        return applicationLayer.getOption(option);
     }
 
     @Override
     public <V> void setOption(SocketOption<V> option, V value) {
-        applicationLayer.transportLayer()
-                .setOption(option, value);
+        applicationLayer.setOption(option, value);
     }
 
     public static BlockingSocketClientBuilder newBuilder(SocketProtocol protocol) {

@@ -3,6 +3,9 @@ package it.auties.leap.tls.cipher.mode.implementation;
 import it.auties.leap.tls.cipher.mode.TlsCipherIV;
 import it.auties.leap.tls.cipher.mode.TlsCipherMode;
 import it.auties.leap.tls.cipher.mode.TlsCipherModeFactory;
+import it.auties.leap.tls.context.TlsContext;
+import it.auties.leap.tls.message.TlsMessage;
+import it.auties.leap.tls.message.TlsMessageMetadata;
 
 import java.nio.ByteBuffer;
 
@@ -23,9 +26,19 @@ public final class NoneMode extends TlsCipherMode.Block {
     }
 
     @Override
-    public void cipher(byte contentType, ByteBuffer input, ByteBuffer output, byte[] sequence) {
-        addMac(input, contentType);
+    public void encrypt(TlsContext context, TlsMessage message, ByteBuffer output) {
+        var input = output.duplicate();
+        message.serializeMessage(input);
+        addMac(input, message.contentType().id());
         move(input, output);
+    }
+
+    @Override
+    public TlsMessage decrypt(TlsContext context, TlsMessageMetadata metadata, ByteBuffer input) {
+        var output = input.duplicate();
+        addMac(input, metadata.contentType().id());
+        move(input, output);
+        return TlsMessage.of(context, output, metadata.withMessageLength(output.remaining()));
     }
 
     @Override

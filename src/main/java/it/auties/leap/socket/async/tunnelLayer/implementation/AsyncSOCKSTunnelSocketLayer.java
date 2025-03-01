@@ -51,8 +51,7 @@ public final class AsyncSOCKSTunnelSocketLayer extends AsyncSocketTunnelLayer {
 
     @Override
     public CompletableFuture<Void> connect(InetSocketAddress address) {
-        return applicationLayer.transportLayer()
-                .connect(new InetSocketAddress(proxy.getHost(), proxy.getPort()))
+        return applicationLayer.connect(new InetSocketAddress(proxy.getHost(), proxy.getPort()))
                 .thenCompose(_ -> sendAuthenticationRequest())
                 .thenCompose(this::sendAuthenticationData)
                 .thenCompose(connectionResponse -> sendConnectionData(connectionResponse, address));
@@ -168,14 +167,14 @@ public final class AsyncSOCKSTunnelSocketLayer extends AsyncSocketTunnelLayer {
         return switch (authenticationType) {
             case IPV4 -> readOrThrow(4, "Cannot read IPV4 address")
                     .thenCompose(_ -> readOrThrow(2, "Cannot read IPV4 port"))
-                    .thenRun(() -> applicationLayer.transportLayer().setAddress(address));
+                    .thenRun(() -> applicationLayer.setAddress(address));
             case IPV6 -> readOrThrow(16, "Cannot read IPV6 address")
                     .thenCompose(_ -> readOrThrow(2, "Cannot read IPV6 port"))
-                    .thenRun(() -> applicationLayer.transportLayer().setAddress(address));
+                    .thenRun(() -> applicationLayer.setAddress(address));
             case DOMAIN_NAME -> readOrThrow(1, "Cannot read domain name")
                     .thenCompose(domainLengthBuffer -> readOrThrow(Byte.toUnsignedInt(domainLengthBuffer.get()), "Cannot read domain hostname"))
                     .thenCompose(_ -> readOrThrow(2, "Cannot read domain port"))
-                    .thenRun(() -> applicationLayer.transportLayer().setAddress(address));
+                    .thenRun(() -> applicationLayer.setAddress(address));
             default ->
                     CompletableFuture.failedFuture(new SocketException("Reply from SOCKS server contains wrong code"));
         };

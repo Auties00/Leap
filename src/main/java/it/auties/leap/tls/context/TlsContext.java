@@ -2,9 +2,9 @@ package it.auties.leap.tls.context;
 
 import it.auties.leap.tls.certificate.TlsClientCertificateType;
 import it.auties.leap.tls.cipher.TlsCipher;
-import it.auties.leap.tls.cipher.mode.TlsCipherMode;
 import it.auties.leap.tls.cipher.exchange.TlsKeyExchange;
 import it.auties.leap.tls.cipher.exchange.TlsKeyExchangeType;
+import it.auties.leap.tls.cipher.mode.TlsCipherMode;
 import it.auties.leap.tls.compression.TlsCompression;
 import it.auties.leap.tls.exception.TlsException;
 import it.auties.leap.tls.extension.TlsExtension;
@@ -16,13 +16,14 @@ import it.auties.leap.tls.hash.TlsHandshakeHash;
 import it.auties.leap.tls.hash.TlsHash;
 import it.auties.leap.tls.hash.TlsHashFactory;
 import it.auties.leap.tls.hash.TlsPRF;
-import it.auties.leap.tls.random.*;
 import it.auties.leap.tls.mac.TlsExchangeMac;
 import it.auties.leap.tls.message.TlsMessage;
+import it.auties.leap.tls.message.TlsMessageType;
 import it.auties.leap.tls.message.implementation.*;
 import it.auties.leap.tls.secret.TlsMasterSecret;
 import it.auties.leap.tls.signature.TlsSignature;
 import it.auties.leap.tls.signature.TlsSignatureAlgorithm;
+import it.auties.leap.tls.util.TlsKeyUtils;
 import it.auties.leap.tls.version.TlsVersion;
 
 import java.io.ByteArrayOutputStream;
@@ -37,21 +38,21 @@ import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 import static it.auties.leap.tls.util.BufferUtils.readBytes;
-import static it.auties.leap.tls.util.TlsKeyConstants.*;
+import static it.auties.leap.tls.util.TlsKeyUtils.*;
 
 public class TlsContext {
     private final TlsConfig localConfig;
-    private final TlsClientRandom localRandomData;
-    private final TlsSessionId localSessionId;
+    private final byte[] localRandomData;
+    private final byte[] localSessionId;
 
     private final ByteArrayOutputStream messageDigestBuffer;
-    private final CopyOnWriteArrayList<TlsMessage.Type> processedMessageTypes;
+    private final CopyOnWriteArrayList<TlsMessageType> processedMessageTypes;
 
     private volatile TlsMode mode;
 
     private final InetSocketAddress remoteAddress;
-    private volatile TlsClientRandom remoteRandomData;
-    private volatile TlsSessionId remoteSessionId;
+    private volatile byte[] remoteRandomData;
+    private volatile byte[] remoteSessionId;
 
     private volatile TlsCipher negotiatedCipher;
     private volatile TlsHandshakeHash handshakeHash;
@@ -75,7 +76,7 @@ public class TlsContext {
 
     private volatile KeyPair localKeyPair;
 
-    private volatile TlsRandomCookie dtlsCookie;
+    private volatile byte[] dtlsCookie;
 
     private volatile List<TlsSupportedGroup> localSupportedGroups;
     private volatile TlsSupportedCurve localPreferredEllipticCurve;
@@ -89,16 +90,17 @@ public class TlsContext {
     private List<TlsExtension.Concrete> localProcessedExtensions;
     private int localProcessedExtensionsLength;
     private PublicKey remotePublicKey;
+    private byte[] preMasterSecret;
 
     public TlsContext(InetSocketAddress address, TlsConfig config) {
         this.remoteAddress = address;
         this.localConfig = config;
-        this.localRandomData = TlsClientRandom.random();
-        this.localSessionId = TlsSessionId.random();
+        this.localRandomData = TlsKeyUtils.randomData();
+        this.localSessionId = TlsKeyUtils.randomData();
         this.processedMessageTypes = new CopyOnWriteArrayList<>();
         this.dtlsCookie = switch (config.version().protocol()) {
             case TCP -> null;
-            case UDP -> TlsRandomCookie.empty();
+            case UDP -> TlsKeyUtils.randomData();
         };
         this.messageDigestBuffer = new ByteArrayOutputStream(); // TODO: Calculate optimal space
         this.bufferedMessages = new LinkedList<>();
@@ -117,7 +119,8 @@ public class TlsContext {
         return Optional.ofNullable(mode);
     }
 
-    public void handleMessage(TlsMessage message) {
+    public boolean handleMessage(TlsMessage message) {
+        System.out.println("Processing " + message.getClass().getName());
         processedMessageTypes.add(message.type());
         switch (message) {
             case HelloRequestMessage.Server _ -> {
@@ -128,11 +131,11 @@ public class TlsContext {
             case HelloMessage.Client clientHelloMessage -> {
                 switch (message.source()) {
                     case LOCAL -> {
-                        if (!Arrays.equals(clientHelloMessage.randomData().data(), localRandomData.data())) {
+                        if (!Arrays.equals(clientHelloMessage.randomData(), localRandomData)) {
                             throw new TlsException("Local random data mismatch");
                         }
 
-                        if (!Arrays.equals(clientHelloMessage.sessionId().data(), localSessionId.data())) {
+                        if (!Arrays.equals(clientHelloMessage.sessionId(), localSessionId)) {
                             throw new TlsException("Local session id mismatch");
                         }
 
@@ -155,11 +158,11 @@ public class TlsContext {
             case HelloMessage.Server serverHelloMessage -> {
                 switch (message.source()) {
                     case LOCAL -> {
-                        if (!Arrays.equals(serverHelloMessage.randomData().data(), localRandomData.data())) {
+                        if (!Arrays.equals(serverHelloMessage.randomData(), localRandomData)) {
                             throw new TlsException("Local random data mismatch");
                         }
 
-                        if (!Arrays.equals(serverHelloMessage.sessionId().data(), localSessionId.data())) {
+                        if (!Arrays.equals(serverHelloMessage.sessionId(), localSessionId)) {
                             throw new TlsException("Local session id mismatch");
                         }
 
@@ -221,11 +224,8 @@ public class TlsContext {
             }
 
             case KeyExchangeMessage.Client client -> {
-                var preMasterSecret = client.localParameters()
-                        .orElseThrow()
-                        .preMasterSecretGenerator()
-                        .generatePreMasterSecret(this);
-                initKeys(preMasterSecret);
+                generatePreMasterSecret(client);
+                initSession();
             }
 
             case CertificateMessage.Client certificateMessage -> {
@@ -246,45 +246,66 @@ public class TlsContext {
                 }
             }
 
-            case AlertMessage alertMessage -> throw new IllegalArgumentException("Received alert: " + alertMessage);
+            case AlertMessage alertMessage -> {
+                if(alertMessage.alertType() == AlertMessage.AlertType.CLOSE_NOTIFY) {
+                    return false;
+                }
+                throw new TlsException("Received alert: " + alertMessage);
+            }
 
             default -> {}
         }
+        return true;
+    }
+
+    private void generatePreMasterSecret(KeyExchangeMessage.Client client) {
+        if(preMasterSecret != null) {
+            return;
+        }
+
+        this.preMasterSecret = client.localParameters()
+                .orElseThrow()
+                .preMasterSecretGenerator()
+                .generatePreMasterSecret(this);
+    }
+
+    public void setPreMasterSecret(byte[] key) {
+        this.preMasterSecret = key;
     }
 
     public boolean isHandshakeComplete() {
-        return hasProcessedHandshakeMessage(TlsMessage.Type.SERVER_FINISHED);
+        return hasProcessedHandshakeMessage(TlsMessageType.SERVER_FINISHED);
     }
 
     public boolean isLocalCipherEnabled() {
         return switch (mode) {
-            case CLIENT -> hasProcessedHandshakeMessage(TlsMessage.Type.CLIENT_CHANGE_CIPHER_SPEC) && hasProcessedHandshakeMessage(TlsMessage.Type.CLIENT_FINISHED);
-            case SERVER -> hasProcessedHandshakeMessage(TlsMessage.Type.SERVER_CHANGE_CIPHER_SPEC) && hasProcessedHandshakeMessage(TlsMessage.Type.SERVER_HELLO_DONE);
+            case CLIENT -> hasProcessedHandshakeMessage(TlsMessageType.CLIENT_CHANGE_CIPHER_SPEC) && hasProcessedHandshakeMessage(TlsMessageType.CLIENT_FINISHED);
+            case SERVER -> hasProcessedHandshakeMessage(TlsMessageType.SERVER_CHANGE_CIPHER_SPEC) && hasProcessedHandshakeMessage(TlsMessageType.SERVER_HELLO_DONE);
             case null -> false;
         };
     }
 
     public boolean isRemoteCipherEnabled() {
         return switch (mode) {
-            case CLIENT -> hasProcessedHandshakeMessage(TlsMessage.Type.SERVER_CHANGE_CIPHER_SPEC) && hasProcessedHandshakeMessage(TlsMessage.Type.SERVER_HELLO_DONE);
-            case SERVER -> hasProcessedHandshakeMessage(TlsMessage.Type.CLIENT_CHANGE_CIPHER_SPEC) && hasProcessedHandshakeMessage(TlsMessage.Type.CLIENT_FINISHED);
+            case CLIENT -> hasProcessedHandshakeMessage(TlsMessageType.SERVER_CHANGE_CIPHER_SPEC) && hasProcessedHandshakeMessage(TlsMessageType.SERVER_HELLO_DONE);
+            case SERVER -> hasProcessedHandshakeMessage(TlsMessageType.CLIENT_CHANGE_CIPHER_SPEC) && hasProcessedHandshakeMessage(TlsMessageType.CLIENT_FINISHED);
             case null -> false;
         };
     }
 
     public boolean hasReceivedFragments() {
-        return hasProcessedHandshakeMessage(TlsMessage.Type.APPLICATION_DATA);
+        return hasProcessedHandshakeMessage(TlsMessageType.APPLICATION_DATA);
     }
 
-    public boolean hasProcessedHandshakeMessage(TlsMessage.Type type) {
+    public boolean hasProcessedHandshakeMessage(TlsMessageType type) {
         return processedMessageTypes.contains(type);
     }
 
-    public TlsClientRandom localRandomData() {
+    public byte[] localRandomData() {
         return localRandomData;
     }
 
-    public TlsSessionId localSessionId() {
+    public byte[] localSessionId() {
         return localSessionId;
     }
 
@@ -296,7 +317,7 @@ public class TlsContext {
         return Optional.ofNullable(localKeyPair);
     }
 
-    public Optional<TlsRandomCookie> localCookie() {
+    public Optional<byte[]> localCookie() {
         return Optional.ofNullable(dtlsCookie);
     }
 
@@ -519,7 +540,7 @@ public class TlsContext {
         return Optional.ofNullable(remoteKeyExchange);
     }
 
-    private void initKeys(byte[] preMasterSecret) {
+    private void initSession() {
         this.localMasterSecretKey = TlsMasterSecret.of(
                 mode,
                 localConfig.version(),
@@ -531,12 +552,12 @@ public class TlsContext {
         );
         System.out.println("Master secret: " + Arrays.toString(localMasterSecretKey.data()));
         var clientRandom = switch (mode) {
-            case CLIENT -> localRandomData.data();
-            case SERVER -> remoteRandomData.data();
+            case CLIENT -> localRandomData;
+            case SERVER -> remoteRandomData;
         };
         var serverRandom = switch (mode) {
-            case SERVER -> localRandomData.data();
-            case CLIENT -> remoteRandomData.data();
+            case SERVER -> localRandomData;
+            case CLIENT -> remoteRandomData;
         };
 
         var localCipherEngine = negotiatedCipher.engineFactory()
@@ -710,7 +731,7 @@ public class TlsContext {
                     case CLIENT -> expandedServerKey;
                     case SERVER -> expandedClientKey;
                 };
-                
+
                 if (ivLength == 0) {
                     localCipherMode.init(true, localKey, new byte[0], localAuthenticator);
                     remoteCipherMode.init(false, remoteKey, new byte[0], remoteAuthenticator);
@@ -727,7 +748,7 @@ public class TlsContext {
                         case CLIENT -> serverIv;
                         case SERVER -> clientIv;
                     };
-                    
+
                     localCipherMode.init(true, localKey, localIv, localAuthenticator);
                     remoteCipherMode.init(false, remoteKey, remoteIv, remoteAuthenticator);
                 }

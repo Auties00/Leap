@@ -19,7 +19,6 @@ public final class BlockingDirectTunnelSocketLayer extends BlockingSocketTunnelL
 
     @Override
     public void connect(InetSocketAddress address) {
-        applicationLayer.transportLayer()
-                .connect(address);
+        applicationLayer.connect(address);
     }
 }

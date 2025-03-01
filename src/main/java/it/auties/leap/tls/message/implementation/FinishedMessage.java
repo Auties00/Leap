@@ -4,6 +4,9 @@ import it.auties.leap.tls.context.TlsContext;
 import it.auties.leap.tls.context.TlsSource;
 import it.auties.leap.tls.exception.TlsException;
 import it.auties.leap.tls.message.TlsHandshakeMessage;
+import it.auties.leap.tls.message.TlsMessageContentType;
+import it.auties.leap.tls.message.TlsMessageMetadata;
+import it.auties.leap.tls.message.TlsMessageType;
 import it.auties.leap.tls.version.TlsVersion;
 
 import java.nio.ByteBuffer;
@@ -30,7 +33,7 @@ public sealed abstract class FinishedMessage extends TlsHandshakeMessage {
             this.hash = hash;
         }
 
-        public static Server of(TlsContext ignoredEngine, ByteBuffer buffer, Metadata metadata) {
+        public static Server of(TlsContext ignoredEngine, ByteBuffer buffer, TlsMessageMetadata metadata) {
             var hash = readBytes(buffer, buffer.remaining());
             return new Server(metadata.version(), metadata.source(), hash);
         }
@@ -41,13 +44,13 @@ public sealed abstract class FinishedMessage extends TlsHandshakeMessage {
         }
 
         @Override
-        public Type type() {
-            return Type.SERVER_FINISHED;
+        public TlsMessageType type() {
+            return TlsMessageType.SERVER_FINISHED;
         }
 
         @Override
-        public ContentType contentType() {
-            return ContentType.HANDSHAKE;
+        public TlsMessageContentType contentType() {
+            return TlsMessageContentType.HANDSHAKE;
         }
 
         @Override
@@ -74,7 +77,7 @@ public sealed abstract class FinishedMessage extends TlsHandshakeMessage {
             this.hash = hash;
         }
 
-        public static Client of(TlsContext ignoredEngine, ByteBuffer buffer, Metadata metadata) {
+        public static Client of(TlsContext ignoredEngine, ByteBuffer buffer, TlsMessageMetadata metadata) {
             var hash = readBytes(buffer, buffer.remaining());
             return new Client(metadata.version(), metadata.source(), hash);
         }
@@ -85,13 +88,13 @@ public sealed abstract class FinishedMessage extends TlsHandshakeMessage {
         }
 
         @Override
-        public Type type() {
-            return Type.CLIENT_FINISHED;
+        public TlsMessageType type() {
+            return TlsMessageType.CLIENT_FINISHED;
         }
 
         @Override
-        public ContentType contentType() {
-            return ContentType.HANDSHAKE;
+        public TlsMessageContentType contentType() {
+            return TlsMessageContentType.HANDSHAKE;
         }
 
         @Override

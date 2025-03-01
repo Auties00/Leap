@@ -4,7 +4,10 @@ import it.auties.leap.tls.cipher.engine.TlsCipherEngine;
 import it.auties.leap.tls.cipher.mode.TlsCipherIV;
 import it.auties.leap.tls.cipher.mode.TlsCipherMode;
 import it.auties.leap.tls.cipher.mode.TlsCipherModeFactory;
+import it.auties.leap.tls.context.TlsContext;
 import it.auties.leap.tls.mac.TlsExchangeMac;
+import it.auties.leap.tls.message.TlsMessage;
+import it.auties.leap.tls.message.TlsMessageMetadata;
 import it.auties.leap.tls.util.BufferUtils;
 import org.bouncycastle.math.raw.Interleave;
 import org.bouncycastle.util.Arrays;
@@ -100,25 +103,23 @@ public final class GCMMode extends TlsCipherMode.Block {
     }
 
     @Override
-    public void cipher(byte contentType, ByteBuffer input, ByteBuffer output, byte[] sequence) {
+    public void encrypt(TlsContext context, TlsMessage message, ByteBuffer output) {
+        var input = output.duplicate();
+        message.serializeMessage(input);
+
         var ivLength = ivLength();
         var iv = new byte[ivLength.total()];
-        if (forEncryption) {
-            System.arraycopy(fixedIv, 0, iv, 0, fixedIv.length);
-            var nonce = authenticator.sequenceNumber();
-            System.arraycopy(nonce, 0, iv, fixedIv.length, nonce.length);
-            output.put(output.position() - nonce.length, nonce);
-        } else {
-            System.arraycopy(fixedIv, 0, iv, 0, fixedIv.length);
-            input.get(iv, fixedIv.length, ivLength.dynamic());
-        }
+        System.arraycopy(fixedIv, 0, iv, 0, fixedIv.length);
+        var nonce = authenticator.sequenceNumber();
+        System.arraycopy(nonce, 0, iv, fixedIv.length, nonce.length);
+        output.put(output.position() - nonce.length, nonce);
 
         this.J0 = new byte[engine().blockLength()];
         System.arraycopy(iv, 0, J0, 0, iv.length);
         this.J0[J0.length - 1] = 0x01;
         this.counter = Arrays.clone(J0);
 
-        var aad = authenticator.createAuthenticationBlock(contentType, input.remaining() - (forEncryption ? 0 : tagLength()), sequence);
+        var aad = authenticator.createAuthenticationBlock(message.contentType().id(), input.remaining() - (forEncryption ? 0 : tagLength()), null);
         processAADBytes(aad, 0, aad.length);
 
         var resultLen = processBytes(input.array(), input.position(), input.remaining(), output.array(), output.position());
@@ -126,6 +127,32 @@ public final class GCMMode extends TlsCipherMode.Block {
 
         output.position(output.position() - (forEncryption ? ivLength.dynamic() : 0));
         output.limit(output.position() + (forEncryption ? ivLength.dynamic() : 0) + resultLen);
+    }
+
+    @Override
+    public TlsMessage decrypt(TlsContext context, TlsMessageMetadata metadata, ByteBuffer input) {
+        var output = input.duplicate();
+
+        var ivLength = ivLength();
+        var iv = new byte[ivLength.total()];
+        System.arraycopy(fixedIv, 0, iv, 0, fixedIv.length);
+        input.get(iv, fixedIv.length, ivLength.dynamic());
+
+        this.J0 = new byte[engine().blockLength()];
+        System.arraycopy(iv, 0, J0, 0, iv.length);
+        this.J0[J0.length - 1] = 0x01;
+        this.counter = Arrays.clone(J0);
+
+        var aad = authenticator.createAuthenticationBlock(metadata.contentType().id(), input.remaining() - (forEncryption ? 0 : tagLength()), null);
+        processAADBytes(aad, 0, aad.length);
+
+        var resultLen = processBytes(input.array(), input.position(), input.remaining(), output.array(), output.position());
+        resultLen += doFinal(output.array(), output.position() + resultLen);
+
+        output.position(output.position() - (forEncryption ? ivLength.dynamic() : 0));
+        output.limit(output.position() + (forEncryption ? ivLength.dynamic() : 0) + resultLen);
+
+        return TlsMessage.of(context, output, metadata.withMessageLength(output.remaining()));
     }
 
     public int doFinal(byte[] out, int outOff) {

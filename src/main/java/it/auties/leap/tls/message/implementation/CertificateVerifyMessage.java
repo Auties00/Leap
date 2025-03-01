@@ -2,6 +2,8 @@ package it.auties.leap.tls.message.implementation;
 
 import it.auties.leap.tls.context.TlsSource;
 import it.auties.leap.tls.message.TlsHandshakeMessage;
+import it.auties.leap.tls.message.TlsMessageContentType;
+import it.auties.leap.tls.message.TlsMessageType;
 import it.auties.leap.tls.version.TlsVersion;
 
 import java.nio.ByteBuffer;
@@ -24,13 +26,13 @@ public sealed abstract class CertificateVerifyMessage extends TlsHandshakeMessag
         }
 
         @Override
-        public Type type() {
-            return Type.CLIENT_CERTIFICATE_VERIFY;
+        public TlsMessageType type() {
+            return TlsMessageType.CLIENT_CERTIFICATE_VERIFY;
         }
 
         @Override
-        public ContentType contentType() {
-            return ContentType.HANDSHAKE;
+        public TlsMessageContentType contentType() {
+            return TlsMessageContentType.HANDSHAKE;
         }
 
         @Override

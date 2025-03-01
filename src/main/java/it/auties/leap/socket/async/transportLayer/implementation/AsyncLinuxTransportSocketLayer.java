@@ -137,20 +137,14 @@ public final class AsyncLinuxTransportSocketLayer extends AsyncNativeTransportSo
 
     @Override
     public void close() {
-        if (!connected.get()) {
-            return;
+        if (ioUring != null && handle != null && ioUring.isHandleRegistered(handle)) {
+            ioUring.unregisterHandle(handle);
+            LinuxKernel.shutdown(handle, LinuxKernel.SHUT_RDWR());
+            LinuxKernel.close(handle);
         }
 
         this.address = null;
         connected.set(false);
-        if (ioUring != null) {
-            ioUring.unregisterHandle(handle);
-        }
-
-        if (handle != null) {
-            LinuxKernel.shutdown(handle, LinuxKernel.SHUT_RDWR());
-            LinuxKernel.close(handle);
-        }
     }
 
     private static final class IOUring implements Runnable {
@@ -277,6 +271,10 @@ public final class AsyncLinuxTransportSocketLayer extends AsyncNativeTransportSo
             }
 
             close();
+        }
+
+        public boolean isHandleRegistered(int handle) {
+            return handles.contains(handle);
         }
 
         private void close() {

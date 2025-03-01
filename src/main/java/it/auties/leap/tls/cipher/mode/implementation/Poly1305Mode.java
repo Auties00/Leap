@@ -5,8 +5,11 @@ import it.auties.leap.tls.cipher.engine.implementation.ChaCha20Engine;
 import it.auties.leap.tls.cipher.mode.TlsCipherIV;
 import it.auties.leap.tls.cipher.mode.TlsCipherMode;
 import it.auties.leap.tls.cipher.mode.TlsCipherModeFactory;
+import it.auties.leap.tls.context.TlsContext;
 import it.auties.leap.tls.exception.TlsException;
 import it.auties.leap.tls.mac.TlsExchangeMac;
+import it.auties.leap.tls.message.TlsMessage;
+import it.auties.leap.tls.message.TlsMessageMetadata;
 import it.auties.leap.tls.util.BufferUtils;
 import org.bouncycastle.crypto.DataLengthException;
 import org.bouncycastle.crypto.OutputLengthException;
@@ -66,10 +69,11 @@ public class Poly1305Mode extends TlsCipherMode.Stream {
     }
 
     @Override
-    public void cipher(byte contentType, ByteBuffer input, ByteBuffer output, byte[] sequence) {
+    public void encrypt(TlsContext context, TlsMessage message, ByteBuffer output) {
+        var input = output.duplicate();
+        message.serializeMessage(input);
         var initialPosition = output.position();
         this.state = engine.forEncryption() ? State.ENC_INIT : State.DEC_INIT;
-        if(engine.forEncryption()) {
             byte[] sn = authenticator.sequenceNumber();
             byte[] nonce = new byte[fixedIv.length];
             System.arraycopy(sn, 0, nonce, nonce.length - sn.length, sn.length);
@@ -81,35 +85,47 @@ public class Poly1305Mode extends TlsCipherMode.Stream {
             reset(true);
 
             byte[] aad = authenticator.createAuthenticationBlock(
-                    contentType, input.remaining(), null);
+                    message.contentType().id(), input.remaining(), null);
             processAADBytes(aad, 0, aad.length);
+            System.out.println("IV: " + java.util.Arrays.toString(nonce));
+            System.out.println("AAD: " + java.util.Arrays.toString(aad));
             var result  = processBytes(input.array(), input.position(), input.remaining(), output.array(), output.position());
             result += doFinal(output.array(), output.position() + result);
             output.position(output.position() + result);
-        }else {
-            byte[] sn = sequence;
-            if (sn == null) {
-                sn = authenticator.sequenceNumber();
-            }
-            byte[] nonce = new byte[fixedIv.length];
-            System.arraycopy(sn, 0, nonce, nonce.length - sn.length, sn.length);
-            for (int i = 0; i < nonce.length; i++) {
-                nonce[i] ^= fixedIv[i];
-            }
-
-            ((ChaCha20Engine) engine).initIV(nonce);
-            reset(true);
-
-            // update the additional authentication data
-            byte[] aad = authenticator.createAuthenticationBlock(contentType, input.remaining() - tagLength(), sequence);
-            processAADBytes(aad, 0, aad.length);
-
-            var result  = processBytes(input.array(), input.position(), input.remaining(), output.array(), output.position());
-            result += doFinal(output.array(), output.position() + result);
-            output.position(output.position() + result);
-        }
         output.limit(output.position());
         output.position(initialPosition);
+    }
+
+    @Override
+    public TlsMessage decrypt(TlsContext context, TlsMessageMetadata metadata, ByteBuffer input) {
+        var output = input.duplicate();
+        var initialPosition = output.position();
+        this.state = engine.forEncryption() ? State.ENC_INIT : State.DEC_INIT;
+
+        byte[] sn = null;
+        if (sn == null) {
+            sn = authenticator.sequenceNumber();
+        }
+        byte[] nonce = new byte[fixedIv.length];
+        System.arraycopy(sn, 0, nonce, nonce.length - sn.length, sn.length);
+        for (int i = 0; i < nonce.length; i++) {
+            nonce[i] ^= fixedIv[i];
+        }
+
+        ((ChaCha20Engine) engine).initIV(nonce);
+        reset(true);
+
+        // update the additional authentication data
+        byte[] aad = authenticator.createAuthenticationBlock(metadata.contentType().id(), input.remaining() - tagLength(), null);
+        processAADBytes(aad, 0, aad.length);
+
+        var result  = processBytes(input.array(), input.position(), input.remaining(), output.array(), output.position());
+        result += doFinal(output.array(), output.position() + result);
+        output.position(output.position() + result);
+        output.limit(output.position());
+        output.position(initialPosition);
+
+        return TlsMessage.of(context, output, metadata.withMessageLength(output.remaining()));
     }
 
     @Override

@@ -8,7 +8,7 @@ import it.auties.leap.tls.hash.TlsPRF;
 
 import java.util.Arrays;
 
-import static it.auties.leap.tls.util.TlsKeyConstants.*;
+import static it.auties.leap.tls.util.TlsKeyUtils.*;
 
 public final class TlsMasterSecret {
     private static final int LENGTH = 48;

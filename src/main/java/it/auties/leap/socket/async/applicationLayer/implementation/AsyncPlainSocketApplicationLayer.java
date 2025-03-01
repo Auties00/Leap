@@ -4,6 +4,7 @@ import it.auties.leap.socket.async.applicationLayer.AsyncSocketApplicationLayer;
 import it.auties.leap.socket.async.applicationLayer.AsyncSocketApplicationLayerFactory;
 import it.auties.leap.socket.async.transportLayer.AsyncSocketTransportLayer;
 
+import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.concurrent.CompletableFuture;
 
@@ -36,5 +37,10 @@ public class AsyncPlainSocketApplicationLayer extends AsyncSocketApplicationLaye
     @Override
     public CompletableFuture<Void> readFully(ByteBuffer buffer) {
         return transportLayer.readFully(buffer);
+    }
+
+    @Override
+    public void close(boolean error) throws IOException {
+        transportLayer.close();
     }
 }
