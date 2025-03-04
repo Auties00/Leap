@@ -42,7 +42,13 @@ public sealed abstract class TlsCipherMode {
 
     public abstract TlsCipherEngine engine();
 
-    public abstract TlsCipherIV ivLength();
+    public abstract int ivLength();
+
+    public abstract int fixedIvLength();
+
+    public int dynamicIvLength() {
+        return ivLength() - fixedIvLength();
+    }
 
     public abstract int tagLength();
 

@@ -1,7 +1,6 @@
 package it.auties.leap.tls.cipher.mode.implementation;
 
 import it.auties.leap.tls.cipher.engine.TlsCipherEngine;
-import it.auties.leap.tls.cipher.mode.TlsCipherIV;
 import it.auties.leap.tls.cipher.mode.TlsCipherMode;
 import it.auties.leap.tls.cipher.mode.TlsCipherModeFactory;
 import it.auties.leap.tls.context.TlsContext;
@@ -24,7 +23,7 @@ public final class CCMMode extends TlsCipherMode.Block {
 
     private static final TlsCipherModeFactory FACTORY = CCMMode::new;
 
-    public CCMMode(TlsCipherEngine engine) {
+    private CCMMode(TlsCipherEngine engine) {
         super(engine);
     }
 
@@ -43,8 +42,7 @@ public final class CCMMode extends TlsCipherMode.Block {
         var input = output.duplicate();
         message.serializeMessage(input);
 
-        var ivLength = ivLength();
-        var iv = new byte[ivLength.total()];
+        var iv = new byte[ivLength()];
         System.arraycopy(fixedIv, 0, iv, 0, fixedIv.length);
         var nonce = authenticator.sequenceNumber();
         System.arraycopy(nonce, 0, iv, fixedIv.length, nonce.length);
@@ -69,11 +67,10 @@ public final class CCMMode extends TlsCipherMode.Block {
     @Override
     public TlsMessage decrypt(TlsContext context, TlsMessageMetadata metadata, ByteBuffer input) {
         var output = input.duplicate();
-        var ivLength = ivLength();
-        var iv = new byte[ivLength.total()];
+        var iv = new byte[ivLength()];
         var offset = 0;
         System.arraycopy(fixedIv, 0, iv, 0, fixedIv.length);
-        input.get(iv, fixedIv.length, ivLength.dynamic());
+        input.get(iv, fixedIv.length, dynamicIvLength());
 
 
         var outputPosition = output.position();
@@ -94,8 +91,13 @@ public final class CCMMode extends TlsCipherMode.Block {
     }
 
     @Override
-    public TlsCipherIV ivLength() {
-        return new TlsCipherIV(4, 8);
+    public int ivLength() {
+        return 12;
+    }
+
+    @Override
+    public int fixedIvLength() {
+        return 8;
     }
 
     @Override

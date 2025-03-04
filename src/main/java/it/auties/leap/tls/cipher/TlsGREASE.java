@@ -35,10 +35,10 @@ public final class TlsGREASE {
     private static TlsCipher createGREASECipher(int id) {
         return new TlsCipher(
                 id,
-                TlsCipherEngineFactory.unsupported(),
+                TlsCipherEngineFactory.none(),
                 TlsCipherModeFactory.none(),
                 TlsKeyExchangeFactory.contextual(),
-                TlsAuthFactory.any(),
+                TlsAuthFactory.contextual(),
                 TlsHashFactory.none(),
                 List.of(TlsVersion.TLS12, TlsVersion.TLS13),
                 false

@@ -17,7 +17,7 @@ public final class SM4Engine extends TlsCipherEngine.Block {
     private int[] x;
     private int[] rk;
 
-    public SM4Engine() {
+    private SM4Engine() {
         super(16);
     }
 

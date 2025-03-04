@@ -20,7 +20,7 @@ public class ChaCha20Engine extends TlsCipherEngine.Stream {
     private final byte[] keyStream;
     private int index;
 
-    public ChaCha20Engine() {
+    private ChaCha20Engine() {
         super(32);
         this.engineState = new int[STATE_SIZE];
         this.x = new int[STATE_SIZE];

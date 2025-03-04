@@ -2,7 +2,6 @@ package it.auties.leap.tls.cipher.mode.implementation;
 
 import it.auties.leap.tls.cipher.engine.TlsCipherEngine;
 import it.auties.leap.tls.cipher.engine.implementation.ChaCha20Engine;
-import it.auties.leap.tls.cipher.mode.TlsCipherIV;
 import it.auties.leap.tls.cipher.mode.TlsCipherMode;
 import it.auties.leap.tls.cipher.mode.TlsCipherModeFactory;
 import it.auties.leap.tls.context.TlsContext;
@@ -54,7 +53,7 @@ public class Poly1305Mode extends TlsCipherMode.Stream {
     private int state = State.UNINITIALIZED;
     private int bufPos;
 
-    public Poly1305Mode(TlsCipherEngine engine) {
+    private Poly1305Mode(TlsCipherEngine engine) {
         if(!(engine instanceof ChaCha20Engine)) {
             throw new TlsException("POLY1305 mode is supported only by ChaCha20 engines");
         }
@@ -129,8 +128,13 @@ public class Poly1305Mode extends TlsCipherMode.Stream {
     }
 
     @Override
-    public TlsCipherIV ivLength() {
-        return new TlsCipherIV(12, 0);
+    public int ivLength() {
+        return 12;
+    }
+
+    @Override
+    public int fixedIvLength() {
+        return 0;
     }
 
     @Override

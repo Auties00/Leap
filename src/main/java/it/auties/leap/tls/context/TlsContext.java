@@ -202,7 +202,7 @@ public class TlsContext {
                     case SERVER -> TlsSource.LOCAL;
                 };
                 this.remotePublicKey = localConfig.certificatesHandler()
-                        .choose(this, certificates, source)
+                        .choose(source, certificates, this)
                         .getPublicKey();
                 if(negotiatedCipher.keyExchangeFactory().type() == TlsKeyExchangeType.STATIC) {
                     this.localKeyExchange = negotiatedCipher.keyExchangeFactory()
@@ -246,7 +246,7 @@ public class TlsContext {
                     case SERVER -> TlsSource.REMOTE;
                 };
                 localConfig.certificatesHandler()
-                        .choose(this, certificates, source);
+                        .choose(source, certificates, this);
             }
 
             case FinishedMessage.Client clientFinishedMessage -> {
@@ -597,16 +597,16 @@ public class TlsContext {
         var ivLength = switch (localCipher) {
             case TlsCipherMode.Block block -> {
                 if (block.isAEAD()) {
-                    yield localCipher.ivLength().fixed();
+                    yield localCipher.ivLength();
                 }
 
                 if(localConfig.version().id().value() >= TlsVersion.TLS11.id().value()) {
                     yield 0;
                 }
 
-                yield localCipher.ivLength().total();
+                yield localCipher.ivLength();
             }
-            case TlsCipherMode.Stream _ -> localCipher.ivLength().total();
+            case TlsCipherMode.Stream _ -> localCipher.ivLength();
         };
 
         var keyBlockLen = (macLength + keyLength + (expandedKeyLength.isPresent() ? 0 : ivLength)) * 2;

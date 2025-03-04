@@ -14,7 +14,7 @@ public final class RC4Engine extends TlsCipherEngine.Stream {
     private int x;
     private int y;
 
-    public RC4Engine(int keyLength) {
+    private RC4Engine(int keyLength) {
         super(keyLength);
     }
 

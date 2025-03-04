@@ -3,7 +3,7 @@ package it.auties.leap.socket.async.transportLayer.implementation;
 import it.auties.leap.socket.SocketException;
 import it.auties.leap.socket.SocketProtocol;
 import it.auties.leap.socket.async.transportLayer.AsyncSocketTransportLayerFactory;
-import it.auties.leap.socket.kernel.linux.*;
+import it.auties.leap.socket.implementation.linux.*;
 
 import java.lang.foreign.Arena;
 import java.lang.foreign.MemorySegment;

@@ -1,7 +1,6 @@
 package it.auties.leap.tls.cipher.mode.implementation;
 
 import it.auties.leap.tls.cipher.engine.TlsCipherEngine;
-import it.auties.leap.tls.cipher.mode.TlsCipherIV;
 import it.auties.leap.tls.cipher.mode.TlsCipherMode;
 import it.auties.leap.tls.cipher.mode.TlsCipherModeFactory;
 import it.auties.leap.tls.context.TlsContext;
@@ -22,7 +21,8 @@ public final class CBCMode extends TlsCipherMode.Block {
     private SecureRandom random;
     private ByteBuffer cbcV;
     private ByteBuffer cbcNextV;
-    public CBCMode(TlsCipherEngine engine) {
+
+    private CBCMode(TlsCipherEngine engine) {
         super(engine);
     }
 
@@ -190,8 +190,13 @@ public final class CBCMode extends TlsCipherMode.Block {
     }
 
     @Override
-    public TlsCipherIV ivLength() {
-        return new TlsCipherIV(engine().blockLength(), 0);
+    public int ivLength() {
+        return engine().blockLength();
+    }
+
+    @Override
+    public int fixedIvLength() {
+        return 0;
     }
 
     @Override

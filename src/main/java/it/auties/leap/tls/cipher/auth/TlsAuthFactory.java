@@ -1,60 +1,62 @@
 package it.auties.leap.tls.cipher.auth;
 
+import it.auties.leap.tls.cipher.auth.implementation.*;
+
 public interface TlsAuthFactory {
-    static TlsAuthFactory any() {
-        return () -> null;
+    static TlsAuthFactory contextual() {
+        return ContextualAuth.factory();
     }
 
     static TlsAuthFactory anonymous() {
-        return () -> null;
+        return AnonymousAuth.factory();
     }
 
     static TlsAuthFactory dss() {
-        return () -> null;
+        return DSSAuth.factory();
     }
 
     static TlsAuthFactory eccpwd() {
-        return () -> null;
+        return ECCPWDAuth.factory();
     }
 
     static TlsAuthFactory ecdsa() {
-        return () -> null;
+        return ECDSAAuth.factory();
     }
 
-    static TlsAuthFactory gostr341012_256() {
-        return () -> null;
+    static TlsAuthFactory gostr256() {
+        return GOSTR256Auth.factory();
     }
 
     static TlsAuthFactory krb5() {
-        return () -> null;
+        return KRB5Auth.factory();
     }
 
     static TlsAuthFactory psk() {
-        return () -> null;
+        return PSKAuth.factory();
     }
 
     static TlsAuthFactory rsa() {
-        return () -> null;
+        return RSAAuth.factory();
     }
 
     static TlsAuthFactory sha() {
-        return () -> null;
+        return SHA1Auth.factory();
     }
 
     static TlsAuthFactory sha256() {
-        return () -> null;
+        return SHA256Auth.factory();
     }
 
     static TlsAuthFactory sha384() {
-        return () -> null;
+        return SHA384Auth.factory();
     }
 
     static TlsAuthFactory shaDss() {
-        return () -> null;
+        return SHADSSAuth.factory();
     }
 
     static TlsAuthFactory shaRsa() {
-        return () -> null;
+        return SHARSAAuth.factory();
     }
 
     TlsAuth newAuth();

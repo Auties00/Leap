@@ -3,7 +3,6 @@ package it.auties.leap.tls.cipher.mode.implementation;
 import it.auties.leap.tls.cipher.engine.TlsCipherEngine;
 import it.auties.leap.tls.cipher.engine.implementation.KuznyechikEngine;
 import it.auties.leap.tls.cipher.engine.implementation.MagmaEngine;
-import it.auties.leap.tls.cipher.mode.TlsCipherIV;
 import it.auties.leap.tls.cipher.mode.TlsCipherMode;
 import it.auties.leap.tls.cipher.mode.TlsCipherModeFactory;
 import it.auties.leap.tls.context.TlsContext;
@@ -17,7 +16,7 @@ import java.nio.ByteBuffer;
 public final class CTROMacMode extends TlsCipherMode.Block {
     private static final TlsCipherModeFactory FACTORY = CTROMacMode::new;
 
-    public CTROMacMode(TlsCipherEngine engine) {
+    private CTROMacMode(TlsCipherEngine engine) {
         if(!(engine instanceof KuznyechikEngine) && !(engine instanceof MagmaEngine)) {
             throw new TlsException("CTR_OMAC mode is supported only by Kuznyechik and Magma engines");
         }
@@ -44,10 +43,19 @@ public final class CTROMacMode extends TlsCipherMode.Block {
     }
 
     @Override
-    public TlsCipherIV ivLength() {
+    public int ivLength() {
         return switch (engine) {
-            case KuznyechikEngine _ -> new TlsCipherIV(8, 8);
-            case MagmaEngine _ -> new TlsCipherIV(4, 4);
+            case KuznyechikEngine _ -> 8;
+            case MagmaEngine _ -> 4;
+            default -> throw new InternalError("Init check failed");
+        };
+    }
+
+    @Override
+    public int fixedIvLength() {
+        return switch (engine) {
+            case KuznyechikEngine _ -> 8;
+            case MagmaEngine _ -> 4;
             default -> throw new InternalError("Init check failed");
         };
     }

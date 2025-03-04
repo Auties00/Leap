@@ -1,7 +1,6 @@
 package it.auties.leap.tls.cipher.mode.implementation;
 
 import it.auties.leap.tls.cipher.engine.TlsCipherEngine;
-import it.auties.leap.tls.cipher.mode.TlsCipherIV;
 import it.auties.leap.tls.cipher.mode.TlsCipherMode;
 import it.auties.leap.tls.cipher.mode.TlsCipherModeFactory;
 import it.auties.leap.tls.context.TlsContext;
@@ -40,7 +39,7 @@ public final class GCMMode extends TlsCipherMode.Block {
     // Can't rely on the engine's value as that is always set on encryption mode
     private boolean forEncryption;
 
-    public GCMMode(TlsCipherEngine engine) {
+    private GCMMode(TlsCipherEngine engine) {
         super(engine);
         this.multiplier = new Tables4kGCMMultiplier();
     }
@@ -107,8 +106,7 @@ public final class GCMMode extends TlsCipherMode.Block {
         var input = output.duplicate();
         message.serializeMessage(input);
 
-        var ivLength = ivLength();
-        var iv = new byte[ivLength.total()];
+        var iv = new byte[ivLength()];
         System.arraycopy(fixedIv, 0, iv, 0, fixedIv.length);
         var nonce = authenticator.sequenceNumber();
         System.arraycopy(nonce, 0, iv, fixedIv.length, nonce.length);
@@ -125,18 +123,17 @@ public final class GCMMode extends TlsCipherMode.Block {
         var resultLen = processBytes(input.array(), input.position(), input.remaining(), output.array(), output.position());
         resultLen += doFinal(output.array(), output.position() + resultLen);
 
-        output.position(output.position() - (forEncryption ? ivLength.dynamic() : 0));
-        output.limit(output.position() + (forEncryption ? ivLength.dynamic() : 0) + resultLen);
+        output.position(output.position() - (forEncryption ? dynamicIvLength(): 0));
+        output.limit(output.position() + (forEncryption ? dynamicIvLength(): 0) + resultLen);
     }
 
     @Override
     public TlsMessage decrypt(TlsContext context, TlsMessageMetadata metadata, ByteBuffer input) {
         var output = input.duplicate();
 
-        var ivLength = ivLength();
-        var iv = new byte[ivLength.total()];
+        var iv = new byte[ivLength()];
         System.arraycopy(fixedIv, 0, iv, 0, fixedIv.length);
-        input.get(iv, fixedIv.length, ivLength.dynamic());
+        input.get(iv, fixedIv.length, dynamicIvLength());
 
         this.J0 = new byte[engine().blockLength()];
         System.arraycopy(iv, 0, J0, 0, iv.length);
@@ -149,8 +146,8 @@ public final class GCMMode extends TlsCipherMode.Block {
         var resultLen = processBytes(input.array(), input.position(), input.remaining(), output.array(), output.position());
         resultLen += doFinal(output.array(), output.position() + resultLen);
 
-        output.position(output.position() - (forEncryption ? ivLength.dynamic() : 0));
-        output.limit(output.position() + (forEncryption ? ivLength.dynamic() : 0) + resultLen);
+        output.position(output.position() - (forEncryption ? dynamicIvLength(): 0));
+        output.limit(output.position() + (forEncryption ? dynamicIvLength(): 0) + resultLen);
 
         return TlsMessage.of(context, output, metadata.withMessageLength(output.remaining()));
     }
@@ -450,8 +447,13 @@ public final class GCMMode extends TlsCipherMode.Block {
     }
 
     @Override
-    public TlsCipherIV ivLength() {
-        return new TlsCipherIV(4, 8);
+    public int ivLength() {
+        return 4 + 8;
+    }
+
+    @Override
+    public int fixedIvLength() {
+        return 8;
     }
 
     @Override

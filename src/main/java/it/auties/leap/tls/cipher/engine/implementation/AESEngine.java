@@ -27,7 +27,7 @@ public final class AESEngine extends TlsCipherEngine.Block {
     private int[][] workingKey;
     private byte[] s;
 
-    public AESEngine(int keyLength) {
+    private AESEngine(int keyLength) {
         super(keyLength);
     }
 

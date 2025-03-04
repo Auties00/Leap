@@ -21,7 +21,7 @@ public final class CamelliaEngine extends TlsCipherEngine.Block {
     private int[] kw;
     private int[] ke;
 
-    public CamelliaEngine(int keyLength) {
+    private CamelliaEngine(int keyLength) {
         super(keyLength);
     }
 

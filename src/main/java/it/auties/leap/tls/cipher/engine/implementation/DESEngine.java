@@ -9,7 +9,7 @@ public class DESEngine extends DESBaseEngine {
 
     private int[] workingKey;
 
-    public DESEngine() {
+    private DESEngine() {
         super(8);
     }
 

@@ -3,9 +3,9 @@ package it.auties.leap.socket.blocking.transportLayer.implementation;
 import it.auties.leap.socket.SocketException;
 import it.auties.leap.socket.SocketProtocol;
 import it.auties.leap.socket.blocking.transportLayer.BlockingSocketTransportLayerFactory;
-import it.auties.leap.socket.kernel.linux.LinuxKernel;
-import it.auties.leap.socket.kernel.linux.in_addr;
-import it.auties.leap.socket.kernel.linux.sockaddr_in;
+import it.auties.leap.socket.implementation.linux.LinuxKernel;
+import it.auties.leap.socket.implementation.linux.in_addr;
+import it.auties.leap.socket.implementation.linux.sockaddr_in;
 
 import java.lang.foreign.MemorySegment;
 import java.net.InetSocketAddress;

@@ -1,6 +1,5 @@
 package it.auties.leap.tls.cipher.mode.implementation;
 
-import it.auties.leap.tls.cipher.mode.TlsCipherIV;
 import it.auties.leap.tls.cipher.mode.TlsCipherMode;
 import it.auties.leap.tls.cipher.mode.TlsCipherModeFactory;
 import it.auties.leap.tls.context.TlsContext;
@@ -13,12 +12,8 @@ public final class NoneMode extends TlsCipherMode.Block {
     private static final NoneMode INSTANCE = new NoneMode();
     private static final TlsCipherModeFactory FACTORY = (_) -> INSTANCE;
 
-    public NoneMode() {
+    private NoneMode() {
         super(null);
-    }
-
-    public static NoneMode instance() {
-        return INSTANCE;
     }
 
     public static TlsCipherModeFactory factory() {
@@ -42,8 +37,13 @@ public final class NoneMode extends TlsCipherMode.Block {
     }
 
     @Override
-    public TlsCipherIV ivLength() {
-        return TlsCipherIV.none();
+    public int ivLength() {
+        return 0;
+    }
+
+    @Override
+    public int fixedIvLength() {
+        return 0;
     }
 
     @Override

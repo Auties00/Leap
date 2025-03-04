@@ -15,7 +15,7 @@ public final class RC2Engine extends TlsCipherEngine.Block {
 
     private int[] workingKey;
 
-    public RC2Engine(int keyLength) {
+    private RC2Engine(int keyLength) {
         super(keyLength);
     }
 

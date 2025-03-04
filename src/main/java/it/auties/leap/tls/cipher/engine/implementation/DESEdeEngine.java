@@ -12,7 +12,7 @@ public final class DESEdeEngine extends DESBaseEngine {
     private int[] workingKey2;
     private int[] workingKey3;
 
-    public DESEdeEngine() {
+    private DESEdeEngine() {
         super(24);
     }
 

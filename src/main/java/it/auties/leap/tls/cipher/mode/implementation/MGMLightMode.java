@@ -3,7 +3,6 @@ package it.auties.leap.tls.cipher.mode.implementation;
 import it.auties.leap.tls.cipher.engine.TlsCipherEngine;
 import it.auties.leap.tls.cipher.engine.implementation.KuznyechikEngine;
 import it.auties.leap.tls.cipher.engine.implementation.MagmaEngine;
-import it.auties.leap.tls.cipher.mode.TlsCipherIV;
 import it.auties.leap.tls.cipher.mode.TlsCipherMode;
 import it.auties.leap.tls.cipher.mode.TlsCipherModeFactory;
 import it.auties.leap.tls.context.TlsContext;
@@ -17,7 +16,7 @@ import java.nio.ByteBuffer;
 public final class MGMLightMode extends TlsCipherMode.Block {
     private static final TlsCipherModeFactory FACTORY = MGMLightMode::new;
 
-    public MGMLightMode(TlsCipherEngine engine) {
+    private MGMLightMode(TlsCipherEngine engine) {
         if(!(engine instanceof KuznyechikEngine) && !(engine instanceof MagmaEngine)) {
             throw new TlsException("MGM_L mode is supported only by Kuznyechik and Magma engines");
         }
@@ -44,9 +43,13 @@ public final class MGMLightMode extends TlsCipherMode.Block {
     }
 
     @Override
-    public TlsCipherIV ivLength() {
-        var blockLength = engine().blockLength();
-        return new TlsCipherIV(blockLength, blockLength - fixedIv.length);
+    public int ivLength() {
+        return engine().blockLength();
+    }
+
+    @Override
+    public int fixedIvLength() {
+        return engine().blockLength() - fixedIv.length;
     }
 
     @Override

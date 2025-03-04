@@ -17,7 +17,7 @@ public final class ARIAEngine extends TlsCipherEngine.Block {
 
     private byte[][] roundKeys;
 
-    public ARIAEngine(int keyLength) {
+    private ARIAEngine(int keyLength) {
         super(keyLength);
     }
 

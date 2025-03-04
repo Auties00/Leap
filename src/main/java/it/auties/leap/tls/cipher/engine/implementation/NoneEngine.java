@@ -13,10 +13,6 @@ public final class NoneEngine extends TlsCipherEngine.Block {
         super(0);
     }
 
-    public static NoneEngine instance() {
-        return INSTANCE;
-    }
-
     public static TlsCipherEngineFactory factory() {
         return FACTORY;
     }

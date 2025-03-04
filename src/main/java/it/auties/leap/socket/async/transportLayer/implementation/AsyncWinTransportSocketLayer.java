@@ -4,7 +4,7 @@ import it.auties.leap.socket.SocketException;
 import it.auties.leap.socket.SocketOption;
 import it.auties.leap.socket.SocketProtocol;
 import it.auties.leap.socket.async.transportLayer.AsyncSocketTransportLayerFactory;
-import it.auties.leap.socket.kernel.win.*;
+import it.auties.leap.socket.implementation.win.*;
 
 import java.lang.foreign.Arena;
 import java.lang.foreign.MemorySegment;

@@ -2,8 +2,8 @@ package it.auties.leap.socket.blocking.transportLayer.implementation;
 
 import it.auties.leap.socket.SocketProtocol;
 import it.auties.leap.socket.blocking.transportLayer.BlockingSocketTransportLayerFactory;
-import it.auties.leap.socket.kernel.win.WSAData;
-import it.auties.leap.socket.kernel.win.WindowsKernel;
+import it.auties.leap.socket.implementation.win.WSAData;
+import it.auties.leap.socket.implementation.win.WindowsKernel;
 
 import java.io.IOException;
 import java.lang.foreign.Arena;

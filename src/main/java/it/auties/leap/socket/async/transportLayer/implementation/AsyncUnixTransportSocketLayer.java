@@ -3,8 +3,8 @@ package it.auties.leap.socket.async.transportLayer.implementation;
 import it.auties.leap.socket.SocketException;
 import it.auties.leap.socket.SocketProtocol;
 import it.auties.leap.socket.async.transportLayer.AsyncSocketTransportLayerFactory;
-import it.auties.leap.socket.kernel.unix.*;
-import it.auties.leap.socket.kernel.win.sockaddr_in;
+import it.auties.leap.socket.implementation.unix.*;
+import it.auties.leap.socket.implementation.win.sockaddr_in;
 
 import java.lang.foreign.Arena;
 import java.lang.foreign.Linker;
