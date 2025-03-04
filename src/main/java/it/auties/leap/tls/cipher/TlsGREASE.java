@@ -2,7 +2,7 @@ package it.auties.leap.tls.cipher;
 
 import it.auties.leap.tls.cipher.auth.TlsAuthFactory;
 import it.auties.leap.tls.cipher.engine.TlsCipherEngineFactory;
-import it.auties.leap.tls.cipher.exchange.factory.TlsKeyExchangeFactory;
+import it.auties.leap.tls.cipher.exchange.TlsKeyExchangeFactory;
 import it.auties.leap.tls.cipher.mode.TlsCipherModeFactory;
 import it.auties.leap.tls.extension.TlsExtension;
 import it.auties.leap.tls.extension.implementation.GREASEExtension;
@@ -35,10 +35,10 @@ public final class TlsGREASE {
     private static TlsCipher createGREASECipher(int id) {
         return new TlsCipher(
                 id,
-                TlsCipherEngineFactory.none(),
+                TlsCipherEngineFactory.unsupported(),
                 TlsCipherModeFactory.none(),
-                TlsKeyExchangeFactory.none(),
-                TlsAuthFactory.none(),
+                TlsKeyExchangeFactory.contextual(),
+                TlsAuthFactory.any(),
                 TlsHashFactory.none(),
                 List.of(TlsVersion.TLS12, TlsVersion.TLS13),
                 false

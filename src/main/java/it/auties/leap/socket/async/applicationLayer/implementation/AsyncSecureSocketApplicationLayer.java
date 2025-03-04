@@ -3,7 +3,6 @@ package it.auties.leap.socket.async.applicationLayer.implementation;
 import it.auties.leap.socket.async.applicationLayer.AsyncSocketApplicationLayer;
 import it.auties.leap.socket.async.applicationLayer.AsyncSocketApplicationLayerFactory;
 import it.auties.leap.socket.async.transportLayer.AsyncSocketTransportLayer;
-import it.auties.leap.tls.cipher.exchange.client.TlsClientKeyExchange;
 import it.auties.leap.tls.context.TlsConfig;
 import it.auties.leap.tls.context.TlsContext;
 import it.auties.leap.tls.context.TlsSource;
@@ -95,8 +94,7 @@ public class AsyncSecureSocketApplicationLayer extends AsyncSocketApplicationLay
         }
 
         System.out.println("Sending client certificate");
-        var certificatesProvider = tlsConfig
-                .certificatesProvider()
+        var certificatesProvider = tlsConfig.certificatesProvider()
                 .orElse(null);
         if (certificatesProvider == null) {
             return CompletableFuture.failedFuture(new IllegalStateException("Cannot provide certificates to the server: no certificates provider was specified in the TLS engine"));
@@ -105,7 +103,7 @@ public class AsyncSecureSocketApplicationLayer extends AsyncSocketApplicationLay
         var certificatesMessage = new CertificateMessage.Client(
                 tlsConfig.version(),
                 TlsSource.LOCAL,
-                certificatesProvider.getCertificates(transportLayer.address().orElse(null))
+                certificatesProvider.get(tlsContext)
         );
         var certificatesBuffer = writeBuffer();
         certificatesMessage.serializeMessageWithRecord(certificatesBuffer);
@@ -119,7 +117,7 @@ public class AsyncSecureSocketApplicationLayer extends AsyncSocketApplicationLay
         var keyExchangeMessage = new KeyExchangeMessage.Client(
                 tlsConfig.version(),
                 TlsSource.LOCAL,
-                (TlsClientKeyExchange) tlsContext.localKeyExchange().orElseThrow()
+                tlsContext.localKeyExchange().orElseThrow()
         );
         var keyExchangeBuffer = writeBuffer();
         keyExchangeMessage.serializeMessageWithRecord(keyExchangeBuffer);

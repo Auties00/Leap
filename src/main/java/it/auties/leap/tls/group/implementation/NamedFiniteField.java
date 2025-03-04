@@ -1,9 +1,8 @@
 package it.auties.leap.tls.group.implementation;
 
+import it.auties.leap.tls.cipher.exchange.TlsKeyExchange;
+import it.auties.leap.tls.cipher.exchange.implementation.DHKeyExchange;
 import it.auties.leap.tls.context.TlsContext;
-import it.auties.leap.tls.cipher.exchange.server.TlsServerKeyExchange;
-import it.auties.leap.tls.cipher.exchange.client.implementation.DHClientKeyExchange;
-import it.auties.leap.tls.cipher.exchange.server.implementation.DHServerKeyExchange;
 import it.auties.leap.tls.exception.TlsException;
 import it.auties.leap.tls.group.TlsSupportedFiniteField;
 
@@ -108,35 +107,17 @@ public final class NamedFiniteField implements TlsSupportedFiniteField {
     }
 
     private PublicKey parseRemotePublicKey(TlsContext context) {
-        var mode = context.selectedMode()
-                .orElseThrow(() -> new TlsException("No mode was selected"));
         var remoteKeyExchange = context.remoteKeyExchange()
                 .orElseThrow(() -> new TlsException("Missing remote key exchange"));
-        return switch (mode) {
-            case CLIENT -> {
-                if(!(remoteKeyExchange instanceof DHServerKeyExchange serverKeyExchange)) {
-                    throw new TlsException("Unsupported key type");
-                }
-                yield serverKeyExchange.getOrParsePublicKey();
-            }
-            case SERVER -> {
-                if(!(remoteKeyExchange instanceof DHClientKeyExchange clientKeyExchange)) {
-                    throw new TlsException("Unsupported key type");
-                }
-                var localPublicKey = context.localKeyPair()
-                        .orElseThrow(() -> new TlsException("Missing local key pair"))
-                        .getPublic();
-                if(!(localPublicKey instanceof DHPublicKey dhPublicKey)) {
-                    throw new TlsException("Unsupported key type");
-                }
-                yield clientKeyExchange.getOrParsePublicKey(dhPublicKey.getParams().getP(), dhPublicKey.getParams().getG());
-            }
-        };
+        if(!(remoteKeyExchange instanceof DHKeyExchange clientKeyExchange)) {
+            throw new TlsException("Unsupported key type");
+        }
+        return clientKeyExchange.getOrParsePublicKey();
     }
 
     @Override
-    public boolean accepts(TlsServerKeyExchange exchange) {
-        if(!(exchange instanceof DHServerKeyExchange serverKeyExchange)) {
+    public boolean accepts(TlsKeyExchange exchange) {
+        if(!(exchange instanceof DHKeyExchange serverKeyExchange)) {
             return false;
         }
 

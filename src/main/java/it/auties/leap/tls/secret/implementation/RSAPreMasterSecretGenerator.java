@@ -21,7 +21,7 @@ public final class RSAPreMasterSecretGenerator implements TlsPreMasterSecretGene
     public byte[] generatePreMasterSecret(TlsContext context) {
         try {
             var preMasterSecret = new byte[48];
-            new SecureRandom().nextBytes(preMasterSecret);
+            SecureRandom.getInstanceStrong().nextBytes(preMasterSecret);
             preMasterSecret[0] = context.config().version().id().minor();
             preMasterSecret[1] = context.config().version().id().major();
             context.setPreMasterSecret(preMasterSecret);

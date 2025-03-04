@@ -1,7 +1,7 @@
 package it.auties.leap.tls.cipher.auth;
 
 public interface TlsAuthFactory {
-    static TlsAuthFactory none() {
+    static TlsAuthFactory any() {
         return () -> null;
     }
 

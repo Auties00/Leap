@@ -3,6 +3,10 @@ package it.auties.leap.tls.cipher.engine;
 import it.auties.leap.tls.cipher.engine.implementation.*;
 
 public interface TlsCipherEngineFactory {
+    static TlsCipherEngineFactory unsupported() {
+        return UnsupportedEngine.factory();
+    }
+
     static TlsCipherEngineFactory aes128() {
         return AESEngine.factory128();
     }

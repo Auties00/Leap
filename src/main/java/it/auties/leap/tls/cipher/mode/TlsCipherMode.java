@@ -1,7 +1,6 @@
 package it.auties.leap.tls.cipher.mode;
 
 import it.auties.leap.tls.cipher.engine.TlsCipherEngine;
-import it.auties.leap.tls.cipher.mode.implementation.*;
 import it.auties.leap.tls.context.TlsContext;
 import it.auties.leap.tls.exception.TlsException;
 import it.auties.leap.tls.mac.TlsExchangeMac;
@@ -13,46 +12,6 @@ import java.nio.ByteBuffer;
 import java.util.Arrays;
 
 public sealed abstract class TlsCipherMode {
-    public static TlsCipherMode poly1305(TlsCipherEngine engine) {
-        return new Poly1305Mode(engine);
-    }
-
-    public static TlsCipherMode ctr(TlsCipherEngine engine) {
-        return new CTRMode(engine);
-    }
-
-    public static TlsCipherMode gcm(TlsCipherEngine engine) {
-        return new GCMMode(engine);
-    }
-
-    public static TlsCipherMode cbc(TlsCipherEngine engine) {
-        return new CBCMode(engine);
-    }
-
-    public static TlsCipherMode cbcExport(TlsCipherEngine engine) {
-        return new CBCMode(engine);
-    }
-
-    public static TlsCipherMode ccm(TlsCipherEngine engine) {
-        return new CCMMode(engine);
-    }
-
-    public static TlsCipherMode ccm8(TlsCipherEngine engine) {
-        return new CCMMode(engine);
-    }
-
-    public static TlsCipherMode none(TlsCipherEngine engine) {
-        return NoneMode.instance();
-    }
-
-    public static TlsCipherMode mgmLight(TlsCipherEngine engine) {
-        throw new UnsupportedOperationException();
-    }
-
-    public static TlsCipherMode mgmStrong(TlsCipherEngine engine) {
-        throw new UnsupportedOperationException();
-    }
-
     protected final TlsCipherEngine engine;
     protected TlsExchangeMac authenticator;
     protected byte[] fixedIv;

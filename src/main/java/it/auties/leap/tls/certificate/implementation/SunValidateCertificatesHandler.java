@@ -1,11 +1,11 @@
 package it.auties.leap.tls.certificate.implementation;
 
 import it.auties.leap.tls.certificate.TlsCertificatesHandler;
+import it.auties.leap.tls.context.TlsContext;
 import it.auties.leap.tls.context.TlsSource;
 
 import javax.net.ssl.TrustManagerFactory;
 import javax.net.ssl.X509TrustManager;
-import java.net.InetSocketAddress;
 import java.security.GeneralSecurityException;
 import java.security.KeyStore;
 import java.security.cert.CertificateException;
@@ -35,7 +35,7 @@ public final class SunValidateCertificatesHandler implements TlsCertificatesHand
     }
 
     @Override
-    public X509Certificate accept(InetSocketAddress remoteAddress, List<X509Certificate> certificates, TlsSource certificatesSource) {
+    public X509Certificate choose(TlsContext context, List<X509Certificate> certificates, TlsSource certificatesSource) {
         try {
             Objects.requireNonNull(certificates, "Missing certificates");
             var validCertificates = getClientCertificates(certificates);
@@ -61,14 +61,13 @@ public final class SunValidateCertificatesHandler implements TlsCertificatesHand
     }
 
     private boolean validate(X509Certificate[] validCertificates, String authType) throws CertificateException {
-        var validated = false;
         for(var trustManager : factory.getTrustManagers()) {
             if((trustManager instanceof X509TrustManager x509TrustManager)) {
                 x509TrustManager.checkClientTrusted(validCertificates, authType);
-                validated = true;
+                return true;
             }
         }
-        return validated;
+        return false;
     }
 
     private String getKeyAlgorithm(X509Certificate[] validCertificates) {

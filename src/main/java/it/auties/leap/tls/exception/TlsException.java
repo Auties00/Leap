@@ -23,4 +23,8 @@ public class TlsException extends RuntimeException {
     public static TlsException stub() {
         return new TlsException("Stub");
     }
+
+    public static TlsException noSecureRandom() {
+        throw new TlsException("Missing strong secure random implementation");
+    }
 }

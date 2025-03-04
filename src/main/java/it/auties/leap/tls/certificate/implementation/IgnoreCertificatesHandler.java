@@ -1,9 +1,9 @@
 package it.auties.leap.tls.certificate.implementation;
 
 import it.auties.leap.tls.certificate.TlsCertificatesHandler;
+import it.auties.leap.tls.context.TlsContext;
 import it.auties.leap.tls.context.TlsSource;
 
-import java.net.InetSocketAddress;
 import java.security.cert.X509Certificate;
 import java.util.List;
 
@@ -15,7 +15,11 @@ public final class IgnoreCertificatesHandler implements TlsCertificatesHandler {
     }
 
     @Override
-    public X509Certificate accept(InetSocketAddress remoteAddress, List<X509Certificate> certificates, TlsSource certificatesSource) {
-        return certificates.getFirst();
+    public X509Certificate choose(TlsContext context, List<X509Certificate> certificates, TlsSource certificatesSource) {
+        if(certificates.isEmpty()) {
+            return null;
+        }else {
+            return certificates.getFirst();
+        }
     }
 }

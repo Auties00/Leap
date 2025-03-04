@@ -31,6 +31,7 @@ import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
 import java.security.KeyPair;
 import java.security.PublicKey;
+import java.security.cert.X509Certificate;
 import java.util.*;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.function.Function;
@@ -91,6 +92,9 @@ public class TlsContext {
     private int localProcessedExtensionsLength;
     private PublicKey remotePublicKey;
     private byte[] preMasterSecret;
+    private List<X509Certificate> remoteCertificates;
+    private List<X509Certificate> localCertificates;
+
 
     public TlsContext(InetSocketAddress address, TlsConfig config) {
         this.remoteAddress = address;
@@ -189,12 +193,16 @@ public class TlsContext {
             }
 
             case CertificateMessage.Server certificateMessage -> {
-                var certificates = certificateMessage.certificates();
+                var certificates = switch (mode) {
+                    case SERVER -> this.localCertificates = certificateMessage.certificates();
+                    case CLIENT -> this.remoteCertificates = certificateMessage.certificates();
+                };
+                var source = switch (mode) {
+                    case CLIENT -> TlsSource.REMOTE;
+                    case SERVER -> TlsSource.LOCAL;
+                };
                 this.remotePublicKey = localConfig.certificatesHandler()
-                        .accept(remoteAddress, certificates, switch (mode) {
-                            case CLIENT -> TlsSource.REMOTE;
-                            case SERVER -> TlsSource.LOCAL;
-                        })
+                        .choose(this, certificates, source)
                         .getPublicKey();
                 if(negotiatedCipher.keyExchangeFactory().type() == TlsKeyExchangeType.STATIC) {
                     this.localKeyExchange = negotiatedCipher.keyExchangeFactory()
@@ -229,9 +237,16 @@ public class TlsContext {
             }
 
             case CertificateMessage.Client certificateMessage -> {
-                var certificates = certificateMessage.certificates();
+                var certificates = switch (mode) {
+                    case SERVER -> this.remoteCertificates = certificateMessage.certificates();
+                    case CLIENT -> this.localCertificates = certificateMessage.certificates();
+                };
+                var source = switch (mode) {
+                    case CLIENT -> TlsSource.LOCAL;
+                    case SERVER -> TlsSource.REMOTE;
+                };
                 localConfig.certificatesHandler()
-                        .accept(remoteAddress, certificates, mode == TlsMode.CLIENT ? TlsSource.LOCAL : TlsSource.REMOTE);
+                        .choose(this, certificates, source);
             }
 
             case FinishedMessage.Client clientFinishedMessage -> {
@@ -844,5 +859,21 @@ public class TlsContext {
 
     public List<TlsSupportedGroup> localSupportedGroups() {
         return localSupportedGroups;
+    }
+
+    public List<X509Certificate> remoteCertificates() {
+        if(remoteCertificates == null) {
+            return List.of();
+        }else {
+            return remoteCertificates;
+        }
+    }
+
+    public List<X509Certificate> localCertificates() {
+        if(localCertificates == null) {
+            return List.of();
+        }else {
+            return localCertificates;
+        }
     }
 }

@@ -1,9 +1,8 @@
 package it.auties.leap.tls.message.implementation;
 
+import it.auties.leap.tls.cipher.exchange.TlsKeyExchange;
 import it.auties.leap.tls.context.TlsContext;
 import it.auties.leap.tls.context.TlsSource;
-import it.auties.leap.tls.cipher.exchange.client.TlsClientKeyExchange;
-import it.auties.leap.tls.cipher.exchange.server.TlsServerKeyExchange;
 import it.auties.leap.tls.message.TlsHandshakeMessage;
 import it.auties.leap.tls.message.TlsMessageContentType;
 import it.auties.leap.tls.message.TlsMessageMetadata;
@@ -23,10 +22,10 @@ public sealed abstract class KeyExchangeMessage extends TlsHandshakeMessage {
     public static final class Server extends KeyExchangeMessage {
         public static final byte ID = 0x0C;
 
-        private final TlsServerKeyExchange parameters;
+        private final TlsKeyExchange parameters;
         private final int signatureAlgorithm;
         private final byte[] signature;
-        public Server(TlsVersion tlsVersion, TlsSource source, TlsServerKeyExchange parameters, int signatureAlgorithm, byte[] signature) {
+        public Server(TlsVersion tlsVersion, TlsSource source, TlsKeyExchange parameters, int signatureAlgorithm, byte[] signature) {
             super(tlsVersion, source);
             this.parameters = parameters;
             this.signatureAlgorithm = signatureAlgorithm;
@@ -34,7 +33,7 @@ public sealed abstract class KeyExchangeMessage extends TlsHandshakeMessage {
         }
 
         public static Server of(TlsContext context, ByteBuffer buffer, TlsMessageMetadata metadata) {
-            var remoteParameters = (TlsServerKeyExchange) context.negotiatedCipher()
+            var remoteParameters = context.negotiatedCipher()
                     .orElseThrow()
                     .keyExchangeFactory()
                     .decodeRemoteKeyExchange(context, buffer);
@@ -53,7 +52,7 @@ public sealed abstract class KeyExchangeMessage extends TlsHandshakeMessage {
             return TlsMessageType.SERVER_KEY_EXCHANGE;
         }
 
-        public TlsServerKeyExchange parameters() {
+        public TlsKeyExchange parameters() {
             return parameters;
         }
 
@@ -89,9 +88,9 @@ public sealed abstract class KeyExchangeMessage extends TlsHandshakeMessage {
     public static final class Client extends KeyExchangeMessage {
         public static final byte ID = 0x10;
 
-        private final TlsClientKeyExchange localParameters;
+        private final TlsKeyExchange localParameters;
         private final ByteBuffer remoteParameters;
-        public Client(TlsVersion tlsVersion, TlsSource source, TlsClientKeyExchange localParameters) {
+        public Client(TlsVersion tlsVersion, TlsSource source, TlsKeyExchange localParameters) {
             super(tlsVersion, source);
             this.localParameters = localParameters;
             this.remoteParameters = null;
@@ -115,11 +114,7 @@ public sealed abstract class KeyExchangeMessage extends TlsHandshakeMessage {
             return ID;
         }
 
-        public Optional<TlsClientKeyExchange> localParameters() {
-            return Optional.ofNullable(localParameters);
-        }
-
-        public Optional<TlsClientKeyExchange> remoteParameters() {
+        public Optional<TlsKeyExchange> localParameters() {
             return Optional.ofNullable(localParameters);
         }
 

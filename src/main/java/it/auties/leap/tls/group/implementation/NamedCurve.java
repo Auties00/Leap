@@ -1,8 +1,7 @@
 package it.auties.leap.tls.group.implementation;
 
+import it.auties.leap.tls.cipher.exchange.implementation.ECDHKeyExchange;
 import it.auties.leap.tls.context.TlsContext;
-import it.auties.leap.tls.cipher.exchange.client.implementation.ECDHClientKeyExchange;
-import it.auties.leap.tls.cipher.exchange.server.implementation.ECDHServerKeyExchange;
 import it.auties.leap.tls.ec.TlsECParameters;
 import it.auties.leap.tls.ec.TlsECParametersDeserializer;
 import it.auties.leap.tls.ec.implementation.NamedCurveParameters;
@@ -299,13 +298,13 @@ public final class NamedCurve implements TlsSupportedCurve {
                 case ECNamedCurveParameterSpec bcSpec -> {
                     var key = switch (mode) {
                         case CLIENT -> {
-                            if(!(remoteKeyExchange instanceof ECDHServerKeyExchange serverKeyExchange)) {
+                            if(!(remoteKeyExchange instanceof ECDHKeyExchange serverKeyExchange)) {
                                 throw new TlsException("Unsupported key type");
                             }
                             yield serverKeyExchange.publicKey();
                         }
                         case SERVER -> {
-                            if(!(remoteKeyExchange instanceof ECDHClientKeyExchange clientKeyExchange)) {
+                            if(!(remoteKeyExchange instanceof ECDHKeyExchange clientKeyExchange)) {
                                 throw new TlsException("Unsupported key type");
                             }
                             yield clientKeyExchange.publicKey();
@@ -326,13 +325,13 @@ public final class NamedCurve implements TlsSupportedCurve {
                 case NamedParameterSpec namedParameterSpec -> {
                     var key = switch (mode) {
                         case CLIENT -> {
-                            if(!(remoteKeyExchange instanceof ECDHServerKeyExchange serverKeyExchange)) {
+                            if(!(remoteKeyExchange instanceof ECDHKeyExchange serverKeyExchange)) {
                                 throw new TlsException("Unsupported key type");
                             }
                             yield serverKeyExchange.publicKey();
                         }
                         case SERVER -> {
-                            if(!(remoteKeyExchange instanceof ECDHClientKeyExchange clientKeyExchange)) {
+                            if(!(remoteKeyExchange instanceof ECDHKeyExchange clientKeyExchange)) {
                                 throw new TlsException("Unsupported key type");
                             }
                             yield clientKeyExchange.publicKey();

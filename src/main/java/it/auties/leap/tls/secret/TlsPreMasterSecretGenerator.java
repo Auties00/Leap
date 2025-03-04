@@ -26,7 +26,7 @@ public interface TlsPreMasterSecretGenerator {
         return KRB5PreMasterSecretGenerator.instance();
     }
 
-    static TlsPreMasterSecretGenerator none() {
+    static TlsPreMasterSecretGenerator contextual() {
         return NonePreMasterSecretGenerator.instance();
     }
 

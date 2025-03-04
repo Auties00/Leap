@@ -1,5 +1,8 @@
 package it.auties.leap.tls.util;
 
+import it.auties.leap.tls.exception.TlsException;
+
+import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
 
 public final class TlsKeyUtils {
@@ -14,9 +17,13 @@ public final class TlsKeyUtils {
     private static final int RANDOM_DATA_LENGTH = 32;
     
     public static byte[] randomData() {
-        var data = new byte[RANDOM_DATA_LENGTH];
-        var random = new SecureRandom();
-        random.nextBytes(data);
-        return data;
+        try {
+            var data = new byte[RANDOM_DATA_LENGTH];
+            SecureRandom.getInstanceStrong()
+                    .nextBytes(data);
+            return data;
+        }catch (NoSuchAlgorithmException _) {
+            throw TlsException.noSecureRandom();
+        }
     }
 }

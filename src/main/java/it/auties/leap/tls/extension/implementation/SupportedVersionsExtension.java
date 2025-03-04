@@ -2,6 +2,7 @@ package it.auties.leap.tls.extension.implementation;
 
 import it.auties.leap.tls.context.TlsContext;
 import it.auties.leap.tls.context.TlsMode;
+import it.auties.leap.tls.exception.TlsException;
 import it.auties.leap.tls.extension.TlsExtension;
 import it.auties.leap.tls.extension.TlsExtension.Concrete;
 import it.auties.leap.tls.extension.TlsExtensionDeserializer;
@@ -10,6 +11,7 @@ import it.auties.leap.tls.version.TlsVersion;
 import it.auties.leap.tls.version.TlsVersionId;
 
 import java.nio.ByteBuffer;
+import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
 import java.util.ArrayList;
 import java.util.List;
@@ -206,11 +208,15 @@ public abstract sealed class SupportedVersionsExtension {
             }
 
             private static TlsVersionId randomGrease() {
-                var random = new SecureRandom();
-                var values = TlsGREASE.values();
-                var index = random.nextInt(0, values.size());
-                return values.get(index)
-                        .versionId();
+                try {
+                    var values = TlsGREASE.values();
+                    var index = SecureRandom.getInstanceStrong()
+                            .nextInt(0, values.size());
+                    return values.get(index)
+                            .versionId();
+                }catch (NoSuchAlgorithmException _) {
+                    throw TlsException.noSecureRandom();
+                }
             }
 
             @Override
