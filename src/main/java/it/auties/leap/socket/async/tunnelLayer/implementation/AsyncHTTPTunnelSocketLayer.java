@@ -50,7 +50,7 @@ public final class AsyncHTTPTunnelSocketLayer extends AsyncSocketTunnelLayer {
                     yield CompletableFuture.failedFuture(new SocketException("HTTP : Cannot connect to value, status code " + response.statusCode()));
                 }
 
-                applicationLayer        .setAddress(address);
+                applicationLayer.setAddress(address);
                 yield CompletableFuture.completedFuture((Void) null);
             }
 

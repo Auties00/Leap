@@ -144,11 +144,15 @@ public class TlsContext {
                         }
 
                         this.mode = TlsMode.CLIENT;
-                        this.availableCiphers = clientHelloMessage.ciphers()
+                        var ciphers = new HashSet<>(clientHelloMessage.ciphers());
+                        this.availableCiphers = localConfig.ciphers()
                                 .stream()
+                                .filter(entry -> ciphers.contains(entry.id()))
                                 .collect(Collectors.toUnmodifiableMap(TlsCipher::id, Function.identity(), (element, _) -> element));
-                        this.availableCompressions = clientHelloMessage.compressions()
+                        var compressions = new HashSet<>(clientHelloMessage.compressions());
+                        this.availableCompressions = localConfig.compressions()
                                 .stream()
+                                .filter(entry -> compressions.contains(entry.id()))
                                 .collect(Collectors.toUnmodifiableMap(TlsCompression::id, Function.identity(), (element, _) -> element));
                     }
                     case REMOTE -> {
@@ -181,12 +185,14 @@ public class TlsContext {
                     case REMOTE -> {
                         this.remoteRandomData = serverHelloMessage.randomData();
                         this.remoteSessionId = serverHelloMessage.sessionId();
-                        this.negotiatedCipher = serverHelloMessage.cipherId()
-                                .map(availableCiphers::get)
-                                .orElseThrow(() -> new TlsException("Unknown cipher"));
-                        this.negotiatedCompression = serverHelloMessage.compressionId()
-                                .map(availableCompressions::get)
-                                .orElseThrow(() -> new TlsException("Unknown compression"));
+                        this.negotiatedCipher = availableCiphers.get(serverHelloMessage.cipher());
+                        if(negotiatedCipher == null) {
+                            throw new TlsException("Unknown cipher");
+                        }
+                        this.negotiatedCompression = availableCompressions.get(serverHelloMessage.compression());
+                        if(negotiatedCompression == null) {
+                            throw new TlsException("Unknown compression");
+                        }
                         this.handshakeHash = TlsHandshakeHash.of(localConfig.version(), negotiatedCipher.hashFactory());
                     }
                 }
@@ -202,7 +208,7 @@ public class TlsContext {
                     case SERVER -> TlsSource.LOCAL;
                 };
                 this.remotePublicKey = localConfig.certificatesHandler()
-                        .choose(source, certificates, this)
+                        .validate(certificates, source, this)
                         .getPublicKey();
                 if(negotiatedCipher.keyExchangeFactory().type() == TlsKeyExchangeType.STATIC) {
                     this.localKeyExchange = negotiatedCipher.keyExchangeFactory()
@@ -246,7 +252,7 @@ public class TlsContext {
                     case SERVER -> TlsSource.REMOTE;
                 };
                 localConfig.certificatesHandler()
-                        .choose(source, certificates, this);
+                        .validate(certificates, source, this);
             }
 
             case FinishedMessage.Client clientFinishedMessage -> {
@@ -450,7 +456,7 @@ public class TlsContext {
                     }
 
                     var concreteType = configurableExtension.decoder()
-                            .toConcreteType(TlsMode.CLIENT);
+                            .toConcreteType(, TlsMode.CLIENT);
                     if (!seen.add(concreteType)) {
                         throw new IllegalArgumentException("Extension with type %s, produced by a model with type %s, conflicts with previously defined extension".formatted(extension.getClass().getName(), concreteType.getName()));
                     }

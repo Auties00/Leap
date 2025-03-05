@@ -2,6 +2,7 @@ package it.auties.leap.tls.extension.implementation;
 
 import it.auties.leap.tls.context.TlsContext;
 import it.auties.leap.tls.context.TlsMode;
+import it.auties.leap.tls.context.TlsSource;
 import it.auties.leap.tls.exception.TlsException;
 import it.auties.leap.tls.extension.TlsExtension;
 import it.auties.leap.tls.extension.TlsExtension.Concrete;
@@ -23,7 +24,7 @@ import static it.auties.leap.tls.util.BufferUtils.*;
 public abstract sealed class SupportedVersionsExtension {
     private static final TlsExtensionDeserializer DECODER = new TlsExtensionDeserializer() {
         @Override
-        public Optional<? extends Concrete> deserialize(ByteBuffer buffer, int type, TlsMode mode) {
+        public Optional<? extends Concrete> deserialize(ByteBuffer buffer, TlsSource source, TlsMode mode, int type) {
             return switch (mode) {
                 case CLIENT -> {
                     var payloadSize = readBigEndianInt8(buffer);
@@ -47,7 +48,7 @@ public abstract sealed class SupportedVersionsExtension {
         }
 
         @Override
-        public Class<? extends Concrete> toConcreteType(TlsMode mode) {
+        public Class<? extends Concrete> toConcreteType(TlsSource source, TlsMode mode) {
             return switch (mode) {
                 case CLIENT -> Client.Concrete.class;
                 case SERVER -> Server.class;

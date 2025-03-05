@@ -53,7 +53,7 @@ public class ECDHE_CHACHA20POLY1305_SocketTest {
                         .secure(tlsConfig)
                         .build()
         ) {
-            socket.connect(new InetSocketAddress("localhost", 8082)).join();
+            socket.connect(new InetSocketAddress("api.ipify.org", 443)).join();
             {
                 var message = ByteBuffer.allocate(1024);
                 socket.read(message).join();

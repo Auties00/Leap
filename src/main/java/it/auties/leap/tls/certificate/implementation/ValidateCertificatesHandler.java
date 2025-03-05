@@ -20,7 +20,7 @@ public final class ValidateCertificatesHandler implements TlsCertificatesHandler
     }
 
     @Override
-    public X509Certificate choose(TlsSource certificatesSource, List<X509Certificate> certificates, TlsContext context) {
+    public X509Certificate validate(List<X509Certificate> certificates, TlsSource certificatesSource, TlsContext context) {
         if(certificates == null || certificates.isEmpty()) {
             throw new TlsException("Cannot validate X509 certificates: no certificates found");
         }
@@ -29,7 +29,6 @@ public final class ValidateCertificatesHandler implements TlsCertificatesHandler
                 .orElseThrow(() -> new TlsException("No cipher was negotiated yet"))
                 .authFactory()
                 .newAuth()
-                .validateFirst(certificates)
-                .orElseThrow(() -> new TlsException("Cannot validate X509 certificates: no certificates are acceptable"));
+                .validate(certificates, certificatesSource, context);
     }
 }

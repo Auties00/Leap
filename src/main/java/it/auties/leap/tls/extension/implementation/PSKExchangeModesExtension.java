@@ -1,6 +1,7 @@
 package it.auties.leap.tls.extension.implementation;
 
 import it.auties.leap.tls.context.TlsMode;
+import it.auties.leap.tls.context.TlsSource;
 import it.auties.leap.tls.extension.TlsExtension;
 import it.auties.leap.tls.extension.TlsExtensionDeserializer;
 import it.auties.leap.tls.psk.TlsPSKExchangeMode;
@@ -19,7 +20,7 @@ public record PSKExchangeModesExtension(
 ) implements TlsExtension.Concrete {
     private static final TlsExtensionDeserializer DECODER = new TlsExtensionDeserializer(){
         @Override
-        public Optional<? extends Concrete> deserialize(ByteBuffer buffer, int type, TlsMode mode) {
+        public Optional<? extends Concrete> deserialize(ByteBuffer buffer, TlsSource source, TlsMode mode, int type) {
             var modesSize = readBigEndianInt16(buffer);
             var modes = new ArrayList<Byte>(modesSize);
             for(var i = 0; i < modesSize; i++) {
@@ -31,7 +32,7 @@ public record PSKExchangeModesExtension(
         }
 
         @Override
-        public Class<? extends Concrete> toConcreteType(TlsMode mode) {
+        public Class<? extends Concrete> toConcreteType(TlsSource source, TlsMode mode) {
             return PSKExchangeModesExtension.class;
         }
     };

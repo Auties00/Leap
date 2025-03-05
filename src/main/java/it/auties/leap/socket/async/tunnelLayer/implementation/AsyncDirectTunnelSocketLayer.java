@@ -20,6 +20,7 @@ public final class AsyncDirectTunnelSocketLayer extends AsyncSocketTunnelLayer {
 
     @Override
     public CompletableFuture<Void> connect(InetSocketAddress address) {
+        applicationLayer.setAddress(address);
         return applicationLayer.connect(address);
     }
 }

@@ -3,8 +3,6 @@ package it.auties.leap.tls.message.implementation;
 import it.auties.leap.tls.context.TlsContext;
 import it.auties.leap.tls.context.TlsMode;
 import it.auties.leap.tls.context.TlsSource;
-import it.auties.leap.tls.cipher.TlsCipher;
-import it.auties.leap.tls.compression.TlsCompression;
 import it.auties.leap.tls.exception.TlsException;
 import it.auties.leap.tls.extension.TlsExtension;
 import it.auties.leap.tls.message.TlsHandshakeMessage;
@@ -17,11 +15,9 @@ import it.auties.leap.tls.version.TlsVersionId;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
 import java.util.stream.Collectors;
 
 import static it.auties.leap.tls.util.BufferUtils.*;
-import static it.auties.leap.tls.util.BufferUtils.readBytesBigEndian8;
 
 public sealed abstract class HelloMessage extends TlsHandshakeMessage {
     private static final int CLIENT_RANDOM_LENGTH = 32;
@@ -37,35 +33,18 @@ public sealed abstract class HelloMessage extends TlsHandshakeMessage {
         private final byte[] randomData;
         private final byte[] sessionId;
         private final byte[] cookie;
-        private final List<Integer> ciphersIds;
-        private final List<TlsCipher> ciphers;
-        private final List<Byte> compressionsIds;
-        private final List<TlsCompression> compressions;
+        private final List<Integer> ciphers;
+        private final List<Byte> compressions;
         private final List<TlsExtension.Concrete> extensions;
         private final int extensionsLength;
 
-        private Client(TlsVersion version, TlsSource source, byte[] randomData, byte[] sessionId, byte[] cookie, List<Integer> ciphersIds, List<TlsCipher> ciphers, List<Byte> compressionsIds, List<TlsCompression> compressions, List<TlsExtension.Concrete> extensions, int extensionsLength) {
+        public Client(TlsVersion version, TlsSource source, byte[] randomData, byte[] sessionId, byte[] cookie, List<Integer> ciphers, List<Byte> compressions, List<TlsExtension.Concrete> extensions, int extensionsLength) {
             super(version, source);
             this.randomData = randomData;
             this.sessionId = sessionId;
             this.cookie = cookie;
-            this.ciphersIds = ciphersIds;
             this.ciphers = ciphers;
-            this.compressionsIds = compressionsIds;
             this.compressions = compressions;
-            this.extensions = extensions;
-            this.extensionsLength = extensionsLength;
-        }
-
-        public Client(TlsVersion tlsVersion, TlsSource source, byte[] randomData, byte[] sessionId, byte[] cookie, List<TlsCipher> ciphers, List<TlsCompression> compressions, List<TlsExtension.Concrete> extensions, int extensionsLength) {
-            super(tlsVersion, source);
-            this.randomData = randomData;
-            this.sessionId = sessionId;
-            this.cookie = cookie;
-            this.ciphers = ciphers;
-            this.ciphersIds = null;
-            this.compressions = compressions;
-            this.compressionsIds = null;
             this.extensions = extensions;
             this.extensionsLength = extensionsLength;
         }
@@ -108,7 +87,7 @@ public sealed abstract class HelloMessage extends TlsHandshakeMessage {
 
                     for(var configurable : context.config().extensions()) {
                         var extension = configurable.decoder()
-                                .deserialize(buffer, extensionType, TlsMode.SERVER);
+                                .deserialize(buffer, TlsSource.REMOTE, TlsMode.SERVER, extensionType);
                         if (extension.isPresent()) {
                             extensions.add(extension.get());
                             break;
@@ -116,7 +95,7 @@ public sealed abstract class HelloMessage extends TlsHandshakeMessage {
                     }
                 }
             }
-            return new Client(tlsVersion, metadata.source(), clientRandom, sessionId, cookie, ciphers, null, compressions, null, extensions, extensionsLength);
+            return new Client(tlsVersion, metadata.source(), clientRandom, sessionId, cookie, ciphers, compressions, extensions, extensionsLength);
         }
 
         @Override
@@ -153,26 +132,14 @@ public sealed abstract class HelloMessage extends TlsHandshakeMessage {
 
             var ciphersLength = getCiphersCount() * INT16_LENGTH;
             writeBigEndianInt16(payload, ciphersLength);
-            if(ciphersIds != null) {
-                for (var cipher : ciphersIds) {
-                    writeBigEndianInt16(payload, cipher);
-                }
-            }else if(ciphers != null) {
-                for (var cipher : ciphers) {
-                    writeBigEndianInt16(payload, cipher.id());
-                }
+            for (var cipher : ciphers) {
+                writeBigEndianInt16(payload, cipher);
             }
 
             var compressionsLength = getCompressionsCount() * INT8_LENGTH;
             writeBigEndianInt8(payload, compressionsLength);
-            if(compressionsIds != null) {
-                for (var compression : compressionsIds) {
-                    writeBigEndianInt8(payload, compression);
-                }
-            }else if(compressions != null ) {
-                for (var compression : compressions) {
-                    writeBigEndianInt8(payload, compression.id());
-                }
+            for (var compression : compressions) {
+                writeBigEndianInt8(payload, compression);
             }
 
             if(!extensions.isEmpty()) {
@@ -191,23 +158,11 @@ public sealed abstract class HelloMessage extends TlsHandshakeMessage {
         }
 
         private int getCiphersCount() {
-            if (ciphersIds != null) {
-                return ciphersIds.size();
-            }else if(ciphers != null){
-                return ciphers.size();
-            }else {
-                return 0;
-            }
+            return ciphers.size();
         }
 
         private int getCompressionsCount() {
-            if (compressionsIds != null) {
-                return compressionsIds.size();
-            }else if(compressions != null){
-                return compressions.size();
-            }else {
-                return 0;
-            }
+            return compressions.size();
         }
 
         public static int getMessagePayloadLength(byte[] cookie, int ciphers, int compressions) {
@@ -227,20 +182,24 @@ public sealed abstract class HelloMessage extends TlsHandshakeMessage {
             return sessionId;
         }
 
-        public List<Integer> ciphersIds() {
-            return ciphersIds;
+        public byte[] cookie() {
+            return cookie;
         }
 
-        public List<TlsCipher> ciphers() {
+        public List<Integer> ciphers() {
             return ciphers;
         }
 
-        public List<Byte> compressionsIds() {
-            return compressionsIds;
+        public List<Byte> compressions() {
+            return compressions;
         }
 
-        public List<TlsCompression> compressions() {
-            return compressions;
+        public List<TlsExtension.Concrete> extensions() {
+            return extensions;
+        }
+
+        public int extensionsLength() {
+            return extensionsLength;
         }
     }
 
@@ -249,59 +208,17 @@ public sealed abstract class HelloMessage extends TlsHandshakeMessage {
 
         private final byte[] randomData;
         private final byte[] sessionId;
-        private final TlsCipher cipher;
-        private final Integer cipherId;
-        private final TlsCompression compression;
-        private final Byte compressionId;
+        private final int cipher;
+        private final byte compression;
         private final List<TlsExtension> extensions;
-        public Server(TlsVersion version, TlsSource source, byte[] randomData, byte[] sessionId, TlsCipher cipher, List<TlsExtension> extensions, TlsCompression compression) {
+
+        public Server(TlsVersion version, TlsSource source, byte[] randomData, byte[] sessionId, int cipher, List<TlsExtension> extensions, byte compression) {
             super(version, source);
             this.randomData = randomData;
             this.sessionId = sessionId;
-            this.cipherId = null;
             this.cipher = cipher;
             this.extensions = extensions;
-            this.compressionId = null;
             this.compression = compression;
-        }
-
-        private Server(TlsVersion version, TlsSource source, byte[] randomData, byte[] sessionId, int cipherId, List<TlsExtension> extensions, byte compressionId) {
-            super(version, source);
-            this.randomData = randomData;
-            this.sessionId = sessionId;
-            this.cipherId = cipherId;
-            this.cipher = null;
-            this.extensions = extensions;
-            this.compressionId = compressionId;
-            this.compression = null;
-        }
-
-        public byte[] randomData() {
-            return randomData;
-        }
-
-        public byte[] sessionId() {
-            return sessionId;
-        }
-
-        public Optional<Integer> cipherId() {
-            return Optional.ofNullable(cipherId);
-        }
-
-        public Optional<TlsCipher> cipher() {
-            return Optional.ofNullable(cipher);
-        }
-
-        public Optional<Byte> compressionId() {
-            return Optional.ofNullable(compressionId);
-        }
-
-        public Optional<TlsCompression> compression() {
-            return Optional.ofNullable(compression);
-        }
-
-        public List<TlsExtension> extensions() {
-            return extensions;
         }
 
         public static Server of(TlsContext context, ByteBuffer buffer, TlsMessageMetadata metadata) {
@@ -337,7 +254,9 @@ public sealed abstract class HelloMessage extends TlsHandshakeMessage {
                             throw new TlsException("Unknown extension");
                         }
 
-                        extensionDecoder.deserialize(buffer, extensionType, TlsMode.CLIENT)
+                        System.out.println("Decoding " + extensionDecoder.toConcreteType(, TlsMode.CLIENT).getName());
+
+                        extensionDecoder.deserialize(buffer, TlsSource.REMOTE, TlsMode.CLIENT, extensionType)
                                 .ifPresent(extensions::add);
                     }
                 }
@@ -368,6 +287,26 @@ public sealed abstract class HelloMessage extends TlsHandshakeMessage {
         @Override
         public int handshakePayloadLength() {
             return 0;
+        }
+
+        public byte[] randomData() {
+            return randomData;
+        }
+
+        public byte[] sessionId() {
+            return sessionId;
+        }
+
+        public int cipher() {
+            return cipher;
+        }
+
+        public byte compression() {
+            return compression;
+        }
+
+        public List<TlsExtension> extensions() {
+            return extensions;
         }
     }
 }

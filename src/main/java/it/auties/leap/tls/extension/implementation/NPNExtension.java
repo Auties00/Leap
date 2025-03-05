@@ -1,6 +1,7 @@
 package it.auties.leap.tls.extension.implementation;
 
 import it.auties.leap.tls.context.TlsMode;
+import it.auties.leap.tls.context.TlsSource;
 import it.auties.leap.tls.extension.TlsExtension.Concrete;
 import it.auties.leap.tls.extension.TlsExtensionDeserializer;
 import it.auties.leap.tls.version.TlsVersion;
@@ -16,26 +17,38 @@ import static it.auties.leap.tls.util.BufferUtils.*;
 public abstract sealed class NPNExtension {
     private static final TlsExtensionDeserializer DECODER = new TlsExtensionDeserializer() {
         @Override
-        public Optional<? extends Concrete> deserialize(ByteBuffer buffer, int type, TlsMode mode) {
+        public Optional<? extends Concrete> deserialize(ByteBuffer buffer, TlsSource source, TlsMode mode, int type) {
             return switch (mode) {
-                case CLIENT -> {
-                    if (buffer.hasRemaining()) {
-                        throw new IllegalArgumentException("Unexpected extension payload");
-                    }
-
-                    yield Optional.of(Client.instance());
-                }
-                case SERVER -> {
-                    var selectedProtocol = readBytesBigEndian8(buffer);
-                    yield Optional.of(new Server(selectedProtocol));
-                }
+                case CLIENT -> switch (source) {
+                    case LOCAL -> deserializeClient(buffer);
+                    case REMOTE -> deserializeServer(buffer);
+                };
+                case SERVER ->  switch (source) {
+                    case REMOTE -> deserializeClient(buffer);
+                    case LOCAL -> deserializeServer(buffer);
+                };
             };
         }
 
+        private Optional<Server> deserializeServer(ByteBuffer buffer) {
+            var selectedProtocol = readBytesBigEndian8(buffer);
+            return Optional.of(new Server(selectedProtocol));
+        }
+
+        private Optional<Client> deserializeClient(ByteBuffer buffer) {
+            if (buffer.hasRemaining()) {
+                throw new IllegalArgumentException("Unexpected extension payload");
+            }
+
+            return Optional.of(Client.instance());
+        }
+
         @Override
-        public Class<? extends Concrete> toConcreteType(TlsMode mode) {
+        public Class<? extends Concrete> toConcreteType(TlsSource source, TlsMode mode) {
             return switch (mode) {
-                case CLIENT -> Client.class;
+                case CLIENT -> switch (source) {
+                    case LOCAL -> Client.class;
+                };
                 case SERVER -> Server.class;
             };
         }

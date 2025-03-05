@@ -1,6 +1,7 @@
 package it.auties.leap.tls.extension.implementation;
 
 import it.auties.leap.tls.context.TlsMode;
+import it.auties.leap.tls.context.TlsSource;
 import it.auties.leap.tls.extension.TlsExtension;
 import it.auties.leap.tls.extension.TlsExtensionDeserializer;
 import it.auties.leap.tls.signature.TlsSignature;
@@ -23,7 +24,7 @@ public record SignatureAlgorithmsExtension(
 ) implements TlsExtension.Concrete {
     private static final TlsExtensionDeserializer DECODER = new TlsExtensionDeserializer() {
         @Override
-        public Optional<? extends Concrete> deserialize(ByteBuffer buffer, int type, TlsMode mode) {
+        public Optional<? extends Concrete> deserialize(ByteBuffer buffer, TlsSource source, TlsMode mode, int type) {
             var algorithmsSize = readBigEndianInt16(buffer);
             var algorithms = new ArrayList<Integer>(algorithmsSize);
             for (var i = 0; i < algorithmsSize; i++) {
@@ -35,7 +36,7 @@ public record SignatureAlgorithmsExtension(
         }
 
         @Override
-        public Class<? extends Concrete> toConcreteType(TlsMode mode) {
+        public Class<? extends Concrete> toConcreteType(TlsSource source, TlsMode mode) {
             return SignatureAlgorithmsExtension.class;
         }
     };

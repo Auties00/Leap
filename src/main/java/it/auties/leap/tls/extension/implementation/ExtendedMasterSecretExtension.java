@@ -2,6 +2,7 @@ package it.auties.leap.tls.extension.implementation;
 
 import it.auties.leap.tls.context.TlsContext;
 import it.auties.leap.tls.context.TlsMode;
+import it.auties.leap.tls.context.TlsSource;
 import it.auties.leap.tls.extension.TlsExtension;
 import it.auties.leap.tls.extension.TlsExtensionDeserializer;
 import it.auties.leap.tls.version.TlsVersion;
@@ -13,7 +14,7 @@ import java.util.Optional;
 public final class ExtendedMasterSecretExtension {
     private static final TlsExtensionDeserializer DECODER = new TlsExtensionDeserializer() {
         @Override
-        public Optional<? extends TlsExtension.Concrete> deserialize(ByteBuffer buffer, int type, TlsMode mode) {
+        public Optional<? extends TlsExtension.Concrete> deserialize(ByteBuffer buffer, TlsSource source, TlsMode mode, int type) {
             if(buffer.hasRemaining()) {
                 throw new IllegalArgumentException("Unexpected extension payload");
             }
@@ -22,7 +23,7 @@ public final class ExtendedMasterSecretExtension {
         }
 
         @Override
-        public Class<? extends TlsExtension.Concrete> toConcreteType(TlsMode mode) {
+        public Class<? extends TlsExtension.Concrete> toConcreteType(TlsSource source, TlsMode mode) {
             return ExtendedMasterSecretExtension.Concrete.class;
         }
     };

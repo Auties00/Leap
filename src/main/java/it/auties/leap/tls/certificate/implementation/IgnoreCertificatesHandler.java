@@ -15,7 +15,8 @@ public final class IgnoreCertificatesHandler implements TlsCertificatesHandler {
     }
 
     @Override
-    public X509Certificate choose(TlsSource certificatesSource, List<X509Certificate> certificates, TlsContext context) {
+    public X509Certificate validate(List<X509Certificate> certificates, TlsSource certificatesSource, TlsContext context) {
+
         return certificates == null || certificates.isEmpty() ? null : certificates.getFirst();
     }
 }

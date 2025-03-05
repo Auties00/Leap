@@ -3,6 +3,8 @@ package it.auties.leap.socket.async.applicationLayer.implementation;
 import it.auties.leap.socket.async.applicationLayer.AsyncSocketApplicationLayer;
 import it.auties.leap.socket.async.applicationLayer.AsyncSocketApplicationLayerFactory;
 import it.auties.leap.socket.async.transportLayer.AsyncSocketTransportLayer;
+import it.auties.leap.tls.cipher.TlsCipher;
+import it.auties.leap.tls.compression.TlsCompression;
 import it.auties.leap.tls.context.TlsConfig;
 import it.auties.leap.tls.context.TlsContext;
 import it.auties.leap.tls.context.TlsSource;
@@ -40,7 +42,9 @@ public class AsyncSecureSocketApplicationLayer extends AsyncSocketApplicationLay
     @Override
     public CompletableFuture<Void> handshake() {
         try {
-            this.tlsContext = new TlsContext(transportLayer.address().orElse(null), tlsConfig);
+            var address = transportLayer.address()
+                    .orElseThrow(() -> new TlsException("Cannot start handshake: no address was set during connection"));
+            this.tlsContext = new TlsContext(address, tlsConfig);
             this.tlsBuffer = ByteBuffer.allocate(FRAGMENT_LENGTH);
             return sendClientHello()
                     .thenCompose(_ -> continueHandshake());
@@ -75,8 +79,8 @@ public class AsyncSecureSocketApplicationLayer extends AsyncSocketApplicationLay
                 tlsContext.localRandomData(),
                 tlsContext.localSessionId(),
                 tlsContext.localCookie().orElse(null),
-                tlsConfig.ciphers(),
-                tlsConfig.compressions(),
+                tlsConfig.ciphers().stream().map(TlsCipher::id).toList(),
+                tlsConfig.compressions().stream().map(TlsCompression::id).toList(),
                 tlsContext.processedExtensions(),
                 tlsContext.processedExtensionsLength()
         );

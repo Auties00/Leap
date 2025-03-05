@@ -2,6 +2,7 @@ package it.auties.leap.tls.extension.implementation;
 
 import it.auties.leap.tls.context.TlsContext;
 import it.auties.leap.tls.context.TlsMode;
+import it.auties.leap.tls.context.TlsSource;
 import it.auties.leap.tls.extension.TlsExtension;
 import it.auties.leap.tls.extension.TlsExtensionDeserializer;
 import it.auties.leap.tls.util.AddressUtils;
@@ -18,7 +19,7 @@ import static it.auties.leap.tls.util.BufferUtils.*;
 public sealed abstract class SNIExtension {
     private static final TlsExtensionDeserializer DECODER = new TlsExtensionDeserializer() {
         @Override
-        public Optional<? extends TlsExtension.Concrete> deserialize(ByteBuffer buffer, int type, TlsMode mode) {
+        public Optional<? extends TlsExtension.Concrete> deserialize(ByteBuffer buffer, TlsSource source, TlsMode mode, int type) {
             var listLength = readBigEndianInt16(buffer);
             if(listLength == 0) {
                 return Optional.empty();
@@ -35,7 +36,7 @@ public sealed abstract class SNIExtension {
         }
 
         @Override
-        public Class<? extends TlsExtension.Concrete> toConcreteType(TlsMode mode) {
+        public Class<? extends TlsExtension.Concrete> toConcreteType(TlsSource source, TlsMode mode) {
             return Concrete.class;
         }
     };

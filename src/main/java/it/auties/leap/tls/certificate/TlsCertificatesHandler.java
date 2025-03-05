@@ -9,7 +9,7 @@ import java.security.cert.X509Certificate;
 import java.util.List;
 
 public interface TlsCertificatesHandler {
-    X509Certificate choose(TlsSource certificatesSource, List<X509Certificate> certificates, TlsContext context);
+    X509Certificate validate(List<X509Certificate> certificates, TlsSource certificatesSource, TlsContext context);
 
     static TlsCertificatesHandler validate() {
         return ValidateCertificatesHandler.instance();

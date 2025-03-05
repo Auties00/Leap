@@ -1,6 +1,7 @@
 package it.auties.leap.tls.extension.implementation;
 
 import it.auties.leap.tls.context.TlsMode;
+import it.auties.leap.tls.context.TlsSource;
 import it.auties.leap.tls.extension.TlsExtension;
 import it.auties.leap.tls.extension.TlsExtensionDeserializer;
 import it.auties.leap.tls.version.TlsVersion;
@@ -14,7 +15,7 @@ public final class EncryptThenMacExtension implements TlsExtension.Concrete {
 
     private static final TlsExtensionDeserializer DECODER = new TlsExtensionDeserializer() {
         @Override
-        public Optional<? extends Concrete> deserialize(ByteBuffer buffer, int type, TlsMode mode) {
+        public Optional<? extends Concrete> deserialize(ByteBuffer buffer, TlsSource source, TlsMode mode, int type) {
             if (buffer.hasRemaining()) {
                 throw new IllegalArgumentException("Unexpected extension payload");
             }
@@ -23,7 +24,7 @@ public final class EncryptThenMacExtension implements TlsExtension.Concrete {
         }
 
         @Override
-        public Class<? extends Concrete> toConcreteType(TlsMode mode) {
+        public Class<? extends Concrete> toConcreteType(TlsSource source, TlsMode mode) {
             return EncryptThenMacExtension.class;
         }
     };

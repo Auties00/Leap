@@ -45,7 +45,7 @@ public class DHE_CBC_SocketTest {
                 .ciphers(ciphers)
                 .extensions(extensions)
                 .compressions(compressions)
-                .certificatesHandler(TlsCertificatesHandler.ignore())
+                .certificatesHandler(TlsCertificatesHandler.validate())
                 .build();
         try (
                 var socket = SocketClient.newBuilder()
