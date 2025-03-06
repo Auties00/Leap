@@ -4,7 +4,6 @@ import it.auties.leap.http.request.HttpRequestBody;
 
 import java.nio.ByteBuffer;
 import java.util.OptionalInt;
-import java.util.concurrent.Flow;
 
 public final class EmptyRequestBody implements HttpRequestBody {
     private static final EmptyRequestBody INSTANCE = new EmptyRequestBody();
@@ -23,7 +22,7 @@ public final class EmptyRequestBody implements HttpRequestBody {
     }
 
     @Override
-    public void subscribe(Flow.Subscriber<? super ByteBuffer> subscriber) {
+    public void serialize(ByteBuffer buffer) {
 
     }
 }

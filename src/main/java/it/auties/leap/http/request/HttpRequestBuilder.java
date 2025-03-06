@@ -1,5 +1,7 @@
 package it.auties.leap.http.request;
 
+import it.auties.leap.http.HttpMethod;
+
 import java.time.Duration;
 import java.util.HashMap;
 import java.util.Map;
@@ -8,34 +10,34 @@ import java.util.Objects;
 public sealed interface HttpRequestBuilder {
     final class Method implements HttpRequestBuilder{
         public URI get() {
-            return method("GET", null);
+            return method(HttpMethod.get(), null);
         }
 
         public URI post(HttpRequestBody body) {
-            return method("POST", body);
+            return method(HttpMethod.post(), body);
         }
 
         public URI put(HttpRequestBody body) {
-            return method("PUT", body);
+            return method(HttpMethod.put(), body);
         }
 
         public URI delete() {
-            return method("DELETE", null);
+            return method(HttpMethod.delete(), null);
         }
 
         public URI head() {
-            return method("HEAD", null);
+            return method(HttpMethod.head(), null);
         }
 
-        public URI method(String method, HttpRequestBody body) {
-            return new URI(method.toUpperCase().trim(), body);
+        public URI method(HttpMethod method, HttpRequestBody body) {
+            return new URI(method, body);
         }
     }
 
     final class URI implements HttpRequestBuilder {
-        private final String method;
+        private final HttpMethod method;
         private final HttpRequestBody body;
-        private URI(String method, HttpRequestBody body) {
+        private URI(HttpMethod method, HttpRequestBody body) {
             this.method = method;
             this.body = body;
         }
@@ -46,13 +48,13 @@ public sealed interface HttpRequestBuilder {
     }
 
     final class Options implements HttpRequestBuilder {
-        private final String method;
+        private final HttpMethod method;
         private final HttpRequestBody body;
         private final java.net.URI uri;
         private final Map<String, Object> headers;
         private Duration timeout;
 
-        private Options(String method, HttpRequestBody body, java.net.URI uri) {
+        private Options(HttpMethod method, HttpRequestBody body, java.net.URI uri) {
             this.method = method;
             this.body = body;
             this.uri = uri;
@@ -79,7 +81,13 @@ public sealed interface HttpRequestBuilder {
         }
 
         public HttpRequest build() {
-            return new HttpRequest(method, body, uri, headers, timeout);
+            return new HttpRequest(
+                    Objects.requireNonNull(method, "Required method"),
+                    Objects.requireNonNullElse(body, HttpRequestBody.empty()),
+                    Objects.requireNonNull(uri, "Required uri"),
+                    headers,
+                    Objects.requireNonNullElse(timeout, HttpRequest.DEFAULT_REQUEST_TIMEOUT)
+            );
         }
     }
 }

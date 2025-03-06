@@ -12,7 +12,7 @@ public final class BlockingHttpResponseDecoder implements HttpResponseDecoder {
         this.applicationLayer = applicationLayer;
     }
 
-    public <T> HttpResponse<T> readResponse(HttpResponseHandler<T> handler) {
+    public <T> HttpResponse<T> decode(HttpResponseHandler<T> handler) {
         throw new NullPointerException();
     }
 }

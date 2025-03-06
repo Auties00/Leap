@@ -38,7 +38,7 @@ public final class AsyncHTTPTunnelSocketLayer extends AsyncSocketTunnelLayer {
 
     private CompletableFuture<Void> readAuthenticationResponse(InetSocketAddress address) {
         var decoder = new AsyncHttpResponseDecoder(applicationLayer);
-        return decoder.readResponse(HttpResponseHandler.ofString())
+        return decoder.decode(HttpResponseHandler.ofString())
                 .thenCompose(result -> onAuthenticationResponse(result, address))
                 .exceptionallyCompose(error -> CompletableFuture.failedFuture(new SocketException("HTTP : Cannot read authentication response", error)));
     }

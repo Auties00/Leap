@@ -2,19 +2,21 @@ package it.auties.leap.http.request;
 
 import it.auties.leap.http.request.implementation.EmptyRequestBody;
 import it.auties.leap.http.request.implementation.StaticRequestBody;
+import it.auties.leap.http.request.implementation.StreamRequestBody;
 
+import java.io.InputStream;
 import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.util.Map;
 import java.util.OptionalInt;
-import java.util.concurrent.Flow;
 import java.util.stream.Collectors;
 
-public interface HttpRequestBody extends Flow.Publisher<ByteBuffer> {
+public interface HttpRequestBody {
+    void serialize(ByteBuffer buffer);
     OptionalInt length();
 
-    static HttpRequestBody ofEmpty() {
+    static HttpRequestBody empty() {
         return EmptyRequestBody.instance();
     }
 
@@ -36,6 +38,10 @@ public interface HttpRequestBody extends Flow.Publisher<ByteBuffer> {
 
     static HttpRequestBody ofBuffer(ByteBuffer buffer) {
         return new StaticRequestBody(buffer);
+    }
+
+    static HttpRequestBody ofStream(InputStream inputStream, int chunkSize) {
+        return new StreamRequestBody(inputStream, chunkSize);
     }
 
     static HttpRequestBody ofForm(Map<String, ?> text) {

@@ -37,7 +37,7 @@ public final class BlockingHTTPTunnelSocketLayer extends BlockingSocketTunnelLay
     private void readAuthenticationResponse(InetSocketAddress address) {
         try {
             var decoder = new BlockingHttpResponseDecoder(applicationLayer);
-            var result = decoder.readResponse(HttpResponseHandler.ofString());
+            var result = decoder.decode(HttpResponseHandler.ofString());
             onAuthenticationResponse(result, address);
         }catch (Throwable throwable) {
             throw new SocketException("HTTP : Cannot read authentication response", throwable);

@@ -1,6 +1,7 @@
 module it.auties.leap {
     // TODO: Drop this dependency
     requires org.bouncycastle.provider;
+    requires java.net.http;
 
     exports it.auties.leap.http;
 
@@ -39,4 +40,6 @@ module it.auties.leap {
     exports it.auties.leap.http.request;
     exports it.auties.leap.http.response;
     exports it.auties.leap.tls.message;
+    exports it.auties.leap.http.redirect;
+    exports it.auties.leap.http.redirect.implementation;
 }

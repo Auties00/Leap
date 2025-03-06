@@ -14,7 +14,7 @@ public final class AsyncHttpResponseDecoder implements HttpResponseDecoder {
         this.client = client;
     }
 
-    public <T> CompletableFuture<HttpResponse<T>> readResponse(HttpResponseHandler<T> handler) {
+    public <T> CompletableFuture<HttpResponse<T>> decode(HttpResponseHandler<T> handler) {
         return CompletableFuture.completedFuture(null);
     }
 }

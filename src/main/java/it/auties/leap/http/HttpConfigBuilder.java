@@ -1,5 +1,6 @@
 package it.auties.leap.http;
 
+import it.auties.leap.http.redirect.HttpRedirectHandler;
 import it.auties.leap.tls.context.TlsConfig;
 import it.auties.leap.tls.cipher.TlsCipher;
 import it.auties.leap.tls.compression.TlsCompression;
@@ -7,6 +8,7 @@ import it.auties.leap.tls.extension.TlsExtension;
 import it.auties.leap.tls.psk.TlsPSKExchangeMode;
 import it.auties.leap.tls.version.TlsVersion;
 
+import java.net.CookieHandler;
 import java.net.URI;
 import java.time.Duration;
 import java.util.List;
@@ -77,8 +79,11 @@ public final class HttpConfigBuilder {
     }
 
     private TlsConfig tlsConfig;
-    private Duration keepAliveDuration;
+    private CookieHandler cookieHandler;
+    private Duration keepAlive;
     private URI proxy;
+    private HttpVersion version;
+    private HttpRedirectHandler redirectHandler;
 
     HttpConfigBuilder() {
 
@@ -89,13 +94,18 @@ public final class HttpConfigBuilder {
         return this;
     }
 
-    public HttpConfigBuilder keepAlive(Duration keepAliveDuration) {
-        this.keepAliveDuration = keepAliveDuration;
+    public HttpConfigBuilder cookieHandler(CookieHandler cookieHandler) {
+        this.cookieHandler = cookieHandler;
+        return this;
+    }
+
+    public HttpConfigBuilder keepAlive(Duration keepAlive) {
+        this.keepAlive = keepAlive;
         return this;
     }
 
     public HttpConfigBuilder noKeepAlive() {
-        this.keepAliveDuration = NO_KEEP_ALIVE;
+        this.keepAlive = NO_KEEP_ALIVE;
         return this;
     }
 
@@ -104,11 +114,24 @@ public final class HttpConfigBuilder {
         return this;
     }
 
+    public HttpConfigBuilder version(HttpVersion version) {
+        this.version = version;
+        return this;
+    }
+
+    public HttpConfigBuilder redirectHandler(HttpRedirectHandler redirectHandler) {
+        this.redirectHandler = redirectHandler;
+        return this;
+    }
+
     public HttpConfig build() {
         return new HttpConfig(
                 Objects.requireNonNullElse(tlsConfig, DEFAULT_TLS_CONFIG),
-                Objects.requireNonNullElse(keepAliveDuration, DEFAULT_KEEP_ALIVE),
-                proxy
+                cookieHandler,
+                Objects.requireNonNullElse(keepAlive, DEFAULT_KEEP_ALIVE),
+                proxy,
+                Objects.requireNonNullElse(version, HttpVersion.HTTP_1_1),
+                Objects.requireNonNullElse(redirectHandler, HttpRedirectHandler.normal())
         );
     }
 }
