@@ -437,6 +437,14 @@ public final class BufferUtils {
         m.put(s);
     }
 
+    public static void assertBytesBigEndian8(byte[] input) {
+        if (input.length <= 255) {
+            return;
+        }
+
+        throw new InternalError("Invalid payload length");
+    }
+
     public static void assertEmpty(ByteBuffer m) {
         assertLength(m, 0);
     }
@@ -557,6 +565,7 @@ public final class BufferUtils {
         bs[++off] = ((byte) (n >> 8));
         bs[++off] = ((byte) n);
     }
+
 
     public record ScopedWrite(ByteBuffer buffer, int limit, int position) implements AutoCloseable {
         @Override

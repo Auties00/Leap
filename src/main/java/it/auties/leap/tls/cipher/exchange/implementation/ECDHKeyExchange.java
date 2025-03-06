@@ -41,7 +41,7 @@ public sealed abstract class ECDHKeyExchange implements TlsKeyExchange {
 
     @Override
     public TlsPreMasterSecretGenerator preMasterSecretGenerator() {
-        return TlsPreMasterSecretGenerator.dh();
+        return TlsPreMasterSecretGenerator.ecdh();
     }
 
     public abstract byte[] publicKey();

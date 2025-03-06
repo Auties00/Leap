@@ -4,10 +4,10 @@ import it.auties.leap.tls.cipher.auth.TlsAuth;
 import it.auties.leap.tls.cipher.auth.TlsAuthFactory;
 import it.auties.leap.tls.context.TlsContext;
 import it.auties.leap.tls.context.TlsSource;
+import it.auties.leap.tls.util.CertificateUtils;
 
 import java.security.cert.X509Certificate;
 import java.util.List;
-import java.util.Optional;
 
 public final class ECDSAAuth implements TlsAuth {
     private static final TlsAuth INSTANCE = new ECDSAAuth();
@@ -23,6 +23,6 @@ public final class ECDSAAuth implements TlsAuth {
 
     @Override
     public X509Certificate validate(List<X509Certificate> certificates, TlsSource certificatesSource, TlsContext context) {
-        throw new UnsupportedOperationException();
+        return CertificateUtils.validateChain(context, certificatesSource, "ECDSA");
     }
 }

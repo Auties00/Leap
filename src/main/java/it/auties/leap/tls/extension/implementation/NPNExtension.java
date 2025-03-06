@@ -13,6 +13,7 @@ import java.util.List;
 import java.util.Optional;
 
 import static it.auties.leap.tls.util.BufferUtils.*;
+import static it.auties.leap.tls.util.BufferUtils.writeBytesBigEndian8;
 
 public abstract sealed class NPNExtension {
     private static final TlsExtensionDeserializer DECODER = new TlsExtensionDeserializer() {
@@ -32,6 +33,10 @@ public abstract sealed class NPNExtension {
 
         private Optional<Server> deserializeServer(ByteBuffer buffer) {
             var selectedProtocol = readBytesBigEndian8(buffer);
+            // https://datatracker.ietf.org/doc/html/draft-agl-tls-nextprotoneg-04
+            // The padding SHOULD...
+            // We ignore the padding check
+            buffer.position(buffer.limit());
             return Optional.of(new Server(selectedProtocol));
         }
 
@@ -48,8 +53,12 @@ public abstract sealed class NPNExtension {
             return switch (mode) {
                 case CLIENT -> switch (source) {
                     case LOCAL -> Client.class;
+                    case REMOTE -> Server.class;
                 };
-                case SERVER -> Server.class;
+                case SERVER -> switch (source) {
+                    case LOCAL -> Server.class;
+                    case REMOTE -> Client.class;
+                };
             };
         }
     };
@@ -112,11 +121,8 @@ public abstract sealed class NPNExtension {
     public static final class Server extends NPNExtension implements Concrete {
         private final byte[] selectedProtocol;
         public Server(byte[] selectedProtocol) {
+            assertBytesBigEndian8(selectedProtocol);
             this.selectedProtocol = selectedProtocol;
-        }
-
-        public static Server of(String selectedProtocol) {
-            return new Server(selectedProtocol.getBytes(StandardCharsets.US_ASCII));
         }
 
         @Override
@@ -126,7 +132,8 @@ public abstract sealed class NPNExtension {
 
         @Override
         public int extensionPayloadLength() {
-            return INT8_LENGTH + selectedProtocol.length;
+            return INT8_LENGTH + selectedProtocol.length
+                    + (32 - ((selectedProtocol.length + 2) % 32));
         }
 
         @Override

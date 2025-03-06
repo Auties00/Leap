@@ -456,7 +456,7 @@ public class TlsContext {
                     }
 
                     var concreteType = configurableExtension.decoder()
-                            .toConcreteType(, TlsMode.CLIENT);
+                            .toConcreteType(TlsSource.LOCAL, mode);
                     if (!seen.add(concreteType)) {
                         throw new IllegalArgumentException("Extension with type %s, produced by a model with type %s, conflicts with previously defined extension".formatted(extension.getClass().getName(), concreteType.getName()));
                     }

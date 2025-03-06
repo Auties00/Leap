@@ -5,6 +5,7 @@ import it.auties.leap.tls.context.TlsContext;
 import it.auties.leap.tls.context.TlsMode;
 import it.auties.leap.tls.context.TlsSource;
 import it.auties.leap.tls.exception.TlsException;
+import sun.security.util.HostnameChecker;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -59,13 +60,10 @@ public final class CertificateUtils {
 
     private static void checkRemote(InetSocketAddress remoteAddress, X509Certificate leafCert) {
         try {
-            var altNames = leafCert.getSubjectAlternativeNames();
-            var remoteIP = remoteAddress.getAddress().getHostAddress();
-            if(altNames == null || altNames.stream().noneMatch(entry -> Objects.equals(entry.getFirst(), 7) && Objects.equals(entry.get(1), remoteIP))) {
-                throw new TlsException("Certificate is not valid for remote address");
-            }
-        }catch (CertificateParsingException exception) {
-            throw new TlsException("Cannot check if certificate is valid for remote address", exception);
+            HostnameChecker.getInstance(HostnameChecker.TYPE_TLS)
+                    .match(remoteAddress.getHostName(), leafCert);
+        } catch (CertificateException e) {
+            throw new TlsException("Invalid remote address", e);
         }
     }
 
@@ -79,6 +77,7 @@ public final class CertificateUtils {
             var certFactory = CertificateFactory.getInstance("X.509");
             var certPath = certFactory.generateCertPath(certificateChain);
             var pkixParams = new PKIXParameters(trustAnchors);
+            pkixParams.setRevocationEnabled(false); // Boolean.getBoolean("com.sun.net.ssl.checkRevocation");
             var cpv = CertPathValidator.getInstance("PKIX");
             cpv.validate(certPath, pkixParams);
         }catch (GeneralSecurityException exception) {

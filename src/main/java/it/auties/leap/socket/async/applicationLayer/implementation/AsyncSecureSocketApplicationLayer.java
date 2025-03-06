@@ -1,5 +1,6 @@
 package it.auties.leap.socket.async.applicationLayer.implementation;
 
+import it.auties.leap.socket.SocketException;
 import it.auties.leap.socket.async.applicationLayer.AsyncSocketApplicationLayer;
 import it.auties.leap.socket.async.applicationLayer.AsyncSocketApplicationLayerFactory;
 import it.auties.leap.socket.async.transportLayer.AsyncSocketTransportLayer;
@@ -217,6 +218,10 @@ public class AsyncSecureSocketApplicationLayer extends AsyncSocketApplicationLay
 
     @Override
     public CompletableFuture<Void> read(ByteBuffer buffer) {
+        if(!isConnected()) {
+            return CompletableFuture.failedFuture(new SocketException("Cannot read message from socket (socket not connected)"));
+        }
+
         if (buffer == null || !buffer.hasRemaining()) {
             return CompletableFuture.completedFuture(null);
         }
@@ -316,6 +321,10 @@ public class AsyncSecureSocketApplicationLayer extends AsyncSocketApplicationLay
 
     @Override
     public CompletableFuture<Void> write(ByteBuffer buffer) {
+        if(!isConnected()) {
+            return CompletableFuture.failedFuture(new SocketException("Cannot send message to socket (socket not connected)"));
+        }
+
         if (buffer == null || !buffer.hasRemaining()) {
             return CompletableFuture.completedFuture(null);
         }

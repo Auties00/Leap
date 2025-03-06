@@ -21,16 +21,17 @@ public class ECDHE_CHACHA20POLY1305_SocketTest {
     public static void main(String[] args) throws IOException {
         // TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA384
         var ciphers = List.of(
-                TlsCipher.ecdheRsaWithChacha20Poly1305Sha256()
+                TlsCipher.ecdheEcdsaWithChacha20Poly1305Sha256()
         );
         var extensions = List.of(
                 TlsExtension.serverNameIndication(),
                 TlsExtension.ecPointFormats(),
                 TlsExtension.supportedGroups(),
                 TlsExtension.nextProtocolNegotiation(),
+                TlsExtension.alpn(List.of("http/1.1")),
                 TlsExtension.encryptThenMac(),
                 TlsExtension.extendedMasterSecret(),
-                // TlsExtension.postHandshakeAuth(),
+                TlsExtension.postHandshakeAuth(),
                 TlsExtension.signatureAlgorithms(),
                 TlsExtension.supportedVersions(),
                 TlsExtension.pskExchangeModes(List.of(TlsPSKExchangeMode.pskDheKe())),
@@ -45,7 +46,7 @@ public class ECDHE_CHACHA20POLY1305_SocketTest {
                 .ciphers(ciphers)
                 .extensions(extensions)
                 .compressions(compressions)
-                .certificatesHandler(TlsCertificatesHandler.ignore())
+                .certificatesHandler(TlsCertificatesHandler.validate())
                 .build();
         try (
                 var socket = SocketClient.newBuilder()
@@ -54,23 +55,16 @@ public class ECDHE_CHACHA20POLY1305_SocketTest {
                         .build()
         ) {
             socket.connect(new InetSocketAddress("api.ipify.org", 443)).join();
-            {
-                var message = ByteBuffer.allocate(1024);
-                socket.read(message).join();
-                System.out.print(StandardCharsets.UTF_8.decode(message));
-            }
-            {
-                socket.write(StandardCharsets.UTF_8.encode("Hello World\n")).join();
-                var message1 = ByteBuffer.allocate(1024);
-                socket.read(message1).join();
-                System.out.print(StandardCharsets.UTF_8.decode(message1));
-            }
-            {
-                socket.write(StandardCharsets.UTF_8.encode("Hello World123\n")).join();
-                var message1 = ByteBuffer.allocate(1024);
-                socket.read(message1).join();
-                System.out.print(StandardCharsets.UTF_8.decode(message1));
-            }
+            var builder = "GET / HTTP/1.1\r\n" +
+                    "Host: api.ipify.org\r\n" +
+                    "Connection: close\r\n" +
+                    "User-Agent: Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:136.0) Gecko/20100101 Firefox/136.0\r\n" +
+                    "Accept: */*\r\n\r\n";
+
+            socket.write(StandardCharsets.UTF_8.encode(builder)).join();
+            var message1 = ByteBuffer.allocate(1024);
+            socket.read(message1).join();
+            System.out.print(StandardCharsets.UTF_8.decode(message1));
         }
     }
 }
