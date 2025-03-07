@@ -1,4 +1,4 @@
-package it.auties.leap.http;
+package it.auties.leap.http.exchange;
 
 import java.nio.charset.StandardCharsets;
 

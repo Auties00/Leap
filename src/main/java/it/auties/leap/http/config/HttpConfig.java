@@ -1,6 +1,6 @@
-package it.auties.leap.http;
+package it.auties.leap.http.config;
 
-import it.auties.leap.http.redirect.HttpRedirectHandler;
+import it.auties.leap.http.HttpVersion;
 import it.auties.leap.tls.context.TlsConfig;
 
 import java.net.CookieHandler;

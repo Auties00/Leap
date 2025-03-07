@@ -1,9 +1,9 @@
-package it.auties.leap.http.redirect;
+package it.auties.leap.http.config;
 
 import it.auties.leap.http.HttpClient;
-import it.auties.leap.http.redirect.implementation.AlwaysRedirectHandler;
-import it.auties.leap.http.redirect.implementation.NeverRedirectHandler;
-import it.auties.leap.http.redirect.implementation.NormalRedirectHandler;
+import it.auties.leap.http.config.implementation.AlwaysRedirectHandler;
+import it.auties.leap.http.config.implementation.NeverRedirectHandler;
+import it.auties.leap.http.config.implementation.NormalRedirectHandler;
 
 import java.net.URI;
 

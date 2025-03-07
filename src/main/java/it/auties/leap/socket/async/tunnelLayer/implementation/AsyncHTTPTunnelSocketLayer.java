@@ -1,9 +1,7 @@
 package it.auties.leap.socket.async.tunnelLayer.implementation;
 
-import it.auties.leap.http.response.HttpResponse;
-import it.auties.leap.http.response.HttpResponseHandler;
-import it.auties.leap.http.response.HttpResponseStatusCode;
-import it.auties.leap.http.async.AsyncHttpResponseDecoder;
+import it.auties.leap.http.exchange.response.HttpResponse;
+import it.auties.leap.http.exchange.response.HttpResponseStatus;
 import it.auties.leap.socket.SocketException;
 import it.auties.leap.socket.async.applicationLayer.AsyncSocketApplicationLayer;
 import it.auties.leap.socket.async.tunnelLayer.AsyncSocketTunnelLayer;
@@ -37,8 +35,8 @@ public final class AsyncHTTPTunnelSocketLayer extends AsyncSocketTunnelLayer {
     }
 
     private CompletableFuture<Void> readAuthenticationResponse(InetSocketAddress address) {
-        var decoder = new AsyncHttpResponseDecoder(applicationLayer);
-        return decoder.decode(HttpResponseHandler.ofString())
+        return HttpResponseDeserializer.ofString()
+                .deserialize(applicationLayer)
                 .thenCompose(result -> onAuthenticationResponse(result, address))
                 .exceptionallyCompose(error -> CompletableFuture.failedFuture(new SocketException("HTTP : Cannot read authentication response", error)));
     }
@@ -46,8 +44,8 @@ public final class AsyncHTTPTunnelSocketLayer extends AsyncSocketTunnelLayer {
     private CompletionStage<Void> onAuthenticationResponse(HttpResponse<String> result, InetSocketAddress address) {
         return switch (result) {
             case HttpResponse.Result<String> response -> {
-                if (response.statusCode() != HttpResponseStatusCode.ok()) {
-                    yield CompletableFuture.failedFuture(new SocketException("HTTP : Cannot connect to value, status code " + response.statusCode()));
+                if (response.status() != HttpResponseStatus.ok()) {
+                    yield CompletableFuture.failedFuture(new SocketException("HTTP : Cannot connect to value, status code " + response.status()));
                 }
 
                 applicationLayer.setAddress(address);

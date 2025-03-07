@@ -1,6 +1,5 @@
 module it.auties.leap {
-    // TODO: Drop this dependency
-    requires org.bouncycastle.provider;
+    requires org.bouncycastle.provider; // TODO: Drop this dependency
     requires java.net.http;
 
     exports it.auties.leap.http;
@@ -21,7 +20,6 @@ module it.auties.leap {
     exports it.auties.leap.tls.hash;
     exports it.auties.leap.tls.signature;
     exports it.auties.leap.tls.compression;
-    exports it.auties.leap.tls.util;
     exports it.auties.leap.tls.ec;
     exports it.auties.leap.tls.psk;
     exports it.auties.leap.tls.mac;
@@ -29,17 +27,16 @@ module it.auties.leap {
     exports it.auties.leap.tls.secret;
     exports it.auties.leap.tls.context;
     exports it.auties.leap.tls.cipher.auth;
-    exports it.auties.leap.tls.cipher.engine.implementation;
-    exports it.auties.leap.tls.cipher.mode.implementation;
     exports it.auties.leap.socket.blocking.applicationLayer;
     exports it.auties.leap.socket.blocking.transportLayer;
     exports it.auties.leap.socket.blocking.tunnelLayer;
     exports it.auties.leap.socket.async.applicationLayer;
     exports it.auties.leap.socket.async.transportLayer;
     exports it.auties.leap.socket.async.tunnelLayer;
-    exports it.auties.leap.http.request;
-    exports it.auties.leap.http.response;
+    exports it.auties.leap.http.exchange.request;
+    exports it.auties.leap.http.exchange.response;
     exports it.auties.leap.tls.message;
-    exports it.auties.leap.http.redirect;
-    exports it.auties.leap.http.redirect.implementation;
+    exports it.auties.leap.http.config;
+    exports it.auties.leap.http.exchange.body;
+    exports it.auties.leap.http.exchange;
 }

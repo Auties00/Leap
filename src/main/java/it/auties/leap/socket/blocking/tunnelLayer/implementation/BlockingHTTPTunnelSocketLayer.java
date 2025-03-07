@@ -1,9 +1,8 @@
 package it.auties.leap.socket.blocking.tunnelLayer.implementation;
 
-import it.auties.leap.http.response.HttpResponse;
-import it.auties.leap.http.response.HttpResponseHandler;
+import it.auties.leap.http.exchange.response.HttpResponse;
 import it.auties.leap.http.response.HttpResponseStatusCode;
-import it.auties.leap.http.blocking.BlockingHttpResponseDecoder;
+import it.auties.leap.http.implementation.BlockingHttpResponseDecoder;
 import it.auties.leap.socket.SocketException;
 import it.auties.leap.socket.blocking.applicationLayer.BlockingSocketApplicationLayer;
 import it.auties.leap.socket.blocking.tunnelLayer.BlockingSocketTunnelLayer;
@@ -37,7 +36,7 @@ public final class BlockingHTTPTunnelSocketLayer extends BlockingSocketTunnelLay
     private void readAuthenticationResponse(InetSocketAddress address) {
         try {
             var decoder = new BlockingHttpResponseDecoder(applicationLayer);
-            var result = decoder.decode(HttpResponseHandler.ofString());
+            var result = decoder.decode(HttpResponseDeserializer.ofString());
             onAuthenticationResponse(result, address);
         }catch (Throwable throwable) {
             throw new SocketException("HTTP : Cannot read authentication response", throwable);
@@ -47,8 +46,8 @@ public final class BlockingHTTPTunnelSocketLayer extends BlockingSocketTunnelLay
     private void onAuthenticationResponse(HttpResponse<String> result, InetSocketAddress address) {
         switch (result) {
             case HttpResponse.Result<String> response -> {
-                if (response.statusCode() != HttpResponseStatusCode.ok()) {
-                    throw new SocketException("HTTP : Cannot connect to value, status code " + response.statusCode());
+                if (response.status() != HttpResponseStatusCode.ok()) {
+                    throw new SocketException("HTTP : Cannot connect to value, status code " + response.status());
                 }
 
                 applicationLayer        .setAddress(address);

@@ -1,7 +1,7 @@
-package it.auties.leap.http.redirect.implementation;
+package it.auties.leap.http.config.implementation;
 
 import it.auties.leap.http.HttpClient;
-import it.auties.leap.http.redirect.HttpRedirectHandler;
+import it.auties.leap.http.config.HttpRedirectHandler;
 
 import java.net.URI;
 import java.util.Objects;

@@ -1,7 +1,8 @@
-package it.auties.leap.http.request;
+package it.auties.leap.http.exchange.request;
 
-import it.auties.leap.http.HttpMethod;
 import it.auties.leap.http.HttpVersion;
+import it.auties.leap.http.exchange.body.HttpBody;
+import it.auties.leap.http.exchange.HttpMethod;
 import it.auties.leap.http.implementation.HttpConstants;
 
 import java.net.URI;
@@ -11,15 +12,15 @@ import java.time.Duration;
 import java.util.*;
 
 @SuppressWarnings("unused")
-public final class HttpRequest {
+public final class HttpRequest<T> {
     static final Duration DEFAULT_REQUEST_TIMEOUT = Duration.ofSeconds(300);
 
     private final HttpMethod method;
-    private final HttpRequestBody body;
+    private final HttpBody<T> body;
     private final URI uri;
     private final Map<String, Object> headers;
     private final Duration timeout;
-    HttpRequest(HttpMethod method, HttpRequestBody body, URI uri, Map<String, Object> headers, Duration timeout) {
+    HttpRequest(HttpMethod method, HttpBody<T> body, URI uri, Map<String, Object> headers, Duration timeout) {
         this.method = method;
         this.body = body;
         this.uri = uri;
@@ -35,8 +36,8 @@ public final class HttpRequest {
         return method;
     }
 
-    public Optional<HttpRequestBody> body() {
-        return Optional.ofNullable(body);
+    public HttpBody<T> body() {
+        return body;
     }
 
     public URI uri() {
