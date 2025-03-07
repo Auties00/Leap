@@ -39,4 +39,5 @@ module it.auties.leap {
     exports it.auties.leap.http.config;
     exports it.auties.leap.http.exchange.body;
     exports it.auties.leap.http.exchange;
+    exports it.auties.leap.http.exchange.headers;
 }

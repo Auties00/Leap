@@ -13,7 +13,7 @@ import java.util.Optional;
 import java.util.OptionalInt;
 
 public final class StringBody implements HttpBody<String> {
-    private static final HttpBodyDeserializer<String> DESERIALIZER = buffer -> {
+    private static final HttpBodyDeserializer<String> DESERIALIZER = (_, _, buffer) -> {
         var charset = StandardCharsets.UTF_8;
         return new StringBody(charset.decode(buffer).toString(), charset);
     };

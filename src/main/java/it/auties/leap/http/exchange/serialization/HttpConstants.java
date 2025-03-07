@@ -1,4 +1,4 @@
-package it.auties.leap.http.implementation;
+package it.auties.leap.http.exchange.serialization;
 
 public final class HttpConstants {
     public static final byte SPACE = (byte) ' ';

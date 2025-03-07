@@ -11,21 +11,12 @@ import java.util.Optional;
 import java.util.OptionalInt;
 
 public final class StreamBody implements HttpBody<InputStream> {
-    private static final HttpBodyDeserializer<InputStream> DESERIALIZER = buffer -> {
-        var stream = new InputStream() {
-            @Override
-            public int read() {
-                return buffer.get() & 0xFF;
-            }
-        };
-        return new StreamBody(stream, 1024);
-    };
+    private static final HttpBodyDeserializer<InputStream> DESERIALIZER = ((_, _, buffer) -> new StreamBody(new ByteBufferBackedInputStream(buffer)));
 
     private final InputStream inputStream;
-    private final int chunkSize;
-    public StreamBody(InputStream inputStream, int chunkSize) {
+
+    public StreamBody(InputStream inputStream) {
         this.inputStream = inputStream;
-        this.chunkSize = chunkSize;
     }
 
     @Override
@@ -46,13 +37,34 @@ public final class StreamBody implements HttpBody<InputStream> {
     @Override
     public void serialize(ByteBuffer buffer) {
         try {
-            var chunk = new byte[chunkSize];
-            int read;
-            while ((read = inputStream.read(chunk)) != -1) {
-                buffer.put(chunk, 0, read);
+            int current;
+            while ((current = inputStream.read()) != -1) {
+                buffer.put((byte) current);
             }
         }catch (IOException exception) {
             throw new UncheckedIOException(exception);
+        }
+    }
+
+    private static final class ByteBufferBackedInputStream extends InputStream {
+        private final ByteBuffer buf;
+        private ByteBufferBackedInputStream( ByteBuffer buf){
+            this.buf = buf;
+        }
+
+        @Override
+        public synchronized int read() {
+            if (!buf.hasRemaining()) {
+                return -1;
+            }
+            return buf.get() & 0xFF;
+        }
+
+        @Override
+        public synchronized int read(byte[] bytes, int off, int len) {
+            len = Math.min(len, buf.remaining());
+            buf.get(bytes, off, len);
+            return len;
         }
     }
 }

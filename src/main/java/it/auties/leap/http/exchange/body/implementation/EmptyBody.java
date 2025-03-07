@@ -10,7 +10,7 @@ import java.util.OptionalInt;
 @SuppressWarnings({"rawtypes"})
 public final class EmptyBody implements HttpBody {
     private static final EmptyBody INSTANCE = new EmptyBody();
-    private static final HttpBodyDeserializer DESERIALIZER = (_) -> INSTANCE;
+    private static final HttpBodyDeserializer DESERIALIZER = (_, _, _) -> INSTANCE;
 
     private EmptyBody() {
 

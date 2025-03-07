@@ -1,26 +1,32 @@
 package it.auties.leap.http.exchange.request;
 
 import it.auties.leap.http.HttpVersion;
-import it.auties.leap.http.exchange.body.HttpBody;
+import it.auties.leap.http.exchange.HttpExchange;
 import it.auties.leap.http.exchange.HttpMethod;
-import it.auties.leap.http.implementation.HttpConstants;
+import it.auties.leap.http.exchange.body.HttpBody;
+import it.auties.leap.http.exchange.body.HttpBodyDeserializer;
+import it.auties.leap.http.exchange.headers.HttpHeaders;
+import it.auties.leap.http.exchange.serialization.HttpConstants;
+import it.auties.leap.socket.async.AsyncSocketIO;
+import it.auties.leap.socket.blocking.BlockingSocketIO;
 
 import java.net.URI;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
-import java.util.*;
+import java.util.Objects;
+import java.util.concurrent.CompletableFuture;
 
 @SuppressWarnings("unused")
-public final class HttpRequest<T> {
+public final class HttpRequest<T> implements HttpExchange<T> {
     static final Duration DEFAULT_REQUEST_TIMEOUT = Duration.ofSeconds(300);
 
     private final HttpMethod method;
     private final HttpBody<T> body;
     private final URI uri;
-    private final Map<String, Object> headers;
+    private final HttpHeaders headers;
     private final Duration timeout;
-    HttpRequest(HttpMethod method, HttpBody<T> body, URI uri, Map<String, Object> headers, Duration timeout) {
+    HttpRequest(HttpMethod method, HttpBody<T> body, URI uri, HttpHeaders headers, Duration timeout) {
         this.method = method;
         this.body = body;
         this.uri = uri;
@@ -28,14 +34,23 @@ public final class HttpRequest<T> {
         this.timeout = timeout;
     }
 
-    public static HttpRequestBuilder newBuilder() {
-        return new HttpRequestBuilder.Method();
+    public static <T> HttpRequest<T> deserializeBlocking(BlockingSocketIO io, HttpBodyDeserializer<T> deserializer) {
+        throw new UnsupportedOperationException();
+    }
+
+    public static <T> CompletableFuture<HttpRequest<T>> deserializeAsync(AsyncSocketIO io, HttpBodyDeserializer<T> deserializer) {
+        throw new UnsupportedOperationException();
+    }
+
+    public static <T> HttpRequestBuilder<T> newBuilder() {
+        return new HttpRequestBuilder<>();
     }
 
     public HttpMethod method() {
         return method;
     }
 
+    @Override
     public HttpBody<T> body() {
         return body;
     }
@@ -44,7 +59,8 @@ public final class HttpRequest<T> {
         return uri;
     }
 
-    public Map<String, ?> headers() {
+    @Override
+    public HttpHeaders headers() {
         return headers;
     }
 
@@ -53,25 +69,43 @@ public final class HttpRequest<T> {
     }
 
     // TODO: Switch serialization based on version
+    @Override
     public void serialize(HttpVersion version, ByteBuffer buffer) {
         buffer.put(method.encodedName());
         buffer.put(HttpConstants.SPACE);
         buffer.put(version.encodedName());
 
-        for(var header : headers.entrySet()) {
+        headers.forEach((key, value) -> {
             buffer.put(HttpConstants.NEW_LINE);
-            buffer.put(header.getKey().getBytes(StandardCharsets.US_ASCII));
+            buffer.put(key.getBytes(StandardCharsets.US_ASCII));
             buffer.put(HttpConstants.HEADER_SEPARATOR);
-            var value = header.getValue();
-            if(value != null) {
-                buffer.put(value.toString().getBytes(StandardCharsets.US_ASCII));
-            }
-        }
+            buffer.put(value.getBytes(StandardCharsets.US_ASCII));
+        });
 
         buffer.put(HttpConstants.NEW_LINE);
 
         body.serialize(buffer);
 
         buffer.put(HttpConstants.NEW_LINE);
+    }
+
+    @Override
+    public int length() {
+        return 0;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        return o instanceof HttpRequest<?> that
+                && Objects.equals(method, that.method)
+                && Objects.equals(body, that.body)
+                && Objects.equals(uri, that.uri)
+                && Objects.equals(headers, that.headers)
+                && Objects.equals(timeout, that.timeout);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(method, body, uri, headers, timeout);
     }
 }

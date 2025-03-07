@@ -1,18 +1,34 @@
 package it.auties.leap.http.exchange.response;
 
 import it.auties.leap.http.HttpVersion;
+import it.auties.leap.http.exchange.HttpExchange;
 import it.auties.leap.http.exchange.body.HttpBody;
+import it.auties.leap.http.exchange.body.HttpBodyDeserializer;
+import it.auties.leap.http.exchange.headers.HttpHeaders;
+import it.auties.leap.socket.async.AsyncSocketIO;
+import it.auties.leap.socket.blocking.BlockingSocketIO;
 
 import java.nio.ByteBuffer;
 import java.util.Objects;
+import java.util.concurrent.CompletableFuture;
 
-public final class HttpResponse<T> {
+public final class HttpResponse<T> implements HttpExchange<T> {
     private final HttpResponseStatus status;
+    private final HttpHeaders headers;
     private final HttpBody<T> body;
 
-    HttpResponse(HttpResponseStatus status, HttpBody<T> body) {
+    HttpResponse(HttpResponseStatus status, HttpHeaders headers, HttpBody<T> body) {
         this.status = status;
+        this.headers = headers;
         this.body = body;
+    }
+
+    public static <T> HttpResponse<T> deserializeBlocking(BlockingSocketIO io, HttpBodyDeserializer<T> deserializer) {
+        throw new UnsupportedOperationException();
+    }
+
+    public static <T> CompletableFuture<HttpResponse<T>> deserializeAsync(AsyncSocketIO io, HttpBodyDeserializer<T> deserializer) {
+        throw new UnsupportedOperationException();
     }
 
     public static <T> HttpResponseBuilder<T> newBuilder() {
@@ -23,12 +39,24 @@ public final class HttpResponse<T> {
         return status;
     }
 
+    @Override
+    public HttpHeaders headers() {
+        return headers;
+    }
+
+    @Override
     public HttpBody<T> body() {
         return body;
     }
 
+    @Override
     public void serialize(HttpVersion version, ByteBuffer buffer) {
 
+    }
+
+    @Override
+    public int length() {
+        return 0;
     }
 
     @Override

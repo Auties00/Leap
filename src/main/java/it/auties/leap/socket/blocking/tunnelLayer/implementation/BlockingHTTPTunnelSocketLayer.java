@@ -2,7 +2,6 @@ package it.auties.leap.socket.blocking.tunnelLayer.implementation;
 
 import it.auties.leap.http.exchange.response.HttpResponse;
 import it.auties.leap.http.response.HttpResponseStatusCode;
-import it.auties.leap.http.implementation.BlockingHttpResponseDecoder;
 import it.auties.leap.socket.SocketException;
 import it.auties.leap.socket.blocking.applicationLayer.BlockingSocketApplicationLayer;
 import it.auties.leap.socket.blocking.tunnelLayer.BlockingSocketTunnelLayer;

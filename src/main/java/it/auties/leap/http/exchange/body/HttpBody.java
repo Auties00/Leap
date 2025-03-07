@@ -1,5 +1,6 @@
 package it.auties.leap.http.exchange.body;
 
+import it.auties.leap.http.exchange.body.implementation.BufferBody;
 import it.auties.leap.http.exchange.body.implementation.EmptyBody;
 import it.auties.leap.http.exchange.body.implementation.StringBody;
 import it.auties.leap.http.exchange.body.implementation.StreamBody;
@@ -33,19 +34,19 @@ public interface HttpBody<T> {
     }
 
     static HttpBody<ByteBuffer> fromBytes(byte[] binary) {
-        return new StringBody(ByteBuffer.wrap(binary, 0, binary.length));
+        return new BufferBody(ByteBuffer.wrap(binary, 0, binary.length));
     }
 
     static HttpBody<ByteBuffer> fromBytes(byte[] binary, int offset, int length) {
-        return new StringBody(ByteBuffer.wrap(binary, offset, length));
+        return new BufferBody(ByteBuffer.wrap(binary, offset, length));
     }
 
     static HttpBody<ByteBuffer> fromBuffer(ByteBuffer buffer) {
-        return new StringBody(buffer);
+        return new BufferBody(buffer);
     }
 
-    static HttpBody<InputStream> fromStream(InputStream inputStream, int chunkSize) {
-        return new StreamBody(inputStream, chunkSize);
+    static HttpBody<InputStream> fromStream(InputStream inputStream) {
+        return new StreamBody(inputStream);
     }
 
     static HttpBody<String> fromFormData(Map<String, ?> text) {

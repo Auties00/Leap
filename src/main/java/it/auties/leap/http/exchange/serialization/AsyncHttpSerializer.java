@@ -1,33 +1,44 @@
-package it.auties.leap.http.implementation;
+package it.auties.leap.http.exchange.serialization;
 
 import it.auties.leap.http.HttpVersion;
+import it.auties.leap.http.exchange.body.HttpBodyDeserializer;
+import it.auties.leap.http.exchange.headers.HttpMutableHeaders;
 import it.auties.leap.http.exchange.response.HttpResponse;
 import it.auties.leap.http.exchange.response.HttpResponseStatus;
 import it.auties.leap.socket.SocketOption;
 import it.auties.leap.socket.async.AsyncSocketIO;
 
 import java.nio.ByteBuffer;
+import java.nio.charset.StandardCharsets;
+import java.util.List;
 import java.util.concurrent.CompletableFuture;
 
-public final class HttpResponseDecoder<T> implements HttpResponseDecoder {
+public final class AsyncHttpSerializer<T> {
+    private final AsyncSocketIO client;
+    private final HttpBodyDeserializer<T> handler;
+    private final ByteBuffer reader;
 
+    public AsyncHttpSerializer(AsyncSocketIO client, HttpBodyDeserializer<T> handler) {
+        this.client = client;
+        this.handler = handler;
+        this.reader = ByteBuffer.allocateDirect(client.getOption(SocketOption.readBufferSize()));
+    }
 
-    public CompletableFuture<HttpResponse<T>> decode(AsyncSocketIO io, HttpResponseDeserializer<T> handler) {
-        var reader = ByteBuffer.allocateDirect(client.getOption(SocketOption.readBufferSize()));
-        return client.read(reader.position(0))
+    public CompletableFuture<HttpResponse<T>> decode() {
+        return client.read(readBuffer(0))
                 .thenCompose(_ -> checkHeader());
     }
 
     private CompletableFuture<HttpResponse<T>> checkHeader() {
         var start = skipJunk();
         if (start == -1) {
-            return client.read(reader.position(0))
+            return client.read(readBuffer(0))
                     .thenCompose(_ -> checkHeader());
         }
 
         reader.position(start);
         if(reader.remaining() < 5) {
-            return client.read(reader.position(0))
+            return client.read(readBuffer(0))
                     .thenCompose(_ -> checkHeader());
         }
 
@@ -40,7 +51,7 @@ public final class HttpResponseDecoder<T> implements HttpResponseDecoder {
 
     private CompletableFuture<HttpResponse<T>> parseMajor() {
         if (!reader.hasRemaining()) {
-            return client.read(reader.position(0))
+            return client.read(readBuffer(0))
                     .thenCompose(_ -> parseMajor());
         }
 
@@ -54,7 +65,7 @@ public final class HttpResponseDecoder<T> implements HttpResponseDecoder {
 
     private CompletableFuture<HttpResponse<T>> parseMinorOrSeparator(int major) {
         if(!reader.hasRemaining()) {
-            return client.read(reader.position(0))
+            return client.read(readBuffer(0))
                     .thenCompose(_ -> parseMinorOrSeparator(major));
         }
         return switch (reader.get()) {
@@ -66,7 +77,7 @@ public final class HttpResponseDecoder<T> implements HttpResponseDecoder {
 
     private CompletableFuture<HttpResponse<T>> parseMinor(int major) {
         if(!reader.hasRemaining()) {
-            return client.read(reader.position(0))
+            return client.read(readBuffer(0))
                     .thenCompose(_ -> parseMinor(major));
         }
 
@@ -81,7 +92,7 @@ public final class HttpResponseDecoder<T> implements HttpResponseDecoder {
     private CompletableFuture<HttpResponse<T>> skipJunkAndParseStatus(int major, int minor) {
         var start = skipJunk();
         if (start == -1) {
-            return client.read(reader.position(0))
+            return client.read(readBuffer(0))
                     .thenCompose(_ -> skipJunkAndParseStatus(major, minor));
         }
 
@@ -93,7 +104,7 @@ public final class HttpResponseDecoder<T> implements HttpResponseDecoder {
 
     private CompletableFuture<HttpResponse<T>> parseStatus(HttpVersion version) {
         if(reader.remaining() < 3) {
-            return client.read(reader.position(0))
+            return client.read(readBuffer(0))
                     .thenCompose(_ -> parseStatus(version));
         }
 
@@ -120,19 +131,61 @@ public final class HttpResponseDecoder<T> implements HttpResponseDecoder {
                 r = true;
             }else if(current == '\n') {
                 if(r) {
-                    return parseHeaders(version, status);
+                    return parseHeaderKey(version, status, HttpMutableHeaders.newMutableHeaders(), reader.position(), "");
                 }
             }else {
                 throw new IllegalArgumentException("Expected HTTP reason phrase or end of line");
             }
         }
         var lastR = r;
-        return client.read(reader.position(0))
+        return client.read(readBuffer(0))
                 .thenCompose(_ -> parseReasonPhraseOrEnd(version, status, lastR));
     }
 
-    private CompletableFuture<HttpResponse<T>> parseHeaders(HttpVersion version, HttpResponseStatus status) {
-        return null;
+    private CompletableFuture<HttpResponse<T>> parseHeaderKey(HttpVersion version, HttpResponseStatus status, HttpMutableHeaders headers, int keyStart, String partialKey) {
+        var limit = reader.limit();
+        var keyEnd = reader.position();
+        while (keyEnd < limit) {
+            var current = reader.get(keyEnd);
+            if(current == ':') {
+                var key = partialKey + StandardCharsets.US_ASCII.decode(reader.slice(keyStart, keyEnd));
+                return parseHeaderValue(version, status, headers, key);
+            }
+
+            keyEnd++;
+        }
+
+        if (keyEnd != reader.capacity()) {
+            return client.read(readBuffer(keyEnd))
+                    .thenCompose(_ -> parseHeaderKey(version, status, headers, keyStart, partialKey));
+        }
+
+        var nextPartialKey = StandardCharsets.US_ASCII.decode(reader.slice(keyStart, keyEnd));
+        return client.read(readBuffer(0))
+                .thenCompose(_ -> parseHeaderKey(version, status, headers, 0, partialKey + nextPartialKey));
+    }
+
+    private ByteBuffer readBuffer(int position) {
+        return reader.position(position)
+                .limit(reader.capacity());
+    }
+
+    private CompletableFuture<HttpResponse<T>> parseHeaderValue(HttpVersion version, HttpResponseStatus status, HttpMutableHeaders headers, String headerKey) {
+
+        while (reader.hasRemaining()) {
+            var current = reader.get();
+            if(Character.isAlphabetic(current) || current == ' ') {
+                r = false;
+            } if(current == '\r') {
+                r = true;
+            }else if(current == '\n') {
+                if(r) {
+                    return parseHeaderKey(version, status, HttpMutableHeaders.newMutableHeaders(), reader.position(), "");
+                }
+            }else {
+                throw new IllegalArgumentException("Expected HTTP reason phrase or end of line");
+            }
+        }
     }
 
     private int skipJunk() {
@@ -147,17 +200,5 @@ public final class HttpResponseDecoder<T> implements HttpResponseDecoder {
             position++;
         }
         return -1;
-    }
-
-    private boolean hasNext() {
-        return reader.hasRemaining();
-    }
-
-    private Byte next() {
-        if(!reader.hasRemaining()) {
-            return null;
-        }
-
-        return reader.get();
     }
 }
