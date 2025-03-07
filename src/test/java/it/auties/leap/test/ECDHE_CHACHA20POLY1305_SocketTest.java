@@ -1,6 +1,7 @@
 
 package it.auties.leap.test;
 
+import it.auties.leap.http.exchange.serialization.AsyncHttpSerializer;
 import it.auties.leap.socket.SocketClient;
 import it.auties.leap.socket.SocketProtocol;
 import it.auties.leap.tls.certificate.TlsCertificatesHandler;
@@ -13,7 +14,6 @@ import it.auties.leap.tls.version.TlsVersion;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
-import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 
@@ -62,9 +62,7 @@ public class ECDHE_CHACHA20POLY1305_SocketTest {
                     "Accept: */*\r\n\r\n";
 
             socket.write(StandardCharsets.UTF_8.encode(builder)).join();
-            var message1 = ByteBuffer.allocate(1024);
-            socket.read(message1).join();
-            System.out.print(StandardCharsets.UTF_8.decode(message1));
+            new AsyncHttpSerializer<>(socket, Http).decode();
         }
     }
 }

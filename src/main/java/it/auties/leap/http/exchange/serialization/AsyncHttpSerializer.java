@@ -10,7 +10,6 @@ import it.auties.leap.socket.async.AsyncSocketIO;
 
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
-import java.util.List;
 import java.util.concurrent.CompletableFuture;
 
 public final class AsyncHttpSerializer<T> {
@@ -143,13 +142,24 @@ public final class AsyncHttpSerializer<T> {
     }
 
     private CompletableFuture<HttpResponse<T>> parseHeaderKey(HttpVersion version, HttpResponseStatus status, HttpMutableHeaders headers, int keyStart, String partialKey) {
+        if(reader.remaining() < 2) {
+            return client.read(readBuffer(keyStart))
+                    .thenCompose(_ -> parseHeaderKey(version, status, headers, keyStart, partialKey));
+        }
+
+        if(reader.get(keyStart) == '\r' && reader.get(keyStart + 1) == '\n') {
+            reader.position(keyStart + 2);
+            return parseBody(version, status, headers);
+        }
+
         var limit = reader.limit();
-        var keyEnd = reader.position();
+        var keyEnd = keyStart;
         while (keyEnd < limit) {
             var current = reader.get(keyEnd);
             if(current == ':') {
+                reader.position(keyEnd + 1);
                 var key = partialKey + StandardCharsets.US_ASCII.decode(reader.slice(keyStart, keyEnd));
-                return parseHeaderValue(version, status, headers, key);
+                return parseHeaderValue(version, status, headers, key, reader.position(), "");
             }
 
             keyEnd++;
@@ -170,22 +180,41 @@ public final class AsyncHttpSerializer<T> {
                 .limit(reader.capacity());
     }
 
-    private CompletableFuture<HttpResponse<T>> parseHeaderValue(HttpVersion version, HttpResponseStatus status, HttpMutableHeaders headers, String headerKey) {
-
-        while (reader.hasRemaining()) {
-            var current = reader.get();
-            if(Character.isAlphabetic(current) || current == ' ') {
-                r = false;
-            } if(current == '\r') {
+    private CompletableFuture<HttpResponse<T>> parseHeaderValue(HttpVersion version, HttpResponseStatus status, HttpMutableHeaders headers, String headerKey, int valueStart, String partialValue) {
+        var r = false;
+        var limit = reader.limit();
+        var valueEnd = valueStart;
+        while (valueEnd < limit) {
+            var current = reader.get(valueEnd);
+            if(current == '\r') {
                 r = true;
             }else if(current == '\n') {
                 if(r) {
-                    return parseHeaderKey(version, status, HttpMutableHeaders.newMutableHeaders(), reader.position(), "");
+                    reader.position(valueEnd + 1);
+                    var value = partialValue + StandardCharsets.US_ASCII.decode(reader.slice(valueStart, valueEnd));
+                    headers.put(headerKey, value);
+                    return parseHeaderKey(version, status, headers, reader.position(), "");
+                }else {
+                    valueEnd++;
                 }
             }else {
-                throw new IllegalArgumentException("Expected HTTP reason phrase or end of line");
+                valueEnd++;
             }
         }
+
+        if (valueEnd != reader.capacity()) {
+            return client.read(readBuffer(valueEnd))
+                    .thenCompose(_ -> parseHeaderValue(version, status, headers, headerKey, valueStart, partialValue));
+        }
+
+        var nextPartialValue = StandardCharsets.US_ASCII.decode(reader.slice(valueStart, valueEnd));
+        return client.read(readBuffer(0))
+                .thenCompose(_ -> parseHeaderKey(version, status, headers, 0, partialValue + nextPartialValue));
+    }
+
+    private CompletableFuture<HttpResponse<T>> parseBody(HttpVersion version, HttpResponseStatus status, HttpMutableHeaders headers) {
+        var contentLength = headers.get("Content-Length");
+        throw new UnsupportedOperationException();
     }
 
     private int skipJunk() {
