@@ -48,7 +48,7 @@ public final class StreamBody implements HttpBody<InputStream> {
 
     private static final class ByteBufferBackedInputStream extends InputStream {
         private final ByteBuffer buf;
-        private ByteBufferBackedInputStream( ByteBuffer buf){
+        private ByteBufferBackedInputStream(ByteBuffer buf) {
             this.buf = buf;
         }
 

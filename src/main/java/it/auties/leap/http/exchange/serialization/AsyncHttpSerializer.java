@@ -126,7 +126,7 @@ public final class AsyncHttpSerializer<T> {
             var current = reader.get();
             if(Character.isAlphabetic(current) || current == ' ') {
                 r = false;
-            } if(current == '\r') {
+            } else if(current == '\r') {
                 r = true;
             }else if(current == '\n') {
                 if(r) {
@@ -158,7 +158,7 @@ public final class AsyncHttpSerializer<T> {
             var current = reader.get(keyEnd);
             if(current == ':') {
                 reader.position(keyEnd + 1);
-                var key = partialKey + StandardCharsets.US_ASCII.decode(reader.slice(keyStart, keyEnd));
+                var key = partialKey + StandardCharsets.US_ASCII.decode(reader.slice(keyStart, keyEnd - keyStart));
                 return parseHeaderValue(version, status, headers, key, reader.position(), "");
             }
 
@@ -170,7 +170,7 @@ public final class AsyncHttpSerializer<T> {
                     .thenCompose(_ -> parseHeaderKey(version, status, headers, keyStart, partialKey));
         }
 
-        var nextPartialKey = StandardCharsets.US_ASCII.decode(reader.slice(keyStart, keyEnd));
+        var nextPartialKey = StandardCharsets.US_ASCII.decode(reader.slice(keyStart, keyEnd - keyStart));
         return client.read(readBuffer(0))
                 .thenCompose(_ -> parseHeaderKey(version, status, headers, 0, partialKey + nextPartialKey));
     }
@@ -180,7 +180,7 @@ public final class AsyncHttpSerializer<T> {
                 .limit(reader.capacity());
     }
 
-    private CompletableFuture<HttpResponse<T>> parseHeaderValue(HttpVersion version, HttpResponseStatus status, HttpMutableHeaders headers, String headerKey, int valueStart, String partialValue) {
+    private CompletableFuture<HttpResponse<T>> parseHeaderValue(HttpVersion version, HttpResponseStatus status, HttpMutableHeaders headers, String headerKey, int valueStart, HeaderValueType headerType, String partialValue) {
         var r = false;
         var limit = reader.limit();
         var valueEnd = valueStart;
@@ -191,15 +191,35 @@ public final class AsyncHttpSerializer<T> {
             }else if(current == '\n') {
                 if(r) {
                     reader.position(valueEnd + 1);
-                    var value = partialValue + StandardCharsets.US_ASCII.decode(reader.slice(valueStart, valueEnd));
+                    var value = partialValue + StandardCharsets.US_ASCII.decode(reader.slice(valueStart + 1, valueEnd - valueStart - 2));
                     headers.put(headerKey, value);
                     return parseHeaderKey(version, status, headers, reader.position(), "");
-                }else {
-                    valueEnd++;
                 }
             }else {
-                valueEnd++;
+                switch (headerType) {
+                    case INT -> {
+                        if(current == '.') {
+                            headerType = HeaderType.FLOAT;
+                        } else if(!Character.isDigit(current)) {
+                            headerType = HeaderType.STRING;
+                        }
+                    }
+                    case FLOAT -> {
+                        if(!Character.isDigit(current)) {
+                            headerType = HeaderType.STRING;
+                        }
+                    }
+                    case UNKNOWN -> {
+                        if(Character.isDigit(current)) {
+                            headerType = HeaderType.INT;
+                        }else {
+                            headerType = HeaderType.STRING;
+                        }
+                    }
+                }
             }
+
+            valueEnd++;
         }
 
         if (valueEnd != reader.capacity()) {
@@ -207,13 +227,22 @@ public final class AsyncHttpSerializer<T> {
                     .thenCompose(_ -> parseHeaderValue(version, status, headers, headerKey, valueStart, partialValue));
         }
 
-        var nextPartialValue = StandardCharsets.US_ASCII.decode(reader.slice(valueStart, valueEnd));
+        var nextPartialValue = StandardCharsets.US_ASCII.decode(reader.slice(valueStart + 1, valueEnd - valueStart));
         return client.read(readBuffer(0))
                 .thenCompose(_ -> parseHeaderKey(version, status, headers, 0, partialValue + nextPartialValue));
     }
 
+    private enum HeaderValueType {
+        INT,
+        FLOAT,
+        STRING,
+        UNKNOWN
+    }
+
     private CompletableFuture<HttpResponse<T>> parseBody(HttpVersion version, HttpResponseStatus status, HttpMutableHeaders headers) {
-        var contentLength = headers.get("Content-Length");
+        var contentLength = headers.get("Content-Length")
+
+                .orElse(-1);
         throw new UnsupportedOperationException();
     }
 
