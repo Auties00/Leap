@@ -13,31 +13,45 @@ import java.nio.charset.StandardCharsets;
 import java.util.concurrent.CompletableFuture;
 
 public final class AsyncHttpSerializer<T> {
-    private final AsyncSocketIO client;
-    private final HttpBodyDeserializer<T> handler;
-    private final ByteBuffer reader;
+    private static final char NONE = ' ';
+    private static final char CARRIAGE_RETURN = '\r';
+    private static final char LINE_FEED = '\n';
+    private static final char HEADER_SEPARATOR = ':';
 
-    public AsyncHttpSerializer(AsyncSocketIO client, HttpBodyDeserializer<T> handler) {
+    private AsyncSocketIO client;
+    private HttpBodyDeserializer<T> handler;
+    private ByteBuffer reader;
+
+    private Integer major;
+    private Integer minor;
+    private HttpVersion version;
+    private HttpResponseStatus status;
+
+    private char crlf = NONE;
+    private HttpMutableHeaders headers;
+
+    private String headerKey = "";
+    private String headerValue = "";
+    private boolean canSkipSpace = true;
+
+    public CompletableFuture<HttpResponse<T>> decode(AsyncSocketIO client, HttpBodyDeserializer<T> handler) {
         this.client = client;
         this.handler = handler;
         this.reader = ByteBuffer.allocateDirect(client.getOption(SocketOption.readBufferSize()));
-    }
-
-    public CompletableFuture<HttpResponse<T>> decode() {
-        return client.read(readBuffer(0))
+        return client.read(readBuffer())
                 .thenCompose(_ -> checkHeader());
     }
 
     private CompletableFuture<HttpResponse<T>> checkHeader() {
         var start = skipJunk();
         if (start == -1) {
-            return client.read(readBuffer(0))
+            return client.read(readBuffer())
                     .thenCompose(_ -> checkHeader());
         }
 
         reader.position(start);
         if(reader.remaining() < 5) {
-            return client.read(readBuffer(0))
+            return client.read(readBuffer())
                     .thenCompose(_ -> checkHeader());
         }
 
@@ -50,7 +64,7 @@ public final class AsyncHttpSerializer<T> {
 
     private CompletableFuture<HttpResponse<T>> parseMajor() {
         if (!reader.hasRemaining()) {
-            return client.read(readBuffer(0))
+            return client.read(readBuffer())
                     .thenCompose(_ -> parseMajor());
         }
 
@@ -59,25 +73,29 @@ public final class AsyncHttpSerializer<T> {
             throw new IllegalArgumentException("Expected digit for major HTTP version");
         }
 
-        return parseMinorOrSeparator(digit - '0');
+        this.major = digit - '0';
+        return parseMinorOrSeparator();
     }
 
-    private CompletableFuture<HttpResponse<T>> parseMinorOrSeparator(int major) {
+    private CompletableFuture<HttpResponse<T>> parseMinorOrSeparator() {
         if(!reader.hasRemaining()) {
-            return client.read(readBuffer(0))
-                    .thenCompose(_ -> parseMinorOrSeparator(major));
+            return client.read(readBuffer())
+                    .thenCompose(_ -> parseMinorOrSeparator());
         }
         return switch (reader.get()) {
-            case '.' -> parseMinor(major);
-            case ' ' -> skipJunkAndParseStatus(major, 0);
+            case '.' -> parseMinor();
+            case ' ' -> {
+                this.minor = 0;
+                yield skipJunkAndParseStatus();
+            }
             default -> throw new IllegalArgumentException("Expected either header separator(<space>) or version separator(.)");
         };
     }
 
-    private CompletableFuture<HttpResponse<T>> parseMinor(int major) {
+    private CompletableFuture<HttpResponse<T>> parseMinor() {
         if(!reader.hasRemaining()) {
-            return client.read(readBuffer(0))
-                    .thenCompose(_ -> parseMinor(major));
+            return client.read(readBuffer())
+                    .thenCompose(_ -> parseMinor());
         }
 
         var digit = reader.get();
@@ -85,26 +103,27 @@ public final class AsyncHttpSerializer<T> {
             throw new IllegalArgumentException("Expected digit for minor HTTP version");
         }
 
-        return skipJunkAndParseStatus(major, digit - '0');
+        this.minor = digit - '0';
+        return skipJunkAndParseStatus();
     }
 
-    private CompletableFuture<HttpResponse<T>> skipJunkAndParseStatus(int major, int minor) {
+    private CompletableFuture<HttpResponse<T>> skipJunkAndParseStatus() {
         var start = skipJunk();
         if (start == -1) {
-            return client.read(readBuffer(0))
-                    .thenCompose(_ -> skipJunkAndParseStatus(major, minor));
+            return client.read(readBuffer())
+                    .thenCompose(_ -> skipJunkAndParseStatus());
         }
 
         reader.position(start);
-        var version = HttpVersion.of(major, minor)
+        this.version = HttpVersion.of(major, minor)
                 .orElseThrow(() -> new IllegalArgumentException("Unknown HTTP version: %s.%s".formatted(major, minor)));
-        return parseStatus(version);
+        return parseStatus();
     }
 
-    private CompletableFuture<HttpResponse<T>> parseStatus(HttpVersion version) {
+    private CompletableFuture<HttpResponse<T>> parseStatus() {
         if(reader.remaining() < 3) {
-            return client.read(readBuffer(0))
-                    .thenCompose(_ -> parseStatus(version));
+            return client.read(readBuffer())
+                    .thenCompose(_ -> parseStatus());
         }
 
         var digit2 = reader.get();
@@ -117,133 +136,120 @@ public final class AsyncHttpSerializer<T> {
         var statusCode = ((digit2 - '0') * 100)
                 + ((digit1 - '0') * 10)
                 + (digit0 - '0');
-        var status = HttpResponseStatus.of(statusCode);
-        return parseReasonPhraseOrEnd(version, status, false);
+        this.status = HttpResponseStatus.of(statusCode);
+        return parseReasonPhraseOrEnd();
     }
 
-    private CompletableFuture<HttpResponse<T>> parseReasonPhraseOrEnd(HttpVersion version, HttpResponseStatus status, boolean r) {
+    private CompletableFuture<HttpResponse<T>> parseReasonPhraseOrEnd() {
         while (reader.hasRemaining()) {
             var current = reader.get();
-            if(Character.isAlphabetic(current) || current == ' ') {
-                r = false;
-            } else if(current == '\r') {
-                r = true;
-            }else if(current == '\n') {
-                if(r) {
-                    return parseHeaderKey(version, status, HttpMutableHeaders.newMutableHeaders(), reader.position(), "");
+            if(Character.isAlphabetic(current) || current == NONE) {
+                crlf = NONE;
+            } else if(current == CARRIAGE_RETURN) {
+                crlf = CARRIAGE_RETURN;
+            }else if(current == LINE_FEED) {
+                if(crlf == CARRIAGE_RETURN) {
+                    crlf = NONE;
+                    this.headers = HttpMutableHeaders.newMutableHeaders();
+                    return parseHeaderKey();
                 }
             }else {
                 throw new IllegalArgumentException("Expected HTTP reason phrase or end of line");
             }
         }
-        var lastR = r;
-        return client.read(readBuffer(0))
-                .thenCompose(_ -> parseReasonPhraseOrEnd(version, status, lastR));
+        return client.read(readBuffer())
+                .thenCompose(_ -> parseReasonPhraseOrEnd());
     }
 
-    private CompletableFuture<HttpResponse<T>> parseHeaderKey(HttpVersion version, HttpResponseStatus status, HttpMutableHeaders headers, int keyStart, String partialKey) {
+    private CompletableFuture<HttpResponse<T>> parseHeaderKey() {
         if(reader.remaining() < 2) {
-            return client.read(readBuffer(keyStart))
-                    .thenCompose(_ -> parseHeaderKey(version, status, headers, keyStart, partialKey));
+            return client.read(reader)
+                    .thenCompose(_ -> parseHeaderKey());
         }
 
-        if(reader.get(keyStart) == '\r' && reader.get(keyStart + 1) == '\n') {
-            reader.position(keyStart + 2);
+        var start = reader.position();
+        if(reader.get(start) == CARRIAGE_RETURN && reader.get(start + 1) == LINE_FEED) {
+            reader.position(start + 2);
             return parseBody(version, status, headers);
         }
 
+        var end = start;
         var limit = reader.limit();
-        var keyEnd = keyStart;
-        while (keyEnd < limit) {
-            var current = reader.get(keyEnd);
-            if(current == ':') {
-                reader.position(keyEnd + 1);
-                var key = partialKey + StandardCharsets.US_ASCII.decode(reader.slice(keyStart, keyEnd - keyStart));
-                return parseHeaderValue(version, status, headers, key, reader.position(), "");
+        while (end < limit) {
+            var current = reader.get(end);
+            if(current == HEADER_SEPARATOR) {
+                reader.position(end + 1);
+                this.headerKey += StandardCharsets.US_ASCII.decode(reader.slice(start, end - start));
+                this.canSkipSpace = true;
+                return parseHeaderValue();
             }
 
-            keyEnd++;
+            end++;
         }
 
-        if (keyEnd != reader.capacity()) {
-            return client.read(readBuffer(keyEnd))
-                    .thenCompose(_ -> parseHeaderKey(version, status, headers, keyStart, partialKey));
-        }
-
-        var nextPartialKey = StandardCharsets.US_ASCII.decode(reader.slice(keyStart, keyEnd - keyStart));
-        return client.read(readBuffer(0))
-                .thenCompose(_ -> parseHeaderKey(version, status, headers, 0, partialKey + nextPartialKey));
+        this.headerKey += StandardCharsets.US_ASCII.decode(reader.slice(start, end - start));
+        return client.read(readBuffer())
+                .thenCompose(_ -> parseHeaderKey());
     }
 
-    private ByteBuffer readBuffer(int position) {
-        return reader.position(position)
-                .limit(reader.capacity());
-    }
-
-    private CompletableFuture<HttpResponse<T>> parseHeaderValue(HttpVersion version, HttpResponseStatus status, HttpMutableHeaders headers, String headerKey, int valueStart, HeaderValueType headerType, String partialValue) {
-        var r = false;
+    private CompletableFuture<HttpResponse<T>> parseHeaderValue() {
+        var start = reader.position();
+        var end = start;
         var limit = reader.limit();
-        var valueEnd = valueStart;
-        while (valueEnd < limit) {
-            var current = reader.get(valueEnd);
-            if(current == '\r') {
-                r = true;
-            }else if(current == '\n') {
-                if(r) {
-                    reader.position(valueEnd + 1);
-                    var value = partialValue + StandardCharsets.US_ASCII.decode(reader.slice(valueStart + 1, valueEnd - valueStart - 2));
+        if(start < limit && canSkipSpace) {
+            if(reader.get(start) == NONE) {
+                start++;
+            }
+            canSkipSpace = false;
+        }
+
+        while (end < limit) {
+            var current = reader.get(end);
+            if(canSkipSpace && current == NONE) {
+                canSkipSpace = false;
+            }else if(current == CARRIAGE_RETURN) {
+                crlf = CARRIAGE_RETURN;
+            }else if(current == LINE_FEED) {
+                if(crlf == CARRIAGE_RETURN) {
+                    reader.position(end + 1);
+                    var value = headerValue + StandardCharsets.US_ASCII.decode(reader.slice(start, end - start - 1));
                     headers.put(headerKey, value);
-                    return parseHeaderKey(version, status, headers, reader.position(), "");
-                }
-            }else {
-                switch (headerType) {
-                    case INT -> {
-                        if(current == '.') {
-                            headerType = HeaderType.FLOAT;
-                        } else if(!Character.isDigit(current)) {
-                            headerType = HeaderType.STRING;
-                        }
-                    }
-                    case FLOAT -> {
-                        if(!Character.isDigit(current)) {
-                            headerType = HeaderType.STRING;
-                        }
-                    }
-                    case UNKNOWN -> {
-                        if(Character.isDigit(current)) {
-                            headerType = HeaderType.INT;
-                        }else {
-                            headerType = HeaderType.STRING;
-                        }
-                    }
+                    headerKey = "";
+                    headerValue = "";
+                    canSkipSpace = true;
+                    return parseHeaderKey();
                 }
             }
 
-            valueEnd++;
+            end++;
         }
 
-        if (valueEnd != reader.capacity()) {
-            return client.read(readBuffer(valueEnd))
-                    .thenCompose(_ -> parseHeaderValue(version, status, headers, headerKey, valueStart, partialValue));
-        }
-
-        var nextPartialValue = StandardCharsets.US_ASCII.decode(reader.slice(valueStart + 1, valueEnd - valueStart));
-        return client.read(readBuffer(0))
-                .thenCompose(_ -> parseHeaderKey(version, status, headers, 0, partialValue + nextPartialValue));
-    }
-
-    private enum HeaderValueType {
-        INT,
-        FLOAT,
-        STRING,
-        UNKNOWN
+        headerValue += StandardCharsets.US_ASCII.decode(reader.slice(start, end - start));
+        return client.read(readBuffer())
+                .thenCompose(_ -> parseHeaderValue());
     }
 
     private CompletableFuture<HttpResponse<T>> parseBody(HttpVersion version, HttpResponseStatus status, HttpMutableHeaders headers) {
-        var contentLength = headers.get("Content-Length")
+        var contentLength = headers.contentLength()
+                .orElse(-1L);
+        if(contentLength == -1) {
+            throw new UnsupportedOperationException();
+        }
 
-                .orElse(-1);
+        if(reader.remaining() >= contentLength) {
+            return CompletableFuture.completedFuture(buildResponse(version, status, headers, reader.slice(reader.position(), Math.toIntExact(contentLength))));
+        }
+
         throw new UnsupportedOperationException();
+    }
+
+    private HttpResponse<T> buildResponse(HttpVersion version, HttpResponseStatus status, HttpMutableHeaders headers, ByteBuffer buffer) {
+        return HttpResponse.<T>newBuilder()
+                .version(version)
+                .status(status)
+                .headers(headers.toImmutableHeaders())
+                .body(handler.deserialize(version, headers, buffer))
+                .build();
     }
 
     private int skipJunk() {
@@ -251,12 +257,17 @@ public final class AsyncHttpSerializer<T> {
         var limit = reader.limit();
         while (position < limit) {
             var current = reader.get(position);
-            if (current != ' ' && current != '\r' && current != '\n') {
+            if (current != NONE && current != CARRIAGE_RETURN && current != LINE_FEED) {
                 return position;
             }
 
             position++;
         }
         return -1;
+    }
+
+    private ByteBuffer readBuffer() {
+        return reader.position(0)
+                .limit(reader.capacity());
     }
 }

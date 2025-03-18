@@ -5,6 +5,7 @@ import it.auties.leap.http.exchange.HttpExchange;
 import it.auties.leap.http.exchange.body.HttpBody;
 import it.auties.leap.http.exchange.body.HttpBodyDeserializer;
 import it.auties.leap.http.exchange.headers.HttpHeaders;
+import it.auties.leap.http.exchange.serialization.AsyncHttpSerializer;
 import it.auties.leap.socket.async.AsyncSocketIO;
 import it.auties.leap.socket.blocking.BlockingSocketIO;
 
@@ -13,11 +14,13 @@ import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 
 public final class HttpResponse<T> implements HttpExchange<T> {
+    private final HttpVersion version;
     private final HttpResponseStatus status;
     private final HttpHeaders headers;
     private final HttpBody<T> body;
 
-    HttpResponse(HttpResponseStatus status, HttpHeaders headers, HttpBody<T> body) {
+    HttpResponse(HttpVersion version, HttpResponseStatus status, HttpHeaders headers, HttpBody<T> body) {
+        this.version = version;
         this.status = status;
         this.headers = headers;
         this.body = body;
@@ -28,11 +31,16 @@ public final class HttpResponse<T> implements HttpExchange<T> {
     }
 
     public static <T> CompletableFuture<HttpResponse<T>> deserializeAsync(AsyncSocketIO io, HttpBodyDeserializer<T> deserializer) {
-        throw new UnsupportedOperationException();
+        var parser = new AsyncHttpSerializer<T>();
+        return parser.decode(io, deserializer);
     }
 
     public static <T> HttpResponseBuilder<T> newBuilder() {
         return new HttpResponseBuilder<>();
+    }
+
+    public HttpVersion version() {
+        return version;
     }
 
     public HttpResponseStatus status() {

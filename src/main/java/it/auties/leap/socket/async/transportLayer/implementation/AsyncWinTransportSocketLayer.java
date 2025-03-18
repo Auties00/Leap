@@ -363,7 +363,7 @@ public final class AsyncWinTransportSocketLayer extends AsyncNativeTransportSock
                     throw new IllegalStateException("Cannot create socket completion port");
                 }
                 this.completionPort = completionPort;
-                this.portTask = Thread.startVirtualThread(this);
+                this.portTask = Thread.ofPlatform().start(this);
             }
         }
 

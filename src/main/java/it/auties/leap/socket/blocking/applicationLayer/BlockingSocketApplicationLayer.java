@@ -5,6 +5,7 @@ import it.auties.leap.socket.SocketOption;
 import it.auties.leap.socket.blocking.BlockingSocketIO;
 import it.auties.leap.socket.blocking.transportLayer.BlockingSocketTransportLayer;
 
+import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.util.Optional;
 
@@ -43,5 +44,10 @@ public non-sealed abstract class BlockingSocketApplicationLayer implements Socke
     @Override
     public <V> void setOption(SocketOption<V> option, V value) {
         transportLayer.setOption(option, value);
+    }
+
+    @Override
+    public void close() throws IOException {
+        close(false);
     }
 }

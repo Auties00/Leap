@@ -18,7 +18,6 @@ public interface HttpBody<T> {
     Optional<T> content();
     OptionalInt length();
     void serialize(ByteBuffer buffer);
-    HttpBodyDeserializer<T> deserializer();
 
     @SuppressWarnings("unchecked")
     static <T> HttpBody<T> empty() {

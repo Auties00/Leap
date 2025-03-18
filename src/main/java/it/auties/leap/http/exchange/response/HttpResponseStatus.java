@@ -449,8 +449,6 @@ public final class HttpResponseStatus {
 
     @Override
     public String toString() {
-        return "HttpResponseStatus[" +
-                "statusCode=" + statusCode + ", " +
-                "reasonPhrase=" + reasonPhrase + ']';
+        return String.valueOf(statusCode);
     }
 }

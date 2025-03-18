@@ -5,6 +5,7 @@ import it.auties.leap.socket.SocketOption;
 import it.auties.leap.socket.async.AsyncSocketIO;
 import it.auties.leap.socket.async.transportLayer.AsyncSocketTransportLayer;
 
+import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
@@ -44,5 +45,11 @@ public non-sealed abstract class AsyncSocketApplicationLayer implements SocketAp
     @Override
     public <V> void setOption(SocketOption<V> option, V value) {
         transportLayer.setOption(option, value);
+    }
+
+
+    @Override
+    public void close() throws IOException {
+        close(false);
     }
 }

@@ -12,6 +12,10 @@ public final class EmptyBody implements HttpBody {
     private static final EmptyBody INSTANCE = new EmptyBody();
     private static final HttpBodyDeserializer DESERIALIZER = (_, _, _) -> INSTANCE;
 
+    public static HttpBodyDeserializer deserializer() {
+        return DESERIALIZER;
+    }
+
     private EmptyBody() {
 
     }
@@ -33,10 +37,5 @@ public final class EmptyBody implements HttpBody {
     @Override
     public void serialize(ByteBuffer buffer) {
 
-    }
-
-    @Override
-    public HttpBodyDeserializer deserializer() {
-        return DESERIALIZER;
     }
 }

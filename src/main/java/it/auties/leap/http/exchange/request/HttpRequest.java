@@ -79,7 +79,7 @@ public final class HttpRequest<T> implements HttpExchange<T> {
             buffer.put(HttpConstants.NEW_LINE);
             buffer.put(key.getBytes(StandardCharsets.US_ASCII));
             buffer.put(HttpConstants.HEADER_SEPARATOR);
-            buffer.put(value.getBytes(StandardCharsets.US_ASCII));
+            buffer.put(value.toString().getBytes(StandardCharsets.US_ASCII));
         });
 
         buffer.put(HttpConstants.NEW_LINE);

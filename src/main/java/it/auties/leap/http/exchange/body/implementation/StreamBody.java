@@ -13,6 +13,10 @@ import java.util.OptionalInt;
 public final class StreamBody implements HttpBody<InputStream> {
     private static final HttpBodyDeserializer<InputStream> DESERIALIZER = ((_, _, buffer) -> new StreamBody(new ByteBufferBackedInputStream(buffer)));
 
+    public static HttpBodyDeserializer<InputStream> deserializer() {
+        return DESERIALIZER;
+    }
+
     private final InputStream inputStream;
 
     public StreamBody(InputStream inputStream) {
@@ -27,11 +31,6 @@ public final class StreamBody implements HttpBody<InputStream> {
     @Override
     public OptionalInt length() {
         return OptionalInt.empty();
-    }
-
-    @Override
-    public HttpBodyDeserializer<InputStream> deserializer() {
-        return DESERIALIZER;
     }
 
     @Override

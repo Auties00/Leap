@@ -1,14 +1,21 @@
 package it.auties.leap.http.exchange.response;
 
+import it.auties.leap.http.HttpVersion;
 import it.auties.leap.http.exchange.body.HttpBody;
 import it.auties.leap.http.exchange.headers.HttpHeaders;
 
 import java.util.Objects;
 
 public final class HttpResponseBuilder<T> {
+    private HttpVersion version;
     private HttpResponseStatus status;
     private HttpHeaders headers;
     private HttpBody<T> body;
+
+    public HttpResponseBuilder<T> version(HttpVersion version) {
+        this.version = version;
+        return this;
+    }
 
     public HttpResponseBuilder<T> status(HttpResponseStatus status) {
         this.status = status;
@@ -27,7 +34,8 @@ public final class HttpResponseBuilder<T> {
 
     public HttpResponse<T> build() {
         return new HttpResponse<>(
-                Objects.requireNonNullElse(status, HttpResponseStatus.ok()),
+                Objects.requireNonNull(version, "Expected a version"),
+                Objects.requireNonNull(status, "Expected a status"),
                 Objects.requireNonNullElse(headers, HttpHeaders.empty()),
                 Objects.requireNonNullElse(body, HttpBody.empty())
         );

@@ -1,6 +1,5 @@
 package it.auties.leap.socket.async;
 
-import it.auties.leap.socket.SocketIO;
 import it.auties.leap.socket.SocketIOProvider;
 import it.auties.leap.socket.async.applicationLayer.AsyncSocketApplicationLayer;
 import it.auties.leap.socket.async.transportLayer.AsyncSocketTransportLayer;
@@ -8,7 +7,7 @@ import it.auties.leap.socket.async.transportLayer.AsyncSocketTransportLayer;
 import java.nio.ByteBuffer;
 import java.util.concurrent.CompletableFuture;
 
-public sealed interface AsyncSocketIO extends SocketIOProvider, SocketIO permits AsyncSocketApplicationLayer, AsyncSocketClient, AsyncSocketTransportLayer {
+public sealed interface AsyncSocketIO extends SocketIOProvider permits AsyncSocketApplicationLayer, AsyncSocketClient, AsyncSocketTransportLayer {
     default CompletableFuture<Void> write(byte[] data) {
         return write(data, 0, data.length);
     }

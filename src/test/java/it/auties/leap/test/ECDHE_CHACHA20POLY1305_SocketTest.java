@@ -1,9 +1,8 @@
 
 package it.auties.leap.test;
 
-import it.auties.leap.http.exchange.body.HttpBody;
 import it.auties.leap.http.exchange.body.HttpBodyDeserializer;
-import it.auties.leap.http.exchange.serialization.AsyncHttpSerializer;
+import it.auties.leap.http.exchange.response.HttpResponse;
 import it.auties.leap.socket.SocketClient;
 import it.auties.leap.socket.SocketProtocol;
 import it.auties.leap.tls.certificate.TlsCertificatesHandler;
@@ -16,11 +15,8 @@ import it.auties.leap.tls.version.TlsVersion;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
-import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
-import java.util.Optional;
-import java.util.OptionalInt;
 
 public class ECDHE_CHACHA20POLY1305_SocketTest {
     public static void main(String[] args) throws IOException {
@@ -67,27 +63,8 @@ public class ECDHE_CHACHA20POLY1305_SocketTest {
                     "Accept: */*\r\n\r\n";
 
             socket.write(StandardCharsets.UTF_8.encode(builder)).join();
-            new AsyncHttpSerializer<>(socket, (_, _, buffer) -> new HttpBody<String>() {
-                @Override
-                public Optional<String> content() {
-                    return Optional.of(StandardCharsets.UTF_8.decode(buffer).toString());
-                }
-
-                @Override
-                public OptionalInt length() {
-                    return OptionalInt.empty();
-                }
-
-                @Override
-                public void serialize(ByteBuffer buffer) {
-
-                }
-
-                @Override
-                public HttpBodyDeserializer<String> deserializer() {
-                    return null;
-                }
-            }).decode().join();
+            var result = HttpResponse.deserializeAsync(socket, HttpBodyDeserializer.fromString()).join();
+            System.out.println("RESPONSE: " + result);
         }
     }
 }

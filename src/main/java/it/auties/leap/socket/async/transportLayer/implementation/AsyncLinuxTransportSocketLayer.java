@@ -254,7 +254,7 @@ public final class AsyncLinuxTransportSocketLayer extends AsyncNativeTransportSo
                         io_uring_cqe.layout().byteAlignment()
                 );
 
-                this.ringTask = Thread.startVirtualThread(this);
+                this.ringTask = Thread.ofPlatform().start(this);
             }
         }
 

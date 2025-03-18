@@ -10,6 +10,10 @@ import java.util.OptionalInt;
 public final class BufferBody implements HttpBody<ByteBuffer> {
     private static final HttpBodyDeserializer<ByteBuffer> DESERIALIZER = ((_, _, buffer) -> new BufferBody(buffer));
 
+    public static HttpBodyDeserializer<ByteBuffer> deserializer() {
+        return DESERIALIZER;
+    }
+
     private final ByteBuffer buffer;
 
     public BufferBody(ByteBuffer buffer) {
@@ -24,11 +28,6 @@ public final class BufferBody implements HttpBody<ByteBuffer> {
     @Override
     public OptionalInt length() {
         return OptionalInt.of(buffer.remaining());
-    }
-
-    @Override
-    public HttpBodyDeserializer<ByteBuffer> deserializer() {
-        return DESERIALIZER;
     }
 
     @Override
