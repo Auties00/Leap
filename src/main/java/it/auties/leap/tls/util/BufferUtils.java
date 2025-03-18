@@ -485,7 +485,7 @@ public final class BufferUtils {
 
     public static boolean equals(ByteBuffer first, ByteBuffer second) {
         return first == second
-                || (!first.isDirect() && !first.isDirect() && first.array() == second.array());
+                || (!first.isDirect() && !second.isDirect() && first.array() == second.array());
     }
 
     public static long bigEndianToLong(byte[] bs, int off) {
