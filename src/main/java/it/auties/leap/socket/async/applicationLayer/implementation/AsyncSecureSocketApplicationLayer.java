@@ -383,7 +383,7 @@ public class AsyncSecureSocketApplicationLayer extends AsyncSocketApplicationLay
                     TlsMessageContentType.ALERT,
                     encrypted
             );
-            transportLayer.write(encrypted).join();
+            transportLayer.write(encrypted);
         }catch(Throwable _) {
 
         } finally {

@@ -11,6 +11,8 @@ import java.util.Map;
 import java.util.Objects;
 
 public final class HttpRequestBuilder<T> {
+    private static final String DEFAULT_USER_AGENT = "Java/" + System.getProperty("java.version");
+
     private HttpMethod method;
     private HttpBody<T> body;
     private URI uri;
@@ -86,6 +88,18 @@ public final class HttpRequestBuilder<T> {
     }
 
     public HttpRequest<T> build() {
+        if(headers.host().isEmpty()) {
+            headers.put("Host", uri.getHost());
+        }
+
+        if(headers.connection().isEmpty()) {
+            headers.put("Connection", "close");
+        }
+
+        if(headers.userAgent().isEmpty()) {
+            headers.put("User-Agent", DEFAULT_USER_AGENT);
+        }
+
         return new HttpRequest<>(
                 method,
                 body,

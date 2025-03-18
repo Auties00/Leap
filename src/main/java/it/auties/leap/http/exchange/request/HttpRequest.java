@@ -68,29 +68,42 @@ public final class HttpRequest<T> implements HttpExchange<T> {
         return timeout;
     }
 
-    // TODO: Switch serialization based on version
     @Override
     public void serialize(HttpVersion version, ByteBuffer buffer) {
         buffer.put(method.encodedName());
-        buffer.put(HttpConstants.SPACE);
+        buffer.put((byte) HttpConstants.SPACE);
+        buffer.put(normalizePath().getBytes(StandardCharsets.US_ASCII));
+        buffer.put((byte) HttpConstants.SPACE);
         buffer.put(version.encodedName());
 
         headers.forEach((key, value) -> {
-            buffer.put(HttpConstants.NEW_LINE);
+            buffer.put((byte) HttpConstants.CARRIAGE_RETURN);
+            buffer.put((byte) HttpConstants.LINE_FEED);
             buffer.put(key.getBytes(StandardCharsets.US_ASCII));
-            buffer.put(HttpConstants.HEADER_SEPARATOR);
+            buffer.put((byte) HttpConstants.HEADER_SEPARATOR);
+            buffer.put((byte) HttpConstants.SPACE);
             buffer.put(value.toString().getBytes(StandardCharsets.US_ASCII));
         });
 
-        buffer.put(HttpConstants.NEW_LINE);
+        buffer.put((byte) HttpConstants.CARRIAGE_RETURN);
+        buffer.put((byte) HttpConstants.LINE_FEED);
 
         body.serialize(buffer);
 
-        buffer.put(HttpConstants.NEW_LINE);
+        buffer.put((byte) HttpConstants.CARRIAGE_RETURN);
+        buffer.put((byte) HttpConstants.LINE_FEED);
+    }
+
+    private String normalizePath() {
+        var path = uri.getPath();
+        if(!path.endsWith("/")) {
+            path += "/";
+        }
+        return path;
     }
 
     @Override
-    public int length() {
+    public int length(HttpVersion version) {
         return 0;
     }
 

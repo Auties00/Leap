@@ -12,5 +12,5 @@ public sealed interface HttpExchange<T> permits HttpRequest, HttpResponse {
     HttpHeaders headers();
     HttpBody<T> body();
     void serialize(HttpVersion version, ByteBuffer buffer);
-    int length();
+    int length(HttpVersion version);
 }

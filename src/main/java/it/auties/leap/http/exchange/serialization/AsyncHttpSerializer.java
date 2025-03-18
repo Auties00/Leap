@@ -12,12 +12,9 @@ import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.util.concurrent.CompletableFuture;
 
-public final class AsyncHttpSerializer<T> {
-    private static final char NONE = ' ';
-    private static final char CARRIAGE_RETURN = '\r';
-    private static final char LINE_FEED = '\n';
-    private static final char HEADER_SEPARATOR = ':';
+import static it.auties.leap.http.exchange.serialization.HttpConstants.*;
 
+public final class AsyncHttpSerializer<T> {
     private AsyncSocketIO client;
     private HttpBodyDeserializer<T> handler;
     private ByteBuffer reader;
@@ -27,7 +24,7 @@ public final class AsyncHttpSerializer<T> {
     private HttpVersion version;
     private HttpResponseStatus status;
 
-    private char crlf = NONE;
+    private char crlf = SPACE;
     private HttpMutableHeaders headers;
 
     private String headerKey = "";
@@ -143,13 +140,13 @@ public final class AsyncHttpSerializer<T> {
     private CompletableFuture<HttpResponse<T>> parseReasonPhraseOrEnd() {
         while (reader.hasRemaining()) {
             var current = reader.get();
-            if(Character.isAlphabetic(current) || current == NONE) {
-                crlf = NONE;
+            if(Character.isAlphabetic(current) || current == SPACE) {
+                crlf = SPACE;
             } else if(current == CARRIAGE_RETURN) {
                 crlf = CARRIAGE_RETURN;
             }else if(current == LINE_FEED) {
                 if(crlf == CARRIAGE_RETURN) {
-                    crlf = NONE;
+                    crlf = SPACE;
                     this.headers = HttpMutableHeaders.newMutableHeaders();
                     return parseHeaderKey();
                 }
@@ -197,7 +194,7 @@ public final class AsyncHttpSerializer<T> {
         var end = start;
         var limit = reader.limit();
         if(start < limit && canSkipSpace) {
-            if(reader.get(start) == NONE) {
+            if(reader.get(start) == SPACE) {
                 start++;
             }
             canSkipSpace = false;
@@ -205,7 +202,7 @@ public final class AsyncHttpSerializer<T> {
 
         while (end < limit) {
             var current = reader.get(end);
-            if(canSkipSpace && current == NONE) {
+            if(canSkipSpace && current == SPACE) {
                 canSkipSpace = false;
             }else if(current == CARRIAGE_RETURN) {
                 crlf = CARRIAGE_RETURN;
@@ -257,7 +254,7 @@ public final class AsyncHttpSerializer<T> {
         var limit = reader.limit();
         while (position < limit) {
             var current = reader.get(position);
-            if (current != NONE && current != CARRIAGE_RETURN && current != LINE_FEED) {
+            if (current != SPACE && current != CARRIAGE_RETURN && current != LINE_FEED) {
                 return position;
             }
 

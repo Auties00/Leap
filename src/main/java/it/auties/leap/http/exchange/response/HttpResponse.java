@@ -63,7 +63,7 @@ public final class HttpResponse<T> implements HttpExchange<T> {
     }
 
     @Override
-    public int length() {
+    public int length(HttpVersion version) {
         return 0;
     }
 
