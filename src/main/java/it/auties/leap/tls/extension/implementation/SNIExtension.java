@@ -5,7 +5,7 @@ import it.auties.leap.tls.context.TlsMode;
 import it.auties.leap.tls.context.TlsSource;
 import it.auties.leap.tls.extension.TlsExtension;
 import it.auties.leap.tls.extension.TlsExtensionDeserializer;
-import it.auties.leap.tls.util.AddressUtils;
+import it.auties.leap.tls.util.IPAddressUtil;
 import it.auties.leap.tls.version.TlsVersion;
 
 import java.net.InetSocketAddress;
@@ -161,7 +161,7 @@ public sealed abstract class SNIExtension {
     }
 
     public enum NameType {
-        HOST_NAME((byte) 0, AddressUtils::isHostName);
+        HOST_NAME((byte) 0, IPAddressUtil::isHostName);
 
         private static final Map<Byte, NameType> VALUES = Map.of(
                 HOST_NAME.id(), HOST_NAME

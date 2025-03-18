@@ -1,5 +1,6 @@
 package it.auties.leap.socket.async.transportLayer.implementation;
 
+import it.auties.leap.StableValue;
 import it.auties.leap.socket.SocketException;
 import it.auties.leap.socket.SocketProtocol;
 import it.auties.leap.socket.async.transportLayer.AsyncSocketTransportLayerFactory;
@@ -10,7 +11,6 @@ import java.lang.foreign.MemorySegment;
 import java.lang.foreign.ValueLayout;
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
-import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
@@ -150,17 +150,10 @@ public final class AsyncLinuxTransportSocketLayer extends AsyncNativeTransportSo
     private static final class IOUring implements Runnable {
         private static final int QUEUE_SIZE = 20_000;
 
-        private static IOUring instance;
-        private static final Object lock = new Object();
+        private static final StableValue<IOUring> instance = StableValue.of();
 
         public static IOUring shared() {
-            if (instance != null) {
-                return instance;
-            }
-
-            synchronized (lock) {
-                return Objects.requireNonNullElseGet(instance, () -> instance = new IOUring());
-            }
+            return instance.orElseSet(IOUring::new);
         }
 
         private final Arena arena;
@@ -266,11 +259,9 @@ public final class AsyncLinuxTransportSocketLayer extends AsyncNativeTransportSo
         public void unregisterHandle(int handle) {
             handles.remove(handle);
             futures.remove(handle);
-            if (!handles.isEmpty()) {
-                return;
+            if (handles.isEmpty()) {
+                close();
             }
-
-            close();
         }
 
         public boolean isHandleRegistered(int handle) {
@@ -278,6 +269,11 @@ public final class AsyncLinuxTransportSocketLayer extends AsyncNativeTransportSo
         }
 
         private void close() {
+            if (ringTask != null) {
+                ringTask.interrupt();
+                this.ringTask = null;
+            }
+
             if (ringHandle == null) {
                 return;
             }

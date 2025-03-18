@@ -1,5 +1,6 @@
 package it.auties.leap.socket.async.transportLayer.implementation;
 
+import it.auties.leap.StableValue;
 import it.auties.leap.socket.SocketException;
 import it.auties.leap.socket.SocketOption;
 import it.auties.leap.socket.SocketProtocol;
@@ -318,17 +319,10 @@ public final class AsyncWinTransportSocketLayer extends AsyncNativeTransportSock
         private static final MemorySegment INVALID_HANDLE_VALUE = MemorySegment.ofAddress(-1);
         private static final int OVERLAPPED_CHUNK_SIZE = 8192;
 
-        private static CompletionPort instance;
-        private static final Object lock = new Object();
+        private static final StableValue<CompletionPort> instance = StableValue.of();
 
         public static CompletionPort shared() {
-            if (instance != null) {
-                return instance;
-            }
-
-            synchronized (lock) {
-                return Objects.requireNonNullElseGet(instance, () -> instance = new CompletionPort());
-            }
+            return instance.orElseSet(CompletionPort::new);
         }
 
         private final Arena arena;
