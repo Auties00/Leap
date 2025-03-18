@@ -4,7 +4,6 @@ import it.auties.leap.http.exchange.body.HttpBody;
 import it.auties.leap.http.exchange.body.HttpBodyDeserializer;
 
 import java.nio.ByteBuffer;
-import java.util.Optional;
 import java.util.OptionalInt;
 
 public final class BufferBody implements HttpBody<ByteBuffer> {
@@ -21,8 +20,8 @@ public final class BufferBody implements HttpBody<ByteBuffer> {
     }
 
     @Override
-    public Optional<ByteBuffer> content() {
-        return Optional.of(buffer);
+    public ByteBuffer content() {
+        return buffer;
     }
 
     @Override

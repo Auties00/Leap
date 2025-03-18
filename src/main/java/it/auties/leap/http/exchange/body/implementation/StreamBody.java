@@ -7,7 +7,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.UncheckedIOException;
 import java.nio.ByteBuffer;
-import java.util.Optional;
 import java.util.OptionalInt;
 
 public final class StreamBody implements HttpBody<InputStream> {
@@ -24,8 +23,8 @@ public final class StreamBody implements HttpBody<InputStream> {
     }
 
     @Override
-    public Optional<InputStream> content() {
-        return Optional.of(inputStream);
+    public InputStream content() {
+        return inputStream;
     }
 
     @Override

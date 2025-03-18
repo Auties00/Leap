@@ -16,7 +16,7 @@ public class ECDHE_CHACHA20POLY1305_SocketTest {
                     .uri(URI.create("https://api.ipify.org/"))
                     .header("Connection", "Keep-Alive")
                     .build();
-            System.out.println(client.send(request, HttpBodyDeserializer.fromString()).join());
+            System.out.println(client.send(request, HttpBodyDeserializer.ofString()).join());
         }
         {
             var request = HttpRequest.newBuilder()
@@ -24,7 +24,7 @@ public class ECDHE_CHACHA20POLY1305_SocketTest {
                     .uri(URI.create("https://api.ipify.org/"))
                     .header("Connection", "Keep-Alive")
                     .build();
-            System.out.println(client.send(request, HttpBodyDeserializer.fromString()).join());
+            System.out.println(client.send(request, HttpBodyDeserializer.ofString()).join());
         }
         {
             var request = HttpRequest.newBuilder()
@@ -32,7 +32,7 @@ public class ECDHE_CHACHA20POLY1305_SocketTest {
                     .uri(URI.create("https://api.ipify.org/"))
                     .header("Connection", "Keep-Alive")
                     .build();
-            System.out.println(client.send(request, HttpBodyDeserializer.fromString()).join());
+            System.out.println(client.send(request, HttpBodyDeserializer.ofString()).join());
         }
         client.close();
     }

@@ -1,21 +1,16 @@
 package it.auties.leap.http.exchange.body;
 
-import it.auties.leap.http.exchange.body.implementation.BufferBody;
-import it.auties.leap.http.exchange.body.implementation.EmptyBody;
-import it.auties.leap.http.exchange.body.implementation.StringBody;
-import it.auties.leap.http.exchange.body.implementation.StreamBody;
+import it.auties.leap.http.exchange.body.implementation.*;
 
 import java.io.InputStream;
 import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.util.Map;
-import java.util.Optional;
 import java.util.OptionalInt;
-import java.util.stream.Collectors;
 
 public interface HttpBody<T> {
-    Optional<T> content();
+    T content();
     OptionalInt length();
     void serialize(ByteBuffer buffer);
 
@@ -24,35 +19,31 @@ public interface HttpBody<T> {
         return EmptyBody.instance();
     }
 
-    static HttpBody<String> fromString(String text) {
+    static HttpBody<String> ofString(String text) {
         return new StringBody(text, StandardCharsets.UTF_8);
     }
 
-    static HttpBody<String> fromString(String text, Charset charset) {
+    static HttpBody<String> ofString(String text, Charset charset) {
         return new StringBody(text, charset);
     }
 
-    static HttpBody<ByteBuffer> fromBytes(byte[] binary) {
+    static HttpBody<ByteBuffer> ofBytes(byte[] binary) {
         return new BufferBody(ByteBuffer.wrap(binary, 0, binary.length));
     }
 
-    static HttpBody<ByteBuffer> fromBytes(byte[] binary, int offset, int length) {
+    static HttpBody<ByteBuffer> ofBytes(byte[] binary, int offset, int length) {
         return new BufferBody(ByteBuffer.wrap(binary, offset, length));
     }
 
-    static HttpBody<ByteBuffer> fromBuffer(ByteBuffer buffer) {
+    static HttpBody<ByteBuffer> ofBuffer(ByteBuffer buffer) {
         return new BufferBody(buffer);
     }
 
-    static HttpBody<InputStream> fromStream(InputStream inputStream) {
+    static HttpBody<InputStream> ofStream(InputStream inputStream) {
         return new StreamBody(inputStream);
     }
 
-    static HttpBody<String> fromFormData(Map<String, ?> text) {
-        var body = text.entrySet()
-                .stream()
-                .map(entry -> entry.getKey() + "=" + entry.getValue())
-                .collect(Collectors.joining("&"));
-        return new StringBody(body, StandardCharsets.UTF_8);
+    static HttpBody<Map<String, String>> ofFormData(Map<String, String> text) {
+        return new FormBody(text, StandardCharsets.UTF_8);
     }
 }

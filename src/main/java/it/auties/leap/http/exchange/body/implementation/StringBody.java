@@ -10,7 +10,6 @@ import java.nio.ByteBuffer;
 import java.nio.CharBuffer;
 import java.nio.charset.CharacterCodingException;
 import java.nio.charset.Charset;
-import java.util.Optional;
 import java.util.OptionalInt;
 
 public final class StringBody implements HttpBody<String> {
@@ -27,8 +26,8 @@ public final class StringBody implements HttpBody<String> {
     }
 
     @Override
-    public Optional<String> content() {
-        return Optional.of(content);
+    public String content() {
+        return content;
     }
 
     @Override
