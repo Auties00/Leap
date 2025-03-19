@@ -8,6 +8,4 @@ import java.util.Optional;
 
 public interface TlsExtensionDeserializer {
     Optional<? extends TlsExtension.Concrete> deserialize(ByteBuffer buffer, TlsSource source, TlsMode mode, int type);
-
-    Class<? extends TlsExtension.Concrete> toConcreteType(TlsSource source, TlsMode mode);
 }

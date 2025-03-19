@@ -22,10 +22,6 @@ public final class ExtendedMasterSecretExtension {
             return Optional.of(ExtendedMasterSecretExtension.Concrete.instance());
         }
 
-        @Override
-        public Class<? extends TlsExtension.Concrete> toConcreteType(TlsSource source, TlsMode mode) {
-            return ExtendedMasterSecretExtension.Concrete.class;
-        }
     };
 
 

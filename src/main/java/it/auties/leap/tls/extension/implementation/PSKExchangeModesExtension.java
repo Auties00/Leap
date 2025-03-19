@@ -31,10 +31,6 @@ public record PSKExchangeModesExtension(
             return Optional.of(extension);
         }
 
-        @Override
-        public Class<? extends Concrete> toConcreteType(TlsSource source, TlsMode mode) {
-            return PSKExchangeModesExtension.class;
-        }
     };
 
     public static PSKExchangeModesExtension of(List<TlsPSKExchangeMode> modes) {

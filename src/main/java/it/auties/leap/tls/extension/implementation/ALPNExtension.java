@@ -32,10 +32,6 @@ public record ALPNExtension(
             return Optional.of(extension);
         }
 
-        @Override
-        public Class<? extends Concrete> toConcreteType(TlsSource source, TlsMode mode) {
-            return ALPNExtension.class;
-        }
     };
 
     public static ALPNExtension of(List<String> supportedProtocols) {

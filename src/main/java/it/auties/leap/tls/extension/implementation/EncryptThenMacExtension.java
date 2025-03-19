@@ -23,10 +23,6 @@ public final class EncryptThenMacExtension implements TlsExtension.Concrete {
             return Optional.of(EncryptThenMacExtension.instance());
         }
 
-        @Override
-        public Class<? extends Concrete> toConcreteType(TlsSource source, TlsMode mode) {
-            return EncryptThenMacExtension.class;
-        }
     };
 
     private EncryptThenMacExtension() {

@@ -23,10 +23,6 @@ public sealed abstract class PaddingExtension {
             return Optional.of(extension);
         }
 
-        @Override
-        public Class<? extends TlsExtension.Concrete> toConcreteType(TlsSource source, TlsMode mode) {
-            return Concrete.class;
-        }
     };
 
     public static final class Concrete extends PaddingExtension implements TlsExtension.Concrete {

@@ -48,19 +48,6 @@ public abstract sealed class NPNExtension {
             return Optional.of(Client.instance());
         }
 
-        @Override
-        public Class<? extends Concrete> toConcreteType(TlsSource source, TlsMode mode) {
-            return switch (mode) {
-                case CLIENT -> switch (source) {
-                    case LOCAL -> Client.class;
-                    case REMOTE -> Server.class;
-                };
-                case SERVER -> switch (source) {
-                    case LOCAL -> Server.class;
-                    case REMOTE -> Client.class;
-                };
-            };
-        }
     };
 
     private NPNExtension() {

@@ -23,10 +23,6 @@ public final class PostHandshakeAuthExtension implements TlsExtension.Concrete {
             return Optional.of(PostHandshakeAuthExtension.instance());
         }
 
-        @Override
-        public Class<? extends Concrete> toConcreteType(TlsSource source, TlsMode mode) {
-            return PostHandshakeAuthExtension.class;
-        }
     };
 
     private PostHandshakeAuthExtension() {

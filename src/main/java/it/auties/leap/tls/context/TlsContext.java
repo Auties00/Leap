@@ -94,7 +94,8 @@ public class TlsContext {
 
     private volatile boolean localCipherEnabled;
     private volatile boolean remoteCipherEnabled;
-    private volatile boolean handshakeComplete;
+    private volatile boolean localHandshakeComplete;
+    private volatile boolean remoteHandshakeComplete;
 
     public TlsContext(InetSocketAddress address, TlsConfig config) {
         this.remoteAddress = address;
@@ -197,7 +198,10 @@ public class TlsContext {
             }
 
             case HelloDoneMessage.Server _ -> {
-                this.handshakeComplete = true;
+                switch (mode) {
+                    case CLIENT -> this.remoteHandshakeComplete = true;
+                    case SERVER -> this.localHandshakeComplete = true;
+                }
             }
 
             case CertificateMessage.Server certificateMessage -> {
@@ -232,9 +236,19 @@ public class TlsContext {
                         .newLocalKeyExchange(this);
             }
 
+            case FinishedMessage.Client _ -> {
+                // TODO: Validate
+                switch (mode) {
+                    case CLIENT -> this.localHandshakeComplete = true;
+                    case SERVER -> this.remoteHandshakeComplete = true;
+                }
+            }
+
             case FinishedMessage.Server serverFinishedMessage -> {
-                if(mode == TlsMode.CLIENT) {
-                    // TODO: Validate
+                // TODO: Validate
+                switch (mode) {
+                    case CLIENT -> this.remoteHandshakeComplete = true;
+                    case SERVER -> this.localHandshakeComplete = true;
                 }
             }
 
@@ -254,12 +268,6 @@ public class TlsContext {
                 };
                 localConfig.certificatesHandler()
                         .validate(certificates, source, this);
-            }
-
-            case FinishedMessage.Client clientFinishedMessage -> {
-                if(mode == TlsMode.SERVER) {
-                    // TODO: Validate
-                }
             }
 
             case ApplicationDataMessage applicationDataMessage -> {
@@ -284,8 +292,8 @@ public class TlsContext {
 
             case ChangeCipherSpecMessage.Server _ -> {
                 switch (mode) {
-                    case SERVER -> this.localCipherEnabled = true;
                     case CLIENT -> this.remoteCipherEnabled = true;
+                    case SERVER -> this.localCipherEnabled = true;
                 }
             }
 
@@ -310,15 +318,23 @@ public class TlsContext {
     }
 
     public boolean isHandshakeComplete() {
-        return handshakeComplete;
+        return localHandshakeComplete && remoteHandshakeComplete;
+    }
+
+    public boolean isLocalHandshakeComplete() {
+        return localHandshakeComplete;
+    }
+
+    public boolean isRemoteHandshakeComplete() {
+        return remoteHandshakeComplete;
     }
 
     public boolean isLocalCipherEnabled() {
-        return localCipherEnabled;
+        return localCipherEnabled && localHandshakeComplete;
     }
 
     public boolean isRemoteCipherEnabled() {
-        return remoteCipherEnabled;
+        return remoteCipherEnabled && remoteHandshakeComplete;
     }
 
     public byte[] localRandomData() {

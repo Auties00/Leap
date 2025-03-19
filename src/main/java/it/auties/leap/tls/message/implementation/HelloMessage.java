@@ -248,7 +248,6 @@ public sealed abstract class HelloMessage extends TlsHandshakeMessage {
                             throw new TlsException("Unknown extension");
                         }
 
-                        System.out.println("Decoding " + extensionDecoder.toConcreteType(TlsSource.REMOTE, TlsMode.CLIENT).getName());
                         try(var _ = scopedRead(buffer, extensionLength)) {
                             extensionDecoder.deserialize(buffer, TlsSource.REMOTE, TlsMode.CLIENT, extensionType)
                                     .ifPresent(extensions::add);

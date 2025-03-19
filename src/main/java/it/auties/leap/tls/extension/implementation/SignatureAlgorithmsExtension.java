@@ -35,10 +35,6 @@ public record SignatureAlgorithmsExtension(
             return Optional.of(extension);
         }
 
-        @Override
-        public Class<? extends Concrete> toConcreteType(TlsSource source, TlsMode mode) {
-            return SignatureAlgorithmsExtension.class;
-        }
     };
 
     private static final SignatureAlgorithmsExtension RECOMMENDED = new SignatureAlgorithmsExtension(List.of(

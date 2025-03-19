@@ -58,9 +58,12 @@ public final class TlsStandardMessageDeserializer implements TlsMessageDeseriali
                         });
                     }
                 }
-                case CHANGE_CIPHER_SPEC -> Optional.of(ChangeCipherSpecMessage.of(context, buffer, metadata));
-                case ALERT -> Optional.of(AlertMessage.of(context, buffer, metadata));
-                case APPLICATION_DATA -> Optional.of(ApplicationDataMessage.of(context, buffer, metadata));
+                case CHANGE_CIPHER_SPEC ->
+                        Optional.of(ChangeCipherSpecMessage.of(context, buffer, metadata));
+                case ALERT ->
+                        Optional.of(AlertMessage.of(context, buffer, metadata));
+                case APPLICATION_DATA ->
+                        Optional.of(ApplicationDataMessage.of(context, buffer, metadata));
             };
         }
     }

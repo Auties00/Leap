@@ -54,10 +54,6 @@ public final class GREASEExtension implements TlsExtension.Concrete {
             };
         }
 
-        @Override
-        public Class<? extends Concrete> toConcreteType(TlsSource source, TlsMode mode) {
-            return GREASEExtension.class;
-        }
     };
 
     private final int extensionType;

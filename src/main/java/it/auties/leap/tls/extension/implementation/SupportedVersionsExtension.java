@@ -44,19 +44,6 @@ public abstract sealed class SupportedVersionsExtension {
             };
         }
 
-        @Override
-        public Class<? extends Concrete> toConcreteType(TlsSource source, TlsMode mode) {
-            return switch (mode) {
-                case CLIENT -> switch (source) {
-                    case LOCAL -> Client.Concrete.class;
-                    case REMOTE -> Server.class;
-                };
-                case SERVER -> switch (source) {
-                    case LOCAL -> Server.class;
-                    case REMOTE -> Client.Concrete.class;
-                };
-            };
-        }
     };
 
     public static final class Server extends SupportedVersionsExtension implements Concrete {

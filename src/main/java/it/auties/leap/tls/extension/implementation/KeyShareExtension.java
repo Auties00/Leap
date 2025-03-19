@@ -25,10 +25,6 @@ public sealed abstract class KeyShareExtension {
             return Optional.of(extension);
         }
 
-        @Override
-        public Class<? extends TlsExtension.Concrete> toConcreteType(TlsSource source, TlsMode mode) {
-            return Concrete.class;
-        }
     };
 
     public static final class Concrete extends KeyShareExtension implements TlsExtension.Concrete {

@@ -198,7 +198,7 @@ public class AsyncSecureSocketApplicationLayer extends AsyncSocketApplicationLay
     }
 
     private CompletableFuture<Void> readUntilServerDone() {
-        if (tlsContext.isHandshakeComplete()) {
+        if (tlsContext.isRemoteHandshakeComplete()) {
             return CompletableFuture.completedFuture(null);
         }
 
@@ -333,31 +333,30 @@ public class AsyncSecureSocketApplicationLayer extends AsyncSocketApplicationLay
             return CompletableFuture.completedFuture(null);
         }
 
-        if (!tlsContext.isLocalCipherEnabled()) {
-            return transportLayer.write(buffer);
+        if (tlsContext.isLocalCipherEnabled()) {
+            assertNotEquals(buffer, tlsBuffer);
+            var leftPadding = tlsContext.localCipher()
+                    .orElseThrow(() -> new InternalError("Missing negotiated cipher"))
+                    .ivLength();
+            var dataMessage = new ApplicationDataMessage(
+                    tlsConfig.version(),
+                    TlsSource.LOCAL,
+                    buffer
+            );
+            var encrypted = writeBuffer()
+                    .position(TlsMessage.messageRecordHeaderLength() + leftPadding);
+            tlsContext.localCipher()
+                    .orElseThrow(() -> new TlsException("Cannot encrypt a message before enabling the local cipher"))
+                    .encrypt(tlsContext, dataMessage, encrypted);
+            TlsMessage.putRecord(
+                    tlsConfig.version(),
+                    TlsMessageContentType.APPLICATION_DATA,
+                    encrypted
+            );
+            return transportLayer.write(encrypted);
         }
 
-        assertNotEquals(buffer, tlsBuffer);
-
-        var leftPadding = tlsContext.localCipher()
-                .orElseThrow(() -> new InternalError("Missing negotiated cipher"))
-                .ivLength();
-        var dataMessage = new ApplicationDataMessage(
-                tlsConfig.version(),
-                TlsSource.LOCAL,
-                buffer
-        );
-        var encrypted = writeBuffer()
-                .position(TlsMessage.messageRecordHeaderLength() + leftPadding);
-        tlsContext.localCipher()
-                .orElseThrow(() -> new TlsException("Cannot encrypt a message before enabling the local cipher"))
-                .encrypt(tlsContext, dataMessage, encrypted);
-        TlsMessage.putRecord(
-                tlsConfig.version(),
-                TlsMessageContentType.APPLICATION_DATA,
-                encrypted
-        );
-        return transportLayer.write(encrypted);
+        return transportLayer.write(buffer);
     }
 
     @Override

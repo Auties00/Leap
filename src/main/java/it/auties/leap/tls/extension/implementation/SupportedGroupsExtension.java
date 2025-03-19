@@ -32,10 +32,6 @@ public abstract sealed class SupportedGroupsExtension {
             return Optional.of(extension);
         }
 
-        @Override
-        public Class<? extends Concrete> toConcreteType(TlsSource source, TlsMode mode) {
-            return SupportedGroupsExtension.Concrete.class;
-        }
     };
 
     public static final class Concrete extends SupportedGroupsExtension implements TlsExtension.Concrete {

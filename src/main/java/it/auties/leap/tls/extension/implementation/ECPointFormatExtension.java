@@ -36,10 +36,6 @@ public record ECPointFormatExtension(
             return Optional.of(extension);
         }
 
-        @Override
-        public Class<? extends Concrete> toConcreteType(TlsSource source, TlsMode mode) {
-            return ECPointFormatExtension.class;
-        }
     };
 
     public static ECPointFormatExtension of(List<TlsECPointFormat> formats) {
