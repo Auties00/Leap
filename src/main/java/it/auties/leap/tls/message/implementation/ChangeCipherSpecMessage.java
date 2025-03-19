@@ -6,7 +6,6 @@ import it.auties.leap.tls.exception.TlsException;
 import it.auties.leap.tls.message.TlsHandshakeMessage;
 import it.auties.leap.tls.message.TlsMessageContentType;
 import it.auties.leap.tls.message.TlsMessageMetadata;
-import it.auties.leap.tls.message.TlsMessageType;
 import it.auties.leap.tls.version.TlsVersion;
 
 import java.nio.ByteBuffer;
@@ -50,11 +49,6 @@ public sealed abstract class ChangeCipherSpecMessage extends TlsHandshakeMessage
         }
 
         @Override
-        public TlsMessageType type() {
-            return TlsMessageType.SERVER_CHANGE_CIPHER_SPEC;
-        }
-
-        @Override
         public TlsMessageContentType contentType() {
             return TlsMessageContentType.CHANGE_CIPHER_SPEC;
         }
@@ -90,11 +84,6 @@ public sealed abstract class ChangeCipherSpecMessage extends TlsHandshakeMessage
             }
 
             return new Client(tlsVersion, source);
-        }
-
-        @Override
-        public TlsMessageType type() {
-            return TlsMessageType.CLIENT_CHANGE_CIPHER_SPEC;
         }
 
         @Override

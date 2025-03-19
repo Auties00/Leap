@@ -5,6 +5,7 @@ import it.auties.leap.tls.certificate.TlsCertificatesProvider;
 import it.auties.leap.tls.cipher.TlsCipher;
 import it.auties.leap.tls.compression.TlsCompression;
 import it.auties.leap.tls.extension.TlsExtension;
+import it.auties.leap.tls.message.TlsMessageDeserializer;
 import it.auties.leap.tls.util.CertificateUtils;
 import it.auties.leap.tls.version.TlsVersion;
 
@@ -20,6 +21,7 @@ public final class TlsConfigBuilder {
     private TlsCertificatesProvider certificatesProvider;
     private TlsCertificatesHandler certificatesHandler;
     private KeyStore trustedKeyStore;
+    private TlsMessageDeserializer messageDeserializer;
 
     TlsConfigBuilder() {
 
@@ -60,6 +62,11 @@ public final class TlsConfigBuilder {
         return this;
     }
 
+    public TlsConfigBuilder messageDeserializer(TlsMessageDeserializer messageDeserializer) {
+        this.messageDeserializer = messageDeserializer;
+        return this;
+    }
+
     public TlsConfig build() {
         return new TlsConfig(
                 Objects.requireNonNull(this.version, "Missing tls version"),
@@ -68,7 +75,8 @@ public final class TlsConfigBuilder {
                 Objects.requireNonNullElseGet(compressions, () -> List.of(TlsCompression.none())),
                 certificatesProvider,
                 Objects.requireNonNullElseGet(certificatesHandler, TlsCertificatesHandler::validate),
-                Objects.requireNonNullElseGet(trustedKeyStore, CertificateUtils::getDefaultKeyStore)
+                Objects.requireNonNullElseGet(trustedKeyStore, CertificateUtils::getDefaultKeyStore),
+                Objects.requireNonNullElseGet(messageDeserializer, TlsMessageDeserializer::standard)
         );
     }
 }

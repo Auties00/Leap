@@ -38,7 +38,7 @@ public sealed abstract class TlsCipherMode {
 
     public abstract void encrypt(TlsContext context, TlsMessage message, ByteBuffer output);
 
-    public abstract TlsMessage decrypt(TlsContext context, TlsMessageMetadata metadata, ByteBuffer input);
+    public abstract ByteBuffer decrypt(TlsContext context, TlsMessageMetadata metadata, ByteBuffer input);
 
     public abstract TlsCipherEngine engine();
 

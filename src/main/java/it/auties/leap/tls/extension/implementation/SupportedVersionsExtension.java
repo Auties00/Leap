@@ -179,6 +179,10 @@ public abstract sealed class SupportedVersionsExtension {
 
         public static final class Configurable extends SupportedVersionsExtension implements TlsExtension.Configurable {
             private static final Configurable INSTANCE = new Client.Configurable();
+            public static final Dependencies DEPENDENCIES = Dependencies.some(GREASEExtension.greaseValues()
+                    .stream()
+                    .map(GREASEExtension::extensionType)
+                    .toArray(Integer[]::new));
 
             private Configurable() {
 
@@ -205,7 +209,7 @@ public abstract sealed class SupportedVersionsExtension {
                 }
 
                 if (context.hasExtension(TlsGREASE::isGrease)) {
-                    supportedVersions.add(TlsGREASE.randomGrease());
+                    supportedVersions.add(TlsGREASE.greaseRandom());
                 }
 
                 return Optional.of(new Client.Concrete(supportedVersions));
@@ -213,7 +217,7 @@ public abstract sealed class SupportedVersionsExtension {
 
             @Override
             public Dependencies dependencies() {
-                return Dependencies.some(GREASEExtension.class);
+                return DEPENDENCIES;
             }
 
             @Override

@@ -28,6 +28,7 @@ public final class GREASEExtension implements TlsExtension.Concrete {
     private static final GREASEExtension GREASE_DA = new GREASEExtension(0xDADA);
     private static final GREASEExtension GREASE_EA = new GREASEExtension(0xEAEA);
     private static final GREASEExtension GREASE_FA = new GREASEExtension(0xFAFA);
+    private static final List<GREASEExtension> VALUES = List.of(GREASE_0A, GREASE_1A, GREASE_2A, GREASE_3A, GREASE_4A, GREASE_5A, GREASE_6A, GREASE_7A, GREASE_8A, GREASE_9A, GREASE_AA, GREASE_BA, GREASE_CA, GREASE_DA, GREASE_EA, GREASE_FA);
 
     private static final TlsExtensionDeserializer DECODER = new TlsExtensionDeserializer() {
         @Override
@@ -126,6 +127,10 @@ public final class GREASEExtension implements TlsExtension.Concrete {
 
     public static GREASEExtension greaseFA() {
         return GREASE_FA;
+    }
+
+    public static List<GREASEExtension> greaseValues() {
+        return VALUES;
     }
 
     @Override

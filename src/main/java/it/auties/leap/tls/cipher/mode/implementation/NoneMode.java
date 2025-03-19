@@ -29,11 +29,11 @@ public final class NoneMode extends TlsCipherMode.Block {
     }
 
     @Override
-    public TlsMessage decrypt(TlsContext context, TlsMessageMetadata metadata, ByteBuffer input) {
+    public ByteBuffer decrypt(TlsContext context, TlsMessageMetadata metadata, ByteBuffer input) {
         var output = input.duplicate();
         addMac(input, metadata.contentType().id());
         move(input, output);
-        return TlsMessage.of(context, output, metadata.withMessageLength(output.remaining()));
+        return output;
     }
 
     @Override

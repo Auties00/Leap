@@ -566,8 +566,7 @@ public sealed interface TlsExtension {
                 return None.INSTANCE;
             }
 
-            @SafeVarargs
-            static Some some(Class<? extends Concrete>... includedTypes) {
+            static Some some(Integer... includedTypes) {
                 return new Some(Set.of(includedTypes));
             }
 
@@ -584,13 +583,13 @@ public sealed interface TlsExtension {
             }
 
             final class Some implements Dependencies {
-                private final Set<Class<? extends Concrete>> includedTypes;
+                private final Set<Integer> includedTypes;
 
-                private Some(Set<Class<? extends Concrete>> includedTypes) {
+                private Some(Set<Integer> includedTypes) {
                     this.includedTypes = includedTypes;
                 }
 
-                public Set<Class<? extends Concrete>> includedTypes() {
+                public Set<Integer> includedTypes() {
                     return includedTypes;
                 }
             }

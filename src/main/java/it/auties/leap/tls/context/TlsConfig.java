@@ -5,6 +5,7 @@ import it.auties.leap.tls.certificate.TlsCertificatesProvider;
 import it.auties.leap.tls.cipher.TlsCipher;
 import it.auties.leap.tls.compression.TlsCompression;
 import it.auties.leap.tls.extension.TlsExtension;
+import it.auties.leap.tls.message.TlsMessageDeserializer;
 import it.auties.leap.tls.version.TlsVersion;
 
 import java.security.KeyStore;
@@ -20,6 +21,7 @@ public final class TlsConfig {
     private final TlsCertificatesProvider certificatesProvider;
     private final TlsCertificatesHandler certificatesHandler;
     private final KeyStore trustedKeyStore;
+    private final TlsMessageDeserializer messageDeserializer;
 
     TlsConfig(
             TlsVersion version,
@@ -28,7 +30,8 @@ public final class TlsConfig {
             List<TlsCompression> compressions,
             TlsCertificatesProvider certificatesProvider,
             TlsCertificatesHandler certificatesHandler,
-            KeyStore trustedKeyStore
+            KeyStore trustedKeyStore,
+            TlsMessageDeserializer messageDeserializer
     ) {
         this.version = version;
         this.ciphers = ciphers;
@@ -37,6 +40,7 @@ public final class TlsConfig {
         this.certificatesProvider = certificatesProvider;
         this.certificatesHandler = certificatesHandler;
         this.trustedKeyStore = trustedKeyStore;
+        this.messageDeserializer = messageDeserializer;
     }
 
     public TlsVersion version() {
@@ -65,6 +69,10 @@ public final class TlsConfig {
 
     public KeyStore trustedKeyStore() {
         return trustedKeyStore;
+    }
+
+    public TlsMessageDeserializer messageDeserializer() {
+        return messageDeserializer;
     }
 
     public static TlsConfigBuilder newBuilder() {

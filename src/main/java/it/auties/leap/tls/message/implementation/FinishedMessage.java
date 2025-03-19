@@ -6,7 +6,6 @@ import it.auties.leap.tls.exception.TlsException;
 import it.auties.leap.tls.message.TlsHandshakeMessage;
 import it.auties.leap.tls.message.TlsMessageContentType;
 import it.auties.leap.tls.message.TlsMessageMetadata;
-import it.auties.leap.tls.message.TlsMessageType;
 import it.auties.leap.tls.version.TlsVersion;
 
 import java.nio.ByteBuffer;
@@ -41,11 +40,6 @@ public sealed abstract class FinishedMessage extends TlsHandshakeMessage {
         @Override
         public byte id() {
             return ID;
-        }
-
-        @Override
-        public TlsMessageType type() {
-            return TlsMessageType.SERVER_FINISHED;
         }
 
         @Override
@@ -85,11 +79,6 @@ public sealed abstract class FinishedMessage extends TlsHandshakeMessage {
         @Override
         public byte id() {
             return ID;
-        }
-
-        @Override
-        public TlsMessageType type() {
-            return TlsMessageType.CLIENT_FINISHED;
         }
 
         @Override

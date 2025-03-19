@@ -71,15 +71,15 @@ public final class CBCMode extends TlsCipherMode.Block {
     }
 
     @Override
-    public TlsMessage decrypt(TlsContext context, TlsMessageMetadata metadata, ByteBuffer input) {
+    public ByteBuffer decrypt(TlsContext context, TlsMessageMetadata metadata, ByteBuffer input) {
         return switch (authenticator.version()) {
             case TLS10, DTLS10, SSL30 -> throw new UnsupportedOperationException();
-            case TLS11, TLS12, DTLS12 -> tls11Decrypt(context, metadata, input);
+            case TLS11, TLS12, DTLS12 -> tls11Decrypt(metadata, input);
             case TLS13, DTLS13 -> throw new TlsException("CBC ciphers are not allowed in (D)TLSv1.3");
         };
     }
 
-    private TlsMessage tls11Decrypt(TlsContext context, TlsMessageMetadata metadata, ByteBuffer input) {
+    private ByteBuffer tls11Decrypt(TlsMessageMetadata metadata, ByteBuffer input) {
         var output = input.duplicate();
         var cipheredLength = input.remaining();
         if(cipheredLength != decryptBlock(input, output)) {
@@ -87,7 +87,7 @@ public final class CBCMode extends TlsCipherMode.Block {
         }
         removePadding(output);
         checkCbcMac(output, metadata.contentType().id(), null);
-        return TlsMessage.of(context, output, metadata.withMessageLength(output.remaining()));
+        return output;
     }
 
     private int addPadding(ByteBuffer bb) {

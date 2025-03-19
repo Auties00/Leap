@@ -18,7 +18,6 @@ import it.auties.leap.tls.hash.TlsHashFactory;
 import it.auties.leap.tls.hash.TlsPRF;
 import it.auties.leap.tls.mac.TlsExchangeMac;
 import it.auties.leap.tls.message.TlsMessage;
-import it.auties.leap.tls.message.TlsMessageType;
 import it.auties.leap.tls.message.implementation.*;
 import it.auties.leap.tls.secret.TlsMasterSecret;
 import it.auties.leap.tls.signature.TlsSignature;
@@ -33,7 +32,6 @@ import java.security.KeyPair;
 import java.security.PublicKey;
 import java.security.cert.X509Certificate;
 import java.util.*;
-import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
@@ -47,7 +45,6 @@ public class TlsContext {
     private final byte[] localSessionId;
 
     private final ByteArrayOutputStream messageDigestBuffer;
-    private final CopyOnWriteArrayList<TlsMessageType> processedMessageTypes;
 
     private volatile TlsMode mode;
 
@@ -68,7 +65,7 @@ public class TlsContext {
 
     private volatile List<TlsClientCertificateType> remoteCertificateTypes;
     private volatile List<TlsSignature> remoteCertificateAlgorithms;
-    private volatile List<String> remoteCertificateAuthorities;
+    private volatile CertificateRequestMessage.Server certificateRequestMessage;
 
     private volatile TlsKeyExchange localKeyExchange;
     private volatile TlsKeyExchange remoteKeyExchange;
@@ -95,13 +92,15 @@ public class TlsContext {
     private List<X509Certificate> remoteCertificates;
     private List<X509Certificate> localCertificates;
 
+    private volatile boolean localCipherEnabled;
+    private volatile boolean remoteCipherEnabled;
+    private volatile boolean handshakeComplete;
 
     public TlsContext(InetSocketAddress address, TlsConfig config) {
         this.remoteAddress = address;
         this.localConfig = config;
         this.localRandomData = TlsKeyUtils.randomData();
         this.localSessionId = TlsKeyUtils.randomData();
-        this.processedMessageTypes = new CopyOnWriteArrayList<>();
         this.dtlsCookie = switch (config.version().protocol()) {
             case TCP -> null;
             case UDP -> TlsKeyUtils.randomData();
@@ -123,9 +122,8 @@ public class TlsContext {
         return Optional.ofNullable(mode);
     }
 
-    public boolean handleMessage(TlsMessage message) {
+    public boolean update(TlsMessage message) {
         System.out.println("Processing " + message.getClass().getName());
-        processedMessageTypes.add(message.type());
         switch (message) {
             case HelloRequestMessage.Server _ -> {
                 // This message will be ignored by the client if the client is currently negotiating a session.
@@ -198,6 +196,10 @@ public class TlsContext {
                 }
             }
 
+            case HelloDoneMessage.Server _ -> {
+                this.handshakeComplete = true;
+            }
+
             case CertificateMessage.Server certificateMessage -> {
                 var certificates = switch (mode) {
                     case SERVER -> this.localCertificates = certificateMessage.certificates();
@@ -216,9 +218,8 @@ public class TlsContext {
                 }
             }
 
-            case CertificateRequestMessage.Server certificateRequestMessage -> {
-
-                this.remoteCertificateAuthorities = certificateRequestMessage.authorities();
+            case CertificateRequestMessage.Server serverMessage -> {
+                this.certificateRequestMessage = serverMessage;
             }
 
             case KeyExchangeMessage.Server serverKeyExchangeMessage -> {
@@ -274,6 +275,20 @@ public class TlsContext {
                 throw new TlsException("Received alert: " + alertMessage);
             }
 
+            case ChangeCipherSpecMessage.Client _ -> {
+                switch (mode) {
+                    case CLIENT -> this.localCipherEnabled = true;
+                    case SERVER -> this.remoteCipherEnabled = true;
+                }
+            }
+
+            case ChangeCipherSpecMessage.Server _ -> {
+                switch (mode) {
+                    case SERVER -> this.localCipherEnabled = true;
+                    case CLIENT -> this.remoteCipherEnabled = true;
+                }
+            }
+
             default -> {}
         }
         return true;
@@ -295,31 +310,15 @@ public class TlsContext {
     }
 
     public boolean isHandshakeComplete() {
-        return hasProcessedHandshakeMessage(TlsMessageType.SERVER_FINISHED);
+        return handshakeComplete;
     }
 
     public boolean isLocalCipherEnabled() {
-        return switch (mode) {
-            case CLIENT -> hasProcessedHandshakeMessage(TlsMessageType.CLIENT_CHANGE_CIPHER_SPEC) && hasProcessedHandshakeMessage(TlsMessageType.CLIENT_FINISHED);
-            case SERVER -> hasProcessedHandshakeMessage(TlsMessageType.SERVER_CHANGE_CIPHER_SPEC) && hasProcessedHandshakeMessage(TlsMessageType.SERVER_HELLO_DONE);
-            case null -> false;
-        };
+        return localCipherEnabled;
     }
 
     public boolean isRemoteCipherEnabled() {
-        return switch (mode) {
-            case CLIENT -> hasProcessedHandshakeMessage(TlsMessageType.SERVER_CHANGE_CIPHER_SPEC) && hasProcessedHandshakeMessage(TlsMessageType.SERVER_HELLO_DONE);
-            case SERVER -> hasProcessedHandshakeMessage(TlsMessageType.CLIENT_CHANGE_CIPHER_SPEC) && hasProcessedHandshakeMessage(TlsMessageType.CLIENT_FINISHED);
-            case null -> false;
-        };
-    }
-
-    public boolean hasReceivedFragments() {
-        return hasProcessedHandshakeMessage(TlsMessageType.APPLICATION_DATA);
-    }
-
-    public boolean hasProcessedHandshakeMessage(TlsMessageType type) {
-        return processedMessageTypes.contains(type);
+        return remoteCipherEnabled;
     }
 
     public byte[] localRandomData() {
@@ -433,123 +432,73 @@ public class TlsContext {
     }
 
     private void processExtensions() {
-        var compatibleExtensions = localConfig.extensions()
-                .stream()
-                .filter(extension -> extension.versions().contains(localConfig.version()))
-                .toList();
-
-        // Make sure there are no conflicts
-        var dependenciesTree = new HashMap<Class<? extends TlsExtension>, TlsExtension.Configurable.Dependencies>();
-        var seen = new HashSet<Class<? extends TlsExtension>>();
-        for (var extension : compatibleExtensions) {
-            switch (extension) {
-                case TlsExtension.Concrete concrete -> {
-                    if (!seen.add(concrete.getClass())) {
-                        throw new IllegalArgumentException("Extension with type %s conflicts with previously defined extension".formatted(extension.getClass().getName()));
-                    }
-
-                    dependenciesTree.put(concrete.getClass(), TlsExtension.Configurable.Dependencies.none());
-                }
-                case TlsExtension.Configurable configurableExtension -> {
-                    if (!seen.add(configurableExtension.getClass())) {
-                        throw new IllegalArgumentException("Model with type %s conflicts with previously defined model".formatted(extension.getClass().getName()));
-                    }
-
-                    var concreteType = configurableExtension.decoder()
-                            .toConcreteType(TlsSource.LOCAL, mode);
-                    if (!seen.add(concreteType)) {
-                        throw new IllegalArgumentException("Extension with type %s, produced by a model with type %s, conflicts with previously defined extension".formatted(extension.getClass().getName(), concreteType.getName()));
-                    }
-
-                    dependenciesTree.put(configurableExtension.getClass(), configurableExtension.dependencies());
+        var dependenciesTree = new LinkedHashMap<Integer, TlsExtension>();
+        for (var extension : localConfig.extensions()) {
+            if (extension.versions().contains(localConfig.version())) {
+                var conflict = dependenciesTree.put(extension.extensionType(), extension);
+                if (conflict != null) {
+                    throw new IllegalArgumentException("Extension with type %s defined by <%s> conflicts with an extension processed previously with type %s defined by <%s>".formatted(
+                            extension.extensionType(),
+                            extension.getClass().getName(),
+                            extension.extensionType(),
+                            conflict.getClass().getName()
+                    ));
                 }
             }
         }
 
-        // Allocate the rounds and fill them
-        var rounds = new ArrayList<List<TlsExtension>>();
-        rounds.addFirst(new ArrayList<>()); // Allocate the first round
-        rounds.addLast(new ArrayList<>()); // Allocate the last round
-        for (var extension : compatibleExtensions) {
+        this.localProcessedExtensions = new ArrayList<>(dependenciesTree.size());
+        var deferred = new ArrayList<TlsExtension.Configurable>();
+        while (!dependenciesTree.isEmpty()) {
+            var extension = dependenciesTree.pollFirstEntry().getValue();
             switch (extension) {
                 case TlsExtension.Concrete concrete -> {
-                    // Concrete extensions don't have any dependencies, so we can always process them at the beginning
-                    var firstRound = rounds.getFirst();
-                    firstRound.add(concrete);
+                    localProcessedExtensions.add(concrete);
+                    localProcessedExtensionsLength += concrete.extensionLength();
                 }
+
                 case TlsExtension.Configurable configurableExtension -> {
                     switch (configurableExtension.dependencies()) {
-                        // If no dependencies are needed, we can process this extension at the beginning
                         case TlsExtension.Configurable.Dependencies.None _ -> {
-                            var firstRound = rounds.getFirst();
-                            firstRound.add(configurableExtension);
+                            var result = configurableExtension.newInstance(this);
+                            result.ifPresent(concrete -> {
+                                localProcessedExtensions.add(concrete);
+                                localProcessedExtensionsLength += concrete.extensionLength();
+                            });
                         }
 
-                        // If some dependencies are needed to process this extension, calculate after how many rounds it should be processed
                         case TlsExtension.Configurable.Dependencies.Some some -> {
-                            var roundIndex = getRoundIndex(dependenciesTree, rounds.size(), some);
-                            var existingRound = rounds.get(roundIndex);
-                            if (existingRound != null) {
-                                existingRound.add(configurableExtension);
-                            } else {
-                                var newRound = new ArrayList<TlsExtension>();
-                                newRound.add(configurableExtension);
-                                rounds.set(roundIndex, newRound);
+                            var conflict = false;
+                            for(var dependency : some.includedTypes()) {
+                                if(dependenciesTree.containsKey(dependency)) {
+                                    conflict = true;
+                                    break;
+                                }
                             }
+                            if(conflict) {
+                                continue;
+                            }
+
+                            var result = configurableExtension.newInstance(this);
+                            result.ifPresent(concrete -> {
+                                localProcessedExtensions.add(concrete);
+                                localProcessedExtensionsLength += concrete.extensionLength();
+                            });
                         }
 
-                        // If all dependencies are needed to process this extension, we can this process this extension at the end
-                        case TlsExtension.Configurable.Dependencies.All _ -> {
-                            var lastRound = rounds.getLast();
-                            lastRound.addFirst(configurableExtension);
-                        }
+                        case TlsExtension.Configurable.Dependencies.All _ -> deferred.add(configurableExtension);
                     }
                 }
             }
         }
 
-        // Actually process the annotations
-        this.localProcessedExtensions = new ArrayList<>();
-        for (var round : rounds) {
-            for (var extension : round) {
-                switch (extension) {
-                    case TlsExtension.Concrete concrete -> {
-                        localProcessedExtensions.add(concrete);
-                        localProcessedExtensionsLength += concrete.extensionLength();
-                    }
-                    case TlsExtension.Configurable configurable -> configurable.newInstance(this).ifPresent(concrete -> {
-                        localProcessedExtensions.add(concrete);
-                        localProcessedExtensionsLength += concrete.extensionLength();
-                    });
-                }
-            }
+        for(var configurableExtension : deferred) {
+            var result = configurableExtension.newInstance(this);
+            result.ifPresent(concrete -> {
+                localProcessedExtensions.add(concrete);
+                localProcessedExtensionsLength += concrete.extensionLength();
+            });
         }
-    }
-
-    private int getRoundIndex(Map<Class<? extends TlsExtension>, TlsExtension.Configurable.Dependencies> dependenciesTree, int rounds, TlsExtension.Configurable.Dependencies.Some some) {
-        var roundIndex = 0;
-        for (var dependency : some.includedTypes()) {
-            var match = dependenciesTree.get(dependency);
-            switch (match) {
-                // All dependencies are linked to this match: we must process this extension as last
-                case TlsExtension.Configurable.Dependencies.All _ -> {
-                    return rounds - 1; // No need to process further, this is already the max value we can find
-                }
-
-                // Some dependencies are linked to this match: recursively compute the depth
-                case TlsExtension.Configurable.Dependencies.Some innerSome ->
-                        roundIndex = Math.max(roundIndex, getRoundIndex(dependenciesTree, rounds, innerSome) + 1);
-
-                // No dependencies are linked to this match: nothing to add to our dependencies processing queue
-                case TlsExtension.Configurable.Dependencies.None _ -> {
-                }
-
-                // No match exists in our dependency tree
-                case null -> {
-                }
-            }
-        }
-        return roundIndex;
     }
 
     public Optional<TlsKeyExchange> localKeyExchange() {
@@ -881,5 +830,9 @@ public class TlsContext {
         }else {
             return localCertificates;
         }
+    }
+
+    public boolean hasServerCertificateRequest() {
+        return certificateRequestMessage != null;
     }
 }

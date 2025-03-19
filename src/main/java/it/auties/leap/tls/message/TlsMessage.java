@@ -1,10 +1,8 @@
 package it.auties.leap.tls.message;
 
-import it.auties.leap.tls.context.TlsContext;
 import it.auties.leap.tls.context.TlsSource;
 import it.auties.leap.tls.message.implementation.AlertMessage;
 import it.auties.leap.tls.message.implementation.ApplicationDataMessage;
-import it.auties.leap.tls.message.implementation.ChangeCipherSpecMessage;
 import it.auties.leap.tls.version.TlsVersion;
 
 import java.nio.BufferUnderflowException;
@@ -14,17 +12,6 @@ import static it.auties.leap.tls.util.BufferUtils.*;
 
 public sealed abstract class TlsMessage
         permits AlertMessage, ApplicationDataMessage, TlsHandshakeMessage {
-    public static TlsMessage of(TlsContext context, ByteBuffer buffer, TlsMessageMetadata metadata) {
-        try(var _ = scopedRead(buffer, metadata.messageLength())) {
-            return switch (metadata.contentType()) {
-                case HANDSHAKE -> TlsHandshakeMessage.of(context, buffer, metadata);
-                case CHANGE_CIPHER_SPEC -> ChangeCipherSpecMessage.of(context, buffer, metadata);
-                case ALERT -> AlertMessage.of(context, buffer, metadata);
-                case APPLICATION_DATA -> ApplicationDataMessage.of(context, buffer, metadata);
-            };
-        }
-    }
-
     protected final TlsVersion version;
     protected final TlsSource source;
     protected TlsMessage(TlsVersion version, TlsSource source) {
@@ -40,7 +27,7 @@ public sealed abstract class TlsMessage
     }
 
     public abstract byte id();
-    public abstract TlsMessageType type();
+
     public abstract TlsMessageContentType contentType();
     public abstract void serializeMessagePayload(ByteBuffer buffer);
     public abstract int messagePayloadLength();

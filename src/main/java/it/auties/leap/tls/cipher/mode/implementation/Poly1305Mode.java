@@ -96,7 +96,7 @@ public class Poly1305Mode extends TlsCipherMode.Stream {
     }
 
     @Override
-    public TlsMessage decrypt(TlsContext context, TlsMessageMetadata metadata, ByteBuffer input) {
+    public ByteBuffer decrypt(TlsContext context, TlsMessageMetadata metadata, ByteBuffer input) {
         var output = input.duplicate();
         var initialPosition = output.position();
         this.state = engine.forEncryption() ? State.ENC_INIT : State.DEC_INIT;
@@ -124,7 +124,7 @@ public class Poly1305Mode extends TlsCipherMode.Stream {
         output.limit(output.position());
         output.position(initialPosition);
 
-        return TlsMessage.of(context, output, metadata.withMessageLength(output.remaining()));
+        return output;
     }
 
     @Override

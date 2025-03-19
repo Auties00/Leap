@@ -5,13 +5,13 @@ import it.auties.leap.tls.context.TlsContext;
 import it.auties.leap.tls.exception.TlsException;
 import it.auties.leap.tls.secret.TlsPreMasterSecretGenerator;
 
-public final class EcdhPreMasterSecretGenerator implements TlsPreMasterSecretGenerator {
-    private static final EcdhPreMasterSecretGenerator INSTANCE = new EcdhPreMasterSecretGenerator();
-    private EcdhPreMasterSecretGenerator() {
+public final class ECDHPreMasterSecretGenerator implements TlsPreMasterSecretGenerator {
+    private static final ECDHPreMasterSecretGenerator INSTANCE = new ECDHPreMasterSecretGenerator();
+    private ECDHPreMasterSecretGenerator() {
 
     }
 
-    public static EcdhPreMasterSecretGenerator instance() {
+    public static ECDHPreMasterSecretGenerator instance() {
         return INSTANCE;
     }
     

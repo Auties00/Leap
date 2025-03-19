@@ -128,7 +128,7 @@ public final class GCMMode extends TlsCipherMode.Block {
     }
 
     @Override
-    public TlsMessage decrypt(TlsContext context, TlsMessageMetadata metadata, ByteBuffer input) {
+    public ByteBuffer decrypt(TlsContext context, TlsMessageMetadata metadata, ByteBuffer input) {
         var output = input.duplicate();
 
         var iv = new byte[ivLength()];
@@ -149,7 +149,7 @@ public final class GCMMode extends TlsCipherMode.Block {
         output.position(output.position() - (forEncryption ? dynamicIvLength(): 0));
         output.limit(output.position() + (forEncryption ? dynamicIvLength(): 0) + resultLen);
 
-        return TlsMessage.of(context, output, metadata.withMessageLength(output.remaining()));
+        return output;
     }
 
     public int doFinal(byte[] out, int outOff) {

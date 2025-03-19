@@ -7,13 +7,13 @@ import javax.crypto.Cipher;
 import javax.crypto.spec.SecretKeySpec;
 import java.security.SecureRandom;
 
-public final class RsaPreMasterSecretGenerator implements TlsPreMasterSecretGenerator {
-    private static final RsaPreMasterSecretGenerator INSTANCE = new RsaPreMasterSecretGenerator();
-    private RsaPreMasterSecretGenerator() {
+public final class RSAPreMasterSecretGenerator implements TlsPreMasterSecretGenerator {
+    private static final RSAPreMasterSecretGenerator INSTANCE = new RSAPreMasterSecretGenerator();
+    private RSAPreMasterSecretGenerator() {
 
     }
 
-    public static RsaPreMasterSecretGenerator instance() {
+    public static RSAPreMasterSecretGenerator instance() {
         return INSTANCE;
     }
     

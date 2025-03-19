@@ -7,23 +7,23 @@ public interface TlsPreMasterSecretGenerator {
     byte[] generatePreMasterSecret(TlsContext context);
 
     static TlsPreMasterSecretGenerator dh() {
-        return DhPreMasterSecretGenerator.instance();
+        return DHPreMasterSecretGenerator.instance();
     }
 
     static TlsPreMasterSecretGenerator eccpwd() {
-        return EccPwdPreMasterSecretGenerator.instance();
+        return ECCPWDPreMasterSecretGenerator.instance();
     }
 
     static TlsPreMasterSecretGenerator ecdh() {
-        return EcdhPreMasterSecretGenerator.instance();
+        return ECDHPreMasterSecretGenerator.instance();
     }
 
     static TlsPreMasterSecretGenerator gostr256() {
-        return Gostr256PreMasterSecretGenerator.instance();
+        return GOSTR256PreMasterSecretGenerator.instance();
     }
 
     static TlsPreMasterSecretGenerator krb5() {
-        return Krb5PreMasterSecretGenerator.instance();
+        return KRB5PreMasterSecretGenerator.instance();
     }
 
     static TlsPreMasterSecretGenerator contextual() {
@@ -31,14 +31,14 @@ public interface TlsPreMasterSecretGenerator {
     }
 
     static TlsPreMasterSecretGenerator psk() {
-        return PskPreMasterSecretGenerator.instance();
+        return PSKPreMasterSecretGenerator.instance();
     }
 
     static TlsPreMasterSecretGenerator rsa() {
-        return RsaPreMasterSecretGenerator.instance();
+        return RSAPreMasterSecretGenerator.instance();
     }
 
     static TlsPreMasterSecretGenerator srp() {
-        return SrpPreMasterSecretGenerator.instance();
+        return SRPPreMasterSecretGenerator.instance();
     }
 }

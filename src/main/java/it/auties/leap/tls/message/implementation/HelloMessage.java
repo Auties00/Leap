@@ -8,7 +8,6 @@ import it.auties.leap.tls.extension.TlsExtension;
 import it.auties.leap.tls.message.TlsHandshakeMessage;
 import it.auties.leap.tls.message.TlsMessageContentType;
 import it.auties.leap.tls.message.TlsMessageMetadata;
-import it.auties.leap.tls.message.TlsMessageType;
 import it.auties.leap.tls.version.TlsVersion;
 import it.auties.leap.tls.version.TlsVersionId;
 
@@ -101,11 +100,6 @@ public sealed abstract class HelloMessage extends TlsHandshakeMessage {
         @Override
         public byte id() {
             return ID;
-        }
-
-        @Override
-        public TlsMessageType type() {
-            return TlsMessageType.CLIENT_HELLO;
         }
 
         @Override
@@ -268,11 +262,6 @@ public sealed abstract class HelloMessage extends TlsHandshakeMessage {
         @Override
         public byte id() {
             return ID;
-        }
-
-        @Override
-        public TlsMessageType type() {
-            return TlsMessageType.SERVER_HELLO;
         }
 
         @Override

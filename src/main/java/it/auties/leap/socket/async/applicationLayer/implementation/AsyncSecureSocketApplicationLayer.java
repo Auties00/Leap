@@ -13,7 +13,6 @@ import it.auties.leap.tls.exception.TlsException;
 import it.auties.leap.tls.message.TlsMessage;
 import it.auties.leap.tls.message.TlsMessageContentType;
 import it.auties.leap.tls.message.TlsMessageMetadata;
-import it.auties.leap.tls.message.TlsMessageType;
 import it.auties.leap.tls.message.implementation.*;
 
 import java.io.IOException;
@@ -94,7 +93,7 @@ public class AsyncSecureSocketApplicationLayer extends AsyncSocketApplicationLay
     }
 
     private CompletableFuture<Void> sendClientCertificate() {
-        if (!tlsContext.hasProcessedHandshakeMessage(TlsMessageType.SERVER_CERTIFICATE_REQUEST)) {
+        if (!tlsContext.hasServerCertificateRequest()) {
             return CompletableFuture.completedFuture(null);
         }
 
@@ -199,7 +198,7 @@ public class AsyncSecureSocketApplicationLayer extends AsyncSocketApplicationLay
     }
 
     private CompletableFuture<Void> readUntilServerDone() {
-        if (tlsContext.hasProcessedHandshakeMessage(TlsMessageType.SERVER_HELLO_DONE)) {
+        if (tlsContext.isHandshakeComplete()) {
             return CompletableFuture.completedFuture(null);
         }
 
@@ -276,15 +275,20 @@ public class AsyncSecureSocketApplicationLayer extends AsyncSocketApplicationLay
         var buffer = readBuffer(metadata.messageLength());
         return transportLayer.readFully(buffer).thenCompose(_ -> {
             if (tlsContext.isRemoteCipherEnabled()) {
-                var message = tlsContext.remoteCipher()
+                var plaintext = tlsContext.remoteCipher()
                         .orElseThrow(() -> new TlsException("Cannot decrypt a message before enabling the remote cipher"))
                         .decrypt(tlsContext, metadata, buffer);
+                var message = tlsConfig.messageDeserializer()
+                        .deserialize(tlsContext, plaintext, metadata.withMessageLength(plaintext.remaining()))
+                        .orElseThrow(() -> new TlsException("Cannot deserialize message: unknown type"));
                 return handleOrClose(message);
             } else {
                 if (!tlsContext.isHandshakeComplete()) {
                     tlsContext.updateHandshakeHash(buffer, 0); // The header isn't included at this point
                 }
-                var message = TlsMessage.of(tlsContext, buffer, metadata);
+                var message = tlsConfig.messageDeserializer()
+                        .deserialize(tlsContext, buffer, metadata)
+                        .orElseThrow(() -> new TlsException("Cannot deserialize message: unknown type"));
                 return handleOrClose(message);
             }
         });
@@ -292,7 +296,7 @@ public class AsyncSecureSocketApplicationLayer extends AsyncSocketApplicationLay
 
     private CompletableFuture<Void> handleOrClose(TlsMessage message) {
         try {
-            var result = tlsContext.handleMessage(message);
+            var result = tlsContext.update(message);
             if (!result) {
                 closeSilently();
                 return CompletableFuture.completedFuture(null);

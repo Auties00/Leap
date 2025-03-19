@@ -4,7 +4,6 @@ import it.auties.leap.tls.context.TlsContext;
 import it.auties.leap.tls.context.TlsSource;
 import it.auties.leap.tls.message.TlsMessageContentType;
 import it.auties.leap.tls.message.TlsMessageMetadata;
-import it.auties.leap.tls.message.TlsMessageType;
 import it.auties.leap.tls.version.TlsVersion;
 import it.auties.leap.tls.message.TlsMessage;
 
@@ -42,11 +41,6 @@ public final class AlertMessage extends TlsMessage {
     @Override
     public byte id() {
         return 0x00;
-    }
-
-    @Override
-    public TlsMessageType type() {
-        return TlsMessageType.ALERT;
     }
 
     public AlertLevel alertLevel() {

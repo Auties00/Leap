@@ -124,7 +124,7 @@ public sealed abstract class KeyShareExtension {
 
         @Override
         public Dependencies dependencies() {
-            return Dependencies.some(SupportedGroupsExtension.Concrete.class);
+            return Dependencies.some(SUPPORTED_GROUPS_TYPE);
         }
 
         @Override

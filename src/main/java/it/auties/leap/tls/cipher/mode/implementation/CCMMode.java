@@ -65,7 +65,7 @@ public final class CCMMode extends TlsCipherMode.Block {
     }
 
     @Override
-    public TlsMessage decrypt(TlsContext context, TlsMessageMetadata metadata, ByteBuffer input) {
+    public ByteBuffer decrypt(TlsContext context, TlsMessageMetadata metadata, ByteBuffer input) {
         var output = input.duplicate();
         var iv = new byte[ivLength()];
         var offset = 0;
@@ -87,7 +87,7 @@ public final class CCMMode extends TlsCipherMode.Block {
         output.limit(output.position());
         output.position(outputPosition - offset);
 
-        return TlsMessage.of(context, output, metadata.withMessageLength(output.remaining()));
+        return output;
     }
 
     @Override

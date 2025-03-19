@@ -38,7 +38,7 @@ public final class CNTImitMode extends TlsCipherMode.Block {
     }
 
     @Override
-    public TlsMessage decrypt(TlsContext context, TlsMessageMetadata metadata, ByteBuffer input) {
+    public ByteBuffer decrypt(TlsContext context, TlsMessageMetadata metadata, ByteBuffer input) {
         throw new UnsupportedOperationException();
     }
 

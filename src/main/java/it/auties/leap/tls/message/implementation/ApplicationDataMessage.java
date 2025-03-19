@@ -5,7 +5,6 @@ import it.auties.leap.tls.context.TlsSource;
 import it.auties.leap.tls.message.TlsMessage;
 import it.auties.leap.tls.message.TlsMessageContentType;
 import it.auties.leap.tls.message.TlsMessageMetadata;
-import it.auties.leap.tls.message.TlsMessageType;
 import it.auties.leap.tls.util.BufferUtils;
 import it.auties.leap.tls.version.TlsVersion;
 
@@ -31,11 +30,6 @@ public final class ApplicationDataMessage extends TlsMessage {
     @Override
     public byte id() {
         return ID;
-    }
-
-    @Override
-    public TlsMessageType type() {
-        return TlsMessageType.APPLICATION_DATA;
     }
 
     @Override
