@@ -2,12 +2,14 @@
 
 package it.auties.leap.socket.implementation.linux;
 
-import java.lang.invoke.*;
 import java.lang.foreign.*;
-import java.util.*;
-import java.util.stream.*;
+import java.lang.invoke.MethodHandle;
+import java.lang.invoke.MethodHandles;
+import java.util.Arrays;
+import java.util.stream.Collectors;
 
-import static java.lang.foreign.ValueLayout.*;
+import static java.lang.foreign.ValueLayout.JAVA_BYTE;
+import static java.lang.foreign.ValueLayout.OfInt;
 
 public class LinuxKernel {
 
@@ -100,6 +102,15 @@ public class LinuxKernel {
      */
     public static int __NR_io_uring_enter() {
         return __NR_io_uring_enter;
+    }
+    private static final int __NR_io_uring_register = (int)427L;
+    /**
+     * {@snippet lang=c :
+     * #define __NR_io_uring_register 427
+     * }
+     */
+    public static int __NR_io_uring_register() {
+        return __NR_io_uring_register;
     }
     private static final int MAP_POPULATE = (int)32768L;
     /**
@@ -796,6 +807,65 @@ public class LinuxKernel {
            throw new AssertionError("should not reach here", ex$);
         }
     }
+
+    private static class munmap {
+        public static final FunctionDescriptor DESC = FunctionDescriptor.of(
+            LinuxKernel.C_INT,
+            LinuxKernel.C_POINTER,
+            LinuxKernel.C_LONG
+        );
+
+        public static final MemorySegment ADDR = LinuxKernel.findOrThrow("munmap");
+
+        public static final MethodHandle HANDLE = Linker.nativeLinker().downcallHandle(ADDR, DESC);
+    }
+
+    /**
+     * Function descriptor for:
+     * {@snippet lang=c :
+     * extern int munmap(void *__addr, size_t __len)
+     * }
+     */
+    public static FunctionDescriptor munmap$descriptor() {
+        return munmap.DESC;
+    }
+
+    /**
+     * Downcall method handle for:
+     * {@snippet lang=c :
+     * extern int munmap(void *__addr, size_t __len)
+     * }
+     */
+    public static MethodHandle munmap$handle() {
+        return munmap.HANDLE;
+    }
+
+    /**
+     * Address for:
+     * {@snippet lang=c :
+     * extern int munmap(void *__addr, size_t __len)
+     * }
+     */
+    public static MemorySegment munmap$address() {
+        return munmap.ADDR;
+    }
+
+    /**
+     * {@snippet lang=c :
+     * extern int munmap(void *__addr, size_t __len)
+     * }
+     */
+    public static int munmap(MemorySegment __addr, long __len) {
+        var mh$ = munmap.HANDLE;
+        try {
+            if (TRACE_DOWNCALLS) {
+                traceDowncall("munmap", __addr, __len);
+            }
+            return (int)mh$.invokeExact(__addr, __len);
+        } catch (Throwable ex$) {
+           throw new AssertionError("should not reach here", ex$);
+        }
+    }
     private static final int AF_INET = (int)2L;
     /**
      * {@snippet lang=c :
@@ -867,6 +937,15 @@ public class LinuxKernel {
      */
     public static MemorySegment MAP_FAILED() {
         return MAP_FAILED;
+    }
+    private static final int IORING_REGISTER_RESIZE_RINGS = (int)33L;
+    /**
+     * {@snippet lang=c :
+     * #define IORING_REGISTER_RESIZE_RINGS 33
+     * }
+     */
+    public static int IORING_REGISTER_RESIZE_RINGS() {
+        return IORING_REGISTER_RESIZE_RINGS;
     }
 }
 

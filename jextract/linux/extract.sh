@@ -1,4 +1,4 @@
-jextract -t it.auties.leap.socket.kernel.linux --output "./../../src/main/java" dependencies.h --header-class-name LinuxKernel \
+jextract -t it.auties.leap.socket.implementation.linux --output "./../../src/main/java" dependencies.h --header-class-name LinuxKernel \
 --include-function socket \
 --include-function connect \
 --include-function read \
@@ -16,6 +16,7 @@ jextract -t it.auties.leap.socket.kernel.linux --output "./../../src/main/java" 
 --include-constant MAP_POPULATE \
 --include-function mmap \
 --include-constant IORING_ENTER_GETEVENTS \
+--include-constant IORING_REGISTER_RESIZE_RINGS \
 --include-constant IORING_OFF_SQES \
 --include-constant IORING_OFF_SQ_RING \
 --include-constant IORING_OFF_CQ_RING \
@@ -31,6 +32,8 @@ jextract -t it.auties.leap.socket.kernel.linux --output "./../../src/main/java" 
 --include-constant MAP_FAILED \
 --include-constant __NR_io_uring_setup \
 --include-constant __NR_io_uring_enter \
+--include-constant __NR_io_uring_register \
+--include-function munmap \
 --include-constant IORING_FEAT_SINGLE_MMAP \
 --include-struct iovec \
 --include-constant IORING_OP_WRITEV \
