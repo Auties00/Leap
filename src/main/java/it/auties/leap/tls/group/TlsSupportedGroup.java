@@ -11,4 +11,5 @@ public sealed interface TlsSupportedGroup permits TlsSupportedCurve, TlsSupporte
     boolean dtls();
     KeyPair generateLocalKeyPair(TlsContext context);;
     byte[] computeSharedSecret(TlsContext context);
+    byte[] dumpPublicKey(KeyPair keyPair);
 }

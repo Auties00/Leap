@@ -159,7 +159,7 @@ public sealed abstract class ECDHKeyExchange implements TlsKeyExchange {
                     .toGroup(context);
             var keyPair = group.generateLocalKeyPair(context);
             context.setLocalKeyPair(keyPair);
-            return new Client(type, group.dumpLocalPublicKey(context));
+            return new Client(type, group.dumpPublicKey(context.localKeyPair().orElse(null)));
         }
 
         private Server newServerKeyExchange(TlsContext context) {
@@ -167,7 +167,7 @@ public sealed abstract class ECDHKeyExchange implements TlsKeyExchange {
                     .orElseThrow(() -> new NoSuchElementException("No supported group is an elliptic curve"));
             var keyPair = group.generateLocalKeyPair(context);
             context.setLocalKeyPair(keyPair);
-            return new Server(type, group.toParameters(), group.dumpLocalPublicKey(context));
+            return new Server(type, group.toParameters(), group.dumpPublicKey(context.localKeyPair().orElse(null)));
         }
     }
 }

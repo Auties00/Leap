@@ -75,6 +75,110 @@ public final class TlsConfig {
         return messageDeserializer;
     }
 
+    public TlsConfig withVersion(TlsVersion version) {
+        return new TlsConfig(
+                version,
+                this.ciphers,
+                this.extensions,
+                this.compressions,
+                this.certificatesProvider,
+                this.certificatesHandler,
+                this.trustedKeyStore,
+                this.messageDeserializer
+        );
+    }
+
+    public TlsConfig withCiphers(List<TlsCipher> ciphers) {
+        return new TlsConfig(
+                this.version,
+                ciphers,
+                this.extensions,
+                this.compressions,
+                this.certificatesProvider,
+                this.certificatesHandler,
+                this.trustedKeyStore,
+                this.messageDeserializer
+        );
+    }
+
+    public TlsConfig withExtensions(List<TlsExtension> extensions) {
+        return new TlsConfig(
+                this.version,
+                this.ciphers,
+                extensions,
+                this.compressions,
+                this.certificatesProvider,
+                this.certificatesHandler,
+                this.trustedKeyStore,
+                this.messageDeserializer
+        );
+    }
+
+    public TlsConfig withCompressions(List<TlsCompression> compressions) {
+        return new TlsConfig(
+                this.version,
+                this.ciphers,
+                this.extensions,
+                compressions,
+                this.certificatesProvider,
+                this.certificatesHandler,
+                this.trustedKeyStore,
+                this.messageDeserializer
+        );
+    }
+
+    public TlsConfig withCertificatesProvider(TlsCertificatesProvider certificatesProvider) {
+        return new TlsConfig(
+                this.version,
+                this.ciphers,
+                this.extensions,
+                this.compressions,
+                certificatesProvider,
+                this.certificatesHandler,
+                this.trustedKeyStore,
+                this.messageDeserializer
+        );
+    }
+
+    public TlsConfig withCertificatesHandler(TlsCertificatesHandler certificatesHandler) {
+        return new TlsConfig(
+                this.version,
+                this.ciphers,
+                this.extensions,
+                this.compressions,
+                this.certificatesProvider,
+                certificatesHandler,
+                this.trustedKeyStore,
+                this.messageDeserializer
+        );
+    }
+
+    public TlsConfig withTrustedKeyStore(KeyStore trustedKeyStore) {
+        return new TlsConfig(
+                this.version,
+                this.ciphers,
+                this.extensions,
+                this.compressions,
+                this.certificatesProvider,
+                this.certificatesHandler,
+                trustedKeyStore,
+                this.messageDeserializer
+        );
+    }
+
+    public TlsConfig withMessageDeserializer(TlsMessageDeserializer messageDeserializer) {
+        return new TlsConfig(
+                this.version,
+                this.ciphers,
+                this.extensions,
+                this.compressions,
+                this.certificatesProvider,
+                this.certificatesHandler,
+                this.trustedKeyStore,
+                messageDeserializer
+        );
+    }
+
     public static TlsConfigBuilder newBuilder() {
         return new TlsConfigBuilder();
     }

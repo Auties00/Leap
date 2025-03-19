@@ -48,7 +48,7 @@ public final class NamedCurveParameters implements TlsECParameters {
     public TlsSupportedCurve toGroup(TlsContext context) {
         return context.localSupportedGroups()
                 .stream()
-                .filter(entry -> entry instanceof TlsSupportedCurve && entry.id() == namedGroup)
+                .filter(entry -> entry instanceof TlsSupportedCurve supportedCurve && supportedCurve.accepts(namedGroup))
                 .findFirst()
                 .map(entry -> (TlsSupportedCurve) entry)
                 .orElseThrow(() -> new TlsException("No supported group matches the id " + namedGroup));

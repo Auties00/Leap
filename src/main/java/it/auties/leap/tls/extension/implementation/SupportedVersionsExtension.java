@@ -24,6 +24,12 @@ public abstract sealed class SupportedVersionsExtension {
         public Optional<? extends Concrete> deserialize(ByteBuffer buffer, TlsSource source, TlsMode mode, int type) {
             return switch (mode) {
                 case CLIENT -> {
+                    var major = readBigEndianInt8(buffer);
+                    var minor = readBigEndianInt8(buffer);
+                    var versionId = TlsVersionId.of(major, minor);
+                    yield Optional.of(new Server(versionId));
+                }
+                case SERVER -> {
                     var payloadSize = readBigEndianInt8(buffer);
                     var versions = new ArrayList<TlsVersionId>();
                     try (var _ = scopedRead(buffer, payloadSize)) {
@@ -34,12 +40,6 @@ public abstract sealed class SupportedVersionsExtension {
                         }
                     }
                     yield Optional.of(new Client.Concrete(versions));
-                }
-                case SERVER -> {
-                    var major = readBigEndianInt8(buffer);
-                    var minor = readBigEndianInt8(buffer);
-                    var versionId = TlsVersionId.of(major, minor);
-                    yield Optional.of(new Server(versionId));
                 }
             };
         }

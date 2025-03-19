@@ -41,8 +41,13 @@ public final class ExplicitPrimeCurve implements TlsSupportedCurve {
     }
 
     @Override
-    public byte[] dumpLocalPublicKey(TlsContext context) {
-        throw new UnsupportedOperationException();
+    public byte[] dumpPublicKey(KeyPair keyPair) {
+        return new byte[0];
+    }
+
+    @Override
+    public boolean accepts(int namedGroup) {
+        return false;
     }
 
     @Override

@@ -18,6 +18,7 @@ public final class HttpConfig {
     private final URI proxy;
     private final HttpVersion version;
     private final HttpRedirectHandler redirectPolicy;
+
     HttpConfig(TlsConfig tlsConfig, CookieHandler cookieHandler, Duration keepAlive, URI proxy, HttpVersion version, HttpRedirectHandler redirectPolicy) {
         this.tlsConfig = tlsConfig;
         this.cookieHandler = cookieHandler;
@@ -57,5 +58,71 @@ public final class HttpConfig {
 
     public HttpRedirectHandler redirectPolicy() {
         return redirectPolicy;
+    }
+
+    public HttpConfig withTlsConfig(TlsConfig tlsConfig) {
+        return new HttpConfig(
+                tlsConfig,
+                this.cookieHandler,
+                this.keepAlive,
+                this.proxy,
+                this.version,
+                this.redirectPolicy
+        );
+    }
+
+    public HttpConfig withCookieHandler(CookieHandler cookieHandler) {
+        return new HttpConfig(
+                this.tlsConfig,
+                cookieHandler,
+                this.keepAlive,
+                this.proxy,
+                this.version,
+                this.redirectPolicy
+        );
+    }
+
+    public HttpConfig withKeepAlive(Duration keepAlive) {
+        return new HttpConfig(
+                this.tlsConfig,
+                this.cookieHandler,
+                keepAlive,
+                this.proxy,
+                this.version,
+                this.redirectPolicy
+        );
+    }
+
+    public HttpConfig withProxy(URI proxy) {
+        return new HttpConfig(
+                this.tlsConfig,
+                this.cookieHandler,
+                this.keepAlive,
+                proxy,
+                this.version,
+                this.redirectPolicy
+        );
+    }
+
+    public HttpConfig withVersion(HttpVersion version) {
+        return new HttpConfig(
+                this.tlsConfig,
+                this.cookieHandler,
+                this.keepAlive,
+                this.proxy,
+                version,
+                this.redirectPolicy
+        );
+    }
+
+    public HttpConfig withRedirectPolicy(HttpRedirectHandler redirectPolicy) {
+        return new HttpConfig(
+                this.tlsConfig,
+                this.cookieHandler,
+                this.keepAlive,
+                this.proxy,
+                this.version,
+                redirectPolicy
+        );
     }
 }

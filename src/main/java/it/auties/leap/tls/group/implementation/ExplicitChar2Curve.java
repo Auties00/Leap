@@ -41,8 +41,13 @@ public final class ExplicitChar2Curve implements TlsSupportedCurve {
     }
 
     @Override
-    public byte[] dumpLocalPublicKey(TlsContext context) {
+    public byte[] dumpPublicKey(KeyPair keyPair) {
         throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public boolean accepts(int namedGroup) {
+        return false;
     }
 
     @Override

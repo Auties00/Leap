@@ -1,6 +1,5 @@
 package it.auties.leap.tls.group;
 
-import it.auties.leap.tls.context.TlsContext;
 import it.auties.leap.tls.ec.TlsECParameters;
 import it.auties.leap.tls.ec.TlsECParametersDeserializer;
 import it.auties.leap.tls.ec.implementation.ExplicitChar2Parameters;
@@ -207,9 +206,9 @@ public non-sealed interface TlsSupportedCurve extends TlsSupportedGroup {
         return new ExplicitChar2Curve(char2Parameters);
     }
 
-    byte[] dumpLocalPublicKey(TlsContext context);
-
     TlsECParameters toParameters();
 
     TlsECParametersDeserializer parametersDeserializer();
+
+    boolean accepts(int namedGroup);
 }

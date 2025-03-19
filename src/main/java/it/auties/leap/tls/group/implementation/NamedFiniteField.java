@@ -116,12 +116,21 @@ public final class NamedFiniteField implements TlsSupportedFiniteField {
     }
 
     @Override
+    public byte[] dumpPublicKey(KeyPair keyPair) {
+        if(!(keyPair.getPublic() instanceof DHPublicKey publicKey)) {
+            throw new TlsException("Unsupported key type");
+        }
+
+        return publicKey.getY().toByteArray();
+    }
+
+    @Override
     public boolean accepts(TlsKeyExchange exchange) {
-        if(!(exchange instanceof DHKeyExchange serverKeyExchange)) {
+        if(!(exchange instanceof DHKeyExchange keyExchange)) {
             return false;
         }
 
-        var params = serverKeyExchange.getOrParsePublicKey()
+        var params = keyExchange.getOrParsePublicKey()
                 .getParams();
         return params.getG().equals(spec.getG())
                 && params.getP().equals(spec.getP());

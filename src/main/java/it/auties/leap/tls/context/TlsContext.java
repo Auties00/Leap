@@ -92,6 +92,8 @@ public class TlsContext {
     private List<X509Certificate> remoteCertificates;
     private List<X509Certificate> localCertificates;
 
+    private volatile boolean localHelloDone;
+    private volatile boolean remoteHelloDone;
     private volatile boolean localCipherEnabled;
     private volatile boolean remoteCipherEnabled;
     private volatile boolean localHandshakeComplete;
@@ -146,13 +148,14 @@ public class TlsContext {
                         var ciphers = new HashSet<>(clientHelloMessage.ciphers());
                         this.availableCiphers = localConfig.ciphers()
                                 .stream()
-                                .filter(entry -> ciphers.contains(entry.id()))
+                                .filter(cipher -> ciphers.contains(cipher.id()) && cipher.versions().contains(localConfig.version()))
                                 .collect(Collectors.toUnmodifiableMap(TlsCipher::id, Function.identity(), (element, _) -> element));
                         var compressions = new HashSet<>(clientHelloMessage.compressions());
                         this.availableCompressions = localConfig.compressions()
                                 .stream()
-                                .filter(entry -> compressions.contains(entry.id()))
+                                .filter(compression -> compressions.contains(compression.id()))
                                 .collect(Collectors.toUnmodifiableMap(TlsCompression::id, Function.identity(), (element, _) -> element));
+                        this.localHelloDone = true;
                     }
                     case REMOTE -> {
                         this.remoteRandomData = clientHelloMessage.randomData();
@@ -174,10 +177,12 @@ public class TlsContext {
                         }
 
                         this.mode = TlsMode.SERVER;
-                        this.availableCiphers = TlsCipher.allCiphers()
+                        // TODO: Speed up this?
+                        this.availableCiphers = TlsCipher.cipherValues()
                                 .stream()
+                                .filter(cipher -> cipher.versions().contains(localConfig.version()))
                                 .collect(Collectors.toUnmodifiableMap(TlsCipher::id, Function.identity(), (element, _) -> element));
-                        this.availableCompressions = TlsCompression.allCompressions()
+                        this.availableCompressions = TlsCompression.compressionValues()
                                 .stream()
                                 .collect(Collectors.toUnmodifiableMap(TlsCompression::id, Function.identity(), (element, _) -> element));
                     }
@@ -198,9 +203,9 @@ public class TlsContext {
             }
 
             case HelloDoneMessage.Server _ -> {
-                switch (mode) {
-                    case CLIENT -> this.remoteHandshakeComplete = true;
-                    case SERVER -> this.localHandshakeComplete = true;
+                switch (message.source()) {
+                    case LOCAL -> this.localHelloDone = true;
+                    case REMOTE -> this.remoteHelloDone = true;
                 }
             }
 
@@ -236,19 +241,11 @@ public class TlsContext {
                         .newLocalKeyExchange(this);
             }
 
-            case FinishedMessage.Client _ -> {
+            case FinishedMessage.Client _,  FinishedMessage.Server _ -> {
                 // TODO: Validate
-                switch (mode) {
-                    case CLIENT -> this.localHandshakeComplete = true;
-                    case SERVER -> this.remoteHandshakeComplete = true;
-                }
-            }
-
-            case FinishedMessage.Server serverFinishedMessage -> {
-                // TODO: Validate
-                switch (mode) {
-                    case CLIENT -> this.remoteHandshakeComplete = true;
-                    case SERVER -> this.localHandshakeComplete = true;
+                switch (message.source()) {
+                    case LOCAL -> this.localHandshakeComplete = true;
+                    case REMOTE -> this.remoteHandshakeComplete = true;
                 }
             }
 
@@ -283,17 +280,10 @@ public class TlsContext {
                 throw new TlsException("Received alert: " + alertMessage);
             }
 
-            case ChangeCipherSpecMessage.Client _ -> {
-                switch (mode) {
-                    case CLIENT -> this.localCipherEnabled = true;
-                    case SERVER -> this.remoteCipherEnabled = true;
-                }
-            }
-
-            case ChangeCipherSpecMessage.Server _ -> {
-                switch (mode) {
-                    case CLIENT -> this.remoteCipherEnabled = true;
-                    case SERVER -> this.localCipherEnabled = true;
+            case ChangeCipherSpecMessage.Client _, ChangeCipherSpecMessage.Server _ -> {
+                switch (message.source()) {
+                    case LOCAL -> this.localCipherEnabled = true;
+                    case REMOTE -> this.remoteCipherEnabled = true;
                 }
             }
 
@@ -317,8 +307,12 @@ public class TlsContext {
         this.preMasterSecret = key;
     }
 
-    public boolean isHandshakeComplete() {
-        return localHandshakeComplete && remoteHandshakeComplete;
+    public boolean isLocalHelloDone() {
+        return localHelloDone;
+    }
+
+    public boolean isRemoteHelloDone() {
+        return remoteHelloDone;
     }
 
     public boolean isLocalHandshakeComplete() {
@@ -329,12 +323,16 @@ public class TlsContext {
         return remoteHandshakeComplete;
     }
 
+    public boolean isHandshakeComplete() {
+        return localHandshakeComplete && remoteHandshakeComplete;
+    }
+
     public boolean isLocalCipherEnabled() {
-        return localCipherEnabled && localHandshakeComplete;
+        return localHandshakeComplete && localCipherEnabled;
     }
 
     public boolean isRemoteCipherEnabled() {
-        return remoteCipherEnabled && remoteHandshakeComplete;
+        return remoteCipherEnabled;
     }
 
     public byte[] localRandomData() {
@@ -520,7 +518,6 @@ public class TlsContext {
     public Optional<TlsKeyExchange> localKeyExchange() {
         return Optional.ofNullable(localKeyExchange);
     }
-
 
     public Optional<TlsKeyExchange> remoteKeyExchange() {
         return Optional.ofNullable(remoteKeyExchange);
@@ -818,6 +815,11 @@ public class TlsContext {
 
     public void setLocalKeyPair(KeyPair keyPair) {
         this.localKeyPair = keyPair;
+    }
+
+    public TlsContext setLocalKeyExchange(TlsKeyExchange localKeyExchange) {
+        this.localKeyExchange = localKeyExchange;
+        return this;
     }
 
     public Optional<TlsSupportedFiniteField> localPreferredFiniteField() {

@@ -259,6 +259,11 @@ public final class NamedCurve implements TlsSupportedCurve {
     }
 
     @Override
+    public boolean accepts(int namedGroup) {
+        return id == namedGroup;
+    }
+
+    @Override
     public int id() {
         return id;
     }
@@ -351,10 +356,8 @@ public final class NamedCurve implements TlsSupportedCurve {
     }
 
     @Override
-    public byte[] dumpLocalPublicKey(TlsContext context) {
-        var localKeyPair = context.localKeyPair()
-                .orElseThrow(() -> new TlsException("No mode was selected"));
-        return switch (localKeyPair.getPublic()) {
+    public byte[] dumpPublicKey(KeyPair keyPair) {
+        return switch (keyPair.getPublic()) {
             case XECPublicKey publicKey -> ECKeyUtils.toUnsignedLittleEndianBytes(publicKey.getU());
             case DHPublicKey publicKey -> ECKeyUtils.toUnsignedLittleEndianBytes(publicKey.getY());
             case ECPublicKey publicKey -> publicKey.getQ().getEncoded(false);
