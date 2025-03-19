@@ -4,16 +4,22 @@ import it.auties.leap.tls.cipher.auth.TlsAuthFactory;
 import it.auties.leap.tls.cipher.engine.TlsCipherEngineFactory;
 import it.auties.leap.tls.cipher.exchange.TlsKeyExchangeFactory;
 import it.auties.leap.tls.cipher.mode.TlsCipherModeFactory;
+import it.auties.leap.tls.exception.TlsException;
 import it.auties.leap.tls.extension.TlsExtension;
 import it.auties.leap.tls.extension.implementation.GREASEExtension;
 import it.auties.leap.tls.hash.TlsHashFactory;
 import it.auties.leap.tls.version.TlsVersion;
 import it.auties.leap.tls.version.TlsVersionId;
 
+import java.security.NoSuchAlgorithmException;
+import java.security.SecureRandom;
 import java.util.List;
 import java.util.Objects;
 
 public final class TlsGREASE {
+    private static final TlsCipherEngineFactory ENGINE_FACTORY = () -> { throw new TlsException("GREASE cipher should not be selected"); };
+    private static final TlsCipherModeFactory MODE_FACTORY = _ -> { throw new TlsException("GREASE cipher should not be selected"); };
+
     private static final TlsGREASE GREASE_0A = new TlsGREASE(TlsVersionId.of(0x0A0A), createGREASECipher(0x0A0A), GREASEExtension.grease0A());
     private static final TlsGREASE GREASE_1A = new TlsGREASE(TlsVersionId.of(0x1A1A), createGREASECipher(0x1A1A), GREASEExtension.grease1A());
     private static final TlsGREASE GREASE_2A = new TlsGREASE(TlsVersionId.of(0x2A2A), createGREASECipher(0x2A2A), GREASEExtension.grease2A());
@@ -35,8 +41,8 @@ public final class TlsGREASE {
     private static TlsCipher createGREASECipher(int id) {
         return new TlsCipher(
                 id,
-                TlsCipherEngineFactory.none(),
-                TlsCipherModeFactory.none(),
+                ENGINE_FACTORY,
+                MODE_FACTORY,
                 TlsKeyExchangeFactory.contextual(),
                 TlsAuthFactory.contextual(),
                 TlsHashFactory.none(),
@@ -111,6 +117,18 @@ public final class TlsGREASE {
 
     public static List<TlsGREASE> values() {
         return VALUES;
+    }
+
+    public static TlsVersionId randomGrease() {
+        try {
+            var values = TlsGREASE.values();
+            var index = SecureRandom.getInstanceStrong()
+                    .nextInt(0, values.size());
+            return values.get(index)
+                    .versionId();
+        }catch (NoSuchAlgorithmException _) {
+            throw TlsException.noSecureRandom();
+        }
     }
 
     public static boolean isGrease(int extensionType) {

@@ -77,7 +77,9 @@ public final class HttpRequestBuilder<T> {
 
     public HttpRequestBuilder<T> header(String key, Object value) {
         Objects.requireNonNull(key, "Invalid header");
-        this.headers.put(key, value);
+        if(value != null) {
+            this.headers.put(key, value);
+        }
         return this;
     }
 

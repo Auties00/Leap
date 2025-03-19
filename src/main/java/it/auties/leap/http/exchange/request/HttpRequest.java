@@ -76,13 +76,15 @@ public final class HttpRequest<T> implements HttpExchange<T> {
         buffer.put((byte) HttpConstants.SPACE);
         buffer.put(version.encodedName());
 
-        headers.forEach((key, value) -> {
-            buffer.put((byte) HttpConstants.CARRIAGE_RETURN);
-            buffer.put((byte) HttpConstants.LINE_FEED);
-            buffer.put(key.getBytes(StandardCharsets.US_ASCII));
-            buffer.put((byte) HttpConstants.HEADER_SEPARATOR);
-            buffer.put((byte) HttpConstants.SPACE);
-            buffer.put(value.toString().getBytes(StandardCharsets.US_ASCII));
+        headers.forEach((key, values) -> {
+            for(var value : values) {
+                buffer.put((byte) HttpConstants.CARRIAGE_RETURN);
+                buffer.put((byte) HttpConstants.LINE_FEED);
+                buffer.put(key.getBytes(StandardCharsets.US_ASCII));
+                buffer.put((byte) HttpConstants.HEADER_SEPARATOR);
+                buffer.put((byte) HttpConstants.SPACE);
+                buffer.put(value.getBytes(StandardCharsets.US_ASCII));
+            }
         });
 
         buffer.put((byte) HttpConstants.CARRIAGE_RETURN);

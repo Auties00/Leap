@@ -26,23 +26,23 @@ public final class DeflateCompression implements TlsCompression {
 
     @Override
     public void accept(ByteBuffer input, ByteBuffer output, boolean forCompression) {
-        try {
-            if (forCompression) {
-                var deflater = new Deflater();
+        if (forCompression) {
+            try(var deflater = new Deflater()) {
                 deflater.setInput(input);
                 deflater.finish();
                 var compressedDataLength = deflater.deflate(output);
                 deflater.end();
                 output.limit(output.position() + compressedDataLength);
-            } else {
-                var inflater = new Inflater();
+            }
+        } else {
+            try(var inflater = new Inflater()) {
                 inflater.setInput(input);
                 var compressedDataLength = inflater.inflate(output);
                 inflater.end();
                 output.limit(output.position() + compressedDataLength);
+            } catch (DataFormatException exception) {
+                throw new TlsException("Cannot process data", exception);
             }
-        } catch (DataFormatException exception) {
-            throw new TlsException("Cannot process data", exception);
         }
     }
 }

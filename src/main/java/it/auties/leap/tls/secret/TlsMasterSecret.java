@@ -88,10 +88,8 @@ public final class TlsMasterSecret {
 
     @Override
     public boolean equals(Object obj) {
-        if (obj == this) return true;
-        if (obj == null || obj.getClass() != this.getClass()) return false;
-        var that = (TlsMasterSecret) obj;
-        return Arrays.equals(this.data, that.data);
+        return obj == this
+                || (obj instanceof TlsMasterSecret that && Arrays.equals(this.data, that.data));
     }
 
     @Override
@@ -104,5 +102,4 @@ public final class TlsMasterSecret {
         return "TlsMasterSecretKey[" +
                 "data=" + Arrays.toString(data) + ']';
     }
-
 }

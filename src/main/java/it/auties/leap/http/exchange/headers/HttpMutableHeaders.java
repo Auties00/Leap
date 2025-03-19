@@ -1,7 +1,6 @@
 package it.auties.leap.http.exchange.headers;
 
-import java.util.Map;
-import java.util.Objects;
+import java.util.*;
 
 public final class HttpMutableHeaders extends HttpHeaders {
     HttpMutableHeaders() {
@@ -20,12 +19,34 @@ public final class HttpMutableHeaders extends HttpHeaders {
 
     public void put(String key, Object value) {
         Objects.requireNonNull(key, "Expected a key");
-        Objects.requireNonNull(value, "Expected a value");
-        backing.put(key, value);
+        backing.compute(key, (_, values) -> {
+            if(values != null) {
+                if(value != null) {
+                    values.add(value.toString());
+                }
+                return values;
+            }
+
+            var newValues = new ArrayList<String>();
+            if(value != null) {
+                newValues.add(value.toString());
+            }
+            return newValues;
+        });
     }
 
     public void put(Map<String, ?> headers) {
-        headers.forEach((key, value) -> backing.put(key, value == null ? "" : value.toString()));
+        headers.forEach((key, value) -> {
+            var values = switch (value) {
+                case null -> List.<String>of();
+                case List<?> entries -> entries.stream()
+                        .map(Object::toString)
+                        .filter(Objects::nonNull)
+                        .toList();
+                default -> Collections.singletonList(value.toString());
+            };
+            backing.put(key, values);
+        });
     }
 
     public void put(HttpHeaders headers) {

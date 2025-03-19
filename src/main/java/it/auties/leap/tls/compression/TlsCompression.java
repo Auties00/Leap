@@ -1,6 +1,5 @@
 package it.auties.leap.tls.compression;
 
-import it.auties.leap.tls.compression.implementation.Compressions;
 import it.auties.leap.tls.compression.implementation.DeflateCompression;
 import it.auties.leap.tls.compression.implementation.NoCompression;
 import it.auties.leap.tls.compression.implementation.ReservedCompression;
@@ -25,7 +24,11 @@ public sealed interface TlsCompression extends TlsCompressionHandler permits Def
     }
 
     static List<TlsCompression> allCompressions() {
-        return Compressions.values();
+        final class Compressions {
+            private static final List<TlsCompression> COMPRESSIONS = List.of(NoCompression.instance(), DeflateCompression.instance());
+        }
+
+        return Compressions.COMPRESSIONS;
     }
 
     byte id();

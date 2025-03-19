@@ -3,16 +3,15 @@ package it.auties.leap.tls.secret.implementation;
 import it.auties.leap.tls.context.TlsContext;
 import it.auties.leap.tls.secret.TlsPreMasterSecretGenerator;
 
-public final class SRPPreMasterSecretGenerator implements TlsPreMasterSecretGenerator {
-    private static final SRPPreMasterSecretGenerator INSTANCE = new SRPPreMasterSecretGenerator();
-    private SRPPreMasterSecretGenerator() {
+public final class PskPreMasterSecretGenerator implements TlsPreMasterSecretGenerator {
+    private static final PskPreMasterSecretGenerator INSTANCE = new PskPreMasterSecretGenerator();
+    private PskPreMasterSecretGenerator() {
 
     }
 
-    public static SRPPreMasterSecretGenerator instance() {
+    public static PskPreMasterSecretGenerator instance() {
         return INSTANCE;
     }
-
 
     @Override
     public byte[] generatePreMasterSecret(TlsContext context) {

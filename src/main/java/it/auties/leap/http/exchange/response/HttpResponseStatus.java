@@ -150,15 +150,15 @@ public final class HttpResponseStatus {
     }
 
     private static void addStatus(HttpResponseStatus status) {
-        CODE_TO_STATUS.put(status.statusCode(), status);
+        CODE_TO_STATUS.put(status.code(), status);
         PHRASE_TO_STATUS.put(status.reasonPhrase().orElseThrow().toLowerCase(Locale.ROOT), status);
     }
 
-    private final int statusCode;
+    private final int code;
     private final String reasonPhrase;
 
-    private HttpResponseStatus(int statusCode, String reasonPhrase) {
-        this.statusCode = statusCode;
+    private HttpResponseStatus(int code, String reasonPhrase) {
+        this.code = code;
         this.reasonPhrase = reasonPhrase;
     }
 
@@ -427,8 +427,8 @@ public final class HttpResponseStatus {
         return NETWORK_AUTHENTICATION_REQUIRED;
     }
 
-    public int statusCode() {
-        return statusCode;
+    public int code() {
+        return code;
     }
 
     public Optional<String> reasonPhrase() {
@@ -438,17 +438,17 @@ public final class HttpResponseStatus {
     @Override
     public boolean equals(Object o) {
         return o instanceof HttpResponseStatus that
-                && statusCode == that.statusCode
+                && code == that.code
                 && Objects.equals(reasonPhrase, that.reasonPhrase);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(statusCode, reasonPhrase);
+        return Objects.hash(code);
     }
 
     @Override
     public String toString() {
-        return String.valueOf(statusCode);
+        return String.valueOf(code);
     }
 }

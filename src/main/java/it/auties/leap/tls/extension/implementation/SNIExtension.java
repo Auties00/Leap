@@ -5,7 +5,7 @@ import it.auties.leap.tls.context.TlsMode;
 import it.auties.leap.tls.context.TlsSource;
 import it.auties.leap.tls.extension.TlsExtension;
 import it.auties.leap.tls.extension.TlsExtensionDeserializer;
-import it.auties.leap.tls.util.IPAddressUtil;
+import it.auties.leap.tls.util.sun.IPAddressUtil;
 import it.auties.leap.tls.version.TlsVersion;
 
 import java.net.InetSocketAddress;

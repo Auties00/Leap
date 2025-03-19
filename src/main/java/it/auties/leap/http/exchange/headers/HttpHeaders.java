@@ -2,17 +2,16 @@ package it.auties.leap.http.exchange.headers;
 
 import java.util.*;
 import java.util.function.BiConsumer;
-import java.util.function.Function;
 
 public sealed class HttpHeaders permits HttpMutableHeaders {
     private static final HttpHeaders EMPTY = new HttpHeaders();
-    protected final Map<String, Object> backing;
+    protected final Map<String, List<String>> backing;
 
     HttpHeaders() {
         this.backing = new TreeMap<>(String.CASE_INSENSITIVE_ORDER);
     }
 
-    HttpHeaders(Map<String, Object> backing) {
+    HttpHeaders(Map<String, List<String>> backing) {
         this.backing = backing;
     }
 
@@ -30,7 +29,7 @@ public sealed class HttpHeaders permits HttpMutableHeaders {
         return instance;
     }
 
-    public void forEach(BiConsumer<? super String, ? super Object> action) {
+    public void forEach(BiConsumer<? super String, ? super List<String>> action) {
         backing.forEach(action);
     }
 
@@ -39,239 +38,226 @@ public sealed class HttpHeaders permits HttpMutableHeaders {
     }
 
     public Optional<String> cacheControl() {
-        return getAsString("Cache-Control");
+        return firstValue("Cache-Control");
     }
 
     public Optional<String> connection() {
-        return getAsString("Connection");
+        return firstValue("Connection");
     }
 
     public Optional<String> date() {
-        return getAsString("Date");
+        return firstValue("Date");
     }
 
     public Optional<String> pragma() {
-        return getAsString("Pragma");
+        return firstValue("Pragma");
     }
 
     public Optional<String> trailer() {
-        return getAsString("Trailer");
+        return firstValue("Trailer");
     }
 
     public Optional<String> transferEncoding() {
-        return getAsString("Transfer-Encoding");
+        return firstValue("Transfer-Encoding");
     }
 
     public Optional<String> upgrade() {
-        return getAsString("Upgrade");
+        return firstValue("Upgrade");
     }
 
     public Optional<String> via() {
-        return getAsString("Via");
+        return firstValue("Via");
     }
 
     public Optional<String> warning() {
-        return getAsString("Warning");
+        return firstValue("Warning");
     }
     
     public Optional<String> accept() {
-        return getAsString("Accept");
+        return firstValue("Accept");
     }
 
     public Optional<String> acceptCharset() {
-        return getAsString("Accept-Charset");
+        return firstValue("Accept-Charset");
     }
 
     public Optional<String> acceptEncoding() {
-        return getAsString("Accept-Encoding");
+        return firstValue("Accept-Encoding");
     }
 
     public Optional<String> acceptLanguage() {
-        return getAsString("Accept-Language");
+        return firstValue("Accept-Language");
     }
 
     public Optional<String> authorization() {
-        return getAsString("Authorization");
+        return firstValue("Authorization");
     }
 
     public Optional<String> expect() {
-        return getAsString("Expect");
+        return firstValue("Expect");
     }
 
     public Optional<String> from() {
-        return getAsString("From");
+        return firstValue("From");
     }
 
     public Optional<String> host() {
-        return getAsString("Host");
+        return firstValue("Host");
     }
 
     public Optional<String> ifMatch() {
-        return getAsString("If-Match");
+        return firstValue("If-Match");
     }
 
     public Optional<String> ifModifiedSince() {
-        return getAsString("If-Modified-Since");
+        return firstValue("If-Modified-Since");
     }
 
     public Optional<String> ifNoneMatch() {
-        return getAsString("If-None-Match");
+        return firstValue("If-None-Match");
     }
 
     public Optional<String> ifRange() {
-        return getAsString("If-Range");
+        return firstValue("If-Range");
     }
 
     public Optional<String> ifUnmodifiedSince() {
-        return getAsString("If-Unmodified-Since");
+        return firstValue("If-Unmodified-Since");
     }
 
     public OptionalLong maxForwards() {
-        return getAsLong("Max-Forwards");
+        return firstValueAsLong("Max-Forwards");
     }
 
     public Optional<String> proxyAuthorization() {
-        return getAsString("Proxy-Authorization");
+        return firstValue("Proxy-Authorization");
     }
 
     public Optional<String> range() {
-        return getAsString("Range");
+        return firstValue("Range");
     }
 
     public Optional<String> referer() {
-        return getAsString("Referer");
+        return firstValue("Referer");
     }
 
     public Optional<String> te() {
-        return getAsString("TE");
+        return firstValue("TE");
     }
 
     public Optional<String> userAgent() {
-        return getAsString("User-Agent");
+        return firstValue("User-Agent");
     }
 
     public Optional<String> acceptRanges() {
-        return getAsString("Accept-Ranges");
+        return firstValue("Accept-Ranges");
     }
 
     public OptionalLong age() {
-        return getAsLong("Age");
+        return firstValueAsLong("Age");
     }
 
     public Optional<String> etag() {
-        return getAsString("ETag");
+        return firstValue("ETag");
     }
 
     public Optional<String> location() {
-        return getAsString("Location");
+        return firstValue("Location");
     }
 
     public Optional<String> proxyAuthenticate() {
-        return getAsString("Proxy-Authenticate");
+        return firstValue("Proxy-Authenticate");
     }
 
     public Optional<String> retryAfter() {
-        return getAsString("Retry-After");
+        return firstValue("Retry-After");
     }
 
     public Optional<String> server() {
-        return getAsString("Server");
+        return firstValue("Server");
     }
 
     public Optional<String> vary() {
-        return getAsString("Vary");
+        return firstValue("Vary");
     }
 
     public Optional<String> wwwAuthenticate() {
-        return getAsString("WWW-Authenticate");
+        return firstValue("WWW-Authenticate");
     }
 
-    // --- Entity Headers ---
     public Optional<String> allow() {
-        return getAsString("Allow");
+        return firstValue("Allow");
     }
 
     public Optional<String> contentEncoding() {
-        return getAsString("Content-Encoding");
+        return firstValue("Content-Encoding");
     }
 
     public Optional<String> contentLanguage() {
-        return getAsString("Content-Language");
+        return firstValue("Content-Language");
     }
 
     public OptionalLong contentLength() {
-        return getAsLong("Content-Length");
+        return firstValueAsLong("Content-Length");
     }
 
     public Optional<String> contentLocation() {
-        return getAsString("Content-Location");
+        return firstValue("Content-Location");
     }
 
     public Optional<String> contentMD5() {
-        return getAsString("Content-MD5");
+        return firstValue("Content-MD5");
     }
 
     public Optional<String> contentRange() {
-        return getAsString("Content-Range");
+        return firstValue("Content-Range");
     }
 
     public Optional<String> contentType() {
-        return getAsString("Content-Type");
+        return firstValue("Content-Type");
     }
 
     public Optional<String> expires() {
-        return getAsString("Expires");
+        return firstValue("Expires");
     }
 
     public Optional<String> lastModified() {
-        return getAsString("Last-Modified");
+        return firstValue("Last-Modified");
     }
 
-    public Optional<String> getAsString(String key) {
+    public Optional<String> firstValue(String key) {
         var value = backing.get(key);
-        if (value == null) {
+        if(value == null || value.isEmpty()) {
             return Optional.empty();
         }
-        
-        if(value instanceof String val) {
-            return Optional.of(val);
-        }
 
-        return Optional.of(Objects.toString(value));
+        return Optional.ofNullable(value.getFirst());
     }
 
-    public OptionalLong getAsLong(String key) {
-        var value = backing.get(key);
-        if (value == null) {
+    public OptionalLong firstValueAsLong(String key) {
+        var values = backing.get(key);
+        if(values == null || values.isEmpty()) {
             return OptionalLong.empty();
         }
-        
-        if(value instanceof Number number) {
-            return OptionalLong.of(number.longValue());
+
+        var value = values.getFirst();
+        if(value == null) {
+            return OptionalLong.empty();
         }
 
-        return OptionalLong.of(Long.parseLong(Objects.toString(value)));
+        try {
+            return OptionalLong.of(Long.parseLong(value));
+        }catch (NumberFormatException exception) {
+            return OptionalLong.empty();
+        }
     }
 
-    public OptionalDouble getAsDouble(String key) {
-        var value = backing.get(key);
-        if (value == null) {
-            return OptionalDouble.empty();
+    public List<String> allValues(String key) {
+        var values = backing.get(key);
+        if(values == null) {
+            return List.of();
         }
 
-        if(value instanceof Number number) {
-            return OptionalDouble.of(number.doubleValue());
-        }
-
-        return OptionalDouble.of(Double.parseDouble(Objects.toString(value)));
-    }
-
-    public <T> Optional<T> getAs(String key, Function<Object, T> converter) {
-        var value = backing.get(key);
-        if (value == null) {
-            return Optional.empty();
-        }
-        
-        return Optional.of(converter.apply(value));
+        return Collections.unmodifiableList(values);
     }
 }

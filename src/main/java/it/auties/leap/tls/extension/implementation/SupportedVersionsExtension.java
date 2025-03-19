@@ -1,19 +1,16 @@
 package it.auties.leap.tls.extension.implementation;
 
+import it.auties.leap.tls.cipher.TlsGREASE;
 import it.auties.leap.tls.context.TlsContext;
 import it.auties.leap.tls.context.TlsMode;
 import it.auties.leap.tls.context.TlsSource;
-import it.auties.leap.tls.exception.TlsException;
 import it.auties.leap.tls.extension.TlsExtension;
 import it.auties.leap.tls.extension.TlsExtension.Concrete;
 import it.auties.leap.tls.extension.TlsExtensionDeserializer;
-import it.auties.leap.tls.cipher.TlsGREASE;
 import it.auties.leap.tls.version.TlsVersion;
 import it.auties.leap.tls.version.TlsVersionId;
 
 import java.nio.ByteBuffer;
-import java.security.NoSuchAlgorithmException;
-import java.security.SecureRandom;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
@@ -208,22 +205,10 @@ public abstract sealed class SupportedVersionsExtension {
                 }
 
                 if (context.hasExtension(TlsGREASE::isGrease)) {
-                    supportedVersions.add(randomGrease());
+                    supportedVersions.add(TlsGREASE.randomGrease());
                 }
 
                 return Optional.of(new Client.Concrete(supportedVersions));
-            }
-
-            private static TlsVersionId randomGrease() {
-                try {
-                    var values = TlsGREASE.values();
-                    var index = SecureRandom.getInstanceStrong()
-                            .nextInt(0, values.size());
-                    return values.get(index)
-                            .versionId();
-                }catch (NoSuchAlgorithmException _) {
-                    throw TlsException.noSecureRandom();
-                }
             }
 
             @Override

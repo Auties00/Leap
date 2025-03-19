@@ -5,13 +5,13 @@ import it.auties.leap.tls.secret.TlsPreMasterSecretGenerator;
 
 import java.util.NoSuchElementException;
 
-public final class DHPreMasterSecretGenerator implements TlsPreMasterSecretGenerator {
-    private static final DHPreMasterSecretGenerator INSTANCE = new DHPreMasterSecretGenerator();
-    private DHPreMasterSecretGenerator() {
+public final class DhPreMasterSecretGenerator implements TlsPreMasterSecretGenerator {
+    private static final DhPreMasterSecretGenerator INSTANCE = new DhPreMasterSecretGenerator();
+    private DhPreMasterSecretGenerator() {
 
     }
 
-    public static DHPreMasterSecretGenerator instance() {
+    public static DhPreMasterSecretGenerator instance() {
         return INSTANCE;
     }
 
