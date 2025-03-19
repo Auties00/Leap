@@ -104,7 +104,7 @@ public class TlsContext {
         this.localConfig = config;
         this.localRandomData = TlsKeyUtils.randomData();
         this.localSessionId = TlsKeyUtils.randomData();
-        this.dtlsCookie = switch (config.version().protocol()) {
+        this.dtlsCookie = switch (config.protocol()) {
             case TCP -> null;
             case UDP -> TlsKeyUtils.randomData();
         };
@@ -148,7 +148,7 @@ public class TlsContext {
                         var ciphers = new HashSet<>(clientHelloMessage.ciphers());
                         this.availableCiphers = localConfig.ciphers()
                                 .stream()
-                                .filter(cipher -> ciphers.contains(cipher.id()) && cipher.versions().contains(localConfig.version()))
+                                .filter(cipher -> ciphers.contains(cipher.id()) && cipher.versions().contains(localConfig.versions()))
                                 .collect(Collectors.toUnmodifiableMap(TlsCipher::id, Function.identity(), (element, _) -> element));
                         var compressions = new HashSet<>(clientHelloMessage.compressions());
                         this.availableCompressions = localConfig.compressions()
@@ -178,11 +178,11 @@ public class TlsContext {
 
                         this.mode = TlsMode.SERVER;
                         // TODO: Speed up this?
-                        this.availableCiphers = TlsCipher.cipherValues()
+                        this.availableCiphers = TlsCipher.values()
                                 .stream()
-                                .filter(cipher -> cipher.versions().contains(localConfig.version()))
+                                .filter(cipher -> cipher.versions().contains(localConfig.versions()))
                                 .collect(Collectors.toUnmodifiableMap(TlsCipher::id, Function.identity(), (element, _) -> element));
-                        this.availableCompressions = TlsCompression.compressionValues()
+                        this.availableCompressions = TlsCompression.values()
                                 .stream()
                                 .collect(Collectors.toUnmodifiableMap(TlsCompression::id, Function.identity(), (element, _) -> element));
                     }
@@ -197,7 +197,7 @@ public class TlsContext {
                         if(negotiatedCompression == null) {
                             throw new TlsException("Unknown compression");
                         }
-                        this.handshakeHash = TlsHandshakeHash.of(localConfig.version(), negotiatedCipher.hashFactory());
+                        this.handshakeHash = TlsHandshakeHash.of(localConfig.versions(), negotiatedCipher.hashFactory());
                     }
                 }
             }
@@ -249,10 +249,7 @@ public class TlsContext {
                 }
             }
 
-            case KeyExchangeMessage.Client client -> {
-                generatePreMasterSecret(client);
-                initSession();
-            }
+            case KeyExchangeMessage.Client client -> initSession(client.localParameters().orElse(null));
 
             case CertificateMessage.Client certificateMessage -> {
                 var certificates = switch (mode) {
@@ -285,22 +282,16 @@ public class TlsContext {
                     case LOCAL -> this.localCipherEnabled = true;
                     case REMOTE -> this.remoteCipherEnabled = true;
                 }
+                if(localConfig.versions() == TlsVersion.TLS13 || localConfig.versions() == TlsVersion.DTLS13) {
+                    this.localKeyExchange = negotiatedCipher.keyExchangeFactory()
+                            .newLocalKeyExchange(this);
+                    initSession(localKeyExchange);
+                }
             }
 
             default -> {}
         }
         return true;
-    }
-
-    private void generatePreMasterSecret(KeyExchangeMessage.Client client) {
-        if(preMasterSecret != null) {
-            return;
-        }
-
-        this.preMasterSecret = client.localParameters()
-                .orElseThrow()
-                .preMasterSecretGenerator()
-                .generatePreMasterSecret(this);
     }
 
     public void setPreMasterSecret(byte[] key) {
@@ -448,7 +439,7 @@ public class TlsContext {
     private void processExtensions() {
         var dependenciesTree = new LinkedHashMap<Integer, TlsExtension>();
         for (var extension : localConfig.extensions()) {
-            if (extension.versions().contains(localConfig.version())) {
+            if (extension.versions().contains(localConfig.versions())) {
                 var conflict = dependenciesTree.put(extension.extensionType(), extension);
                 if (conflict != null) {
                     throw new IllegalArgumentException("Extension with type %s defined by <%s> conflicts with an extension processed previously with type %s defined by <%s>".formatted(
@@ -523,10 +514,16 @@ public class TlsContext {
         return Optional.ofNullable(remoteKeyExchange);
     }
 
-    private void initSession() {
+    private void initSession(TlsKeyExchange exchange) {
+        if(exchange == null) {
+            throw new TlsException("Invalid local key exchange");
+        }
+
+        this.preMasterSecret = exchange.preMasterSecretGenerator()
+                .generatePreMasterSecret(this);
         this.localMasterSecretKey = TlsMasterSecret.of(
                 mode,
-                localConfig.version(),
+                localConfig.versions(),
                 negotiatedCipher,
                 preMasterSecret,
                 extendedMasterSecret ? handshakeHash().orElse(null) : null,
@@ -568,7 +565,7 @@ public class TlsContext {
                     yield localCipher.ivLength();
                 }
 
-                if(localConfig.version().id().value() >= TlsVersion.TLS11.id().value()) {
+                if(localConfig.versions().id().value() >= TlsVersion.TLS11.id().value()) {
                     yield 0;
                 }
 
@@ -578,7 +575,7 @@ public class TlsContext {
         };
 
         var keyBlockLen = (macLength + keyLength + (expandedKeyLength.isPresent() ? 0 : ivLength)) * 2;
-        var keyBlock = generateBlock(localConfig.version(), negotiatedCipher.hashFactory(), localMasterSecretKey.data(), clientRandom, serverRandom, keyBlockLen);
+        var keyBlock = generateBlock(localConfig.versions(), negotiatedCipher.hashFactory(), localMasterSecretKey.data(), clientRandom, serverRandom, keyBlockLen);
 
         var clientMacKey = macLength != 0 ? readBytes(keyBlock, macLength) : null;
         var serverMacKey = macLength != 0 ? readBytes(keyBlock, macLength) : null;
@@ -593,12 +590,12 @@ public class TlsContext {
         };
 
         var localAuthenticator = TlsExchangeMac.of(
-                localConfig.version(),
+                localConfig.versions(),
                 localMacKey == null ? null : negotiatedCipher.hashFactory(),
                 localMacKey
         );
         var remoteAuthenticator = TlsExchangeMac.of(
-                localConfig.version(),
+                localConfig.versions(),
                 remoteMacKey == null ? null : negotiatedCipher.hashFactory(),
                 remoteMacKey
         );
@@ -654,7 +651,7 @@ public class TlsContext {
             return;
         }
 
-        switch (localConfig.version()) {
+        switch (localConfig.versions()) {
             case SSL30 -> {
                 var md5 = TlsHash.md5();
                 md5.update(clientKey);
@@ -817,11 +814,6 @@ public class TlsContext {
         this.localKeyPair = keyPair;
     }
 
-    public TlsContext setLocalKeyExchange(TlsKeyExchange localKeyExchange) {
-        this.localKeyExchange = localKeyExchange;
-        return this;
-    }
-
     public Optional<TlsSupportedFiniteField> localPreferredFiniteField() {
         return Optional.ofNullable(localPreferredFiniteField);
     }
@@ -852,5 +844,9 @@ public class TlsContext {
 
     public boolean hasServerCertificateRequest() {
         return certificateRequestMessage != null;
+    }
+
+    public Optional<TlsVersion> negotiatedVersion() {
+        return Optional.empty();
     }
 }

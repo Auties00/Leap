@@ -13,7 +13,7 @@ public class ECDHE_CHACHA20POLY1305_SocketTest {
     public static void main(String[] args) throws Exception {
         var tlsConfig = HttpConfig.defaults()
                 .tlsConfig()
-                .withVersion(TlsVersion.TLS13);
+                .withVersions(TlsVersion.TLS13);
         var httpConfig = HttpConfig.defaults()
                 .withTlsConfig(tlsConfig);
         var client = AsyncHttpClient.newHTTPClient(httpConfig);

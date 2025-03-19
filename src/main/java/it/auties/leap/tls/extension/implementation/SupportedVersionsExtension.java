@@ -2,8 +2,7 @@ package it.auties.leap.tls.extension.implementation;
 
 import it.auties.leap.tls.cipher.TlsGREASE;
 import it.auties.leap.tls.context.TlsContext;
-import it.auties.leap.tls.context.TlsMode;
-import it.auties.leap.tls.context.TlsSource;
+import it.auties.leap.tls.exception.TlsException;
 import it.auties.leap.tls.extension.TlsExtension;
 import it.auties.leap.tls.extension.TlsExtension.Concrete;
 import it.auties.leap.tls.extension.TlsExtensionDeserializer;
@@ -19,31 +18,27 @@ import java.util.Optional;
 import static it.auties.leap.tls.util.BufferUtils.*;
 
 public abstract sealed class SupportedVersionsExtension {
-    private static final TlsExtensionDeserializer DECODER = new TlsExtensionDeserializer() {
-        @Override
-        public Optional<? extends Concrete> deserialize(ByteBuffer buffer, TlsSource source, TlsMode mode, int type) {
-            return switch (mode) {
-                case CLIENT -> {
-                    var major = readBigEndianInt8(buffer);
-                    var minor = readBigEndianInt8(buffer);
-                    var versionId = TlsVersionId.of(major, minor);
-                    yield Optional.of(new Server(versionId));
-                }
-                case SERVER -> {
-                    var payloadSize = readBigEndianInt8(buffer);
-                    var versions = new ArrayList<TlsVersionId>();
-                    try (var _ = scopedRead(buffer, payloadSize)) {
-                        var versionsSize = payloadSize / INT16_LENGTH;
-                        for (var i = 0; i < versionsSize; i++) {
-                            var versionId = TlsVersionId.of(readBigEndianInt8(buffer), readBigEndianInt8(buffer));
-                            versions.add(versionId);
-                        }
-                    }
-                    yield Optional.of(new Client.Concrete(versions));
-                }
-            };
-        }
+    private static final TlsExtensionDeserializer DECODER = (context, _, _, buffer) -> switch (context.selectedMode().orElse(null)) {
+        case CLIENT -> {
+            var major = readBigEndianInt8(buffer);
+            var minor = readBigEndianInt8(buffer);
+            var versionId = TlsVersionId.of(major, minor);
 
+            yield Optional.of(new Server(versionId));
+        }
+        case SERVER -> {
+            var payloadSize = readBigEndianInt8(buffer);
+            var versions = new ArrayList<TlsVersionId>();
+            try (var _ = scopedRead(buffer, payloadSize)) {
+                var versionsSize = payloadSize / INT16_LENGTH;
+                for (var i = 0; i < versionsSize; i++) {
+                    var versionId = TlsVersionId.of(readBigEndianInt8(buffer), readBigEndianInt8(buffer));
+                    versions.add(versionId);
+                }
+            }
+            yield Optional.of(new Client.Concrete(versions));
+        }
+        case null -> throw new TlsException("No mode was selected yet");
     };
 
     public static final class Server extends SupportedVersionsExtension implements Concrete {
@@ -182,17 +177,8 @@ public abstract sealed class SupportedVersionsExtension {
             @Override
             public Optional<? extends Concrete> newInstance(TlsContext context) {
                 var supportedVersions = new ArrayList<TlsVersionId>();
-                var chosenVersion = context.config().version();
-                switch (chosenVersion) {
-                    case TLS13 -> {
-                        supportedVersions.add(TlsVersion.TLS13.id());
-                        supportedVersions.add(TlsVersion.TLS12.id());
-                    }
-                    case DTLS13 -> {
-                        supportedVersions.add(TlsVersion.DTLS13.id());
-                        supportedVersions.add(TlsVersion.DTLS12.id());
-                    }
-                    default -> supportedVersions.add(chosenVersion.id());
+                for (var tlsVersion : context.config().versions()) {
+                    supportedVersions.add(tlsVersion.id());
                 }
 
                 if (context.hasExtension(TlsGREASE::isGrease)) {

@@ -1,7 +1,5 @@
 package it.auties.leap.tls.extension.implementation;
 
-import it.auties.leap.tls.context.TlsMode;
-import it.auties.leap.tls.context.TlsSource;
 import it.auties.leap.tls.extension.TlsExtension;
 import it.auties.leap.tls.extension.TlsExtensionDeserializer;
 import it.auties.leap.tls.version.TlsVersion;
@@ -13,16 +11,12 @@ import java.util.Optional;
 public final class EncryptThenMacExtension implements TlsExtension.Concrete {
     private static final EncryptThenMacExtension INSTANCE = new EncryptThenMacExtension();
 
-    private static final TlsExtensionDeserializer DECODER = new TlsExtensionDeserializer() {
-        @Override
-        public Optional<? extends Concrete> deserialize(ByteBuffer buffer, TlsSource source, TlsMode mode, int type) {
-            if (buffer.hasRemaining()) {
-                throw new IllegalArgumentException("Unexpected extension payload");
-            }
-
-            return Optional.of(EncryptThenMacExtension.instance());
+    private static final TlsExtensionDeserializer DECODER = (context, _, _, buffer) -> {
+        if (buffer.hasRemaining()) {
+            throw new IllegalArgumentException("Unexpected extension payload");
         }
 
+        return Optional.of(EncryptThenMacExtension.instance());
     };
 
     private EncryptThenMacExtension() {

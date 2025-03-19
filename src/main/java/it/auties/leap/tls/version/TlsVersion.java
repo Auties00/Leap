@@ -3,6 +3,7 @@ package it.auties.leap.tls.version;
 import it.auties.leap.socket.SocketProtocol;
 
 import java.util.Arrays;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.function.Function;
@@ -24,6 +25,8 @@ public enum TlsVersion {
             .collect(Collectors.toUnmodifiableMap(TlsVersion::specName, Function.identity()));
     private static final Map<Integer, TlsVersion> IDS =  Arrays.stream(values())
             .collect(Collectors.toUnmodifiableMap(version -> version.id().value(), Function.identity()));
+    private static final List<TlsVersion> TCP_RECOMMENDED = List.of(TLS12, TLS13);
+    private static final List<TlsVersion> UDP_RECOMMENDED = List.of(DTLS12, DTLS13);
 
     public static Optional<TlsVersion> of(String name) {
         return Optional.ofNullable(NAMES.get(name));
@@ -49,6 +52,13 @@ public enum TlsVersion {
         this.id = new TlsVersionId(id);
         this.specName = specName;
         this.protocol = protocol;
+    }
+
+    public static List<TlsVersion> recommended(SocketProtocol protocol) {
+        return switch (protocol) {
+            case TCP -> TCP_RECOMMENDED;
+            case UDP -> UDP_RECOMMENDED;
+        };
     }
 
     public TlsVersionId id() {

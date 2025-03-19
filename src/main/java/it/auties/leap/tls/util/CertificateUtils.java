@@ -16,7 +16,6 @@ import java.security.KeyStoreException;
 import java.security.cert.*;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Optional;
 import java.util.Set;
 
 public final class CertificateUtils {
@@ -26,7 +25,8 @@ public final class CertificateUtils {
     private static final int KU_SIGNATURE = 0;
     private static final int KU_KEY_ENCIPHERMENT = 2;
     private static final int KU_KEY_AGREEMENT = 4;
-    private static final String DEFAULT_STORE = System.getProperty("java.home") + File.separator + "lib" + File.separator + "security" + File.separator + "cacerts";
+    private static final String DEFAULT_KEY_STORE_PATH = System.getProperty("java.home") + File.separator + "lib" + File.separator + "security" + File.separator + "cacerts";
+    private static final KeyStore DEFAULT_KEY_STORE = loadDefaultKeyStore();
 
     public static X509Certificate validateChain(TlsContext context, TlsSource source, String expectedAlgorithm) {
         var certificateChain = switch (source) {
@@ -161,47 +161,26 @@ public final class CertificateUtils {
         }
     }
 
-    public static KeyStore getDefaultKeyStore() {
-        var storePropName = System.getProperty("javax.net.ssl.trustStore");
-        var storePropType = System.getProperty("javax.net.ssl.trustStoreType", KeyStore.getDefaultType());
-        var storePropProvider = System.getProperty("javax.net.ssl.trustStoreProvider");
-        var storePropPassword = System.getProperty("javax.net.ssl.trustStorePassword");
-        if(storePropName != null && !storePropName.equals("NONE")) {
-            var keyStore = getKeyStore(storePropName, storePropProvider, storePropType, storePropPassword);
-            if(keyStore.isPresent()) {
-                return keyStore.get();
-            }
-        }
-        return getKeyStore(DEFAULT_STORE, storePropProvider, storePropType, storePropPassword)
-                .orElseThrow(() -> new TlsException(""));
+    public static KeyStore defaultKeyStore() {
+        return DEFAULT_KEY_STORE;
     }
 
-    private static Optional<KeyStore> getKeyStore(String fileName, String storePropProvider, String storePropType, String storePropPassword) {
-        var file = new File(fileName);
+    private static KeyStore loadDefaultKeyStore() {
+        var file = new File(CertificateUtils.DEFAULT_KEY_STORE_PATH);
         if (!file.isFile() || !file.canRead()) {
-            return Optional.empty();
+            return null;
         }
 
-        return getKeyStore(storePropProvider, storePropType).flatMap(keyStore -> {
-            var password = storePropPassword == null ? null : storePropPassword.toCharArray();
-            try (var fis = new FileInputStream(file)) {
-                keyStore.load(fis, password);
-                return Optional.of(keyStore);
-            } catch (Throwable _) {
-                return Optional.empty();
-            }
-        });
-    }
-
-    private static Optional<KeyStore> getKeyStore(String storePropProvider, String storePropType) {
         try {
-            if (storePropProvider == null) {
-                return Optional.of(KeyStore.getInstance(storePropType));
+            var keyStore = KeyStore.getInstance(KeyStore.getDefaultType());
+            try (var fis = new FileInputStream(file)) {
+                keyStore.load(fis, null);
+                return keyStore;
+            } catch (Throwable _) {
+                return null;
             }
-
-            return Optional.of(KeyStore.getInstance(storePropType, storePropProvider));
-        }catch (GeneralSecurityException exception) {
-            return Optional.empty();
+        }catch (Throwable _) {
+            return null;
         }
     }
 }

@@ -1,6 +1,7 @@
 package it.auties.leap.tls.secret.implementation;
 
 import it.auties.leap.tls.context.TlsContext;
+import it.auties.leap.tls.exception.TlsException;
 import it.auties.leap.tls.secret.TlsPreMasterSecretGenerator;
 
 import javax.crypto.Cipher;
@@ -22,8 +23,10 @@ public final class RSAPreMasterSecretGenerator implements TlsPreMasterSecretGene
         try {
             var preMasterSecret = new byte[48];
             SecureRandom.getInstanceStrong().nextBytes(preMasterSecret);
-            preMasterSecret[0] = context.config().version().id().minor();
-            preMasterSecret[1] = context.config().version().id().major();
+            var version = context.negotiatedVersion()
+                    .orElseThrow(() -> new TlsException("No version was negotiated yet"));
+            preMasterSecret[0] = version.id().minor();
+            preMasterSecret[1] = version.id().major();
             context.setPreMasterSecret(preMasterSecret);
             var cipher = Cipher.getInstance("RSA/ECB/PKCS1Padding");
             cipher.init(Cipher.WRAP_MODE, context.remotePublicKey().orElseThrow());

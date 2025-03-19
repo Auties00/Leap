@@ -1,7 +1,8 @@
 package it.auties.leap.tls.extension.implementation;
 
-import it.auties.leap.tls.context.TlsMode;
+import it.auties.leap.tls.context.TlsContext;
 import it.auties.leap.tls.context.TlsSource;
+import it.auties.leap.tls.exception.TlsException;
 import it.auties.leap.tls.extension.TlsExtension.Concrete;
 import it.auties.leap.tls.extension.TlsExtensionDeserializer;
 import it.auties.leap.tls.version.TlsVersion;
@@ -18,8 +19,8 @@ import static it.auties.leap.tls.util.BufferUtils.writeBytesBigEndian8;
 public abstract sealed class NPNExtension {
     private static final TlsExtensionDeserializer DECODER = new TlsExtensionDeserializer() {
         @Override
-        public Optional<? extends Concrete> deserialize(ByteBuffer buffer, TlsSource source, TlsMode mode, int type) {
-            return switch (mode) {
+        public Optional<? extends Concrete> deserialize(TlsContext context, TlsSource source, int type, ByteBuffer buffer) {
+            return switch (context.selectedMode().orElse(null)) {
                 case CLIENT -> switch (source) {
                     case LOCAL -> deserializeClient(buffer);
                     case REMOTE -> deserializeServer(buffer);
@@ -28,6 +29,7 @@ public abstract sealed class NPNExtension {
                     case REMOTE -> deserializeClient(buffer);
                     case LOCAL -> deserializeServer(buffer);
                 };
+                case null -> throw new TlsException("No mode was selected yet");
             };
         }
 
@@ -47,7 +49,6 @@ public abstract sealed class NPNExtension {
 
             return Optional.of(Client.instance());
         }
-
     };
 
     private NPNExtension() {

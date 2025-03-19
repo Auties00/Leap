@@ -23,9 +23,17 @@ public sealed interface TlsCompression extends TlsCompressionHandler permits Def
         return new ReservedCompression(id, consumer);
     }
 
-    static List<TlsCompression> compressionValues() {
+    static List<TlsCompression> values() {
         final class Compressions {
             private static final List<TlsCompression> COMPRESSIONS = List.of(NoCompression.instance(), DeflateCompression.instance());
+        }
+
+        return Compressions.COMPRESSIONS;
+    }
+
+    static List<TlsCompression> recommended() {
+        final class Compressions {
+            private static final List<TlsCompression> COMPRESSIONS = List.of(NoCompression.instance());
         }
 
         return Compressions.COMPRESSIONS;

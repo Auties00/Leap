@@ -1,8 +1,6 @@
 package it.auties.leap.tls.extension.implementation;
 
 import it.auties.leap.tls.context.TlsContext;
-import it.auties.leap.tls.context.TlsMode;
-import it.auties.leap.tls.context.TlsSource;
 import it.auties.leap.tls.extension.TlsExtension;
 import it.auties.leap.tls.extension.TlsExtensionDeserializer;
 import it.auties.leap.tls.version.TlsVersion;
@@ -12,17 +10,14 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 
-import static it.auties.leap.tls.util.BufferUtils.*;
+import static it.auties.leap.tls.util.BufferUtils.INT16_LENGTH;
+import static it.auties.leap.tls.util.BufferUtils.readBigEndianInt8;
 
 public sealed abstract class PaddingExtension {
-    private static final TlsExtensionDeserializer DECODER = new TlsExtensionDeserializer() {
-        @Override
-        public Optional<? extends TlsExtension.Concrete> deserialize(ByteBuffer buffer, TlsSource source, TlsMode mode, int type) {
-            var padding = readBigEndianInt8(buffer);
-            var extension = new Concrete(padding);
-            return Optional.of(extension);
-        }
-
+    private static final TlsExtensionDeserializer DECODER = (context, _, _, buffer) -> {
+        var padding = readBigEndianInt8(buffer);
+        var extension = new Concrete(padding);
+        return Optional.of(extension);
     };
 
     public static final class Concrete extends PaddingExtension implements TlsExtension.Concrete {

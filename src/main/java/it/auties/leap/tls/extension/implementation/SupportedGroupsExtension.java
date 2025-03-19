@@ -1,8 +1,6 @@
 package it.auties.leap.tls.extension.implementation;
 
 import it.auties.leap.tls.context.TlsContext;
-import it.auties.leap.tls.context.TlsMode;
-import it.auties.leap.tls.context.TlsSource;
 import it.auties.leap.tls.extension.TlsExtension;
 import it.auties.leap.tls.extension.TlsExtensionDeserializer;
 import it.auties.leap.tls.group.TlsSupportedCurve;
@@ -19,19 +17,15 @@ import java.util.Optional;
 import static it.auties.leap.tls.util.BufferUtils.*;
 
 public abstract sealed class SupportedGroupsExtension {
-    private static final TlsExtensionDeserializer DECODER = new TlsExtensionDeserializer() {
-        @Override
-        public Optional<? extends Concrete> deserialize(ByteBuffer buffer, TlsSource source, TlsMode mode, int type) {
-            var groupsSize = readBigEndianInt16(buffer);
-            var groups = new ArrayList<Integer>(groupsSize);
-            for (var i = 0; i < groupsSize; i++) {
-                var groupId = readBigEndianInt16(buffer);
-                groups.add(groupId);
-            }
-            var extension = new SupportedGroupsExtension.Concrete(groups);
-            return Optional.of(extension);
+    private static final TlsExtensionDeserializer DECODER = (context, _, _, buffer) -> {
+        var groupsSize = readBigEndianInt16(buffer);
+        var groups = new ArrayList<Integer>(groupsSize);
+        for (var i = 0; i < groupsSize; i++) {
+            var groupId = readBigEndianInt16(buffer);
+            groups.add(groupId);
         }
-
+        var extension = new Concrete(groups);
+        return Optional.of(extension);
     };
 
     public static final class Concrete extends SupportedGroupsExtension implements TlsExtension.Concrete {

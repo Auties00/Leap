@@ -27,7 +27,7 @@ public interface TlsPreMasterSecretGenerator {
     }
 
     static TlsPreMasterSecretGenerator contextual() {
-        return NonePreMasterSecretGenerator.instance();
+        return ContextualPreMasterSecretGenerator.instance();
     }
 
     static TlsPreMasterSecretGenerator psk() {

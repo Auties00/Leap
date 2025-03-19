@@ -1,32 +1,29 @@
 package it.auties.leap.tls.extension.implementation;
 
 import it.auties.leap.tls.context.TlsContext;
-import it.auties.leap.tls.context.TlsMode;
-import it.auties.leap.tls.context.TlsSource;
 import it.auties.leap.tls.extension.TlsExtension;
 import it.auties.leap.tls.extension.TlsExtensionDeserializer;
 import it.auties.leap.tls.version.TlsVersion;
 
 import java.nio.ByteBuffer;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Objects;
+import java.util.Optional;
 
 import static it.auties.leap.tls.util.BufferUtils.*;
 
 public sealed abstract class KeyShareExtension {
-    private static final TlsExtensionDeserializer DECODER = new TlsExtensionDeserializer() {
-        @Override
-        public Optional<? extends TlsExtension.Concrete> deserialize(ByteBuffer buffer, TlsSource source, TlsMode mode, int type) {
-            var entries = new ArrayList<Entry>();
-            var entriesSize = buffer.remaining();
-            while (buffer.hasRemaining()) {
-                var namedGroupId = readBigEndianInt16(buffer);
-                var publicKey = readBytesBigEndian16(buffer);
-                entries.add(new Entry(namedGroupId, publicKey));
-            }
-            var extension = new Concrete(entries, entriesSize);
-            return Optional.of(extension);
+    private static final TlsExtensionDeserializer DECODER = (context, _, _, buffer) -> {
+        var entries = new ArrayList<Entry>();
+        var entriesSize = buffer.remaining();
+        while (buffer.hasRemaining()) {
+            var namedGroupId = readBigEndianInt16(buffer);
+            var publicKey = readBytesBigEndian16(buffer);
+            entries.add(new Entry(namedGroupId, publicKey));
         }
-
+        var extension = new Concrete(entries, entriesSize);
+        return Optional.of(extension);
     };
 
     public static final class Concrete extends KeyShareExtension implements TlsExtension.Concrete {

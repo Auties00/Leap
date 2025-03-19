@@ -3,13 +3,13 @@ package it.auties.leap.tls.secret.implementation;
 import it.auties.leap.tls.context.TlsContext;
 import it.auties.leap.tls.secret.TlsPreMasterSecretGenerator;
 
-public final class NonePreMasterSecretGenerator implements TlsPreMasterSecretGenerator {
-    private static final NonePreMasterSecretGenerator INSTANCE = new NonePreMasterSecretGenerator();
-    private NonePreMasterSecretGenerator() {
+public final class ContextualPreMasterSecretGenerator implements TlsPreMasterSecretGenerator {
+    private static final ContextualPreMasterSecretGenerator INSTANCE = new ContextualPreMasterSecretGenerator();
+    private ContextualPreMasterSecretGenerator() {
 
     }
 
-    public static NonePreMasterSecretGenerator instance() {
+    public static ContextualPreMasterSecretGenerator instance() {
         return INSTANCE;
     }
 

@@ -1,7 +1,5 @@
 package it.auties.leap.tls.extension.implementation;
 
-import it.auties.leap.tls.context.TlsMode;
-import it.auties.leap.tls.context.TlsSource;
 import it.auties.leap.tls.ec.TlsECPointFormat;
 import it.auties.leap.tls.extension.TlsExtension;
 import it.auties.leap.tls.extension.TlsExtensionDeserializer;
@@ -23,19 +21,15 @@ public record ECPointFormatExtension(
             TlsECPointFormat.ansix962CompressedPrime().id())
     );
 
-    private static final TlsExtensionDeserializer DECODER = new TlsExtensionDeserializer() {
-        @Override
-        public Optional<? extends Concrete> deserialize(ByteBuffer buffer, TlsSource source, TlsMode mode, int type) {
-            var ecPointFormatsSize = readBigEndianInt8(buffer);
-            var ecPointFormats = new ArrayList<Byte>();
-            for(var i = 0; i < ecPointFormatsSize; i++) {
-                var ecPointFormatId = readBigEndianInt8(buffer);
-                ecPointFormats.add(ecPointFormatId);
-            }
-            var extension = new ECPointFormatExtension(ecPointFormats);
-            return Optional.of(extension);
+    private static final TlsExtensionDeserializer DECODER = (context, _, _, buffer) -> {
+        var ecPointFormatsSize = readBigEndianInt8(buffer);
+        var ecPointFormats = new ArrayList<Byte>();
+        for(var i = 0; i < ecPointFormatsSize; i++) {
+            var ecPointFormatId = readBigEndianInt8(buffer);
+            ecPointFormats.add(ecPointFormatId);
         }
-
+        var extension = new ECPointFormatExtension(ecPointFormats);
+        return Optional.of(extension);
     };
 
     public static ECPointFormatExtension of(List<TlsECPointFormat> formats) {

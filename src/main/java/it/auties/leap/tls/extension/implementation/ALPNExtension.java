@@ -1,7 +1,5 @@
 package it.auties.leap.tls.extension.implementation;
 
-import it.auties.leap.tls.context.TlsMode;
-import it.auties.leap.tls.context.TlsSource;
 import it.auties.leap.tls.extension.TlsExtension;
 import it.auties.leap.tls.extension.TlsExtensionDeserializer;
 import it.auties.leap.tls.version.TlsVersion;
@@ -18,20 +16,16 @@ public record ALPNExtension(
       List<byte[]> supportedProtocols,
       int supportedProtocolsSize
 ) implements TlsExtension.Concrete {
-    private static final TlsExtensionDeserializer DECODER = new TlsExtensionDeserializer() {
-        @Override
-        public Optional<? extends Concrete> deserialize(ByteBuffer buffer, TlsSource source, TlsMode mode, int type) {
-            var supportedProtocolsSize = readBigEndianInt16(buffer);
-            var supportedProtocols = new ArrayList<byte[]>();
-            try(var _ = scopedRead(buffer, supportedProtocolsSize)) {
-                while (buffer.hasRemaining()) {
-                    supportedProtocols.add(readBytesBigEndian8(buffer));
-                }
+    private static final TlsExtensionDeserializer DECODER = (context, _, _, buffer) -> {
+        var supportedProtocolsSize = readBigEndianInt16(buffer);
+        var supportedProtocols = new ArrayList<byte[]>();
+        try(var _ = scopedRead(buffer, supportedProtocolsSize)) {
+            while (buffer.hasRemaining()) {
+                supportedProtocols.add(readBytesBigEndian8(buffer));
             }
-            var extension = new ALPNExtension(supportedProtocols, supportedProtocolsSize);
-            return Optional.of(extension);
         }
-
+        var extension = new ALPNExtension(supportedProtocols, supportedProtocolsSize);
+        return Optional.of(extension);
     };
 
     public static ALPNExtension of(List<String> supportedProtocols) {

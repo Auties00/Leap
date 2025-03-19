@@ -367,7 +367,7 @@ public final class TlsCipher {
     private static final TlsCipher TLS_SRP_SHA_WITH_3DES_EDE_CBC_SHA = new TlsCipher(0xC01A, TlsCipherEngineFactory.desEde(), TlsCipherModeFactory.cbc(), TlsKeyExchangeFactory.srp(), TlsAuthFactory.sha(), TlsHashFactory.sha1(), TLS_10_TO_12, false);
     private static final TlsCipher TLS_SRP_SHA_WITH_AES_128_CBC_SHA = new TlsCipher(0xC01D, TlsCipherEngineFactory.aes128(), TlsCipherModeFactory.cbc(), TlsKeyExchangeFactory.srp(), TlsAuthFactory.sha(), TlsHashFactory.sha1(), TLS_10_TO_12, false);
     private static final TlsCipher TLS_SRP_SHA_WITH_AES_256_CBC_SHA = new TlsCipher(0xC020, TlsCipherEngineFactory.aes256(), TlsCipherModeFactory.cbc(), TlsKeyExchangeFactory.srp(), TlsAuthFactory.sha(), TlsHashFactory.sha1(), TLS_10_TO_12, false);
-    private final static List<TlsCipher> SECURE = List.of(
+    private final static List<TlsCipher> RECOMMENDED = List.of(
             TLS_AES_128_CCM_8_SHA256,
             TLS_AES_128_CCM_SHA256,
             TLS_ECCPWD_WITH_AES_128_CCM_SHA256,
@@ -2131,11 +2131,11 @@ public final class TlsCipher {
         return TLS_SRP_SHA_WITH_AES_256_CBC_SHA;
     }
 
-    public static List<TlsCipher> secureCiphers() {
-        return SECURE;
+    public static List<TlsCipher> recommended() {
+        return RECOMMENDED;
     }
 
-    public static List<TlsCipher> cipherValues() {
+    public static List<TlsCipher> values() {
         return ALL;
     }
 

@@ -1,7 +1,5 @@
 package it.auties.leap.tls.extension.implementation;
 
-import it.auties.leap.tls.context.TlsMode;
-import it.auties.leap.tls.context.TlsSource;
 import it.auties.leap.tls.extension.TlsExtension;
 import it.auties.leap.tls.extension.TlsExtensionDeserializer;
 import it.auties.leap.tls.signature.TlsSignature;
@@ -22,19 +20,15 @@ import static it.auties.leap.tls.util.BufferUtils.*;
 public record SignatureAlgorithmsExtension(
         List<Integer> algorithms
 ) implements TlsExtension.Concrete {
-    private static final TlsExtensionDeserializer DECODER = new TlsExtensionDeserializer() {
-        @Override
-        public Optional<? extends Concrete> deserialize(ByteBuffer buffer, TlsSource source, TlsMode mode, int type) {
-            var algorithmsSize = readBigEndianInt16(buffer);
-            var algorithms = new ArrayList<Integer>(algorithmsSize);
-            for (var i = 0; i < algorithmsSize; i++) {
-                var algorithmId = readBigEndianInt16(buffer);
-                algorithms.add(algorithmId);
-            }
-            var extension = new SignatureAlgorithmsExtension(algorithms);
-            return Optional.of(extension);
+    private static final TlsExtensionDeserializer DECODER = (context, _, _, buffer) -> {
+        var algorithmsSize = readBigEndianInt16(buffer);
+        var algorithms = new ArrayList<Integer>(algorithmsSize);
+        for (var i = 0; i < algorithmsSize; i++) {
+            var algorithmId = readBigEndianInt16(buffer);
+            algorithms.add(algorithmId);
         }
-
+        var extension = new SignatureAlgorithmsExtension(algorithms);
+        return Optional.of(extension);
     };
 
     private static final SignatureAlgorithmsExtension RECOMMENDED = new SignatureAlgorithmsExtension(List.of(

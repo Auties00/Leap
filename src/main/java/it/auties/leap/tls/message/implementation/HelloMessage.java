@@ -1,7 +1,6 @@
 package it.auties.leap.tls.message.implementation;
 
 import it.auties.leap.tls.context.TlsContext;
-import it.auties.leap.tls.context.TlsMode;
 import it.auties.leap.tls.context.TlsSource;
 import it.auties.leap.tls.exception.TlsException;
 import it.auties.leap.tls.extension.TlsExtension;
@@ -86,7 +85,7 @@ public sealed abstract class HelloMessage extends TlsHandshakeMessage {
 
                     for(var configurable : context.config().extensions()) {
                         var extension = configurable.decoder()
-                                .deserialize(buffer, TlsSource.REMOTE, TlsMode.SERVER, extensionType);
+                                .deserialize(context, TlsSource.REMOTE, extensionType, buffer);
                         if (extension.isPresent()) {
                             extensions.add(extension.get());
                             break;
@@ -249,7 +248,7 @@ public sealed abstract class HelloMessage extends TlsHandshakeMessage {
                         }
 
                         try(var _ = scopedRead(buffer, extensionLength)) {
-                            extensionDecoder.deserialize(buffer, TlsSource.REMOTE, TlsMode.CLIENT, extensionType)
+                            extensionDecoder.deserialize(context, TlsSource.REMOTE, extensionType, buffer)
                                     .ifPresent(extensions::add);
                         }
                     }

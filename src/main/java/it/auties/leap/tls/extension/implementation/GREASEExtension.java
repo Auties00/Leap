@@ -1,7 +1,5 @@
 package it.auties.leap.tls.extension.implementation;
 
-import it.auties.leap.tls.context.TlsMode;
-import it.auties.leap.tls.context.TlsSource;
 import it.auties.leap.tls.extension.TlsExtension;
 import it.auties.leap.tls.extension.TlsExtensionDeserializer;
 import it.auties.leap.tls.version.TlsVersion;
@@ -30,30 +28,24 @@ public final class GREASEExtension implements TlsExtension.Concrete {
     private static final GREASEExtension GREASE_FA = new GREASEExtension(0xFAFA);
     private static final List<GREASEExtension> VALUES = List.of(GREASE_0A, GREASE_1A, GREASE_2A, GREASE_3A, GREASE_4A, GREASE_5A, GREASE_6A, GREASE_7A, GREASE_8A, GREASE_9A, GREASE_AA, GREASE_BA, GREASE_CA, GREASE_DA, GREASE_EA, GREASE_FA);
 
-    private static final TlsExtensionDeserializer DECODER = new TlsExtensionDeserializer() {
-        @Override
-        public Optional<? extends Concrete> deserialize(ByteBuffer buffer, TlsSource source, TlsMode mode, int type) {
-            return switch (type) {
-                case 0x0A0A -> Optional.of(GREASE_0A);
-                case 0x1A1A -> Optional.of(GREASE_1A);
-                case 0x2A2A -> Optional.of(GREASE_2A);
-                case 0x3A3A -> Optional.of(GREASE_3A);
-                case 0x4A4A -> Optional.of(GREASE_4A);
-                case 0x5A5A -> Optional.of(GREASE_5A);
-                case 0x6A6A -> Optional.of(GREASE_6A);
-                case 0x7A7A -> Optional.of(GREASE_7A);
-                case 0x8A8A -> Optional.of(GREASE_8A);
-                case 0x9A9A -> Optional.of(GREASE_9A);
-                case 0xAAAA -> Optional.of(GREASE_AA);
-                case 0xBABA -> Optional.of(GREASE_BA);
-                case 0xCACA -> Optional.of(GREASE_CA);
-                case 0xDADA -> Optional.of(GREASE_DA);
-                case 0xEAEA -> Optional.of(GREASE_EA);
-                case 0xFAFA -> Optional.of(GREASE_FA);
-                default -> Optional.empty();
-            };
-        }
-
+    private static final TlsExtensionDeserializer DECODER = (context, _, type, _) -> switch (type) {
+        case 0x0A0A -> Optional.of(GREASE_0A);
+        case 0x1A1A -> Optional.of(GREASE_1A);
+        case 0x2A2A -> Optional.of(GREASE_2A);
+        case 0x3A3A -> Optional.of(GREASE_3A);
+        case 0x4A4A -> Optional.of(GREASE_4A);
+        case 0x5A5A -> Optional.of(GREASE_5A);
+        case 0x6A6A -> Optional.of(GREASE_6A);
+        case 0x7A7A -> Optional.of(GREASE_7A);
+        case 0x8A8A -> Optional.of(GREASE_8A);
+        case 0x9A9A -> Optional.of(GREASE_9A);
+        case 0xAAAA -> Optional.of(GREASE_AA);
+        case 0xBABA -> Optional.of(GREASE_BA);
+        case 0xCACA -> Optional.of(GREASE_CA);
+        case 0xDADA -> Optional.of(GREASE_DA);
+        case 0xEAEA -> Optional.of(GREASE_EA);
+        case 0xFAFA -> Optional.of(GREASE_FA);
+        default -> Optional.empty();
     };
 
     private final int extensionType;

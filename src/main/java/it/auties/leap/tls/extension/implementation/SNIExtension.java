@@ -1,8 +1,6 @@
 package it.auties.leap.tls.extension.implementation;
 
 import it.auties.leap.tls.context.TlsContext;
-import it.auties.leap.tls.context.TlsMode;
-import it.auties.leap.tls.context.TlsSource;
 import it.auties.leap.tls.extension.TlsExtension;
 import it.auties.leap.tls.extension.TlsExtensionDeserializer;
 import it.auties.leap.tls.util.sun.IPAddressUtil;
@@ -17,24 +15,20 @@ import java.util.function.Predicate;
 import static it.auties.leap.tls.util.BufferUtils.*;
 
 public sealed abstract class SNIExtension {
-    private static final TlsExtensionDeserializer DECODER = new TlsExtensionDeserializer() {
-        @Override
-        public Optional<? extends TlsExtension.Concrete> deserialize(ByteBuffer buffer, TlsSource source, TlsMode mode, int type) {
-            var listLength = readBigEndianInt16(buffer);
-            if(listLength == 0) {
-                return Optional.empty();
-            }
-
-            try(var _ = scopedRead(buffer, listLength)) {
-                var nameTypeId = readBigEndianInt8(buffer);
-                var nameType = NameType.of(nameTypeId)
-                        .orElseThrow(() -> new IllegalArgumentException("Unknown name type: " + nameTypeId));
-                var nameBytes = readBytesBigEndian16(buffer);
-                var extension = new Concrete(nameBytes, nameType);
-                return Optional.of(extension);
-            }
+    private static final TlsExtensionDeserializer DECODER = (context, _, _, buffer) -> {
+        var listLength = readBigEndianInt16(buffer);
+        if(listLength == 0) {
+            return Optional.empty();
         }
 
+        try(var _ = scopedRead(buffer, listLength)) {
+            var nameTypeId = readBigEndianInt8(buffer);
+            var nameType = NameType.of(nameTypeId)
+                    .orElseThrow(() -> new IllegalArgumentException("Unknown name type: " + nameTypeId));
+            var nameBytes = readBytesBigEndian16(buffer);
+            var extension = new Concrete(nameBytes, nameType);
+            return Optional.of(extension);
+        }
     };
 
     public static final class Concrete extends SNIExtension implements TlsExtension.Concrete {

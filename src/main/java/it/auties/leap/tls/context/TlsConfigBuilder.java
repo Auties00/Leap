@@ -1,9 +1,11 @@
 package it.auties.leap.tls.context;
 
+import it.auties.leap.socket.SocketProtocol;
 import it.auties.leap.tls.certificate.TlsCertificatesHandler;
 import it.auties.leap.tls.certificate.TlsCertificatesProvider;
 import it.auties.leap.tls.cipher.TlsCipher;
 import it.auties.leap.tls.compression.TlsCompression;
+import it.auties.leap.tls.exception.TlsException;
 import it.auties.leap.tls.extension.TlsExtension;
 import it.auties.leap.tls.message.TlsMessageDeserializer;
 import it.auties.leap.tls.util.CertificateUtils;
@@ -14,7 +16,8 @@ import java.util.List;
 import java.util.Objects;
 
 public final class TlsConfigBuilder {
-    private TlsVersion version;
+    private final SocketProtocol protocol;
+    private List<TlsVersion> versions;
     private List<TlsCipher> ciphers;
     private List<TlsExtension> extensions;
     private List<TlsCompression> compressions;
@@ -23,12 +26,19 @@ public final class TlsConfigBuilder {
     private KeyStore trustedKeyStore;
     private TlsMessageDeserializer messageDeserializer;
 
-    TlsConfigBuilder() {
-
+    TlsConfigBuilder(SocketProtocol protocol) {
+        this.protocol = protocol;
     }
 
-    public TlsConfigBuilder version(TlsVersion version) {
-        this.version = version;
+    public TlsConfigBuilder versions(List<TlsVersion> versions) {
+        if(versions != null && !versions.isEmpty()) {
+            for (var version : versions) {
+                if (version.protocol() != protocol) {
+                    throw new TlsException("Protocol mismatch");
+                }
+            }
+        }
+        this.versions = versions;
         return this;
     }
 
@@ -68,15 +78,17 @@ public final class TlsConfigBuilder {
     }
 
     public TlsConfig build() {
+        var versions = this.versions != null && !this.versions.isEmpty() ? this.versions : TlsVersion.recommended(protocol);
         return new TlsConfig(
-                Objects.requireNonNull(this.version, "Missing tls version"),
-                Objects.requireNonNullElseGet(ciphers, TlsCipher::secureCiphers),
-                Objects.requireNonNull(extensions, "Missing tls extensions"),
-                Objects.requireNonNullElseGet(compressions, () -> List.of(TlsCompression.none())),
+                protocol,
+                versions,
+                Objects.requireNonNullElse(ciphers, TlsCipher.recommended()),
+                Objects.requireNonNullElse(extensions, TlsExtension.required(versions)),
+                Objects.requireNonNullElse(compressions, TlsCompression.recommended()),
                 certificatesProvider,
-                Objects.requireNonNullElseGet(certificatesHandler, TlsCertificatesHandler::validate),
-                Objects.requireNonNullElseGet(trustedKeyStore, CertificateUtils::getDefaultKeyStore),
-                Objects.requireNonNullElseGet(messageDeserializer, TlsMessageDeserializer::standard)
+                Objects.requireNonNullElse(certificatesHandler, TlsCertificatesHandler.validate()),
+                Objects.requireNonNullElse(trustedKeyStore, CertificateUtils.defaultKeyStore()),
+                Objects.requireNonNullElse(messageDeserializer, TlsMessageDeserializer.standard())
         );
     }
 }

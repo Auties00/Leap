@@ -1,7 +1,5 @@
 package it.auties.leap.tls.extension.implementation;
 
-import it.auties.leap.tls.context.TlsMode;
-import it.auties.leap.tls.context.TlsSource;
 import it.auties.leap.tls.extension.TlsExtension;
 import it.auties.leap.tls.extension.TlsExtensionDeserializer;
 import it.auties.leap.tls.psk.TlsPSKExchangeMode;
@@ -18,19 +16,15 @@ import static it.auties.leap.tls.util.BufferUtils.*;
 public record PSKExchangeModesExtension(
         List<Byte> modes
 ) implements TlsExtension.Concrete {
-    private static final TlsExtensionDeserializer DECODER = new TlsExtensionDeserializer(){
-        @Override
-        public Optional<? extends Concrete> deserialize(ByteBuffer buffer, TlsSource source, TlsMode mode, int type) {
-            var modesSize = readBigEndianInt16(buffer);
-            var modes = new ArrayList<Byte>(modesSize);
-            for(var i = 0; i < modesSize; i++) {
-                var modeId = readBigEndianInt8(buffer);
-                modes.add(modeId);
-            }
-            var extension = new PSKExchangeModesExtension(modes);
-            return Optional.of(extension);
+    private static final TlsExtensionDeserializer DECODER = (context, _, _, buffer) -> {
+        var modesSize = readBigEndianInt16(buffer);
+        var modes = new ArrayList<Byte>(modesSize);
+        for(var i = 0; i < modesSize; i++) {
+            var modeId = readBigEndianInt8(buffer);
+            modes.add(modeId);
         }
-
+        var extension = new PSKExchangeModesExtension(modes);
+        return Optional.of(extension);
     };
 
     public static PSKExchangeModesExtension of(List<TlsPSKExchangeMode> modes) {
