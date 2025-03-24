@@ -22,7 +22,7 @@ public final class RSAAuth implements TlsAuth {
     }
 
     @Override
-    public X509Certificate validate(List<X509Certificate> certificates, TlsSource certificatesSource, TlsContext context) {
-        return CertificateUtils.validateChain(context, certificatesSource, "RSA");
+    public X509Certificate validate(TlsContext context, TlsSource certificatesSource, List<X509Certificate> certificates) {
+        return CertificateUtils.validateChain(certificates, context.remoteAddress().orElse(null), context.trustedKeyStore(), "RSA");
     }
 }

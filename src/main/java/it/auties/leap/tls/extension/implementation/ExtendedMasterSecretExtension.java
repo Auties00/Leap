@@ -10,7 +10,7 @@ import java.util.List;
 import java.util.Optional;
 
 public final class ExtendedMasterSecretExtension {
-    private static final TlsExtensionDeserializer DECODER = (context, _, _, buffer) -> {
+    private static final TlsExtensionDeserializer DECODER = (_, _, _, buffer) -> {
         if(buffer.hasRemaining()) {
             throw new IllegalArgumentException("Unexpected extension payload");
         }
@@ -84,7 +84,7 @@ public final class ExtendedMasterSecretExtension {
 
         @Override
         public Optional<? extends Concrete> newInstance(TlsContext context) {
-            context.enableExtendedMasterSecret();
+            context.setExtendedMasterSecret(true);
             return Optional.of(ExtendedMasterSecretExtension.Concrete.instance());
         }
 

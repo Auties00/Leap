@@ -50,5 +50,10 @@ public sealed abstract class HelloDoneMessage extends TlsHandshakeMessage {
         public int handshakePayloadLength() {
             return 0;
         }
+
+        @Override
+        public void validateAndUpdate(TlsContext context) {
+            
+        }
     }
 }

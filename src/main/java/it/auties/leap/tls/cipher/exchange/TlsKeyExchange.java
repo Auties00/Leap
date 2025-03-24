@@ -13,6 +13,7 @@ public interface TlsKeyExchange {
     TlsPreMasterSecretGenerator preMasterSecretGenerator();
     void serialize(ByteBuffer buffer);
     int length();
+
     default void acceptsOrThrow(X509Certificate certificate, TlsContext context) {
         var mode = context.selectedMode()
                 .orElseThrow(() -> new TlsException("No mode was selected yet"));

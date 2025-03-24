@@ -44,6 +44,13 @@ public final class ApplicationDataMessage extends TlsMessage {
     }
 
     @Override
+    public void validateAndUpdate(TlsContext context) {
+        if(source == TlsSource.REMOTE) {
+            context.addMessage(message);
+        }
+    }
+
+    @Override
     public int messagePayloadLength() {
         return message.remaining();
     }
@@ -53,9 +60,5 @@ public final class ApplicationDataMessage extends TlsMessage {
         return "ApplicationDataMessage[" +
                 "tlsVersion=" + version +
                 ']';
-    }
-
-    public ByteBuffer message() {
-        return message;
     }
 }

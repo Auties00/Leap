@@ -1,6 +1,7 @@
 package it.auties.leap.http.config;
 
 import it.auties.leap.http.HttpVersion;
+import it.auties.leap.socket.SocketProtocol;
 import it.auties.leap.tls.context.TlsConfig;
 import it.auties.leap.tls.cipher.TlsCipher;
 import it.auties.leap.tls.compression.TlsCompression;
@@ -70,8 +71,8 @@ public final class HttpConfigBuilder {
         var compressions = List.of(
                 TlsCompression.none()
         );
-        DEFAULT_TLS_CONFIG = TlsConfig.newBuilder()
-                .version(TlsVersion.TLS12)
+        DEFAULT_TLS_CONFIG = TlsConfig.newBuilder(SocketProtocol.TCP)
+                .versions(List.of(TlsVersion.TLS12))
                 .ciphers(ciphers)
                 .extensions(extensions)
                 .compressions(compressions)

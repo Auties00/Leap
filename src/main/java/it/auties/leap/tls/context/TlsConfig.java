@@ -27,18 +27,9 @@ public final class TlsConfig {
     private final TlsCertificatesHandler certificatesHandler;
     private final KeyStore trustedKeyStore;
     private final TlsMessageDeserializer messageDeserializer;
+    private final TlsContextUpdateHandler contextUpdateHandler;
 
-    TlsConfig(
-            SocketProtocol protocol,
-            List<TlsVersion> versions,
-            List<TlsCipher> ciphers,
-            List<TlsExtension> extensions,
-            List<TlsCompression> compressions,
-            TlsCertificatesProvider certificatesProvider,
-            TlsCertificatesHandler certificatesHandler,
-            KeyStore trustedKeyStore,
-            TlsMessageDeserializer messageDeserializer
-    ) {
+    TlsConfig(SocketProtocol protocol, List<TlsVersion> versions, List<TlsCipher> ciphers, List<TlsExtension> extensions, List<TlsCompression> compressions, TlsCertificatesProvider certificatesProvider, TlsCertificatesHandler certificatesHandler, KeyStore trustedKeyStore, TlsMessageDeserializer messageDeserializer, TlsContextUpdateHandler contextUpdateHandler) {
         this.protocol = protocol;
         this.versions = versions;
         this.ciphers = ciphers;
@@ -48,6 +39,7 @@ public final class TlsConfig {
         this.certificatesHandler = certificatesHandler;
         this.trustedKeyStore = trustedKeyStore;
         this.messageDeserializer = messageDeserializer;
+        this.contextUpdateHandler = contextUpdateHandler;
     }
 
     public SocketProtocol protocol() {
@@ -86,23 +78,17 @@ public final class TlsConfig {
         return messageDeserializer;
     }
 
+    public TlsContextUpdateHandler contextUpdateHandler() {
+        return contextUpdateHandler;
+    }
+
     public TlsConfig withVersions(List<TlsVersion> versions) {
         var checkedVersions = getCheckProtocol(versions);
-        return new TlsConfig(
-                checkedVersions.getFirst().protocol(),
-                checkedVersions,
-                this.ciphers,
-                this.extensions,
-                this.compressions,
-                this.certificatesProvider,
-                this.certificatesHandler,
-                this.trustedKeyStore,
-                this.messageDeserializer
-        );
+        return new TlsConfig(checkedVersions.getFirst().protocol(), checkedVersions, this.ciphers, this.extensions, this.compressions, this.certificatesProvider, this.certificatesHandler, this.trustedKeyStore, this.messageDeserializer, this.contextUpdateHandler);
     }
 
     private List<TlsVersion> getCheckProtocol(List<TlsVersion> versions) {
-        if(versions == null || versions.isEmpty()) {
+        if (versions == null || versions.isEmpty()) {
             return TlsVersion.recommended(protocol);
         }
 
@@ -116,101 +102,35 @@ public final class TlsConfig {
     }
 
     public TlsConfig withCiphers(List<TlsCipher> ciphers) {
-        return new TlsConfig(
-                protocol,
-                this.versions,
-                Objects.requireNonNullElse(ciphers, TlsCipher.recommended()),
-                this.extensions,
-                this.compressions,
-                this.certificatesProvider,
-                this.certificatesHandler,
-                this.trustedKeyStore,
-                this.messageDeserializer
-        );
+        return new TlsConfig(protocol, this.versions, Objects.requireNonNullElse(ciphers, TlsCipher.recommended()), this.extensions, this.compressions, this.certificatesProvider, this.certificatesHandler, this.trustedKeyStore, this.messageDeserializer, this.contextUpdateHandler);
     }
 
     public TlsConfig withExtensions(List<TlsExtension> extensions) {
-        return new TlsConfig(
-                protocol,
-                this.versions,
-                this.ciphers,
-                Objects.requireNonNullElse(extensions, TlsExtension.required(versions)),
-                this.compressions,
-                this.certificatesProvider,
-                this.certificatesHandler,
-                this.trustedKeyStore,
-                this.messageDeserializer
-        );
+        return new TlsConfig(protocol, this.versions, this.ciphers, Objects.requireNonNullElse(extensions, TlsExtension.required(versions)), this.compressions, this.certificatesProvider, this.certificatesHandler, this.trustedKeyStore, this.messageDeserializer, this.contextUpdateHandler);
     }
 
     public TlsConfig withCompressions(List<TlsCompression> compressions) {
-        return new TlsConfig(
-                protocol,
-                this.versions,
-                this.ciphers,
-                this.extensions,
-                Objects.requireNonNullElse(compressions, TlsCompression.recommended()),
-                this.certificatesProvider,
-                this.certificatesHandler,
-                this.trustedKeyStore,
-                this.messageDeserializer
-        );
+        return new TlsConfig(protocol, this.versions, this.ciphers, this.extensions, Objects.requireNonNullElse(compressions, TlsCompression.recommended()), this.certificatesProvider, this.certificatesHandler, this.trustedKeyStore, this.messageDeserializer, this.contextUpdateHandler);
     }
 
     public TlsConfig withCertificatesProvider(TlsCertificatesProvider certificatesProvider) {
-        return new TlsConfig(
-                protocol,
-                this.versions,
-                this.ciphers,
-                this.extensions,
-                this.compressions,
-                certificatesProvider,
-                this.certificatesHandler,
-                this.trustedKeyStore,
-                this.messageDeserializer
-        );
+        return new TlsConfig(protocol, this.versions, this.ciphers, this.extensions, this.compressions, certificatesProvider, this.certificatesHandler, this.trustedKeyStore, this.messageDeserializer, this.contextUpdateHandler);
     }
 
     public TlsConfig withCertificatesHandler(TlsCertificatesHandler certificatesHandler) {
-        return new TlsConfig(
-                protocol,
-                this.versions,
-                this.ciphers,
-                this.extensions,
-                this.compressions,
-                this.certificatesProvider,
-                Objects.requireNonNullElse(certificatesHandler, TlsCertificatesHandler.validate()),
-                this.trustedKeyStore,
-                this.messageDeserializer
-        );
+        return new TlsConfig(protocol, this.versions, this.ciphers, this.extensions, this.compressions, this.certificatesProvider, Objects.requireNonNullElse(certificatesHandler, TlsCertificatesHandler.validate()), this.trustedKeyStore, this.messageDeserializer, this.contextUpdateHandler);
     }
 
     public TlsConfig withTrustedKeyStore(KeyStore trustedKeyStore) {
-        return new TlsConfig(
-                protocol,
-                this.versions,
-                this.ciphers,
-                this.extensions,
-                this.compressions,
-                this.certificatesProvider,
-                this.certificatesHandler,
-                Objects.requireNonNullElse(trustedKeyStore, CertificateUtils.defaultKeyStore()),
-                this.messageDeserializer
-        );
+        return new TlsConfig(protocol, this.versions, this.ciphers, this.extensions, this.compressions, this.certificatesProvider, this.certificatesHandler, Objects.requireNonNullElse(trustedKeyStore, CertificateUtils.defaultKeyStore()), this.messageDeserializer, this.contextUpdateHandler);
     }
 
     public TlsConfig withMessageDeserializer(TlsMessageDeserializer messageDeserializer) {
-        return new TlsConfig(
-                protocol,
-                this.versions,
-                this.ciphers,
-                this.extensions,
-                this.compressions,
-                this.certificatesProvider,
-                this.certificatesHandler,
-                this.trustedKeyStore,
-                Objects.requireNonNullElse(messageDeserializer, TlsMessageDeserializer.standard())
-        );
+        return new TlsConfig(protocol, this.versions, this.ciphers, this.extensions, this.compressions, this.certificatesProvider, this.certificatesHandler, this.trustedKeyStore, Objects.requireNonNullElse(messageDeserializer, TlsMessageDeserializer.standard()), this.contextUpdateHandler);
+    }
+
+    public TlsConfig withContextUpdateHandler(TlsContextUpdateHandler contextUpdateHandler) {
+        return new TlsConfig(protocol, this.versions, this.ciphers, this.extensions, this.compressions, this.certificatesProvider, this.certificatesHandler, this.trustedKeyStore, messageDeserializer, Objects.requireNonNullElse(contextUpdateHandler, TlsContextUpdateHandler.standard()));
     }
 
     public static TlsConfigBuilder newBuilder(SocketProtocol protocol) {

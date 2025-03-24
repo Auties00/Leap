@@ -20,7 +20,7 @@ import static it.auties.leap.tls.util.BufferUtils.*;
 public record SignatureAlgorithmsExtension(
         List<Integer> algorithms
 ) implements TlsExtension.Concrete {
-    private static final TlsExtensionDeserializer DECODER = (context, _, _, buffer) -> {
+    private static final TlsExtensionDeserializer DECODER = (_, _, _, buffer) -> {
         var algorithmsSize = readBigEndianInt16(buffer);
         var algorithms = new ArrayList<Integer>(algorithmsSize);
         for (var i = 0; i < algorithmsSize; i++) {

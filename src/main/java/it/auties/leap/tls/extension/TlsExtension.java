@@ -1,6 +1,7 @@
 package it.auties.leap.tls.extension;
 
 import it.auties.leap.tls.context.TlsContext;
+import it.auties.leap.tls.context.TlsSource;
 import it.auties.leap.tls.extension.implementation.*;
 import it.auties.leap.tls.ec.TlsECPointFormat;
 import it.auties.leap.tls.psk.TlsPSKExchangeMode;
@@ -239,6 +240,8 @@ public sealed interface TlsExtension {
     TlsExtensionDeserializer decoder();
 
     non-sealed interface Concrete extends TlsExtension {
+        void apply(TlsContext context, TlsSource source);
+
         default void serializeExtension(ByteBuffer buffer) {
             writeBigEndianInt16(buffer, extensionType());
             writeBigEndianInt16(buffer, extensionPayloadLength());

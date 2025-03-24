@@ -40,8 +40,8 @@ public class ECDHE_CBC_SocketTest {
         var compressions = List.of(
                 TlsCompression.none()
         );
-        var tlsConfig = TlsConfig.newBuilder()
-                .version(TlsVersion.TLS12)
+        var tlsConfig = TlsConfig.newBuilder(SocketProtocol.TCP)
+                .versions(List.of(TlsVersion.TLS12))
                 .ciphers(ciphers)
                 .extensions(extensions)
                 .compressions(compressions)

@@ -7,7 +7,6 @@ import it.auties.leap.tls.context.TlsSource;
 
 import java.security.cert.X509Certificate;
 import java.util.List;
-import java.util.Optional;
 
 public final class PSKAuth implements TlsAuth {
     private static final TlsAuth INSTANCE = new PSKAuth();
@@ -22,7 +21,7 @@ public final class PSKAuth implements TlsAuth {
     }
 
     @Override
-    public X509Certificate validate(List<X509Certificate> certificates, TlsSource certificatesSource, TlsContext context) {
+    public X509Certificate validate(TlsContext context, TlsSource certificatesSource, List<X509Certificate> certificates) {
         throw new UnsupportedOperationException();
     }
 }

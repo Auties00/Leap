@@ -11,7 +11,7 @@ import java.util.Optional;
 public final class EncryptThenMacExtension implements TlsExtension.Concrete {
     private static final EncryptThenMacExtension INSTANCE = new EncryptThenMacExtension();
 
-    private static final TlsExtensionDeserializer DECODER = (context, _, _, buffer) -> {
+    private static final TlsExtensionDeserializer DECODER = (_, _, _, buffer) -> {
         if (buffer.hasRemaining()) {
             throw new IllegalArgumentException("Unexpected extension payload");
         }

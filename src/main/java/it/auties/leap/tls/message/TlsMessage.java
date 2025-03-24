@@ -1,5 +1,6 @@
 package it.auties.leap.tls.message;
 
+import it.auties.leap.tls.context.TlsContext;
 import it.auties.leap.tls.context.TlsSource;
 import it.auties.leap.tls.message.implementation.AlertMessage;
 import it.auties.leap.tls.message.implementation.ApplicationDataMessage;
@@ -31,6 +32,7 @@ public sealed abstract class TlsMessage
     public abstract TlsMessageContentType contentType();
     public abstract void serializeMessagePayload(ByteBuffer buffer);
     public abstract int messagePayloadLength();
+    public abstract void validateAndUpdate(TlsContext context);
 
     public void serializeMessageWithRecord(ByteBuffer payload) {
         var messagePayloadLength = messagePayloadLength();

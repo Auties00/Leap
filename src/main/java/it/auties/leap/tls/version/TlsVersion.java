@@ -72,4 +72,12 @@ public enum TlsVersion {
     public SocketProtocol protocol() {
         return protocol;
     }
+
+    public TlsVersion toLegacyVersion() {
+        return switch (this) {
+            case TLS13 -> TLS12;
+            case DTLS13 -> DTLS12;
+            default -> this;
+        };
+    }
 }

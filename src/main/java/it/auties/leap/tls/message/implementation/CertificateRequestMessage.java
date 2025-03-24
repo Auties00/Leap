@@ -68,18 +68,6 @@ public sealed abstract class CertificateRequestMessage extends TlsHandshakeMessa
             return ID;
         }
 
-        public List<Byte> types() {
-            return types;
-        }
-
-        public List<Integer> algorithms() {
-            return algorithms;
-        }
-
-        public List<String> authorities() {
-            return authorities;
-        }
-
         @Override
         public TlsMessageContentType contentType() {
             return TlsMessageContentType.HANDSHAKE;
@@ -88,6 +76,11 @@ public sealed abstract class CertificateRequestMessage extends TlsHandshakeMessa
         @Override
         public void serializeHandshakePayload(ByteBuffer buffer) {
 
+        }
+
+        @Override
+        public void validateAndUpdate(TlsContext context) {
+            
         }
 
         @Override

@@ -14,10 +14,11 @@ import it.auties.leap.tls.message.TlsMessage;
 import it.auties.leap.tls.message.TlsMessageContentType;
 import it.auties.leap.tls.message.TlsMessageMetadata;
 import it.auties.leap.tls.message.implementation.*;
+import it.auties.leap.tls.version.TlsVersion;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
-import java.util.HexFormat;
+import java.util.HashSet;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 
@@ -48,14 +49,16 @@ public class AsyncSecureSocketApplicationLayer extends AsyncSocketApplicationLay
             this.tlsContext = new TlsContext(address, tlsConfig);
             this.tlsBuffer = ByteBuffer.allocate(FRAGMENT_LENGTH);
             return sendClientHello()
-                    .thenCompose(_ -> continueHandshake());
+                    .thenCompose(_ -> readUntilServerHello())
+                    .thenCompose(this::continueHandshake);
         } catch (Throwable throwable) {
             return CompletableFuture.failedFuture(throwable);
         }
     }
 
-    private CompletionStage<Void> continueHandshake() {
-        return switch (tlsConfig.versions()) {
+    private CompletionStage<Void> continueHandshake(TlsVersion version) {
+        System.err.println("Using " + version);
+        return switch (version) {
             case TLS12, TLS11 -> readUntilServerDone()
                     .thenCompose(_ -> sendClientCertificate())
                     .thenCompose(_ -> sendClientKeyExchange())
@@ -71,21 +74,31 @@ public class AsyncSecureSocketApplicationLayer extends AsyncSocketApplicationLay
 
     private CompletableFuture<Void> sendClientHello() {
         var handshakeBuffer = writeBuffer();
+        var legacyVersion = tlsContext.negotiableVersions()
+                .stream()
+                .reduce((first, second) -> first.id().value() > second.id().value() ? first : second)
+                .orElseThrow(() -> new TlsException("No version was set in the tls config"))
+                .toLegacyVersion();
+        var versions = new HashSet<>(tlsConfig.versions());
+        var availableCiphers = tlsConfig.ciphers()
+                .stream()
+                .filter(cipher -> cipher.versions().stream().anyMatch(versions::contains))
+                .toList();
+        var availableCiphersIds = availableCiphers.stream()
+                .map(TlsCipher::id)
+                .toList();
+        var availableCompressions = tlsConfig.compressions();
+        var availableCompressionsIds = availableCompressions.stream()
+                .map(TlsCompression::id)
+                .toList();
         var helloMessage = new HelloMessage.Client(
-                tlsContext.config().versions(),
+                legacyVersion,
                 TlsSource.LOCAL,
                 tlsContext.localRandomData(),
                 tlsContext.localSessionId(),
                 tlsContext.localCookie().orElse(null),
-                tlsConfig.ciphers()
-                        .stream()
-                        .filter(cipher -> cipher.versions().contains(tlsContext.config().versions()))
-                        .map(TlsCipher::id)
-                        .toList(),
-                tlsConfig.compressions()
-                        .stream()
-                        .map(TlsCompression::id)
-                        .toList(),
+                availableCiphersIds,
+                availableCompressionsIds,
                 tlsContext.processedExtensions(),
                 tlsContext.processedExtensionsLength()
         );
@@ -93,13 +106,12 @@ public class AsyncSecureSocketApplicationLayer extends AsyncSocketApplicationLay
         helloMessage.serializeMessageWithRecord(helloBuffer);
         tlsContext.updateHandshakeHash(helloBuffer, TlsMessage.messageRecordHeaderLength());
         tlsContext.digestHandshakeHash();
-        System.err.println(HexFormat.of().formatHex(handshakeBuffer.array(), handshakeBuffer.position(), handshakeBuffer.limit()));
         return write(handshakeBuffer)
-                .thenCompose(_ -> handleOrClose(helloMessage));
+                .thenAccept(_ -> helloMessage.validateAndUpdate(tlsContext));
     }
 
     private CompletableFuture<Void> sendClientCertificate() {
-        if (!tlsContext.hasServerCertificateRequest()) {
+        if (true) {
             return CompletableFuture.completedFuture(null);
         }
 
@@ -110,8 +122,10 @@ public class AsyncSecureSocketApplicationLayer extends AsyncSocketApplicationLay
             return CompletableFuture.failedFuture(new IllegalStateException("Cannot provide certificates to the server: no certificates provider was specified in the TLS engine"));
         }
 
+        var version = tlsContext.negotiatedVersion()
+                .orElseThrow(() -> new TlsException("No version was negotiated yet"));
         var certificatesMessage = new CertificateMessage.Client(
-                tlsConfig.versions(),
+                version,
                 TlsSource.LOCAL,
                 certificatesProvider.get(tlsContext)
         );
@@ -124,8 +138,10 @@ public class AsyncSecureSocketApplicationLayer extends AsyncSocketApplicationLay
     }
 
     private CompletableFuture<Void> sendClientKeyExchange() {
+        var version = tlsContext.negotiatedVersion()
+                .orElseThrow(() -> new TlsException("No version was negotiated yet"));
         var keyExchangeMessage = new KeyExchangeMessage.Client(
-                tlsConfig.versions(),
+                version,
                 TlsSource.LOCAL,
                 tlsContext.localKeyExchange().orElseThrow()
         );
@@ -142,8 +158,10 @@ public class AsyncSecureSocketApplicationLayer extends AsyncSocketApplicationLay
             return CompletableFuture.completedFuture(null);
         }
 
+        var version = tlsContext.negotiatedVersion()
+                .orElseThrow(() -> new TlsException("No version was negotiated yet"));
         var clientVerifyCertificate = new CertificateVerifyMessage.Client(
-                tlsConfig.versions(),
+                version,
                 TlsSource.LOCAL
         );
         var clientVerifyBuffer = writeBuffer();
@@ -155,8 +173,10 @@ public class AsyncSecureSocketApplicationLayer extends AsyncSocketApplicationLay
     }
 
     private CompletableFuture<Void> sendClientChangeCipherAndFinish() {
+        var version = tlsContext.negotiatedVersion()
+                .orElseThrow(() -> new TlsException("No version was negotiated yet"));
         var changeCipherSpec = new ChangeCipherSpecMessage.Client(
-                tlsConfig.versions(),
+                version,
                 TlsSource.LOCAL
         );
         var changeCipherSpecBuffer = writeBuffer();
@@ -165,7 +185,7 @@ public class AsyncSecureSocketApplicationLayer extends AsyncSocketApplicationLay
             var handshakeHash = tlsContext.getHandshakeVerificationData(TlsSource.LOCAL)
                     .orElseThrow(() -> new TlsException("Missing handshake"));
             var finishedMessage = new FinishedMessage.Client(
-                    tlsConfig.versions(),
+                    version,
                     TlsSource.LOCAL,
                     handshakeHash
             );
@@ -199,6 +219,14 @@ public class AsyncSecureSocketApplicationLayer extends AsyncSocketApplicationLay
                     .thenCompose(_ -> handleOrClose(changeCipherSpec, finishedMessage));
         });
     }
+
+    private CompletableFuture<TlsVersion> readUntilServerHello() {
+        return tlsContext.negotiatedVersion()
+                .map(CompletableFuture::completedFuture)
+                .orElseGet(() -> readAndHandleMessage()
+                        .thenCompose(_ -> readUntilServerHello()));
+    }
+
 
     private CompletableFuture<Void> readUntilServerDone() {
         if (tlsContext.isRemoteHelloDone()) {
@@ -277,7 +305,6 @@ public class AsyncSecureSocketApplicationLayer extends AsyncSocketApplicationLay
     private CompletableFuture<Void> decodeMessage(TlsMessageMetadata metadata) {
         var buffer = readBuffer(metadata.messageLength());
         return transportLayer.readFully(buffer).thenCompose(_ -> {
-            System.err.println(HexFormat.of().formatHex(buffer.array(), buffer.position(), buffer.limit()));
             if (tlsContext.isRemoteCipherEnabled()) {
                 var plaintext = tlsContext.remoteCipher()
                         .orElseThrow(() -> new TlsException("Cannot decrypt a message before enabling the remote cipher"))
@@ -301,12 +328,8 @@ public class AsyncSecureSocketApplicationLayer extends AsyncSocketApplicationLay
     private CompletableFuture<Void> handleOrClose(TlsMessage... messages) {
         try {
             for(var message : messages) {
-                var result = tlsContext.update(message);
-                if (!result) {
-                    closeSilently();
-                    break;
-                }
-
+                System.out.println("Processing: " + message.getClass().getName());
+               message.validateAndUpdate(tlsContext);
                 if (!tlsContext.isHandshakeComplete()) {
                     tlsContext.digestHandshakeHash();
                 }
@@ -344,8 +367,10 @@ public class AsyncSecureSocketApplicationLayer extends AsyncSocketApplicationLay
             var leftPadding = tlsContext.localCipher()
                     .orElseThrow(() -> new InternalError("Missing negotiated cipher"))
                     .ivLength();
+            var version = tlsContext.negotiatedVersion()
+                    .orElseThrow(() -> new TlsException("No version was negotiated yet"));
             var dataMessage = new ApplicationDataMessage(
-                    tlsConfig.versions(),
+                    version,
                     TlsSource.LOCAL,
                     buffer
             );
@@ -355,7 +380,7 @@ public class AsyncSecureSocketApplicationLayer extends AsyncSocketApplicationLay
                     .orElseThrow(() -> new TlsException("Cannot encrypt a message before enabling the local cipher"))
                     .encrypt(tlsContext, dataMessage, encrypted);
             TlsMessage.putRecord(
-                    tlsConfig.versions(),
+                    version,
                     TlsMessageContentType.APPLICATION_DATA,
                     encrypted
             );
@@ -373,11 +398,13 @@ public class AsyncSecureSocketApplicationLayer extends AsyncSocketApplicationLay
         }
 
         try {
+            var version = tlsContext.negotiatedVersion()
+                    .orElseThrow(() -> new TlsException("No version was negotiated yet"));
             var leftPadding = tlsContext.localCipher()
                     .orElseThrow(() -> new InternalError("Missing negotiated cipher"))
                     .ivLength();
             var alertMessage = new AlertMessage(
-                    tlsConfig.versions(),
+                    version,
                     TlsSource.LOCAL,
                     AlertMessage.AlertLevel.WARNING,
                     AlertMessage.AlertType.CLOSE_NOTIFY
@@ -388,7 +415,7 @@ public class AsyncSecureSocketApplicationLayer extends AsyncSocketApplicationLay
                     .orElseThrow(() -> new TlsException("Cannot encrypt a message before enabling the local cipher"))
                     .encrypt(tlsContext, alertMessage, encrypted);
             TlsMessage.putRecord(
-                    tlsConfig.versions(),
+                    version,
                     TlsMessageContentType.ALERT,
                     encrypted
             );
@@ -400,12 +427,6 @@ public class AsyncSecureSocketApplicationLayer extends AsyncSocketApplicationLay
             // Close the socket
             transportLayer.close();
         }
-    }
-
-    private ByteBuffer plainBuffer() {
-        return tlsBuffer.duplicate()
-                .position(0)
-                .limit(tlsBuffer.capacity());
     }
 
     private ByteBuffer writeBuffer() {

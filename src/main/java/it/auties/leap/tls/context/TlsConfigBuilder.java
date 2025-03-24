@@ -25,6 +25,7 @@ public final class TlsConfigBuilder {
     private TlsCertificatesHandler certificatesHandler;
     private KeyStore trustedKeyStore;
     private TlsMessageDeserializer messageDeserializer;
+    private TlsContextUpdateHandler contextUpdateHandler;
 
     TlsConfigBuilder(SocketProtocol protocol) {
         this.protocol = protocol;
@@ -77,6 +78,11 @@ public final class TlsConfigBuilder {
         return this;
     }
 
+    public TlsConfigBuilder contextUpdateHandler(TlsContextUpdateHandler contextUpdateHandler) {
+        this.contextUpdateHandler = contextUpdateHandler;
+        return this;
+    }
+
     public TlsConfig build() {
         var versions = this.versions != null && !this.versions.isEmpty() ? this.versions : TlsVersion.recommended(protocol);
         return new TlsConfig(
@@ -88,7 +94,8 @@ public final class TlsConfigBuilder {
                 certificatesProvider,
                 Objects.requireNonNullElse(certificatesHandler, TlsCertificatesHandler.validate()),
                 Objects.requireNonNullElse(trustedKeyStore, CertificateUtils.defaultKeyStore()),
-                Objects.requireNonNullElse(messageDeserializer, TlsMessageDeserializer.standard())
+                Objects.requireNonNullElse(messageDeserializer, TlsMessageDeserializer.standard()),
+                Objects.requireNonNullElse(contextUpdateHandler, TlsContextUpdateHandler.standard())
         );
     }
 }

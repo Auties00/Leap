@@ -1,12 +1,16 @@
 package it.auties.leap.tls.extension.implementation;
 
+import it.auties.leap.tls.context.TlsContext;
+import it.auties.leap.tls.context.TlsSource;
 import it.auties.leap.tls.ec.TlsECPointFormat;
+import it.auties.leap.tls.exception.TlsException;
 import it.auties.leap.tls.extension.TlsExtension;
 import it.auties.leap.tls.extension.TlsExtensionDeserializer;
 import it.auties.leap.tls.version.TlsVersion;
 
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
 
@@ -21,7 +25,7 @@ public record ECPointFormatExtension(
             TlsECPointFormat.ansix962CompressedPrime().id())
     );
 
-    private static final TlsExtensionDeserializer DECODER = (context, _, _, buffer) -> {
+    private static final TlsExtensionDeserializer DECODER = (_, _, _, buffer) -> {
         var ecPointFormatsSize = readBigEndianInt8(buffer);
         var ecPointFormats = new ArrayList<Byte>();
         for(var i = 0; i < ecPointFormatsSize; i++) {
@@ -53,6 +57,22 @@ public record ECPointFormatExtension(
     @Override
     public int extensionPayloadLength() {
         return INT8_LENGTH + INT8_LENGTH * ecPointFormats.size();
+    }
+
+    @Override
+    public void apply(TlsContext context, TlsSource source) {
+        switch (source) {
+            case LOCAL -> context.setNegotiableProtocols(supportedProtocols);
+            case REMOTE -> {
+                var negotiableProtocols = new HashSet<>(context.negotiableProtocols());
+                for(var supportedProtocol : supportedProtocols) {
+                    if(!negotiableProtocols.contains(supportedProtocol)) {
+                        throw new TlsException("Protocol %s was not negotiable".formatted(supportedProtocol));
+                    }
+                }
+                context.setNegotiableProtocols(supportedProtocols);
+            }
+        }
     }
 
     @Override

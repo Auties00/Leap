@@ -17,7 +17,7 @@ import java.util.Optional;
 import static it.auties.leap.tls.util.BufferUtils.*;
 
 public abstract sealed class SupportedGroupsExtension {
-    private static final TlsExtensionDeserializer DECODER = (context, _, _, buffer) -> {
+    private static final TlsExtensionDeserializer DECODER = (_, _, _, buffer) -> {
         var groupsSize = readBigEndianInt16(buffer);
         var groups = new ArrayList<Integer>(groupsSize);
         for (var i = 0; i < groupsSize; i++) {

@@ -1,5 +1,8 @@
 package it.auties.leap.tls.extension.implementation;
 
+import it.auties.leap.tls.context.TlsContext;
+import it.auties.leap.tls.context.TlsSource;
+import it.auties.leap.tls.exception.TlsException;
 import it.auties.leap.tls.extension.TlsExtension;
 import it.auties.leap.tls.extension.TlsExtensionDeserializer;
 import it.auties.leap.tls.version.TlsVersion;
@@ -7,21 +10,22 @@ import it.auties.leap.tls.version.TlsVersion;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
 
 import static it.auties.leap.tls.util.BufferUtils.*;
 
 public record ALPNExtension(
-      List<byte[]> supportedProtocols,
+      List<String> supportedProtocols,
       int supportedProtocolsSize
 ) implements TlsExtension.Concrete {
-    private static final TlsExtensionDeserializer DECODER = (context, _, _, buffer) -> {
+    private static final TlsExtensionDeserializer DECODER = (_, _, _, buffer) -> {
         var supportedProtocolsSize = readBigEndianInt16(buffer);
-        var supportedProtocols = new ArrayList<byte[]>();
+        var supportedProtocols = new ArrayList<String>();
         try(var _ = scopedRead(buffer, supportedProtocolsSize)) {
             while (buffer.hasRemaining()) {
-                supportedProtocols.add(readBytesBigEndian8(buffer));
+                supportedProtocols.add(new String(readBytesBigEndian8(buffer), StandardCharsets.US_ASCII));
             }
         }
         var extension = new ALPNExtension(supportedProtocols, supportedProtocolsSize);
@@ -29,12 +33,11 @@ public record ALPNExtension(
     };
 
     public static ALPNExtension of(List<String> supportedProtocols) {
-        var supportedProtocolsSources = new ArrayList<byte[]>(supportedProtocols.size());
+        var supportedProtocolsSources = new ArrayList<String>(supportedProtocols.size());
         var supportedProtocolsLength = 0;
         for(var supportedProtocol : supportedProtocols) {
-            var source = supportedProtocol.getBytes(StandardCharsets.US_ASCII);
-            supportedProtocolsSources.add(source);
-            supportedProtocolsLength += INT8_LENGTH + source.length;
+            supportedProtocolsSources.add(supportedProtocol);
+            supportedProtocolsLength += INT8_LENGTH + supportedProtocol.length();
         }
         return new ALPNExtension(supportedProtocolsSources, supportedProtocolsLength);
     }
@@ -43,13 +46,29 @@ public record ALPNExtension(
     public void serializeExtensionPayload(ByteBuffer buffer) {
         writeBigEndianInt16(buffer, supportedProtocolsSize);
         for (var protocolName : supportedProtocols) {
-            writeBytesBigEndian8(buffer, protocolName);
+            writeBytesBigEndian8(buffer, protocolName.getBytes(StandardCharsets.US_ASCII));
         }
     }
 
     @Override
     public int extensionPayloadLength() {
         return INT16_LENGTH + supportedProtocolsSize;
+    }
+
+    @Override
+    public void apply(TlsContext context, TlsSource source) {
+        switch (source) {
+            case LOCAL -> context.setNegotiableProtocols(supportedProtocols);
+            case REMOTE -> {
+                var negotiableProtocols = new HashSet<>(context.negotiableProtocols());
+                for(var supportedProtocol : supportedProtocols) {
+                    if(!negotiableProtocols.contains(supportedProtocol)) {
+                        throw new TlsException("Protocol %s was not negotiable".formatted(supportedProtocol));
+                    }
+                }
+                context.setNegotiableProtocols(supportedProtocols);
+            }
+        }
     }
 
     @Override

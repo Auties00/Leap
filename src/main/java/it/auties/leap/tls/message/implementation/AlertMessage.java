@@ -1,7 +1,9 @@
 package it.auties.leap.tls.message.implementation;
 
+import it.auties.leap.socket.SocketException;
 import it.auties.leap.tls.context.TlsContext;
 import it.auties.leap.tls.context.TlsSource;
+import it.auties.leap.tls.exception.TlsException;
 import it.auties.leap.tls.message.TlsMessageContentType;
 import it.auties.leap.tls.message.TlsMessageMetadata;
 import it.auties.leap.tls.version.TlsVersion;
@@ -43,14 +45,6 @@ public final class AlertMessage extends TlsMessage {
         return 0x00;
     }
 
-    public AlertLevel alertLevel() {
-        return alertLevel;
-    }
-
-    public AlertType alertType() {
-        return alertType;
-    }
-
     @Override
     public TlsMessageContentType contentType() {
         return TlsMessageContentType.ALERT;
@@ -76,7 +70,16 @@ public final class AlertMessage extends TlsMessage {
                 ']';
     }
 
-    public enum AlertType {
+    @Override
+    public void validateAndUpdate(TlsContext context) {
+        if(alertType == AlertMessage.AlertType.CLOSE_NOTIFY) {
+            throw SocketException.closed();
+        }
+
+        throw new TlsException("Received alert: " + context);
+    }
+
+    private enum AlertType {
         CLOSE_NOTIFY((byte) 0, "close_notify", false),
         UNEXPECTED_MESSAGE((byte) 10, "unexpected_message", false),
         BAD_RECORD_MAC((byte) 20, "bad_record_mac", false),
@@ -141,7 +144,7 @@ public final class AlertMessage extends TlsMessage {
         }
     }
 
-    public enum AlertLevel {
+    private enum AlertLevel {
         WARNING((byte) 1, "warning"),
         FATAL((byte) 2, "fatal");
 

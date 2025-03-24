@@ -1,9 +1,11 @@
 package it.auties.leap.tls.message.implementation;
 
 import it.auties.leap.tls.context.TlsContext;
+import it.auties.leap.tls.context.TlsMode;
 import it.auties.leap.tls.context.TlsSource;
 import it.auties.leap.tls.exception.TlsException;
 import it.auties.leap.tls.extension.TlsExtension;
+import it.auties.leap.tls.hash.TlsHandshakeHash;
 import it.auties.leap.tls.message.TlsHandshakeMessage;
 import it.auties.leap.tls.message.TlsMessageContentType;
 import it.auties.leap.tls.message.TlsMessageMetadata;
@@ -83,7 +85,7 @@ public sealed abstract class HelloMessage extends TlsHandshakeMessage {
                         continue;
                     }
 
-                    for(var configurable : context.config().extensions()) {
+                    for(var configurable : context.negotiableExtensions()) {
                         var extension = configurable.decoder()
                                 .deserialize(context, TlsSource.REMOTE, extensionType, buffer);
                         if (extension.isPresent()) {
@@ -150,6 +152,11 @@ public sealed abstract class HelloMessage extends TlsHandshakeMessage {
                     + INT16_LENGTH + extensionsLength;
         }
 
+        @Override
+        public void validateAndUpdate(TlsContext tlsContext) {
+            tlsContext.setSelectedMode(TlsMode.CLIENT);
+        }
+
         private int getCiphersCount() {
             return ciphers.size();
         }
@@ -166,34 +173,6 @@ public sealed abstract class HelloMessage extends TlsHandshakeMessage {
                     + INT16_LENGTH + ciphers * INT16_LENGTH
                     + INT8_LENGTH + compressions * INT8_LENGTH;
         }
-
-        public byte[] randomData() {
-            return randomData;
-        }
-
-        public byte[] sessionId() {
-            return sessionId;
-        }
-
-        public byte[] cookie() {
-            return cookie;
-        }
-
-        public List<Integer> ciphers() {
-            return ciphers;
-        }
-
-        public List<Byte> compressions() {
-            return compressions;
-        }
-
-        public List<TlsExtension.Concrete> extensions() {
-            return extensions;
-        }
-
-        public int extensionsLength() {
-            return extensionsLength;
-        }
     }
 
     public static final class Server extends HelloMessage {
@@ -203,9 +182,9 @@ public sealed abstract class HelloMessage extends TlsHandshakeMessage {
         private final byte[] sessionId;
         private final int cipher;
         private final byte compression;
-        private final List<TlsExtension> extensions;
+        private final List<TlsExtension.Concrete> extensions;
 
-        public Server(TlsVersion version, TlsSource source, byte[] randomData, byte[] sessionId, int cipher, List<TlsExtension> extensions, byte compression) {
+        public Server(TlsVersion version, TlsSource source, byte[] randomData, byte[] sessionId, int cipher, List<TlsExtension.Concrete> extensions, byte compression) {
             super(version, source);
             this.randomData = randomData;
             this.sessionId = sessionId;
@@ -227,11 +206,10 @@ public sealed abstract class HelloMessage extends TlsHandshakeMessage {
 
             var compressionMethodId = readBigEndianInt8(buffer);
 
-            var extensionTypeToDecoder = context.config()
-                    .extensions()
+            var extensionTypeToDecoder = context.negotiableExtensions()
                     .stream()
                     .collect(Collectors.toUnmodifiableMap(TlsExtension::extensionType, TlsExtension::decoder));
-            var extensions = new ArrayList<TlsExtension>();
+            var extensions = new ArrayList<TlsExtension.Concrete>();
             if(buffer.remaining() >= INT16_LENGTH) {
                 var extensionsLength = readBigEndianInt16(buffer);
                 try (var _ = scopedRead(buffer, extensionsLength)) {
@@ -273,28 +251,27 @@ public sealed abstract class HelloMessage extends TlsHandshakeMessage {
         }
 
         @Override
+        public void validateAndUpdate(TlsContext context) {
+            context.setRemoteRandomData(randomData);
+            context.setRemoteSessionId(sessionId);
+            var negotiatedCipher = context.getNegotiableCipher(cipher)
+                    .orElseThrow(() -> new TlsException("Remote negotiated a cipher that wasn't available"));
+            context.setNegotiatedCipher(negotiatedCipher);
+            var negotiatedCompression = context.getNegotiableCompression(compression)
+                    .orElseThrow(() -> new TlsException("Remote negotiated a compression that wasn't available"));
+            context.setNegotiatedCompression(negotiatedCompression);
+            context.setHandshakeHash(TlsHandshakeHash.of(version(), negotiatedCipher.hashFactory()));
+            for(var extension : extensions) {
+                extension.apply(context, );
+            }
+            if(context.negotiatedVersion().isEmpty()) {
+                context.setNegotiatedVersion(version);
+            }
+        }
+
+        @Override
         public int handshakePayloadLength() {
             return 0;
-        }
-
-        public byte[] randomData() {
-            return randomData;
-        }
-
-        public byte[] sessionId() {
-            return sessionId;
-        }
-
-        public int cipher() {
-            return cipher;
-        }
-
-        public byte compression() {
-            return compression;
-        }
-
-        public List<TlsExtension> extensions() {
-            return extensions;
         }
     }
 }

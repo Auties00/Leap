@@ -14,7 +14,7 @@ import java.util.Optional;
 import static it.auties.leap.tls.util.BufferUtils.*;
 
 public sealed abstract class KeyShareExtension {
-    private static final TlsExtensionDeserializer DECODER = (context, _, _, buffer) -> {
+    private static final TlsExtensionDeserializer DECODER = (_, _, _, buffer) -> {
         var entries = new ArrayList<Entry>();
         var entriesSize = buffer.remaining();
         while (buffer.hasRemaining()) {

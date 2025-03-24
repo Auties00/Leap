@@ -22,7 +22,7 @@ public final class ContextualAuth implements TlsAuth {
     }
 
     @Override
-    public X509Certificate validate(List<X509Certificate> certificates, TlsSource certificatesSource, TlsContext context) {
+    public X509Certificate validate(TlsContext context, TlsSource certificatesSource, List<X509Certificate> certificates) {
         throw new UnsupportedOperationException();
     }
 }

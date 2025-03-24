@@ -56,6 +56,11 @@ public sealed abstract class FinishedMessage extends TlsHandshakeMessage {
         public int handshakePayloadLength() {
             return hash.length;
         }
+
+        @Override
+        public void validateAndUpdate(TlsContext context) {
+            // TODO: Validate
+        }
     }
 
     public static final class Client extends FinishedMessage {
@@ -94,6 +99,11 @@ public sealed abstract class FinishedMessage extends TlsHandshakeMessage {
         @Override
         public int handshakePayloadLength() {
             return hash.length;
+        }
+
+        @Override
+        public void validateAndUpdate(TlsContext context) {
+            // TODO: Validate
         }
     }
 }

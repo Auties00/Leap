@@ -14,7 +14,7 @@ import static it.auties.leap.tls.util.BufferUtils.INT16_LENGTH;
 import static it.auties.leap.tls.util.BufferUtils.readBigEndianInt8;
 
 public sealed abstract class PaddingExtension {
-    private static final TlsExtensionDeserializer DECODER = (context, _, _, buffer) -> {
+    private static final TlsExtensionDeserializer DECODER = (_, _, _, buffer) -> {
         var padding = readBigEndianInt8(buffer);
         var extension = new Concrete(padding);
         return Optional.of(extension);

@@ -15,7 +15,7 @@ import java.util.function.Predicate;
 import static it.auties.leap.tls.util.BufferUtils.*;
 
 public sealed abstract class SNIExtension {
-    private static final TlsExtensionDeserializer DECODER = (context, _, _, buffer) -> {
+    private static final TlsExtensionDeserializer DECODER = (_, _, _, buffer) -> {
         var listLength = readBigEndianInt16(buffer);
         if(listLength == 0) {
             return Optional.empty();

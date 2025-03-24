@@ -1,9 +1,7 @@
 package it.auties.leap.tls.util;
 
 import it.auties.leap.tls.cipher.exchange.TlsKeyExchangeType;
-import it.auties.leap.tls.context.TlsContext;
 import it.auties.leap.tls.context.TlsMode;
-import it.auties.leap.tls.context.TlsSource;
 import it.auties.leap.tls.exception.TlsException;
 import it.auties.leap.tls.util.sun.HostnameChecker;
 
@@ -28,17 +26,11 @@ public final class CertificateUtils {
     private static final String DEFAULT_KEY_STORE_PATH = System.getProperty("java.home") + File.separator + "lib" + File.separator + "security" + File.separator + "cacerts";
     private static final KeyStore DEFAULT_KEY_STORE = loadDefaultKeyStore();
 
-    public static X509Certificate validateChain(TlsContext context, TlsSource source, String expectedAlgorithm) {
-        var certificateChain = switch (source) {
-            case REMOTE -> context.remoteCertificates();
-            case LOCAL -> context.localCertificates();
-        };
-        var remoteAddress = context.remoteAddress()
-                .orElseThrow(() -> new TlsException("Cannot validate certificate chain: remote address wasn't set"));
+    public static X509Certificate validateChain(List<X509Certificate> certificateChain, InetSocketAddress remoteAddress, KeyStore keyStore, String expectedAlgorithm) {
         var leafCert = getLeafCert(certificateChain);
         checkAlgorithm(expectedAlgorithm, leafCert);
         checkRemote(remoteAddress, leafCert);
-        validateCertificate(context.config().trustedKeyStore(), certificateChain);
+        validateCertificate(keyStore, certificateChain);
         return leafCert;
     }
 

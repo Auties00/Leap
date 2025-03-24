@@ -1,5 +1,6 @@
 package it.auties.leap.tls.message.implementation;
 
+import it.auties.leap.tls.context.TlsContext;
 import it.auties.leap.tls.context.TlsSource;
 import it.auties.leap.tls.message.TlsHandshakeMessage;
 import it.auties.leap.tls.message.TlsMessageContentType;
@@ -37,6 +38,11 @@ public sealed abstract class CertificateVerifyMessage extends TlsHandshakeMessag
         @Override
         public int handshakePayloadLength() {
             return 0;
+        }
+
+        @Override
+        public void validateAndUpdate(TlsContext context) {
+
         }
     }
 }

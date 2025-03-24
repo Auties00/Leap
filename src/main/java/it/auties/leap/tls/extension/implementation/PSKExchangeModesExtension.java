@@ -16,7 +16,7 @@ import static it.auties.leap.tls.util.BufferUtils.*;
 public record PSKExchangeModesExtension(
         List<Byte> modes
 ) implements TlsExtension.Concrete {
-    private static final TlsExtensionDeserializer DECODER = (context, _, _, buffer) -> {
+    private static final TlsExtensionDeserializer DECODER = (_, _, _, buffer) -> {
         var modesSize = readBigEndianInt16(buffer);
         var modes = new ArrayList<Byte>(modesSize);
         for(var i = 0; i < modesSize; i++) {

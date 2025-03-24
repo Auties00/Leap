@@ -177,11 +177,11 @@ public abstract sealed class SupportedVersionsExtension {
             @Override
             public Optional<? extends Concrete> newInstance(TlsContext context) {
                 var supportedVersions = new ArrayList<TlsVersionId>();
-                for (var tlsVersion : context.config().versions()) {
+                for (var tlsVersion : context.negotiableVersions()) {
                     supportedVersions.add(tlsVersion.id());
                 }
 
-                if (context.hasExtension(TlsGREASE::isGrease)) {
+                if (context.processedExtensions().stream().anyMatch(entry -> TlsGREASE.isGrease(entry.extensionType()))) {
                     supportedVersions.add(TlsGREASE.greaseRandom());
                 }
 

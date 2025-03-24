@@ -7,5 +7,5 @@ import java.security.cert.X509Certificate;
 import java.util.List;
 
 public interface TlsAuth {
-    X509Certificate validate(List<X509Certificate> certificates, TlsSource certificatesSource, TlsContext context);
+    X509Certificate validate(TlsContext context, TlsSource certificatesSource, List<X509Certificate> certificates);
 }

@@ -69,6 +69,11 @@ public sealed abstract class ChangeCipherSpecMessage extends TlsHandshakeMessage
                     "tlsVersion=" + version +
                     ']';
         }
+
+        @Override
+        public void validateAndUpdate(TlsContext context) {
+
+        }
     }
 
     public static final class Client extends ChangeCipherSpecMessage {
@@ -111,6 +116,11 @@ public sealed abstract class ChangeCipherSpecMessage extends TlsHandshakeMessage
             return "ChangeCipherSpecMessage[" +
                     "tlsVersion=" + version +
                     ']';
+        }
+
+        @Override
+        public void validateAndUpdate(TlsContext context) {
+
         }
     }
 }

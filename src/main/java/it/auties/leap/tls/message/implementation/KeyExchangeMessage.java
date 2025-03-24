@@ -1,15 +1,16 @@
 package it.auties.leap.tls.message.implementation;
 
 import it.auties.leap.tls.cipher.exchange.TlsKeyExchange;
+import it.auties.leap.tls.cipher.exchange.TlsKeyExchangeType;
 import it.auties.leap.tls.context.TlsContext;
 import it.auties.leap.tls.context.TlsSource;
+import it.auties.leap.tls.exception.TlsException;
 import it.auties.leap.tls.message.TlsHandshakeMessage;
 import it.auties.leap.tls.message.TlsMessageContentType;
 import it.auties.leap.tls.message.TlsMessageMetadata;
 import it.auties.leap.tls.version.TlsVersion;
 
 import java.nio.ByteBuffer;
-import java.util.Optional;
 
 import static it.auties.leap.tls.util.BufferUtils.*;
 
@@ -46,18 +47,6 @@ public sealed abstract class KeyExchangeMessage extends TlsHandshakeMessage {
             return ID;
         }
 
-        public TlsKeyExchange parameters() {
-            return parameters;
-        }
-
-        public int signatureAlgorithm() {
-            return signatureAlgorithm;
-        }
-
-        public byte[] signature() {
-            return signature;
-        }
-
         @Override
         public TlsMessageContentType contentType() {
             return TlsMessageContentType.HANDSHAKE;
@@ -76,6 +65,20 @@ public sealed abstract class KeyExchangeMessage extends TlsHandshakeMessage {
                     + INT16_LENGTH
                     + INT16_LENGTH
                     + signature.length;
+        }
+
+        @Override
+        public void validateAndUpdate(TlsContext context) {
+            var negotiatedCipher = context.negotiatedCipher()
+                    .orElseThrow(() -> new TlsException("No cipher was selected yet"));
+            if(negotiatedCipher.keyExchangeFactory().type() != TlsKeyExchangeType.EPHEMERAL) {
+                throw new TlsException("Unexpected server key exchange message for static key exchange");
+            }
+
+            context.setRemoteKeyExchange(parameters);
+            var localKeyExchange = negotiatedCipher.keyExchangeFactory()
+                    .newLocalKeyExchange(context);
+            context.setLocalKeyExchange(localKeyExchange);
         }
     }
 
@@ -108,10 +111,6 @@ public sealed abstract class KeyExchangeMessage extends TlsHandshakeMessage {
             return ID;
         }
 
-        public Optional<TlsKeyExchange> localParameters() {
-            return Optional.ofNullable(localParameters);
-        }
-
         @Override
         public TlsMessageContentType contentType() {
             return TlsMessageContentType.HANDSHAKE;
@@ -135,6 +134,11 @@ public sealed abstract class KeyExchangeMessage extends TlsHandshakeMessage {
             }else {
                 return 0;
             }
+        }
+
+        @Override
+        public void validateAndUpdate(TlsContext context) {
+            context.initSession(localParameters);
         }
     }
 }
