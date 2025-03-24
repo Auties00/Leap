@@ -3,7 +3,6 @@ package it.auties.leap.socket.blocking.applicationLayer.implementation;
 import it.auties.leap.socket.blocking.applicationLayer.BlockingSocketApplicationLayer;
 import it.auties.leap.socket.blocking.applicationLayer.BlockingSocketApplicationLayerFactory;
 import it.auties.leap.socket.blocking.transportLayer.BlockingSocketTransportLayer;
-import it.auties.leap.tls.context.TlsConfig;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;

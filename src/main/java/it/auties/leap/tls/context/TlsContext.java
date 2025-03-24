@@ -1,25 +1,24 @@
 package it.auties.leap.tls.context;
 
+import it.auties.leap.socket.SocketProtocol;
+import it.auties.leap.tls.certificate.TlsCertificatesHandler;
+import it.auties.leap.tls.certificate.TlsCertificatesProvider;
 import it.auties.leap.tls.cipher.TlsCipher;
 import it.auties.leap.tls.cipher.exchange.TlsKeyExchange;
 import it.auties.leap.tls.cipher.mode.TlsCipherMode;
 import it.auties.leap.tls.compression.TlsCompression;
 import it.auties.leap.tls.exception.TlsException;
 import it.auties.leap.tls.extension.TlsExtension;
-import it.auties.leap.tls.extension.implementation.SupportedGroupsExtension;
-import it.auties.leap.tls.group.TlsSupportedCurve;
-import it.auties.leap.tls.group.TlsSupportedFiniteField;
-import it.auties.leap.tls.group.TlsSupportedGroup;
-import it.auties.leap.tls.hash.TlsHandshakeHash;
 import it.auties.leap.tls.hash.TlsHash;
 import it.auties.leap.tls.hash.TlsHashFactory;
 import it.auties.leap.tls.hash.TlsPRF;
 import it.auties.leap.tls.mac.TlsExchangeMac;
+import it.auties.leap.tls.message.TlsMessageDeserializer;
+import it.auties.leap.tls.property.TlsProperty;
 import it.auties.leap.tls.secret.TlsMasterSecret;
 import it.auties.leap.tls.util.TlsKeyUtils;
 import it.auties.leap.tls.version.TlsVersion;
 
-import java.io.ByteArrayOutputStream;
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
 import java.security.KeyPair;
@@ -27,99 +26,68 @@ import java.security.KeyStore;
 import java.security.PublicKey;
 import java.security.cert.X509Certificate;
 import java.util.*;
-import java.util.function.Function;
-import java.util.stream.Collectors;
 
 import static it.auties.leap.tls.util.BufferUtils.readBytes;
 import static it.auties.leap.tls.util.TlsKeyUtils.*;
 
 public class TlsContext {
-    private final TlsConfig localConfig;
+    private final SocketProtocol protocol;
+    private final List<TlsVersion> versions;
+    private final List<TlsCipher> ciphers;
+    private final List<TlsExtension> extensions;
+    private final List<TlsCompression> compressions;
+    private final TlsCertificatesProvider certificatesProvider;
+    private final TlsCertificatesHandler certificatesHandler;
+    private final KeyStore trustedKeyStore;
+    private final TlsMessageDeserializer messageDeserializer;
     private final byte[] localRandomData;
     private final byte[] localSessionId;
-
-    private final ByteArrayOutputStream messageDigestBuffer;
+    private final byte[] dtlsCookie;
 
     private volatile TlsMode mode;
 
-    private final InetSocketAddress remoteAddress;
+    private volatile PublicKey remotePublicKey;
+    private volatile List<X509Certificate> localCertificates;
     private volatile byte[] remoteRandomData;
     private volatile byte[] remoteSessionId;
-
-    private volatile TlsCipher negotiatedCipher;
-    private volatile TlsHandshakeHash handshakeHash;
-    private volatile TlsCompression negotiatedCompression;
-
-    private volatile TlsCipherMode localCipher;
+    private volatile InetSocketAddress remoteAddress;
     private volatile TlsCipherMode remoteCipher;
-    private volatile TlsMasterSecret localMasterSecretKey;
-
-    private volatile TlsKeyExchange localKeyExchange;
     private volatile TlsKeyExchange remoteKeyExchange;
 
+    private volatile PublicKey localPublicKey;
+    private volatile List<X509Certificate> remoteCertificates;
     private volatile KeyPair localKeyPair;
+    private volatile TlsCipherMode localCipher;
+    private volatile TlsMasterSecret localMasterSecretKey;
+    private volatile TlsKeyExchange localKeyExchange;
 
-    private volatile byte[] dtlsCookie;
+    private final Map<TlsProperty<?>, List<Object>> negotiableProperties;
+    private final Map<TlsProperty<?>, List<Object>> negotiatedProperties;
+    private final Map<TlsProperty<?>, List<Object>> properties;
 
-    private volatile List<TlsSupportedGroup> localSupportedGroups;
-    private volatile TlsSupportedCurve localPreferredEllipticCurve;
-    private volatile TlsSupportedFiniteField localPreferredFiniteField;
-    private volatile boolean extendedMasterSecret;
-    
-    private final Queue<ByteBuffer> bufferedMessages;
-
-    private volatile Map<Integer, TlsCipher> negotiableCiphers;
-    private volatile Map<Byte, TlsCompression> negotiableCompressions;
-    private List<TlsExtension.Concrete> localProcessedExtensions;
-    private int localProcessedExtensionsLength;
-    private PublicKey localPublicKey;
-    private PublicKey remotePublicKey;
-    private byte[] preMasterSecret;
-    private List<X509Certificate> remoteCertificates;
-    private List<X509Certificate> localCertificates;
-
-    private volatile boolean localHelloDone;
-    private volatile boolean remoteHelloDone;
-    private volatile boolean localCipherEnabled;
-    private volatile boolean remoteCipherEnabled;
-    private volatile boolean localHandshakeComplete;
-    private volatile boolean remoteHandshakeComplete;
-    
-    private final LinkedHashSet<Integer> localHandshakeMessages;
-    private final LinkedHashSet<Integer> remoteHandshakeMessages;
-
-    private volatile TlsVersion negotiatedVersion;
-
-    private volatile List<String> negotiableProtocols;
-
-    public TlsContext(InetSocketAddress address, TlsConfig config) {
-        this.remoteAddress = address;
-        this.localConfig = config;
-        this.localRandomData = TlsKeyUtils.randomData();
-        this.localSessionId = TlsKeyUtils.randomData();
-        this.dtlsCookie = switch (config.protocol()) {
+    TlsContext(SocketProtocol protocol, List<TlsVersion> versions, List<TlsCipher> ciphers, List<TlsExtension> extensions, List<TlsCompression> compressions, TlsCertificatesProvider certificatesProvider, TlsCertificatesHandler certificatesHandler, KeyStore trustedKeyStore, TlsMessageDeserializer messageDeserializer, byte[] localRandomData, byte[] localSessionId) {
+        this.protocol = protocol;
+        this.versions = versions;
+        this.ciphers = ciphers;
+        this.extensions = extensions;
+        this.compressions = compressions;
+        this.certificatesProvider = certificatesProvider;
+        this.certificatesHandler = certificatesHandler;
+        this.trustedKeyStore = trustedKeyStore;
+        this.messageDeserializer = messageDeserializer;
+        this.localRandomData = localRandomData;
+        this.localSessionId = localSessionId;
+        this.dtlsCookie = switch (protocol) {
             case TCP -> null;
             case UDP -> TlsKeyUtils.randomData();
         };
-        this.messageDigestBuffer = new ByteArrayOutputStream(); // TODO: Calculate optimal space
-        this.bufferedMessages = new LinkedList<>();
-        this.localHandshakeMessages = new LinkedHashSet<>();
-        this.remoteHandshakeMessages = new LinkedHashSet<>();
-        this.negotiableCiphers = config.ciphers()
-                .stream()
-                .collect(Collectors.toUnmodifiableMap(TlsCipher::id, Function.identity()));
-        this.negotiableCompressions = config.compressions()
-                .stream()
-                .collect(Collectors.toUnmodifiableMap(TlsCompression::id, Function.identity()));
-        setLocalSupportedGroups(SupportedGroupsExtension.Configurable.recommendedGroups());
+        this.negotiableProperties = new HashMap<>();
+        this.negotiatedProperties = new HashMap<>();
+        this.properties = new HashMap<>();
     }
 
     public KeyStore trustedKeyStore() {
-        return localConfig.trustedKeyStore();
-    }
-
-    public Optional<TlsCipher> negotiatedCipher() {
-        return Optional.ofNullable(negotiatedCipher);
+        return trustedKeyStore;
     }
 
     public Optional<TlsMode> selectedMode() {
@@ -134,53 +102,6 @@ public class TlsContext {
     public TlsContext setRemoteSessionId(byte[] remoteSessionId) {
         this.remoteSessionId = remoteSessionId;
         return this;
-    }
-
-    public TlsContext setNegotiatedCipher(TlsCipher negotiatedCipher) {
-        this.negotiatedCipher = negotiatedCipher;
-        return this;
-    }
-
-    public TlsContext setNegotiatedCompression(TlsCompression negotiatedCompression) {
-        this.negotiatedCompression = negotiatedCompression;
-        return this;
-    }
-
-    public TlsContext setHandshakeHash(TlsHandshakeHash handshakeHash) {
-        this.handshakeHash = handshakeHash;
-        return this;
-    }
-
-    public void setPreMasterSecret(byte[] key) {
-        this.preMasterSecret = key;
-    }
-
-    public boolean isLocalHelloDone() {
-        return localHelloDone;
-    }
-
-    public boolean isRemoteHelloDone() {
-        return remoteHelloDone;
-    }
-
-    public boolean isLocalHandshakeComplete() {
-        return localHandshakeComplete;
-    }
-
-    public boolean isRemoteHandshakeComplete() {
-        return remoteHandshakeComplete;
-    }
-
-    public boolean isHandshakeComplete() {
-        return localHandshakeComplete && remoteHandshakeComplete;
-    }
-
-    public boolean isLocalCipherEnabled() {
-        return localHandshakeComplete && localCipherEnabled;
-    }
-
-    public boolean isRemoteCipherEnabled() {
-        return remoteCipherEnabled;
     }
 
     public byte[] localRandomData() {
@@ -203,99 +124,9 @@ public class TlsContext {
         return Optional.ofNullable(dtlsCookie);
     }
 
-    public void setLocalSupportedGroups(List<TlsSupportedGroup> localSupportedGroups) {
-        this.localSupportedGroups = localSupportedGroups;
-        this.localPreferredEllipticCurve = null;
-        this.localPreferredFiniteField = null;
-        loop: {
-            for (var group : localSupportedGroups) {
-                switch (group) {
-                    case TlsSupportedCurve currentCurve -> {
-                        if (localPreferredEllipticCurve == null) {
-                            localPreferredEllipticCurve = currentCurve;
-                        }
-
-                        if (localPreferredFiniteField != null) {
-                            break loop;
-                        }
-                    }
-                    case TlsSupportedFiniteField currentField -> {
-                        if (localPreferredFiniteField == null) {
-                            localPreferredFiniteField = currentField;
-                        }
-
-                        if (localPreferredEllipticCurve != null) {
-                            break loop;
-                        }
-                    }
-                }
-            }
-        }
-    }
-
-
-    public TlsContext setExtendedMasterSecret(boolean extendedMasterSecret) {
-        this.extendedMasterSecret = extendedMasterSecret;
-        return this;
-    }
-
-    public Optional<byte[]> handshakeHash() {
-        if(handshakeHash == null) {
-            return Optional.empty();
-        }else {
-            return Optional.ofNullable(handshakeHash.digest());
-        }
-    }
-
-    public Optional<byte[]> getHandshakeVerificationData(TlsSource source) {
-        if(handshakeHash == null) {
-            return Optional.empty();
-        }else {
-            return Optional.ofNullable(handshakeHash.finish(this, source));
-        }
-    }
-
-    public void updateHandshakeHash(ByteBuffer buffer, int offset) {
-        var length = buffer.remaining() - offset;
-        for(var i = 0; i < length; i++) {
-            messageDigestBuffer.write(buffer.get(buffer.position() + offset + i));
-        }
-    }
-
-    public void digestHandshakeHash() {
-        if(handshakeHash != null) {
-            handshakeHash.update(messageDigestBuffer.toByteArray());
-            messageDigestBuffer.reset();
-        }
-    }
-
-    public Optional<ByteBuffer> lastBufferedMessage() {
-        return bufferedMessages.isEmpty() ? Optional.empty() : Optional.ofNullable(bufferedMessages.peek());
-    }
-
-    public void pollBufferedMessage() {
-        bufferedMessages.poll();
-    }
-
     public List<TlsExtension.Concrete> processedExtensions() {
-        if(localProcessedExtensions == null) {
-            processExtensions();
-        }
-
-        return localProcessedExtensions;
-    }
-
-    public int processedExtensionsLength() {
-        if(localProcessedExtensions == null) {
-            processExtensions();
-        }
-
-        return localProcessedExtensionsLength;
-    }
-
-    private void processExtensions() {
         var dependenciesTree = new LinkedHashMap<Integer, TlsExtension>();
-        for (var extension : localConfig.extensions()) {
+        for (var extension : extensions) {
             if (negotiableVersions().stream().anyMatch(version -> extension.versions().contains(version))) {
                 var conflict = dependenciesTree.put(extension.extensionType(), extension);
                 if (conflict != null) {
@@ -309,25 +140,17 @@ public class TlsContext {
             }
         }
 
-        this.localProcessedExtensions = new ArrayList<>(dependenciesTree.size());
+        var result = new ArrayList<TlsExtension.Concrete>(dependenciesTree.size());
         var deferred = new ArrayList<TlsExtension.Configurable>();
         while (!dependenciesTree.isEmpty()) {
-            var extension = dependenciesTree.pollFirstEntry().getValue();
+            var entry = dependenciesTree.pollFirstEntry();
+            var extension = entry.getValue();
             switch (extension) {
-                case TlsExtension.Concrete concrete -> {
-                    localProcessedExtensions.add(concrete);
-                    localProcessedExtensionsLength += concrete.extensionLength();
-                }
-
+                case TlsExtension.Concrete concrete -> result.add(concrete);
                 case TlsExtension.Configurable configurableExtension -> {
                     switch (configurableExtension.dependencies()) {
-                        case TlsExtension.Configurable.Dependencies.None _ -> {
-                            var result = configurableExtension.newInstance(this);
-                            result.ifPresent(concrete -> {
-                                localProcessedExtensions.add(concrete);
-                                localProcessedExtensionsLength += concrete.extensionLength();
-                            });
-                        }
+                        case TlsExtension.Configurable.Dependencies.None _ -> configurableExtension.newInstance(this)
+                                .ifPresent(result::add);
 
                         case TlsExtension.Configurable.Dependencies.Some some -> {
                             var conflict = false;
@@ -338,14 +161,11 @@ public class TlsContext {
                                 }
                             }
                             if(conflict) {
-                                continue;
+                                dependenciesTree.put(entry.getKey(), entry.getValue());
+                            }else {
+                                configurableExtension.newInstance(this)
+                                        .ifPresent(result::add);
                             }
-
-                            var result = configurableExtension.newInstance(this);
-                            result.ifPresent(concrete -> {
-                                localProcessedExtensions.add(concrete);
-                                localProcessedExtensionsLength += concrete.extensionLength();
-                            });
                         }
 
                         case TlsExtension.Configurable.Dependencies.All _ -> deferred.add(configurableExtension);
@@ -355,12 +175,11 @@ public class TlsContext {
         }
 
         for(var configurableExtension : deferred) {
-            var result = configurableExtension.newInstance(this);
-            result.ifPresent(concrete -> {
-                localProcessedExtensions.add(concrete);
-                localProcessedExtensionsLength += concrete.extensionLength();
-            });
+            configurableExtension.newInstance(this)
+                    .ifPresent(result::add);
         }
+
+        return result;
     }
 
     public Optional<TlsKeyExchange> localKeyExchange() {
@@ -371,13 +190,13 @@ public class TlsContext {
         return Optional.ofNullable(remoteKeyExchange );
     }
 
-    public void initSession(TlsKeyExchange exchange) {
+    public void initSession(TlsKeyExchange exchange, byte[] preMasterSecret, byte[] handshakeHash) {
         if(exchange == null) {
             throw new TlsException("Invalid local key exchange");
         }
 
         if(preMasterSecret == null) {
-            this.preMasterSecret = exchange.preMasterSecretGenerator()
+            preMasterSecret = exchange.preMasterSecretGenerator()
                     .generatePreMasterSecret(this);
         }
         
@@ -386,7 +205,7 @@ public class TlsContext {
                 negotiatedVersion,
                 negotiatedCipher,
                 preMasterSecret,
-                extendedMasterSecret ? handshakeHash().orElse(null) : null,
+                extendedMasterSecret ? handshakeHash : null,
                 localRandomData,
                 remoteRandomData
         );
@@ -489,23 +308,23 @@ public class TlsContext {
                 case SERVER -> clientIv;
             };
 
-            System.out.println("""
-            ______________________________
-            Client mac: %s
-            Server mac: %s
-            Client IV: %s
-            Server IV: %s
-            Client Key: %s
-            Server Key: %s
-            ______________________________
-            """.formatted(
-                    clientMacKey == null ? "none" : Arrays.toString(clientMacKey),
+            System.out.printf(
+                    """
+                            ______________________________
+                            Client mac: %s
+                            Server mac: %s
+                            Client IV: %s
+                            Server IV: %s
+                            Client Key: %s
+                            Server Key: %s
+                            ______________________________
+                            %n""", clientMacKey == null ? "none" : Arrays.toString(clientMacKey),
                     serverMacKey == null ? "none" : Arrays.toString(serverMacKey),
                     clientIv == null ? "none" : Arrays.toString(clientIv),
                     serverIv == null ? "none" : Arrays.toString(serverIv),
-                    clientKey == null ? "none" : Arrays.toString(clientKey),
-                    serverKey == null ? "none" : Arrays.toString(serverKey)
-            ));
+                    Arrays.toString(clientKey),
+                    Arrays.toString(serverKey)
+            );
             localCipherMode.init(true, localKey, localIv, localAuthenticator);
             remoteCipherMode.init(false, remoteKey, remoteIv, remoteAuthenticator);
             return;
@@ -674,18 +493,6 @@ public class TlsContext {
         this.localKeyPair = keyPair;
     }
 
-    public Optional<TlsSupportedFiniteField> localPreferredFiniteField() {
-        return Optional.ofNullable(localPreferredFiniteField);
-    }
-
-    public Optional<TlsSupportedCurve> localPreferredEllipticCurve() {
-        return Optional.ofNullable(localPreferredEllipticCurve);
-    }
-
-    public List<TlsSupportedGroup> localSupportedGroups() {
-        return localSupportedGroups;
-    }
-
     public List<X509Certificate> remoteCertificates() {
         if(remoteCertificates == null) {
             return List.of();
@@ -702,77 +509,20 @@ public class TlsContext {
         }
     }
 
-    public Optional<TlsVersion> negotiatedVersion() {
-        return Optional.ofNullable(negotiatedVersion);
-    }
-
-    public TlsContext setNegotiatedVersion(TlsVersion negotiatedVersion) {
-        this.negotiatedVersion = negotiatedVersion;
-        return this;
-    }
-
     public TlsContext setSelectedMode(TlsMode mode) {
         this.mode = mode;
         return this;
     }
 
-    public List<TlsVersion> negotiableVersions() {
-        return localConfig.versions();
-    }
-
-    public List<TlsExtension> negotiableExtensions() {
-        return localConfig.extensions();
-    }
-    
-    public void addLocalHandshakeMessage(int type) {
-        var update = new TlsContextUpdate.HandshakeMessage(type, TlsSource.LOCAL);
-        localConfig.contextUpdateHandler()
-                .assertValid(this, update);
-        localHandshakeMessages.add(type);
-    }
-
-    public SequencedSet<Integer> localHandshakeMessages() {
-        return Collections.unmodifiableSequencedSet(localHandshakeMessages);
-    }
-
-    public void addRemoteHandshakeMessage(int type) {
-        var update = new TlsContextUpdate.HandshakeMessage(type, TlsSource.REMOTE);
-        localConfig.contextUpdateHandler()
-                .assertValid(this, update);
-        remoteHandshakeMessages.add(type);
-    }
-
-    public SequencedSet<Integer> remoteHandshakeMessages() {
-        return Collections.unmodifiableSequencedSet(remoteHandshakeMessages);
-    }
-
-    public Collection<TlsCipher> negotiableCiphers() {
-        return negotiableCiphers == null ? localConfig.ciphers() : negotiableCiphers.values();
-    }
-
-    public Optional<TlsCipher> getNegotiableCipher(int type) {
-        return Optional.ofNullable(negotiableCiphers.get(type));
-    }
-
-    public Collection<TlsCompression> negotiableCompressions() {
-        return negotiableCompressions == null ? localConfig.compressions() : negotiableCompressions.values();
-    }
-
-    public Optional<TlsCompression> getNegotiableCompression(byte type) {
-        return Optional.ofNullable(negotiableCompressions.get(type));
-    }
-
     public TlsContext setRemoteCertificates(List<X509Certificate> remoteCertificates) {
-        var certificate = localConfig.certificatesHandler()
-                .validateChain(remoteCertificates, TlsSource.REMOTE, this);
+        var certificate = certificatesHandler.validateChain(remoteCertificates, TlsSource.REMOTE, this);
         this.remotePublicKey = certificate == null ? null : certificate.getPublicKey();
         this.remoteCertificates = remoteCertificates;
         return this;
     }
 
     public TlsContext setLocalCertificates(List<X509Certificate> localCertificates) {
-        var certificate = localConfig.certificatesHandler()
-                .validateChain(remoteCertificates, TlsSource.LOCAL, this);
+        var certificate = certificatesHandler.validateChain(remoteCertificates, TlsSource.LOCAL, this);
         this.localPublicKey = certificate == null ? null : certificate.getPublicKey();
         this.localCertificates = localCertificates;
         return this;
@@ -785,19 +535,6 @@ public class TlsContext {
 
     public TlsContext setRemoteKeyExchange(TlsKeyExchange remoteKeyExchange) {
         this.remoteKeyExchange = remoteKeyExchange;
-        return this;
-    }
-
-    public void addMessage(ByteBuffer message) {
-        bufferedMessages.add(message);
-    }
-
-    public List<String> negotiableProtocols() {
-        return negotiableProtocols;
-    }
-
-    public TlsContext setNegotiableProtocols(List<String> negotiableProtocols) {
-        this.negotiableProtocols = negotiableProtocols;
         return this;
     }
 }

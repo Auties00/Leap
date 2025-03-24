@@ -1,6 +1,7 @@
 package it.auties.leap.tls.signature;
 
 import it.auties.leap.tls.exception.TlsException;
+import it.auties.leap.tls.property.TlsIdentifiable;
 
 import java.net.URI;
 import java.util.Objects;
@@ -18,7 +19,7 @@ public final class TlsSignatureAlgorithm implements TlsSignature {
     }
 
     @Override
-    public int id() {
+    public Integer id() {
         return (hash.id() << 8) | signature.id();
     }
 
@@ -34,7 +35,7 @@ public final class TlsSignatureAlgorithm implements TlsSignature {
         return Objects.hash(signature, hash);
     }
 
-    public static final class Signature {
+    public static final class Signature implements TlsIdentifiable<Byte> {
         private static final Signature ANONYMOUS = new Signature((byte) 0, false);
         private static final Signature RSA = new Signature((byte) 1, false);
         private static final Signature DSA = new Signature((byte) 2, false);
@@ -127,7 +128,8 @@ public final class TlsSignatureAlgorithm implements TlsSignature {
             this.intrinsicHash = intrinsicHash;
         }
 
-        public byte id() {
+        @Override
+        public Byte id() {
             return id;
         }
 
@@ -136,7 +138,7 @@ public final class TlsSignatureAlgorithm implements TlsSignature {
         }
     }
 
-    public static final class Hash {
+    public static final class Hash implements TlsIdentifiable<Byte> {
         private static final Hash NONE = new Hash((byte) 0);
         private static final Hash MD5 = new Hash((byte) 1);
         private static final Hash SHA1 = new Hash((byte) 2);
@@ -196,7 +198,8 @@ public final class TlsSignatureAlgorithm implements TlsSignature {
             this.id = id;
         }
 
-        public byte id() {
+        @Override
+        public Byte id() {
             return id;
         }
     }

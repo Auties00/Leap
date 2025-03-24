@@ -138,7 +138,13 @@ public sealed abstract class KeyExchangeMessage extends TlsHandshakeMessage {
 
         @Override
         public void validateAndUpdate(TlsContext context) {
-            context.initSession(localParameters);
+            if(localParameters == null) {
+                return;
+            }
+
+            var preMasterSecret = localParameters.preMasterSecret()
+                    .orElse(null);
+            context.initSession(localParameters, preMasterSecret, null);
         }
     }
 }

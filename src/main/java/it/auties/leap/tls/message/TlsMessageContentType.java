@@ -13,22 +13,22 @@ public enum TlsMessageContentType {
     APPLICATION_DATA((byte) 23, "application_data");
 
     private static final Map<Byte, TlsMessageContentType> VALUES = Arrays.stream(values())
-            .collect(Collectors.toUnmodifiableMap(TlsMessageContentType::id, Function.identity()));
+            .collect(Collectors.toUnmodifiableMap(TlsMessageContentType::type, Function.identity()));
 
     public static Optional<TlsMessageContentType> of(byte value) {
         return Optional.ofNullable(VALUES.get(value));
     }
 
-    private final byte id;
+    private final byte type;
     private final String contentName;
 
-    TlsMessageContentType(byte id, String contentName) {
-        this.id = id;
+    TlsMessageContentType(byte type, String contentName) {
+        this.type = type;
         this.contentName = contentName;
     }
 
-    public byte id() {
-        return id;
+    public byte type() {
+        return type;
     }
 
     public String contentName() {

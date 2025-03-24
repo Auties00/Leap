@@ -5,7 +5,6 @@ import it.auties.leap.socket.SocketProtocol;
 import it.auties.leap.socket.blocking.applicationLayer.BlockingSocketApplicationLayerFactory;
 import it.auties.leap.socket.blocking.transportLayer.BlockingSocketTransportLayerFactory;
 import it.auties.leap.socket.blocking.tunnelLayer.BlockingSocketTunnelLayerFactory;
-import it.auties.leap.tls.context.TlsConfig;
 
 import java.net.URI;
 import java.util.Objects;

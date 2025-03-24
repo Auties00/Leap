@@ -264,7 +264,7 @@ public final class NamedCurve implements TlsSupportedCurve {
     }
 
     @Override
-    public int id() {
+    public Integer id() {
         return id;
     }
 

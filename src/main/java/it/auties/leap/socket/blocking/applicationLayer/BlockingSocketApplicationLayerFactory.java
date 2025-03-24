@@ -4,7 +4,6 @@ import it.auties.leap.socket.SocketApplicationLayerFactory;
 import it.auties.leap.socket.blocking.transportLayer.BlockingSocketTransportLayer;
 import it.auties.leap.socket.blocking.applicationLayer.implementation.BlockingPlainApplicationLayer;
 import it.auties.leap.socket.blocking.applicationLayer.implementation.BlockingSecureApplicationLayer;
-import it.auties.leap.tls.context.TlsConfig;
 
 public non-sealed interface BlockingSocketApplicationLayerFactory<P> extends SocketApplicationLayerFactory<BlockingSocketTransportLayer, P> {
     static BlockingSocketApplicationLayerFactory<Void> plain() {

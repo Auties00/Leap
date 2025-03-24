@@ -9,6 +9,7 @@ import it.auties.leap.tls.exception.TlsException;
 import it.auties.leap.tls.secret.TlsPreMasterSecretGenerator;
 
 import java.nio.ByteBuffer;
+import java.util.Optional;
 
 import static it.auties.leap.tls.util.BufferUtils.*;
 
@@ -77,6 +78,11 @@ public sealed abstract class RSAKeyExchange implements TlsKeyExchange {
         @Override
         public int length() {
             return INT16_LENGTH + preMasterSecret.length;
+        }
+
+        @Override
+        public Optional<byte[]> preMasterSecret() {
+            return Optional.of(preMasterSecret);
         }
     }
 }

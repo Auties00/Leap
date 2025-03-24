@@ -2,10 +2,10 @@ package it.auties.leap.tls.extension;
 
 import it.auties.leap.tls.context.TlsContext;
 import it.auties.leap.tls.context.TlsSource;
-import it.auties.leap.tls.extension.implementation.*;
 import it.auties.leap.tls.ec.TlsECPointFormat;
-import it.auties.leap.tls.psk.TlsPSKExchangeMode;
+import it.auties.leap.tls.extension.implementation.*;
 import it.auties.leap.tls.group.TlsSupportedGroup;
+import it.auties.leap.tls.psk.TlsPSKExchangeMode;
 import it.auties.leap.tls.signature.TlsSignature;
 import it.auties.leap.tls.version.TlsVersion;
 import it.auties.leap.tls.version.TlsVersionId;
@@ -15,7 +15,8 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 
-import static it.auties.leap.tls.util.BufferUtils.*;
+import static it.auties.leap.tls.util.BufferUtils.INT16_LENGTH;
+import static it.auties.leap.tls.util.BufferUtils.writeBigEndianInt16;
 
 public sealed interface TlsExtension {
     List<TlsVersion> TLS_UNTIL_12 = List.of(TlsVersion.TLS10, TlsVersion.TLS11, TlsVersion.TLS12);
@@ -186,7 +187,7 @@ public sealed interface TlsExtension {
     }
 
     static TlsExtension alpn(List<String> supportedProtocols) {
-        return ALPNExtension.of(supportedProtocols);
+        return new ALPNExtension(supportedProtocols);
     }
 
     static TlsExtension padding(int targetLength) {
@@ -198,7 +199,7 @@ public sealed interface TlsExtension {
     }
 
     static TlsExtension ecPointFormats(List<TlsECPointFormat> formats) {
-        return ECPointFormatExtension.of(formats);
+        return new ECPointFormatExtension(formats);
     }
 
     static TlsExtension supportedGroups() {
@@ -233,6 +234,8 @@ public sealed interface TlsExtension {
         return List.of(supportedVersions(), keyShare(), signatureAlgorithms());
     }
 
+    void apply(TlsContext context, TlsSource source);
+
     int extensionType();
 
     List<TlsVersion> versions();
@@ -240,8 +243,6 @@ public sealed interface TlsExtension {
     TlsExtensionDeserializer decoder();
 
     non-sealed interface Concrete extends TlsExtension {
-        void apply(TlsContext context, TlsSource source);
-
         default void serializeExtension(ByteBuffer buffer) {
             writeBigEndianInt16(buffer, extensionType());
             writeBigEndianInt16(buffer, extensionPayloadLength());

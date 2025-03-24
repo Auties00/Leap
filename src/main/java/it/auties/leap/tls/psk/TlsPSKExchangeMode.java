@@ -1,13 +1,14 @@
 package it.auties.leap.tls.psk;
 
 import it.auties.leap.tls.exception.TlsException;
+import it.auties.leap.tls.property.TlsIdentifiable;
 import it.auties.leap.tls.version.TlsVersion;
 
 import java.net.URI;
 import java.util.Optional;
 
 // https://www.iana.org/assignments/tls-parameters/tls-pskkeyexchangemode.csv
-public sealed interface TlsPSKExchangeMode extends TlsPSKExchangeModeGenerator {
+public sealed interface TlsPSKExchangeMode extends TlsIdentifiable<Byte>, TlsPSKExchangeModeGenerator {
     static TlsPSKExchangeMode pskKe() {
         return KE.INSTANCE;
     }
@@ -24,13 +25,11 @@ public sealed interface TlsPSKExchangeMode extends TlsPSKExchangeModeGenerator {
         return new Reserved(id, generator);
     }
 
-    byte id();
-
     final class KE implements TlsPSKExchangeMode {
         private static final KE INSTANCE = new KE();
 
         @Override
-        public byte id() {
+        public Byte id() {
             return 0;
         }
 
@@ -44,7 +43,7 @@ public sealed interface TlsPSKExchangeMode extends TlsPSKExchangeModeGenerator {
         private static final DHEKE INSTANCE = new DHEKE();
 
         @Override
-        public byte id() {
+        public Byte id() {
             return 1;
         }
 
@@ -72,7 +71,7 @@ public sealed interface TlsPSKExchangeMode extends TlsPSKExchangeModeGenerator {
         }
 
         @Override
-        public byte id() {
+        public Byte id() {
             return id;
         }
 

@@ -10,6 +10,7 @@ module it.auties.leap {
 
     exports it.auties.leap.tls.certificate;
 
+    exports it.auties.leap.tls;
     exports it.auties.leap.tls.cipher;
     exports it.auties.leap.tls.cipher.exchange;
     exports it.auties.leap.tls.cipher.engine;
@@ -41,4 +42,5 @@ module it.auties.leap {
     exports it.auties.leap.http.exchange;
     exports it.auties.leap.http.exchange.headers;
     exports it.auties.leap.tls.message.implementation;
+    exports it.auties.leap.tls.property;
 }

@@ -1,7 +1,6 @@
 package it.auties.leap.http.config;
 
 import it.auties.leap.http.HttpVersion;
-import it.auties.leap.tls.context.TlsConfig;
 
 import java.net.CookieHandler;
 import java.net.URI;

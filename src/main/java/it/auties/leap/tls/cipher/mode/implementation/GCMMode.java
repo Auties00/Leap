@@ -117,7 +117,7 @@ public final class GCMMode extends TlsCipherMode.Block {
         this.J0[J0.length - 1] = 0x01;
         this.counter = Arrays.clone(J0);
 
-        var aad = authenticator.createAuthenticationBlock(message.contentType().id(), input.remaining() - (forEncryption ? 0 : tagLength()), null);
+        var aad = authenticator.createAuthenticationBlock(message.contentType().type(), input.remaining() - (forEncryption ? 0 : tagLength()), null);
         processAADBytes(aad, 0, aad.length);
 
         var resultLen = processBytes(input.array(), input.position(), input.remaining(), output.array(), output.position());
@@ -140,7 +140,7 @@ public final class GCMMode extends TlsCipherMode.Block {
         this.J0[J0.length - 1] = 0x01;
         this.counter = Arrays.clone(J0);
 
-        var aad = authenticator.createAuthenticationBlock(metadata.contentType().id(), input.remaining() - (forEncryption ? 0 : tagLength()), null);
+        var aad = authenticator.createAuthenticationBlock(metadata.contentType().type(), input.remaining() - (forEncryption ? 0 : tagLength()), null);
         processAADBytes(aad, 0, aad.length);
 
         var resultLen = processBytes(input.array(), input.position(), input.remaining(), output.array(), output.position());

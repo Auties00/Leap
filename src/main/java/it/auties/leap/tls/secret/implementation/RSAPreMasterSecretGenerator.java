@@ -27,7 +27,6 @@ public final class RSAPreMasterSecretGenerator implements TlsPreMasterSecretGene
                     .orElseThrow(() -> new TlsException("No version was negotiated yet"));
             preMasterSecret[0] = version.id().minor();
             preMasterSecret[1] = version.id().major();
-            context.setPreMasterSecret(preMasterSecret);
             var cipher = Cipher.getInstance("RSA/ECB/PKCS1Padding");
             cipher.init(Cipher.WRAP_MODE, context.remotePublicKey().orElseThrow());
             return cipher.wrap(new SecretKeySpec(preMasterSecret, "raw"));

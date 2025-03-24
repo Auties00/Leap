@@ -7,10 +7,14 @@ import it.auties.leap.tls.util.CertificateUtils;
 
 import java.nio.ByteBuffer;
 import java.security.cert.X509Certificate;
+import java.util.Optional;
 
 public interface TlsKeyExchange {
     TlsKeyExchangeType type();
     TlsPreMasterSecretGenerator preMasterSecretGenerator();
+    default Optional<byte[]> preMasterSecret() {
+        return Optional.empty();
+    }
     void serialize(ByteBuffer buffer);
     int length();
 

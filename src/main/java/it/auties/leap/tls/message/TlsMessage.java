@@ -38,7 +38,7 @@ public sealed abstract class TlsMessage
         var messagePayloadLength = messagePayloadLength();
         var recordLength = messageRecordHeaderLength() + messagePayloadLength;
         try(var _ = scopedWrite(payload, recordLength, true)) {
-            writeBigEndianInt8(payload, contentType().id());
+            writeBigEndianInt8(payload, contentType().type());
             writeBigEndianInt8(payload, version().id().major());
             writeBigEndianInt8(payload, version().id().minor());
             writeBigEndianInt16(payload, messagePayloadLength);
@@ -64,7 +64,7 @@ public sealed abstract class TlsMessage
 
         var newReadPosition = message.position() - messageRecordHeaderLength();
         message.position(newReadPosition);
-        writeBigEndianInt8(message, type.id());
+        writeBigEndianInt8(message, type.type());
         writeBigEndianInt8(message, version.id().major());
         writeBigEndianInt8(message, version.id().minor());
         writeBigEndianInt16(message, messageLength);

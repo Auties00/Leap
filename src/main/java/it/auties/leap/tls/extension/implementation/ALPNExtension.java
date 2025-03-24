@@ -20,6 +20,16 @@ public record ALPNExtension(
       List<String> supportedProtocols,
       int supportedProtocolsSize
 ) implements TlsExtension.Concrete {
+    public ALPNExtension(List<String> supportedProtocols) {
+        var supportedProtocolsSources = new ArrayList<String>(supportedProtocols.size());
+        var supportedProtocolsLength = 0;
+        for(var supportedProtocol : supportedProtocols) {
+            supportedProtocolsSources.add(supportedProtocol);
+            supportedProtocolsLength += INT8_LENGTH + supportedProtocol.length();
+        }
+        this(supportedProtocolsSources, supportedProtocolsLength);
+    }
+
     private static final TlsExtensionDeserializer DECODER = (_, _, _, buffer) -> {
         var supportedProtocolsSize = readBigEndianInt16(buffer);
         var supportedProtocols = new ArrayList<String>();
@@ -31,16 +41,6 @@ public record ALPNExtension(
         var extension = new ALPNExtension(supportedProtocols, supportedProtocolsSize);
         return Optional.of(extension);
     };
-
-    public static ALPNExtension of(List<String> supportedProtocols) {
-        var supportedProtocolsSources = new ArrayList<String>(supportedProtocols.size());
-        var supportedProtocolsLength = 0;
-        for(var supportedProtocol : supportedProtocols) {
-            supportedProtocolsSources.add(supportedProtocol);
-            supportedProtocolsLength += INT8_LENGTH + supportedProtocol.length();
-        }
-        return new ALPNExtension(supportedProtocolsSources, supportedProtocolsLength);
-    }
 
     @Override
     public void serializeExtensionPayload(ByteBuffer buffer) {

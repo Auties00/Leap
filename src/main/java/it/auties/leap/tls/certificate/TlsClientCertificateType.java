@@ -1,10 +1,11 @@
 package it.auties.leap.tls.certificate;
 
 import it.auties.leap.tls.exception.TlsException;
+import it.auties.leap.tls.property.TlsIdentifiable;
 
 import java.net.URI;
 
-public sealed interface TlsClientCertificateType {
+public sealed interface TlsClientCertificateType extends TlsIdentifiable<Byte> {
     static RsaSign rsaSign() {
         return RsaSign.INSTANCE;
     }
@@ -64,14 +65,12 @@ public sealed interface TlsClientCertificateType {
 
         return new Reserved(id);
     }
-    
-    byte id();
 
     final class RsaSign implements TlsClientCertificateType {
         private static final RsaSign INSTANCE = new RsaSign();
 
         @Override
-        public byte id() {
+        public Byte id() {
             return 1;
         }
     }
@@ -80,7 +79,7 @@ public sealed interface TlsClientCertificateType {
         private static final DssSign INSTANCE = new DssSign();
 
         @Override
-        public byte id() {
+        public Byte id() {
             return 2;
         }
     }
@@ -89,7 +88,7 @@ public sealed interface TlsClientCertificateType {
         private static final RsaFixedDh INSTANCE = new RsaFixedDh();
 
         @Override
-        public byte id() {
+        public Byte id() {
             return 3;
         }
     }
@@ -98,7 +97,7 @@ public sealed interface TlsClientCertificateType {
         private static final DssFixedDh INSTANCE = new DssFixedDh();
 
         @Override
-        public byte id() {
+        public Byte id() {
             return 4;
         }
     }
@@ -107,7 +106,7 @@ public sealed interface TlsClientCertificateType {
         private static final RsaEphemeralDh INSTANCE = new RsaEphemeralDh();
 
         @Override
-        public byte id() {
+        public Byte id() {
             return 5;
         }
     }
@@ -116,7 +115,7 @@ public sealed interface TlsClientCertificateType {
         private static final DssEphemeralDh INSTANCE = new DssEphemeralDh();
 
         @Override
-        public byte id() {
+        public Byte id() {
             return 6;
         }
     }
@@ -125,7 +124,7 @@ public sealed interface TlsClientCertificateType {
         private static final FortezzaDms INSTANCE = new FortezzaDms();
 
         @Override
-        public byte id() {
+        public Byte id() {
             return 20;
         }
     }
@@ -134,7 +133,7 @@ public sealed interface TlsClientCertificateType {
         private static final EcdsaSign INSTANCE = new EcdsaSign();
 
         @Override
-        public byte id() {
+        public Byte id() {
             return 64;
         }
     }
@@ -143,7 +142,7 @@ public sealed interface TlsClientCertificateType {
         private static final RsaFixedEcdh INSTANCE = new RsaFixedEcdh();
 
         @Override
-        public byte id() {
+        public Byte id() {
             return 65;
         }
     }
@@ -152,7 +151,7 @@ public sealed interface TlsClientCertificateType {
         private static final EcdsaFixedEcdh INSTANCE = new EcdsaFixedEcdh();
 
         @Override
-        public byte id() {
+        public Byte id() {
             return 66;
         }
     }
@@ -161,7 +160,7 @@ public sealed interface TlsClientCertificateType {
         private static final FalconSign INSTANCE = new FalconSign();
 
         @Override
-        public byte id() {
+        public Byte id() {
             return 67;
         }
     }
@@ -170,7 +169,7 @@ public sealed interface TlsClientCertificateType {
         private static final DilithiumSign INSTANCE = new DilithiumSign();
 
         @Override
-        public byte id() {
+        public Byte id() {
             return 68;
         }
     }
@@ -182,7 +181,7 @@ public sealed interface TlsClientCertificateType {
         }
 
         @Override
-        public byte id() {
+        public Byte id() {
             return id;
         }
     }

@@ -25,7 +25,7 @@ public final class ReservedCompression implements TlsCompression {
     }
 
     @Override
-    public byte id() {
+    public Byte id() {
         return id;
     }
 

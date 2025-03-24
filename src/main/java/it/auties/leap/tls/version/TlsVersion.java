@@ -1,6 +1,7 @@
 package it.auties.leap.tls.version;
 
 import it.auties.leap.socket.SocketProtocol;
+import it.auties.leap.tls.property.TlsIdentifiable;
 
 import java.util.Arrays;
 import java.util.List;
@@ -10,7 +11,7 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 
 // Implementing a new version is not a supported use case: this is why this class is implemented as an enum
-public enum TlsVersion {
+public enum TlsVersion implements TlsIdentifiable<TlsVersionId> {
     TLS13(0x0304, "TLS1.3", SocketProtocol.TCP),
     TLS12(0x0303, "TLS1.2", SocketProtocol.TCP),
     TLS11(0x0302, "TLS1.1", SocketProtocol.TCP),
@@ -61,6 +62,7 @@ public enum TlsVersion {
         };
     }
 
+    @Override
     public TlsVersionId id() {
         return id;
     }

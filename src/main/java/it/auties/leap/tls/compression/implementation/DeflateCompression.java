@@ -20,7 +20,7 @@ public final class DeflateCompression implements TlsCompression {
     }
 
     @Override
-    public byte id() {
+    public Byte id() {
         return 1;
     }
 

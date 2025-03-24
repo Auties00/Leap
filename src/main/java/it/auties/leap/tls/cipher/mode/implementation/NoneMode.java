@@ -24,14 +24,14 @@ public final class NoneMode extends TlsCipherMode.Block {
     public void encrypt(TlsContext context, TlsMessage message, ByteBuffer output) {
         var input = output.duplicate();
         message.serializeMessage(input);
-        addMac(input, message.contentType().id());
+        addMac(input, message.contentType().type());
         move(input, output);
     }
 
     @Override
     public ByteBuffer decrypt(TlsContext context, TlsMessageMetadata metadata, ByteBuffer input) {
         var output = input.duplicate();
-        addMac(input, metadata.contentType().id());
+        addMac(input, metadata.contentType().type());
         move(input, output);
         return output;
     }

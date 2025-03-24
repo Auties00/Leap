@@ -6,13 +6,10 @@ import it.auties.leap.socket.async.applicationLayer.AsyncSocketApplicationLayerF
 import it.auties.leap.socket.async.transportLayer.AsyncSocketTransportLayer;
 import it.auties.leap.tls.cipher.TlsCipher;
 import it.auties.leap.tls.compression.TlsCompression;
-import it.auties.leap.tls.context.TlsConfig;
 import it.auties.leap.tls.context.TlsContext;
 import it.auties.leap.tls.context.TlsSource;
 import it.auties.leap.tls.exception.TlsException;
-import it.auties.leap.tls.message.TlsMessage;
-import it.auties.leap.tls.message.TlsMessageContentType;
-import it.auties.leap.tls.message.TlsMessageMetadata;
+import it.auties.leap.tls.message.*;
 import it.auties.leap.tls.message.implementation.*;
 import it.auties.leap.tls.version.TlsVersion;
 
@@ -209,7 +206,7 @@ public class AsyncSecureSocketApplicationLayer extends AsyncSocketApplicationLay
             var encryptedMessagePosition = encryptedMessagePayloadBuffer.position() - TlsMessage.messageRecordHeaderLength();
             var encryptedMessageLength = encryptedMessagePayloadBuffer.remaining();
             encryptedMessagePayloadBuffer.position(encryptedMessagePosition);
-            writeBigEndianInt8(encryptedMessagePayloadBuffer, finishedMessage.contentType().id());
+            writeBigEndianInt8(encryptedMessagePayloadBuffer, finishedMessage.contentType().type());
             writeBigEndianInt8(encryptedMessagePayloadBuffer, finishedMessage.version().id().major());
             writeBigEndianInt8(encryptedMessagePayloadBuffer, finishedMessage.version().id().minor());
             writeBigEndianInt16(encryptedMessagePayloadBuffer, encryptedMessageLength);
@@ -406,8 +403,8 @@ public class AsyncSecureSocketApplicationLayer extends AsyncSocketApplicationLay
             var alertMessage = new AlertMessage(
                     version,
                     TlsSource.LOCAL,
-                    AlertMessage.AlertLevel.WARNING,
-                    AlertMessage.AlertType.CLOSE_NOTIFY
+                    TlsAlertLevel.WARNING,
+                    TlsAlertType.CLOSE_NOTIFY
             );
             var encrypted = writeBuffer()
                     .position(TlsMessage.messageRecordHeaderLength() + leftPadding);

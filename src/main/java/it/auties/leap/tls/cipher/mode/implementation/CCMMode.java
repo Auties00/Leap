@@ -53,7 +53,7 @@ public final class CCMMode extends TlsCipherMode.Block {
         try {
             var temp = Cipher.getInstance("AES/CCM/NoPadding", "BC");
             temp.init(engine.forEncryption() ? Cipher.ENCRYPT_MODE : Cipher.DECRYPT_MODE, new SecretKeySpec(engine.key(), "AES"), new AEADParameterSpec(iv, 16 * 8));
-            var aad = authenticator.createAuthenticationBlock(message.contentType().id(), input.remaining() - (engine.forEncryption() ? 0 : tagLength()), null);
+            var aad = authenticator.createAuthenticationBlock(message.contentType().type(), input.remaining() - (engine.forEncryption() ? 0 : tagLength()), null);
             temp.updateAAD(aad, 0, aad.length);
             temp.doFinal(input, output);
         }catch (GeneralSecurityException exception) {
@@ -77,7 +77,7 @@ public final class CCMMode extends TlsCipherMode.Block {
         try {
             var temp = Cipher.getInstance("AES/CCM/NoPadding", "BC");
             temp.init(engine.forEncryption() ? Cipher.ENCRYPT_MODE : Cipher.DECRYPT_MODE, new SecretKeySpec(engine.key(), "AES"), new AEADParameterSpec(iv, 16 * 8));
-            var aad = authenticator.createAuthenticationBlock(metadata.contentType().id(), input.remaining() - (engine.forEncryption() ? 0 : tagLength()), null);
+            var aad = authenticator.createAuthenticationBlock(metadata.contentType().type(), input.remaining() - (engine.forEncryption() ? 0 : tagLength()), null);
             temp.updateAAD(aad, 0, aad.length);
             temp.doFinal(input, output);
         }catch (GeneralSecurityException exception) {

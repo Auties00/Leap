@@ -60,7 +60,7 @@ public final class NamedFiniteField implements TlsSupportedFiniteField {
     }
 
     @Override
-    public int id() {
+    public Integer id() {
         return id;
     }
 

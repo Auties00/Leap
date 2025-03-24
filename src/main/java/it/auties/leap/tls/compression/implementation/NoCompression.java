@@ -16,7 +16,7 @@ public final class NoCompression implements TlsCompression {
     }
 
     @Override
-    public byte id() {
+    public Byte id() {
         return 0;
     }
 

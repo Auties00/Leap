@@ -16,7 +16,7 @@ public final class ExplicitChar2Curve implements TlsSupportedCurve {
     }
 
     @Override
-    public int id() {
+    public Integer id() {
         return 65282;
     }
 

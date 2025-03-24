@@ -6,6 +6,7 @@ import it.auties.leap.tls.ec.TlsECPointFormat;
 import it.auties.leap.tls.exception.TlsException;
 import it.auties.leap.tls.extension.TlsExtension;
 import it.auties.leap.tls.extension.TlsExtensionDeserializer;
+import it.auties.leap.tls.property.TlsIdentifiable;
 import it.auties.leap.tls.version.TlsVersion;
 
 import java.nio.ByteBuffer;
@@ -17,30 +18,29 @@ import java.util.Optional;
 import static it.auties.leap.tls.util.BufferUtils.*;
 
 public record ECPointFormatExtension(
-        List<Byte> ecPointFormats
+        List<Byte> ecPointFormats,
+        int ecPointFormatsLength
 ) implements TlsExtension.Concrete {
-    private static final ECPointFormatExtension ALL = new ECPointFormatExtension(List.of(
-            TlsECPointFormat.uncompressed().id(),
-            TlsECPointFormat.ansix962CompressedChar2().id(),
-            TlsECPointFormat.ansix962CompressedPrime().id())
-    );
+    public ECPointFormatExtension(List<TlsECPointFormat> formats) {
+        var ids = formats.stream()
+                .map(TlsIdentifiable::id)
+                .toList();
+        var length = formats.size();
+        this(ids, length);
+    }
+
+    private static final ECPointFormatExtension ALL = new ECPointFormatExtension(TlsECPointFormat.values());
 
     private static final TlsExtensionDeserializer DECODER = (_, _, _, buffer) -> {
-        var ecPointFormatsSize = readBigEndianInt8(buffer);
+        var ecPointFormatsLength = readBigEndianInt8(buffer);
         var ecPointFormats = new ArrayList<Byte>();
-        for(var i = 0; i < ecPointFormatsSize; i++) {
+        for(var i = 0; i < ecPointFormatsLength; i++) {
             var ecPointFormatId = readBigEndianInt8(buffer);
             ecPointFormats.add(ecPointFormatId);
         }
-        var extension = new ECPointFormatExtension(ecPointFormats);
+        var extension = new ECPointFormatExtension(ecPointFormats, ecPointFormatsLength);
         return Optional.of(extension);
     };
-
-    public static ECPointFormatExtension of(List<TlsECPointFormat> formats) {
-        return new ECPointFormatExtension(formats.stream()
-                .map(TlsECPointFormat::id)
-                .toList());
-    }
 
     public static TlsExtension all() {
         return ALL;
@@ -56,7 +56,7 @@ public record ECPointFormatExtension(
 
     @Override
     public int extensionPayloadLength() {
-        return INT8_LENGTH + INT8_LENGTH * ecPointFormats.size();
+        return INT8_LENGTH + INT8_LENGTH * ecPointFormatsLength;
     }
 
     @Override

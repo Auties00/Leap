@@ -1,10 +1,12 @@
 package it.auties.leap.tls.ec;
 
 import it.auties.leap.tls.exception.TlsException;
+import it.auties.leap.tls.property.TlsIdentifiable;
 
 import java.net.URI;
+import java.util.List;
 
-public sealed interface TlsECPointFormat {
+public sealed interface TlsECPointFormat extends TlsIdentifiable<Byte> {
     static TlsECPointFormat uncompressed() {
         return Uncompressed.INSTANCE;
     }
@@ -29,13 +31,19 @@ public sealed interface TlsECPointFormat {
         return new Reserved(id);
     }
 
-    byte id();
+    static List<TlsECPointFormat> values() {
+        final class Formats {
+            private static final List<TlsECPointFormat> FORMATS = List.of(Uncompressed.INSTANCE, Ansix962CompressedPrime.INSTANCE, Ansix962CompressedChar2.INSTANCE);
+        }
+
+        return Formats.FORMATS;
+    }
 
     final class Uncompressed implements TlsECPointFormat {
         private static final Uncompressed INSTANCE = new Uncompressed();
 
         @Override
-        public byte id() {
+        public Byte id() {
             return 0;
         }
     }
@@ -44,7 +52,7 @@ public sealed interface TlsECPointFormat {
         private static final Ansix962CompressedPrime INSTANCE = new Ansix962CompressedPrime();
 
         @Override
-        public byte id() {
+        public Byte id() {
             return 1;
         }
     }
@@ -53,7 +61,7 @@ public sealed interface TlsECPointFormat {
         private static final Ansix962CompressedChar2 INSTANCE = new Ansix962CompressedChar2();
 
         @Override
-        public byte id() {
+        public Byte id() {
             return 2;
         }
     }
@@ -65,7 +73,7 @@ public sealed interface TlsECPointFormat {
         }
 
         @Override
-        public byte id() {
+        public Byte id() {
             return id;
         }
     }
