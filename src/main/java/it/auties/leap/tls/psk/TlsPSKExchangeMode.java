@@ -1,7 +1,7 @@
 package it.auties.leap.tls.psk;
 
 import it.auties.leap.tls.exception.TlsException;
-import it.auties.leap.tls.property.TlsIdentifiable;
+import it.auties.leap.tls.TlsIdentifiable;
 import it.auties.leap.tls.version.TlsVersion;
 
 import java.net.URI;

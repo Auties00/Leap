@@ -1,7 +1,7 @@
 package it.auties.leap.tls.group.implementation;
 
 import it.auties.leap.tls.cipher.exchange.implementation.ECDHKeyExchange;
-import it.auties.leap.tls.context.TlsContext;
+import it.auties.leap.tls.TlsContext;
 import it.auties.leap.tls.ec.TlsECParameters;
 import it.auties.leap.tls.ec.TlsECParametersDeserializer;
 import it.auties.leap.tls.ec.implementation.NamedCurveParameters;

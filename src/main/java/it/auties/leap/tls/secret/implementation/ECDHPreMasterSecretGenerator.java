@@ -1,7 +1,7 @@
 package it.auties.leap.tls.secret.implementation;
 
 import it.auties.leap.tls.cipher.exchange.implementation.ECDHKeyExchange;
-import it.auties.leap.tls.context.TlsContext;
+import it.auties.leap.tls.TlsContext;
 import it.auties.leap.tls.exception.TlsException;
 import it.auties.leap.tls.secret.TlsPreMasterSecretGenerator;
 

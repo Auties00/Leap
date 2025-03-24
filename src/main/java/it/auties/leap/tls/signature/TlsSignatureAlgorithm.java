@@ -1,7 +1,7 @@
 package it.auties.leap.tls.signature;
 
 import it.auties.leap.tls.exception.TlsException;
-import it.auties.leap.tls.property.TlsIdentifiable;
+import it.auties.leap.tls.TlsIdentifiable;
 
 import java.net.URI;
 import java.util.Objects;

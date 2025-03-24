@@ -6,7 +6,7 @@ import it.auties.leap.tls.cipher.exchange.TlsKeyExchangeFactory;
 import it.auties.leap.tls.cipher.mode.TlsCipherModeFactory;
 import it.auties.leap.tls.exception.TlsException;
 import it.auties.leap.tls.hash.TlsHashFactory;
-import it.auties.leap.tls.property.TlsIdentifiable;
+import it.auties.leap.tls.TlsIdentifiable;
 import it.auties.leap.tls.version.TlsVersion;
 
 import java.net.URI;

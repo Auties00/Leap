@@ -2,7 +2,7 @@ package it.auties.leap.tls.group.implementation;
 
 import it.auties.leap.tls.cipher.exchange.TlsKeyExchange;
 import it.auties.leap.tls.cipher.exchange.implementation.DHKeyExchange;
-import it.auties.leap.tls.context.TlsContext;
+import it.auties.leap.tls.TlsContext;
 import it.auties.leap.tls.exception.TlsException;
 import it.auties.leap.tls.group.TlsSupportedFiniteField;
 

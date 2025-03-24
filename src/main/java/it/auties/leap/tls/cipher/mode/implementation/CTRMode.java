@@ -4,7 +4,7 @@ import it.auties.leap.tls.cipher.engine.TlsCipherEngine;
 import it.auties.leap.tls.cipher.engine.implementation.MagmaEngine;
 import it.auties.leap.tls.cipher.mode.TlsCipherMode;
 import it.auties.leap.tls.cipher.mode.TlsCipherModeFactory;
-import it.auties.leap.tls.context.TlsContext;
+import it.auties.leap.tls.TlsContext;
 import it.auties.leap.tls.exception.TlsException;
 import it.auties.leap.tls.mac.TlsExchangeMac;
 import it.auties.leap.tls.message.TlsMessage;

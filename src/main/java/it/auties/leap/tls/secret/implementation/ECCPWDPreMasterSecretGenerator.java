@@ -1,6 +1,6 @@
 package it.auties.leap.tls.secret.implementation;
 
-import it.auties.leap.tls.context.TlsContext;
+import it.auties.leap.tls.TlsContext;
 import it.auties.leap.tls.secret.TlsPreMasterSecretGenerator;
 
 public final class ECCPWDPreMasterSecretGenerator implements TlsPreMasterSecretGenerator {

@@ -1,4 +1,4 @@
-package it.auties.leap.tls.context;
+package it.auties.leap.tls;
 
 import it.auties.leap.socket.SocketProtocol;
 import it.auties.leap.tls.certificate.TlsCertificatesHandler;
@@ -14,7 +14,6 @@ import it.auties.leap.tls.hash.TlsHashFactory;
 import it.auties.leap.tls.hash.TlsPRF;
 import it.auties.leap.tls.mac.TlsExchangeMac;
 import it.auties.leap.tls.message.TlsMessageDeserializer;
-import it.auties.leap.tls.property.TlsProperty;
 import it.auties.leap.tls.secret.TlsMasterSecret;
 import it.auties.leap.tls.util.TlsKeyUtils;
 import it.auties.leap.tls.version.TlsVersion;
@@ -40,30 +39,32 @@ public class TlsContext {
     private final TlsCertificatesHandler certificatesHandler;
     private final KeyStore trustedKeyStore;
     private final TlsMessageDeserializer messageDeserializer;
-    private final byte[] localRandomData;
-    private final byte[] localSessionId;
-    private final byte[] dtlsCookie;
 
     private volatile TlsMode mode;
 
-    private volatile PublicKey remotePublicKey;
-    private volatile List<X509Certificate> localCertificates;
     private volatile byte[] remoteRandomData;
     private volatile byte[] remoteSessionId;
+    private volatile byte[] remoteDtlsCookie;
+    private volatile PublicKey remotePublicKey;
+    private volatile List<X509Certificate> localCertificates;
     private volatile InetSocketAddress remoteAddress;
     private volatile TlsCipherMode remoteCipher;
     private volatile TlsKeyExchange remoteKeyExchange;
 
+    private final byte[] localRandomData;
+    private final byte[] localSessionId;
+    private final byte[] localDtlsCookie;
     private volatile PublicKey localPublicKey;
     private volatile List<X509Certificate> remoteCertificates;
     private volatile KeyPair localKeyPair;
     private volatile TlsCipherMode localCipher;
-    private volatile TlsMasterSecret localMasterSecretKey;
     private volatile TlsKeyExchange localKeyExchange;
 
-    private final Map<TlsProperty<?>, List<Object>> negotiableProperties;
-    private final Map<TlsProperty<?>, List<Object>> negotiatedProperties;
-    private final Map<TlsProperty<?>, List<Object>> properties;
+    private volatile TlsMasterSecret localMasterSecretKey;
+
+    private final Map<TlsNegotiableProperty<?>, List<Object>> negotiableProperties;
+    private final Map<TlsNegotiableProperty<?>, List<Object>> negotiatedProperties;
+    private final Map<TlsNegotiableProperty<?>, List<Object>> properties;
 
     TlsContext(SocketProtocol protocol, List<TlsVersion> versions, List<TlsCipher> ciphers, List<TlsExtension> extensions, List<TlsCompression> compressions, TlsCertificatesProvider certificatesProvider, TlsCertificatesHandler certificatesHandler, KeyStore trustedKeyStore, TlsMessageDeserializer messageDeserializer, byte[] localRandomData, byte[] localSessionId) {
         this.protocol = protocol;
@@ -77,7 +78,7 @@ public class TlsContext {
         this.messageDeserializer = messageDeserializer;
         this.localRandomData = localRandomData;
         this.localSessionId = localSessionId;
-        this.dtlsCookie = switch (protocol) {
+        this.localDtlsCookie = switch (protocol) {
             case TCP -> null;
             case UDP -> TlsKeyUtils.randomData();
         };
@@ -92,16 +93,6 @@ public class TlsContext {
 
     public Optional<TlsMode> selectedMode() {
         return Optional.ofNullable(mode);
-    }
-
-    public TlsContext setRemoteRandomData(byte[] remoteRandomData) {
-        this.remoteRandomData = remoteRandomData;
-        return this;
-    }
-
-    public TlsContext setRemoteSessionId(byte[] remoteSessionId) {
-        this.remoteSessionId = remoteSessionId;
-        return this;
     }
 
     public byte[] localRandomData() {
@@ -121,7 +112,7 @@ public class TlsContext {
     }
 
     public Optional<byte[]> localCookie() {
-        return Optional.ofNullable(dtlsCookie);
+        return Optional.ofNullable(localDtlsCookie);
     }
 
     public List<TlsExtension.Concrete> processedExtensions() {
@@ -514,6 +505,16 @@ public class TlsContext {
         return this;
     }
 
+    public TlsContext setRemoteRandomData(byte[] remoteRandomData) {
+        this.remoteRandomData = remoteRandomData;
+        return this;
+    }
+
+    public TlsContext setRemoteSessionId(byte[] remoteSessionId) {
+        this.remoteSessionId = remoteSessionId;
+        return this;
+    }
+
     public TlsContext setRemoteCertificates(List<X509Certificate> remoteCertificates) {
         var certificate = certificatesHandler.validateChain(remoteCertificates, TlsSource.REMOTE, this);
         this.remotePublicKey = certificate == null ? null : certificate.getPublicKey();
@@ -536,5 +537,9 @@ public class TlsContext {
     public TlsContext setRemoteKeyExchange(TlsKeyExchange remoteKeyExchange) {
         this.remoteKeyExchange = remoteKeyExchange;
         return this;
+    }
+
+    public <V> Optional<V> getNegotiatedProperty(TlsNegotiableProperty<V> property) {
+        return negotiatedProperties.get(property);
     }
 }

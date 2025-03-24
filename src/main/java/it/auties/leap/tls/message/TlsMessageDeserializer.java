@@ -1,6 +1,6 @@
 package it.auties.leap.tls.message;
 
-import it.auties.leap.tls.context.TlsContext;
+import it.auties.leap.tls.TlsContext;
 import it.auties.leap.tls.message.implementation.TlsAnyMessageDeserializer;
 import it.auties.leap.tls.message.implementation.TlsStandardMessageDeserializer;
 

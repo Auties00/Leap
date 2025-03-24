@@ -3,7 +3,7 @@ package it.auties.leap.tls.compression;
 import it.auties.leap.tls.compression.implementation.DeflateCompression;
 import it.auties.leap.tls.compression.implementation.NoCompression;
 import it.auties.leap.tls.compression.implementation.ReservedCompression;
-import it.auties.leap.tls.property.TlsIdentifiable;
+import it.auties.leap.tls.TlsIdentifiable;
 
 import java.util.List;
 

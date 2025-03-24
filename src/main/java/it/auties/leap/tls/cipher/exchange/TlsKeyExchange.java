@@ -1,6 +1,6 @@
 package it.auties.leap.tls.cipher.exchange;
 
-import it.auties.leap.tls.context.TlsContext;
+import it.auties.leap.tls.TlsContext;
 import it.auties.leap.tls.exception.TlsException;
 import it.auties.leap.tls.secret.TlsPreMasterSecretGenerator;
 import it.auties.leap.tls.util.CertificateUtils;

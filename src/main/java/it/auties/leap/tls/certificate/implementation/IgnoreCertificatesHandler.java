@@ -1,8 +1,8 @@
 package it.auties.leap.tls.certificate.implementation;
 
 import it.auties.leap.tls.certificate.TlsCertificatesHandler;
-import it.auties.leap.tls.context.TlsContext;
-import it.auties.leap.tls.context.TlsSource;
+import it.auties.leap.tls.TlsContext;
+import it.auties.leap.tls.TlsSource;
 
 import java.security.cert.X509Certificate;
 import java.util.List;

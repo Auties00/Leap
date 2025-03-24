@@ -1,7 +1,7 @@
 package it.auties.leap.tls.group;
 
-import it.auties.leap.tls.context.TlsContext;
-import it.auties.leap.tls.property.TlsIdentifiable;
+import it.auties.leap.tls.TlsContext;
+import it.auties.leap.tls.TlsIdentifiable;
 
 import java.security.KeyPair;
 

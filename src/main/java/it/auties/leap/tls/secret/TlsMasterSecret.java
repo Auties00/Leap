@@ -1,6 +1,6 @@
 package it.auties.leap.tls.secret;
 
-import it.auties.leap.tls.context.TlsMode;
+import it.auties.leap.tls.TlsMode;
 import it.auties.leap.tls.cipher.TlsCipher;
 import it.auties.leap.tls.version.TlsVersion;
 import it.auties.leap.tls.hash.TlsHash;

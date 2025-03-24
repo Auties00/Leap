@@ -6,8 +6,8 @@ import it.auties.leap.socket.async.applicationLayer.AsyncSocketApplicationLayerF
 import it.auties.leap.socket.async.transportLayer.AsyncSocketTransportLayer;
 import it.auties.leap.tls.cipher.TlsCipher;
 import it.auties.leap.tls.compression.TlsCompression;
-import it.auties.leap.tls.context.TlsContext;
-import it.auties.leap.tls.context.TlsSource;
+import it.auties.leap.tls.TlsContext;
+import it.auties.leap.tls.TlsSource;
 import it.auties.leap.tls.exception.TlsException;
 import it.auties.leap.tls.message.*;
 import it.auties.leap.tls.message.implementation.*;

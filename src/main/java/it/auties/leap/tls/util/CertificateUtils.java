@@ -1,7 +1,7 @@
 package it.auties.leap.tls.util;
 
 import it.auties.leap.tls.cipher.exchange.TlsKeyExchangeType;
-import it.auties.leap.tls.context.TlsMode;
+import it.auties.leap.tls.TlsMode;
 import it.auties.leap.tls.exception.TlsException;
 import it.auties.leap.tls.util.sun.HostnameChecker;
 

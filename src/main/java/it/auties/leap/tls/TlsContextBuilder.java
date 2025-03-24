@@ -1,4 +1,4 @@
-package it.auties.leap.tls.context;
+package it.auties.leap.tls;
 
 import it.auties.leap.socket.SocketProtocol;
 import it.auties.leap.tls.certificate.TlsCertificatesHandler;

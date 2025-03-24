@@ -1,7 +1,7 @@
 package it.auties.leap.tls.version;
 
 import it.auties.leap.socket.SocketProtocol;
-import it.auties.leap.tls.property.TlsIdentifiable;
+import it.auties.leap.tls.TlsIdentifiable;
 
 import java.util.Arrays;
 import java.util.List;

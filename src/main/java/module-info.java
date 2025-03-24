@@ -26,7 +26,6 @@ module it.auties.leap {
     exports it.auties.leap.tls.mac;
     exports it.auties.leap.tls.group;
     exports it.auties.leap.tls.secret;
-    exports it.auties.leap.tls.context;
     exports it.auties.leap.tls.cipher.auth;
     exports it.auties.leap.socket.blocking.applicationLayer;
     exports it.auties.leap.socket.blocking.transportLayer;
