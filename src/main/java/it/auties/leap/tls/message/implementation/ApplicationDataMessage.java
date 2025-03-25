@@ -46,7 +46,7 @@ public final class ApplicationDataMessage extends TlsMessage {
     @Override
     public void validateAndUpdate(TlsContext context) {
         if(source == TlsSource.REMOTE) {
-            context.addMessage(message);
+            context.addBufferedMessage(message);
         }
     }
 

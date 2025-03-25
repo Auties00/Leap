@@ -1,12 +1,12 @@
 package it.auties.leap.tls.ec;
 
-import it.auties.leap.tls.exception.TlsException;
-import it.auties.leap.tls.TlsIdentifiable;
+import it.auties.leap.tls.TlsException;
+import it.auties.leap.tls.property.TlsIdentifiableProperty;
 
 import java.net.URI;
 import java.util.List;
 
-public sealed interface TlsECPointFormat extends TlsIdentifiable<Byte> {
+public sealed interface TlsECPointFormat extends TlsIdentifiableProperty<Byte> {
     static TlsECPointFormat uncompressed() {
         return Uncompressed.INSTANCE;
     }

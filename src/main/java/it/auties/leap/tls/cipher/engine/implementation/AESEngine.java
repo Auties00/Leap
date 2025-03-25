@@ -2,7 +2,7 @@ package it.auties.leap.tls.cipher.engine.implementation;
 
 import it.auties.leap.tls.cipher.engine.TlsCipherEngine;
 import it.auties.leap.tls.cipher.engine.TlsCipherEngineFactory;
-import it.auties.leap.tls.exception.TlsException;
+import it.auties.leap.tls.TlsException;
 
 import java.nio.ByteBuffer;
 

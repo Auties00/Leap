@@ -2,7 +2,7 @@ package it.auties.leap.tls.cipher.mode;
 
 import it.auties.leap.tls.cipher.engine.TlsCipherEngine;
 import it.auties.leap.tls.TlsContext;
-import it.auties.leap.tls.exception.TlsException;
+import it.auties.leap.tls.TlsException;
 import it.auties.leap.tls.mac.TlsExchangeMac;
 import it.auties.leap.tls.mac.TlsHmac;
 import it.auties.leap.tls.message.TlsMessage;

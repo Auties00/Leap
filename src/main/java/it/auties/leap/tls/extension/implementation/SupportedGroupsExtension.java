@@ -3,7 +3,7 @@ package it.auties.leap.tls.extension.implementation;
 import it.auties.leap.tls.TlsContext;
 import it.auties.leap.tls.extension.TlsExtension;
 import it.auties.leap.tls.extension.TlsExtensionDeserializer;
-import it.auties.leap.tls.group.TlsSupportedCurve;
+import it.auties.leap.tls.group.TlsSupportedEllipticCurve;
 import it.auties.leap.tls.group.TlsSupportedFiniteField;
 import it.auties.leap.tls.group.TlsSupportedGroup;
 import it.auties.leap.tls.version.TlsVersion;
@@ -89,8 +89,8 @@ public abstract sealed class SupportedGroupsExtension {
 
     public static final class Configurable extends SupportedGroupsExtension implements TlsExtension.Configurable {
         private static final List<TlsSupportedGroup> RECOMMENDED_GROUPS = List.of(
-                TlsSupportedCurve.x25519(),
-                TlsSupportedCurve.x448(),
+                TlsSupportedEllipticCurve.x25519(),
+                TlsSupportedEllipticCurve.x448(),
                 TlsSupportedFiniteField.ffdhe2048(),
                 TlsSupportedFiniteField.ffdhe3072(),
                 TlsSupportedFiniteField.ffdhe4096(),

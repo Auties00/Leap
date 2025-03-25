@@ -5,8 +5,8 @@ import it.auties.leap.tls.cipher.exchange.TlsKeyExchangeFactory;
 import it.auties.leap.tls.cipher.exchange.TlsKeyExchangeType;
 import it.auties.leap.tls.TlsContext;
 import it.auties.leap.tls.TlsMode;
-import it.auties.leap.tls.exception.TlsException;
-import it.auties.leap.tls.secret.TlsPreMasterSecretGenerator;
+import it.auties.leap.tls.TlsException;
+import it.auties.leap.tls.connection.preMasterSecret.TlsPreMasterSecretGenerator;
 
 import java.nio.ByteBuffer;
 import java.util.Optional;
@@ -18,7 +18,7 @@ public sealed abstract class RSAKeyExchange implements TlsKeyExchange {
         @Override
         public TlsKeyExchange newLocalKeyExchange(TlsContext context) {
             var mode = context.selectedMode()
-                    .orElseThrow(() -> new TlsException("No mode was selected"));
+                    .orElseThrow(TlsException::noModeSelected);
             if (mode == TlsMode.SERVER) {
                 throw new TlsException("Unsupported RSA key exchange");
             }
@@ -31,7 +31,7 @@ public sealed abstract class RSAKeyExchange implements TlsKeyExchange {
         @Override
         public TlsKeyExchange decodeRemoteKeyExchange(TlsContext context, ByteBuffer buffer) {
             var mode = context.selectedMode()
-                    .orElseThrow(() -> new TlsException("No mode was selected"));
+                    .orElseThrow(TlsException::noModeSelected);
             if (mode == TlsMode.SERVER) {
                 throw new TlsException("Unsupported RSA key exchange");
             }

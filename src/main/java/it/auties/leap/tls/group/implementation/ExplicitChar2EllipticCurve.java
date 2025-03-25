@@ -3,21 +3,22 @@ package it.auties.leap.tls.group.implementation;
 import it.auties.leap.tls.TlsContext;
 import it.auties.leap.tls.ec.TlsECParameters;
 import it.auties.leap.tls.ec.TlsECParametersDeserializer;
-import it.auties.leap.tls.ec.implementation.ExplicitPrimeParameters;
-import it.auties.leap.tls.group.TlsSupportedCurve;
+import it.auties.leap.tls.ec.implementation.ExplicitChar2Parameters;
+import it.auties.leap.tls.group.TlsSupportedEllipticCurve;
 
 import java.security.KeyPair;
+import java.security.PublicKey;
 
-public final class ExplicitPrimeCurve implements TlsSupportedCurve {
-    private final ExplicitPrimeParameters parameters;
+public final class ExplicitChar2EllipticCurve implements TlsSupportedEllipticCurve {
+    private final ExplicitChar2Parameters parameters;
 
-    public ExplicitPrimeCurve(ExplicitPrimeParameters parameters) {
+    public ExplicitChar2EllipticCurve(ExplicitChar2Parameters parameters) {
         this.parameters = parameters;
     }
 
     @Override
     public Integer id() {
-        return 65281;
+        return 65282;
     }
 
     @Override
@@ -32,7 +33,7 @@ public final class ExplicitPrimeCurve implements TlsSupportedCurve {
 
     @Override
     public TlsECParametersDeserializer parametersDeserializer() {
-        return TlsECParametersDeserializer.explicitPrime();
+        return TlsECParametersDeserializer.explicitChar2();
     }
 
     @Override
@@ -41,8 +42,8 @@ public final class ExplicitPrimeCurve implements TlsSupportedCurve {
     }
 
     @Override
-    public byte[] dumpPublicKey(KeyPair keyPair) {
-        return new byte[0];
+    public byte[] dumpPublicKey(PublicKey publicKey) {
+        throw new UnsupportedOperationException();
     }
 
     @Override

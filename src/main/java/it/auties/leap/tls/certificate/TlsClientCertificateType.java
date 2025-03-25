@@ -1,11 +1,11 @@
 package it.auties.leap.tls.certificate;
 
-import it.auties.leap.tls.exception.TlsException;
-import it.auties.leap.tls.TlsIdentifiable;
+import it.auties.leap.tls.TlsException;
+import it.auties.leap.tls.property.TlsIdentifiableProperty;
 
 import java.net.URI;
 
-public sealed interface TlsClientCertificateType extends TlsIdentifiable<Byte> {
+public sealed interface TlsClientCertificateType extends TlsIdentifiableProperty<Byte> {
     static RsaSign rsaSign() {
         return RsaSign.INSTANCE;
     }

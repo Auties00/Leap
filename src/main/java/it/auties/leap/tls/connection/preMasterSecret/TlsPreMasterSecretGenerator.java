@@ -1,7 +1,7 @@
-package it.auties.leap.tls.secret;
+package it.auties.leap.tls.connection.preMasterSecret;
 
 import it.auties.leap.tls.TlsContext;
-import it.auties.leap.tls.secret.implementation.*;
+import it.auties.leap.tls.connection.preMasterSecret.implementation.*;
 
 public interface TlsPreMasterSecretGenerator {
     byte[] generatePreMasterSecret(TlsContext context);

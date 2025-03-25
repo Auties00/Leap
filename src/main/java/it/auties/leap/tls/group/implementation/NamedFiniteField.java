@@ -1,9 +1,11 @@
 package it.auties.leap.tls.group.implementation;
 
+import it.auties.leap.tls.TlsContext;
+import it.auties.leap.tls.connection.TlsConnection;
+import it.auties.leap.tls.TlsException;
+import it.auties.leap.tls.property.TlsProperty;
 import it.auties.leap.tls.cipher.exchange.TlsKeyExchange;
 import it.auties.leap.tls.cipher.exchange.implementation.DHKeyExchange;
-import it.auties.leap.tls.TlsContext;
-import it.auties.leap.tls.exception.TlsException;
 import it.auties.leap.tls.group.TlsSupportedFiniteField;
 
 import javax.crypto.KeyAgreement;
@@ -81,15 +83,16 @@ public final class NamedFiniteField implements TlsSupportedFiniteField {
 
     @Override
     public byte[] computeSharedSecret(TlsContext context) {
-        var privateKey = context.localKeyPair()
-                .orElseThrow(() -> new TlsException("Missing local key pair"))
-                .getPrivate();
-        var keyExchangeType = context.negotiatedCipher()
-                .orElseThrow(() -> new TlsException("Missing negotiated cipher"))
+        var privateKey = context.localConnectionState()
+                .privateKey()
+                .orElseThrow(() -> new TlsException("Missing local key pair"));
+        var keyExchangeType = context.getNegotiatedValue(TlsProperty.cipher())
+                .orElseThrow(() -> TlsException.noNegotiatedProperty(TlsProperty.cipher()))
                 .keyExchangeFactory()
                 .type();
         var publicKey = switch (keyExchangeType) {
-            case STATIC -> context.remotePublicKey()
+            case STATIC -> context.remoteConnectionState()
+                    .flatMap(TlsConnection::publicKey)
                     .orElseThrow(() -> new TlsException("Missing remote public key for static pre master secret generation"));
             case EPHEMERAL -> parseRemotePublicKey(context);
         };
@@ -116,12 +119,13 @@ public final class NamedFiniteField implements TlsSupportedFiniteField {
     }
 
     @Override
-    public byte[] dumpPublicKey(KeyPair keyPair) {
-        if(!(keyPair.getPublic() instanceof DHPublicKey publicKey)) {
+    public byte[] dumpPublicKey(PublicKey jcePublicKey) {
+        if(!(jcePublicKey instanceof DHPublicKey publicKey)) {
             throw new TlsException("Unsupported key type");
         }
 
-        return publicKey.getY().toByteArray();
+        return publicKey.getY()
+                .toByteArray();
     }
 
     @Override

@@ -16,7 +16,6 @@ module it.auties.leap {
     exports it.auties.leap.tls.cipher.engine;
     exports it.auties.leap.tls.cipher.mode;
     exports it.auties.leap.tls.version;
-    exports it.auties.leap.tls.exception;
     exports it.auties.leap.tls.extension;
     exports it.auties.leap.tls.hash;
     exports it.auties.leap.tls.signature;
@@ -25,7 +24,7 @@ module it.auties.leap {
     exports it.auties.leap.tls.psk;
     exports it.auties.leap.tls.mac;
     exports it.auties.leap.tls.group;
-    exports it.auties.leap.tls.secret;
+    exports it.auties.leap.tls.connection;
     exports it.auties.leap.tls.cipher.auth;
     exports it.auties.leap.socket.blocking.applicationLayer;
     exports it.auties.leap.socket.blocking.transportLayer;
@@ -42,4 +41,7 @@ module it.auties.leap {
     exports it.auties.leap.http.exchange.headers;
     exports it.auties.leap.tls.message.implementation;
     exports it.auties.leap.tls.property;
+    exports it.auties.leap.tls.connection;
+    exports it.auties.leap.tls.connection.masterSecret;
+    exports it.auties.leap.tls.connection.preMasterSecret;
 }

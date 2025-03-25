@@ -1,6 +1,6 @@
 package it.auties.leap.tls.cipher.engine;
 
-import it.auties.leap.tls.exception.TlsException;
+import it.auties.leap.tls.TlsException;
 
 import java.nio.ByteBuffer;
 import java.util.OptionalInt;

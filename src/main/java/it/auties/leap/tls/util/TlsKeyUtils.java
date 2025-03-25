@@ -1,6 +1,6 @@
 package it.auties.leap.tls.util;
 
-import it.auties.leap.tls.exception.TlsException;
+import it.auties.leap.tls.TlsException;
 
 import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;

@@ -1,18 +1,18 @@
 package it.auties.leap.tls.cipher.exchange.implementation;
 
+import it.auties.leap.tls.TlsContext;
+import it.auties.leap.tls.property.TlsProperty;
 import it.auties.leap.tls.cipher.exchange.TlsKeyExchange;
 import it.auties.leap.tls.cipher.exchange.TlsKeyExchangeFactory;
 import it.auties.leap.tls.cipher.exchange.TlsKeyExchangeType;
-import it.auties.leap.tls.TlsContext;
 import it.auties.leap.tls.ec.TlsECParameters;
-import it.auties.leap.tls.exception.TlsException;
-import it.auties.leap.tls.group.TlsSupportedCurve;
+import it.auties.leap.tls.TlsException;
+import it.auties.leap.tls.group.TlsSupportedEllipticCurve;
 import it.auties.leap.tls.group.TlsSupportedGroup;
-import it.auties.leap.tls.secret.TlsPreMasterSecretGenerator;
+import it.auties.leap.tls.connection.preMasterSecret.TlsPreMasterSecretGenerator;
 
 import java.nio.ByteBuffer;
 import java.util.List;
-import java.util.NoSuchElementException;
 import java.util.Optional;
 
 import static it.auties.leap.tls.util.BufferUtils.*;
@@ -94,21 +94,15 @@ public sealed abstract class ECDHKeyExchange implements TlsKeyExchange {
 
         private Server(TlsKeyExchangeType type, ByteBuffer buffer, List<TlsSupportedGroup> supportedGroups) {
             super(type);
-            this.parameters = decodeParams(buffer, supportedGroups);
-            this.publicKey = readBytesBigEndian8(buffer);
-        }
-
-        private TlsECParameters decodeParams(ByteBuffer buffer, List<TlsSupportedGroup> supportedGroups) {
             var ecType = readBigEndianInt8(buffer);
-            for(var supportedGroup : supportedGroups) {
-                if(supportedGroup instanceof TlsSupportedCurve ec) {
-                    var decoder = ec.parametersDeserializer();
-                    if (decoder.type() == ecType) {
-                        return decoder.deserialize(buffer);
-                    }
-                }
-            }
-            throw new TlsException("Cannot decode parameters, no decoder for ec curve type: " + ecType);
+            this.parameters = supportedGroups.stream()
+                    .filter(group -> group instanceof TlsSupportedEllipticCurve supportedEllipticCurve && supportedEllipticCurve.accepts(ecType))
+                    .findFirst()
+                    .map(group -> (TlsSupportedEllipticCurve) group)
+                    .orElseThrow(TlsException::noSupportedEllipticCurve)
+                    .parametersDeserializer()
+                    .deserialize(buffer);
+            this.publicKey = readBytesBigEndian8(buffer);
         }
 
         @Override
@@ -136,7 +130,7 @@ public sealed abstract class ECDHKeyExchange implements TlsKeyExchange {
     private record ECDHKeyExchangeFactory(TlsKeyExchangeType type) implements TlsKeyExchangeFactory {
         @Override
         public TlsKeyExchange newLocalKeyExchange(TlsContext context) {
-            return switch (context.selectedMode().orElseThrow(() -> new TlsException("No mode was selected"))) {
+            return switch (context.selectedMode().orElseThrow(TlsException::noModeSelected)) {
                 case CLIENT -> newClientKeyExchange(context);
                 case SERVER -> newServerKeyExchange(context);
             };
@@ -144,9 +138,13 @@ public sealed abstract class ECDHKeyExchange implements TlsKeyExchange {
 
         @Override
         public TlsKeyExchange decodeRemoteKeyExchange(TlsContext context, ByteBuffer buffer) {
-            return switch (context.selectedMode().orElseThrow(() -> new TlsException("No mode was selected"))) {
+            return switch (context.selectedMode().orElseThrow(TlsException::noModeSelected)) {
                 case SERVER -> new Client(type, buffer);
-                case CLIENT -> new Server(type, buffer, context.localSupportedGroups());
+                case CLIENT -> {
+                    var supportedGroups = context.getNegotiatedValue(TlsProperty.supportedGroups())
+                            .orElseThrow(() -> TlsException.noNegotiatedProperty(TlsProperty.supportedGroups()));
+                    yield new Server(type, buffer, supportedGroups);
+                }
             };
         }
 
@@ -158,16 +156,28 @@ public sealed abstract class ECDHKeyExchange implements TlsKeyExchange {
                     .orElseThrow(() -> new TlsException("Missing remote ECDH key parameters"))
                     .toGroup(context);
             var keyPair = group.generateLocalKeyPair(context);
-            context.setLocalKeyPair(keyPair);
-            return new Client(type, group.dumpPublicKey(context.localKeyPair().orElse(null)));
+            context.localConnectionState()
+                    .setPublicKey(keyPair.getPublic())
+                    .setPrivateKey(keyPair.getPrivate());
+            var publicKey = group.dumpPublicKey(keyPair.getPublic());
+            return new Client(type, publicKey);
         }
 
         private Server newServerKeyExchange(TlsContext context) {
-            var group = context.localPreferredEllipticCurve()
-                    .orElseThrow(() -> new NoSuchElementException("No supported group is an elliptic curve"));
-            var keyPair = group.generateLocalKeyPair(context);
-            context.setLocalKeyPair(keyPair);
-            return new Server(type, group.toParameters(), group.dumpPublicKey(context.localKeyPair().orElse(null)));
+            var supportedEllipticCurve = context.getNegotiatedValue(TlsProperty.supportedGroups())
+                    .orElseThrow(() -> TlsException.noNegotiatedProperty(TlsProperty.supportedGroups()))
+                    .stream()
+                    .filter(supportedGroup -> supportedGroup instanceof TlsSupportedEllipticCurve)
+                    .map(supportedGroup -> (TlsSupportedEllipticCurve) supportedGroup)
+                    .findFirst()
+                    .orElseThrow(TlsException::noSupportedEllipticCurve);
+            var keyPair = supportedEllipticCurve.generateLocalKeyPair(context);
+            context.localConnectionState()
+                    .setPublicKey(keyPair.getPublic())
+                    .setPrivateKey(keyPair.getPrivate());
+            var parameters = supportedEllipticCurve.toParameters();
+            var publicKey = supportedEllipticCurve.dumpPublicKey(keyPair.getPublic());
+            return new Server(type, parameters, publicKey);
         }
     }
 }

@@ -1,7 +1,7 @@
-package it.auties.leap.tls.secret.implementation;
+package it.auties.leap.tls.connection.preMasterSecret.implementation;
 
 import it.auties.leap.tls.TlsContext;
-import it.auties.leap.tls.secret.TlsPreMasterSecretGenerator;
+import it.auties.leap.tls.connection.preMasterSecret.TlsPreMasterSecretGenerator;
 
 public final class SRPPreMasterSecretGenerator implements TlsPreMasterSecretGenerator {
     private static final SRPPreMasterSecretGenerator INSTANCE = new SRPPreMasterSecretGenerator();

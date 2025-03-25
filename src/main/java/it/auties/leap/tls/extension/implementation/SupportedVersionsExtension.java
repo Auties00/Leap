@@ -2,7 +2,7 @@ package it.auties.leap.tls.extension.implementation;
 
 import it.auties.leap.tls.cipher.TlsGREASE;
 import it.auties.leap.tls.TlsContext;
-import it.auties.leap.tls.exception.TlsException;
+import it.auties.leap.tls.TlsException;
 import it.auties.leap.tls.extension.TlsExtension;
 import it.auties.leap.tls.extension.TlsExtension.Concrete;
 import it.auties.leap.tls.extension.TlsExtensionDeserializer;

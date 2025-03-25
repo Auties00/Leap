@@ -4,7 +4,7 @@ import it.auties.leap.tls.cipher.exchange.TlsKeyExchange;
 import it.auties.leap.tls.cipher.exchange.TlsKeyExchangeFactory;
 import it.auties.leap.tls.cipher.exchange.TlsKeyExchangeType;
 import it.auties.leap.tls.TlsContext;
-import it.auties.leap.tls.secret.TlsPreMasterSecretGenerator;
+import it.auties.leap.tls.connection.preMasterSecret.TlsPreMasterSecretGenerator;
 
 import java.nio.ByteBuffer;
 

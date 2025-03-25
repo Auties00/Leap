@@ -1,10 +1,11 @@
 package it.auties.leap.tls.message.implementation;
 
+import it.auties.leap.tls.property.TlsProperty;
 import it.auties.leap.tls.cipher.exchange.TlsKeyExchange;
 import it.auties.leap.tls.cipher.exchange.TlsKeyExchangeType;
 import it.auties.leap.tls.TlsContext;
 import it.auties.leap.tls.TlsSource;
-import it.auties.leap.tls.exception.TlsException;
+import it.auties.leap.tls.TlsException;
 import it.auties.leap.tls.message.TlsHandshakeMessage;
 import it.auties.leap.tls.message.TlsMessageContentType;
 import it.auties.leap.tls.message.TlsMessageMetadata;
@@ -33,8 +34,8 @@ public sealed abstract class KeyExchangeMessage extends TlsHandshakeMessage {
         }
 
         public static Server of(TlsContext context, ByteBuffer buffer, TlsMessageMetadata metadata) {
-            var remoteParameters = context.negotiatedCipher()
-                    .orElseThrow()
+            var remoteParameters = context.getNegotiatedValue(TlsProperty.cipher())
+                    .orElseThrow(() -> TlsException.noNegotiatedProperty(TlsProperty.cipher()))
                     .keyExchangeFactory()
                     .decodeRemoteKeyExchange(context, buffer);
             var signatureAlgorithmId = readBigEndianInt16(buffer);
@@ -69,40 +70,41 @@ public sealed abstract class KeyExchangeMessage extends TlsHandshakeMessage {
 
         @Override
         public void validateAndUpdate(TlsContext context) {
-            var negotiatedCipher = context.negotiatedCipher()
-                    .orElseThrow(() -> new TlsException("No cipher was selected yet"));
+            var negotiatedCipher = context.getNegotiatedValue(TlsProperty.cipher())
+                    .orElseThrow(() -> TlsException.noNegotiatedProperty(TlsProperty.cipher()));
             if(negotiatedCipher.keyExchangeFactory().type() != TlsKeyExchangeType.EPHEMERAL) {
                 throw new TlsException("Unexpected server key exchange message for static key exchange");
             }
 
-            context.setRemoteKeyExchange(parameters);
-            var localKeyExchange = negotiatedCipher.keyExchangeFactory()
-                    .newLocalKeyExchange(context);
-            context.setLocalKeyExchange(localKeyExchange);
+            switch (source) {
+                case LOCAL -> context.setLocalKeyExchange(parameters);
+                case REMOTE -> {
+                    context.setRemoteKeyExchange(parameters);
+                    var localKeyExchange = negotiatedCipher.keyExchangeFactory()
+                            .newLocalKeyExchange(context);
+                    context.setLocalKeyExchange(localKeyExchange);
+                }
+            }
         }
     }
 
     public static final class Client extends KeyExchangeMessage {
         public static final byte ID = 0x10;
 
-        private final TlsKeyExchange localParameters;
-        private final ByteBuffer remoteParameters;
-        public Client(TlsVersion tlsVersion, TlsSource source, TlsKeyExchange localParameters) {
+        private final TlsKeyExchange parameters;
+        public Client(TlsVersion tlsVersion, TlsSource source, TlsKeyExchange parameters) {
             super(tlsVersion, source);
-            this.localParameters = localParameters;
-            this.remoteParameters = null;
+            this.parameters = parameters;
         }
 
-        private Client(TlsVersion tlsVersion, TlsSource source, ByteBuffer remoteParameters) {
-            super(tlsVersion, source);
-            this.localParameters = null;
-            this.remoteParameters = remoteParameters;
-        }
-
-        public static Client of(TlsContext ignoredEngine, ByteBuffer buffer, TlsMessageMetadata metadata) {
+        public static Client of(TlsContext context, ByteBuffer buffer, TlsMessageMetadata metadata) {
             var messageLength = readBigEndianInt24(buffer);
             try(var _ = scopedRead(buffer, messageLength)) {
-                return new Client(metadata.version(), metadata.source(), readBuffer(buffer, buffer.remaining()));
+                var remoteParameters = context.getNegotiatedValue(TlsProperty.cipher())
+                        .orElseThrow(() -> TlsException.noNegotiatedProperty(TlsProperty.cipher()))
+                        .keyExchangeFactory()
+                        .decodeRemoteKeyExchange(context, buffer);
+                return new Client(metadata.version(), metadata.source(), remoteParameters);
             }
         }
 
@@ -118,33 +120,33 @@ public sealed abstract class KeyExchangeMessage extends TlsHandshakeMessage {
 
         @Override
         public void serializeHandshakePayload(ByteBuffer buffer) {
-            if(localParameters != null) {
-                localParameters.serialize(buffer);
-            }else if(remoteParameters != null) {
-                writeBuffer(buffer, remoteParameters);
-            }
+            parameters.serialize(buffer);
         }
 
         @Override
         public int handshakePayloadLength() {
-            if(localParameters != null) {
-                return localParameters.length();
-            }else if(remoteParameters != null) {
-                return remoteParameters.remaining();
-            }else {
-                return 0;
-            }
+            return parameters.length();
         }
 
         @Override
         public void validateAndUpdate(TlsContext context) {
-            if(localParameters == null) {
-                return;
+            var negotiatedCipher = context.getNegotiatedValue(TlsProperty.cipher())
+                    .orElseThrow(() -> TlsException.noNegotiatedProperty(TlsProperty.cipher()));
+            if(negotiatedCipher.keyExchangeFactory().type() != TlsKeyExchangeType.EPHEMERAL) {
+                throw new TlsException("Unexpected client key exchange message for static key exchange");
             }
 
-            var preMasterSecret = localParameters.preMasterSecret()
-                    .orElse(null);
-            context.initSession(localParameters, preMasterSecret, null);
+            switch (source) {
+                case LOCAL -> context.setLocalKeyExchange(parameters);
+                case REMOTE -> {
+                    context.setRemoteKeyExchange(parameters);
+                    var localKeyExchange = negotiatedCipher.keyExchangeFactory()
+                            .newLocalKeyExchange(context);
+                    context.setLocalKeyExchange(localKeyExchange);
+                }
+            }
+
+            context.startSession();
         }
     }
 }

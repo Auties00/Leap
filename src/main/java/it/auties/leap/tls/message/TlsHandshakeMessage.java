@@ -9,7 +9,7 @@ import java.nio.ByteBuffer;
 import static it.auties.leap.tls.util.BufferUtils.*;
 
 public abstract sealed class TlsHandshakeMessage extends TlsMessage
-        permits CertificateMessage, CertificateRequestMessage, CertificateVerifyMessage, ChangeCipherSpecMessage, FinishedMessage, HelloDoneMessage, HelloMessage, HelloRequestMessage, KeyExchangeMessage {
+        permits CertificateMessage, CertificateRequestMessage, CertificateVerifyMessage, ChangeCipherSpecMessage, FinishMessage, HelloDoneMessage, HelloMessage, HelloRequestMessage, KeyExchangeMessage {
     protected TlsHandshakeMessage(TlsVersion version, TlsSource source) {
         super(version, source);
     }

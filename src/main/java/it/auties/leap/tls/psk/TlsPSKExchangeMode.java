@@ -1,14 +1,14 @@
 package it.auties.leap.tls.psk;
 
-import it.auties.leap.tls.exception.TlsException;
-import it.auties.leap.tls.TlsIdentifiable;
+import it.auties.leap.tls.TlsException;
+import it.auties.leap.tls.property.TlsIdentifiableProperty;
 import it.auties.leap.tls.version.TlsVersion;
 
 import java.net.URI;
 import java.util.Optional;
 
 // https://www.iana.org/assignments/tls-parameters/tls-pskkeyexchangemode.csv
-public sealed interface TlsPSKExchangeMode extends TlsIdentifiable<Byte>, TlsPSKExchangeModeGenerator {
+public sealed interface TlsPSKExchangeMode extends TlsIdentifiableProperty<Byte>, TlsPSKExchangeModeGenerator {
     static TlsPSKExchangeMode pskKe() {
         return KE.INSTANCE;
     }

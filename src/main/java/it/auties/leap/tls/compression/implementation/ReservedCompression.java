@@ -2,7 +2,7 @@ package it.auties.leap.tls.compression.implementation;
 
 import it.auties.leap.tls.compression.TlsCompression;
 import it.auties.leap.tls.compression.TlsCompressionHandler;
-import it.auties.leap.tls.exception.TlsException;
+import it.auties.leap.tls.TlsException;
 
 import java.net.URI;
 import java.nio.ByteBuffer;

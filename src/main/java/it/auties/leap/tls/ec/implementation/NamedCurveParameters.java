@@ -1,10 +1,11 @@
 package it.auties.leap.tls.ec.implementation;
 
 import it.auties.leap.tls.TlsContext;
+import it.auties.leap.tls.property.TlsProperty;
 import it.auties.leap.tls.ec.TlsECParameters;
 import it.auties.leap.tls.ec.TlsECParametersDeserializer;
-import it.auties.leap.tls.exception.TlsException;
-import it.auties.leap.tls.group.TlsSupportedCurve;
+import it.auties.leap.tls.TlsException;
+import it.auties.leap.tls.group.TlsSupportedEllipticCurve;
 
 import java.nio.ByteBuffer;
 
@@ -45,12 +46,13 @@ public final class NamedCurveParameters implements TlsECParameters {
     }
 
     @Override
-    public TlsSupportedCurve toGroup(TlsContext context) {
-        return context.localSupportedGroups()
+    public TlsSupportedEllipticCurve toGroup(TlsContext context) {
+        return context.getNegotiatedValue(TlsProperty.supportedGroups())
+                .orElseThrow(() -> TlsException.noNegotiatedProperty(TlsProperty.supportedGroups()))
                 .stream()
-                .filter(entry -> entry instanceof TlsSupportedCurve supportedCurve && supportedCurve.accepts(namedGroup))
+                .filter(entry -> entry instanceof TlsSupportedEllipticCurve supportedCurve && supportedCurve.accepts(namedGroup))
                 .findFirst()
-                .map(entry -> (TlsSupportedCurve) entry)
-                .orElseThrow(() -> new TlsException("No supported group matches the id " + namedGroup));
+                .map(entry -> (TlsSupportedEllipticCurve) entry)
+                .orElseThrow(TlsException::noSupportedEllipticCurve);
     }
 }

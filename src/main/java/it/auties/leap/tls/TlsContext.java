@@ -5,86 +5,73 @@ import it.auties.leap.tls.certificate.TlsCertificatesHandler;
 import it.auties.leap.tls.certificate.TlsCertificatesProvider;
 import it.auties.leap.tls.cipher.TlsCipher;
 import it.auties.leap.tls.cipher.exchange.TlsKeyExchange;
-import it.auties.leap.tls.cipher.mode.TlsCipherMode;
 import it.auties.leap.tls.compression.TlsCompression;
-import it.auties.leap.tls.exception.TlsException;
+import it.auties.leap.tls.connection.TlsConnection;
+import it.auties.leap.tls.connection.TlsConnectionInitializer;
+import it.auties.leap.tls.connection.masterSecret.TlsMasterSecretGenerator;
+import it.auties.leap.tls.connection.preMasterSecret.TlsPreMasterSecretGenerator;
 import it.auties.leap.tls.extension.TlsExtension;
 import it.auties.leap.tls.hash.TlsHash;
 import it.auties.leap.tls.hash.TlsHashFactory;
 import it.auties.leap.tls.hash.TlsPRF;
-import it.auties.leap.tls.mac.TlsExchangeMac;
 import it.auties.leap.tls.message.TlsMessageDeserializer;
-import it.auties.leap.tls.secret.TlsMasterSecret;
-import it.auties.leap.tls.util.TlsKeyUtils;
+import it.auties.leap.tls.property.TlsProperty;
+import it.auties.leap.tls.util.TlsExtensionsUtils;
 import it.auties.leap.tls.version.TlsVersion;
 
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
-import java.security.KeyPair;
 import java.security.KeyStore;
-import java.security.PublicKey;
-import java.security.cert.X509Certificate;
 import java.util.*;
+import java.util.function.Supplier;
 
-import static it.auties.leap.tls.util.BufferUtils.readBytes;
-import static it.auties.leap.tls.util.TlsKeyUtils.*;
-
+@SuppressWarnings({"UnusedReturnValue", "unchecked"})
 public class TlsContext {
-    private final SocketProtocol protocol;
-    private final List<TlsVersion> versions;
-    private final List<TlsCipher> ciphers;
-    private final List<TlsExtension> extensions;
-    private final List<TlsCompression> compressions;
     private final TlsCertificatesProvider certificatesProvider;
     private final TlsCertificatesHandler certificatesHandler;
     private final KeyStore trustedKeyStore;
     private final TlsMessageDeserializer messageDeserializer;
-
-    private volatile TlsMode mode;
-
-    private volatile byte[] remoteRandomData;
-    private volatile byte[] remoteSessionId;
-    private volatile byte[] remoteDtlsCookie;
-    private volatile PublicKey remotePublicKey;
-    private volatile List<X509Certificate> localCertificates;
+    private final TlsMasterSecretGenerator masterSecretGenerator;
+    private final TlsConnectionInitializer connectionInitializer;
+    private final TlsConnection localConnectionState;
+    private final Map<TlsProperty<?, ?>, PropertyValue<?, ?>> properties;
+    private final Queue<ByteBuffer> bufferedMessages;
     private volatile InetSocketAddress remoteAddress;
-    private volatile TlsCipherMode remoteCipher;
+    private volatile TlsMode mode;
+    private volatile TlsConnection remoteConnectionState;
+    private volatile TlsKeyExchange localKeyExchange;
     private volatile TlsKeyExchange remoteKeyExchange;
 
-    private final byte[] localRandomData;
-    private final byte[] localSessionId;
-    private final byte[] localDtlsCookie;
-    private volatile PublicKey localPublicKey;
-    private volatile List<X509Certificate> remoteCertificates;
-    private volatile KeyPair localKeyPair;
-    private volatile TlsCipherMode localCipher;
-    private volatile TlsKeyExchange localKeyExchange;
-
-    private volatile TlsMasterSecret localMasterSecretKey;
-
-    private final Map<TlsNegotiableProperty<?>, List<Object>> negotiableProperties;
-    private final Map<TlsNegotiableProperty<?>, List<Object>> negotiatedProperties;
-    private final Map<TlsNegotiableProperty<?>, List<Object>> properties;
-
-    TlsContext(SocketProtocol protocol, List<TlsVersion> versions, List<TlsCipher> ciphers, List<TlsExtension> extensions, List<TlsCompression> compressions, TlsCertificatesProvider certificatesProvider, TlsCertificatesHandler certificatesHandler, KeyStore trustedKeyStore, TlsMessageDeserializer messageDeserializer, byte[] localRandomData, byte[] localSessionId) {
-        this.protocol = protocol;
-        this.versions = versions;
-        this.ciphers = ciphers;
-        this.extensions = extensions;
-        this.compressions = compressions;
+    TlsContext(
+            List<TlsVersion> versions,
+            List<TlsExtension> extensions,
+            List<TlsCipher> ciphers,
+            List<TlsCompression> compressions,
+            TlsConnection localConnectionState,
+            TlsCertificatesProvider certificatesProvider,
+            TlsCertificatesHandler certificatesHandler,
+            KeyStore trustedKeyStore,
+            TlsMessageDeserializer messageDeserializer,
+            TlsMasterSecretGenerator masterSecretGenerator,
+            TlsConnectionInitializer connectionInitializer
+    ) {
+        this.localConnectionState = localConnectionState;
         this.certificatesProvider = certificatesProvider;
         this.certificatesHandler = certificatesHandler;
         this.trustedKeyStore = trustedKeyStore;
         this.messageDeserializer = messageDeserializer;
-        this.localRandomData = localRandomData;
-        this.localSessionId = localSessionId;
-        this.localDtlsCookie = switch (protocol) {
-            case TCP -> null;
-            case UDP -> TlsKeyUtils.randomData();
-        };
-        this.negotiableProperties = new HashMap<>();
-        this.negotiatedProperties = new HashMap<>();
+        this.masterSecretGenerator = masterSecretGenerator;
+        this.connectionInitializer = connectionInitializer;
         this.properties = new HashMap<>();
+        this.bufferedMessages = new LinkedList<>();
+        addNegotiableProperty(TlsProperty.version(), versions);
+        addNegotiableProperty(TlsProperty.extensions(), extensions, () -> TlsExtensionsUtils.process(this));
+        addNegotiableProperty(TlsProperty.cipher(), ciphers);
+        addNegotiableProperty(TlsProperty.compression(), compressions);
+    }
+
+    public static TlsContextBuilder newBuilder(SocketProtocol protocol) {
+        return new TlsContextBuilder(protocol);
     }
 
     public KeyStore trustedKeyStore() {
@@ -95,409 +82,33 @@ public class TlsContext {
         return Optional.ofNullable(mode);
     }
 
-    public byte[] localRandomData() {
-        return localRandomData;
+    public TlsCertificatesHandler certificatesHandler() {
+        return certificatesHandler;
     }
 
-    public byte[] localSessionId() {
-        return localSessionId;
+    public TlsCertificatesProvider certificatesProvider() {
+        return certificatesProvider;
+    }
+
+    public TlsConnection localConnectionState() {
+        return localConnectionState;
+    }
+
+    public Optional<TlsConnection> remoteConnectionState() {
+        return Optional.ofNullable(remoteConnectionState);
+    }
+
+    public TlsMessageDeserializer messageDeserializer() {
+        return messageDeserializer;
     }
 
     public Optional<InetSocketAddress> remoteAddress() {
         return Optional.ofNullable(remoteAddress);
     }
 
-    public Optional<KeyPair> localKeyPair() {
-        return Optional.ofNullable(localKeyPair);
-    }
-
-    public Optional<byte[]> localCookie() {
-        return Optional.ofNullable(localDtlsCookie);
-    }
-
-    public List<TlsExtension.Concrete> processedExtensions() {
-        var dependenciesTree = new LinkedHashMap<Integer, TlsExtension>();
-        for (var extension : extensions) {
-            if (negotiableVersions().stream().anyMatch(version -> extension.versions().contains(version))) {
-                var conflict = dependenciesTree.put(extension.extensionType(), extension);
-                if (conflict != null) {
-                    throw new IllegalArgumentException("Extension with type %s defined by <%s> conflicts with an extension processed previously with type %s defined by <%s>".formatted(
-                            extension.extensionType(),
-                            extension.getClass().getName(),
-                            extension.extensionType(),
-                            conflict.getClass().getName()
-                    ));
-                }
-            }
-        }
-
-        var result = new ArrayList<TlsExtension.Concrete>(dependenciesTree.size());
-        var deferred = new ArrayList<TlsExtension.Configurable>();
-        while (!dependenciesTree.isEmpty()) {
-            var entry = dependenciesTree.pollFirstEntry();
-            var extension = entry.getValue();
-            switch (extension) {
-                case TlsExtension.Concrete concrete -> result.add(concrete);
-                case TlsExtension.Configurable configurableExtension -> {
-                    switch (configurableExtension.dependencies()) {
-                        case TlsExtension.Configurable.Dependencies.None _ -> configurableExtension.newInstance(this)
-                                .ifPresent(result::add);
-
-                        case TlsExtension.Configurable.Dependencies.Some some -> {
-                            var conflict = false;
-                            for(var dependency : some.includedTypes()) {
-                                if(dependenciesTree.containsKey(dependency)) {
-                                    conflict = true;
-                                    break;
-                                }
-                            }
-                            if(conflict) {
-                                dependenciesTree.put(entry.getKey(), entry.getValue());
-                            }else {
-                                configurableExtension.newInstance(this)
-                                        .ifPresent(result::add);
-                            }
-                        }
-
-                        case TlsExtension.Configurable.Dependencies.All _ -> deferred.add(configurableExtension);
-                    }
-                }
-            }
-        }
-
-        for(var configurableExtension : deferred) {
-            configurableExtension.newInstance(this)
-                    .ifPresent(result::add);
-        }
-
-        return result;
-    }
-
-    public Optional<TlsKeyExchange> localKeyExchange() {
-        return Optional.ofNullable(localKeyExchange);
-    }
-
-    public Optional<TlsKeyExchange> remoteKeyExchange() {
-        return Optional.ofNullable(remoteKeyExchange );
-    }
-
-    public void initSession(TlsKeyExchange exchange, byte[] preMasterSecret, byte[] handshakeHash) {
-        if(exchange == null) {
-            throw new TlsException("Invalid local key exchange");
-        }
-
-        if(preMasterSecret == null) {
-            preMasterSecret = exchange.preMasterSecretGenerator()
-                    .generatePreMasterSecret(this);
-        }
-        
-        this.localMasterSecretKey = TlsMasterSecret.of(
-                mode,
-                negotiatedVersion,
-                negotiatedCipher,
-                preMasterSecret,
-                extendedMasterSecret ? handshakeHash : null,
-                localRandomData,
-                remoteRandomData
-        );
-        System.out.println("Master secret: " + Arrays.toString(localMasterSecretKey.data()));
-        var clientRandom = switch (mode) {
-            case CLIENT -> localRandomData;
-            case SERVER -> remoteRandomData;
-        };
-        var serverRandom = switch (mode) {
-            case SERVER -> localRandomData;
-            case CLIENT -> remoteRandomData;
-        };
-
-        var localCipherEngine = negotiatedCipher.engineFactory()
-                .newCipherEngine();
-        var localCipherMode = negotiatedCipher.modeFactory()
-                .newCipherMode(localCipherEngine);
-
-        var remoteCipherEngine = negotiatedCipher.engineFactory()
-                .newCipherEngine();
-        var remoteCipherMode = negotiatedCipher.modeFactory()
-                .newCipherMode(remoteCipherEngine);
-
-        this.localCipher = localCipherMode;
-        this.remoteCipher = remoteCipherMode;
-
-        // If I understand correctly the MAC isn't used for AEAD ciphers as the cipher concatenates the tag to the message
-
-        var macLength = localCipher.isAEAD() ? 0 : negotiatedCipher.hashFactory().length();
-        var expandedKeyLength = localCipherEngine.exportedKeyLength();
-        var keyLength = localCipherEngine.keyLength();
-
-        var ivLength = switch (localCipher) {
-            case TlsCipherMode.Block block -> {
-                if (block.isAEAD()) {
-                    yield localCipher.ivLength();
-                }
-
-                if(negotiatedVersion.id().value() >= TlsVersion.TLS11.id().value()) {
-                    yield 0;
-                }
-
-                yield localCipher.ivLength();
-            }
-            case TlsCipherMode.Stream _ -> localCipher.ivLength();
-        };
-
-        var keyBlockLen = (macLength + keyLength + (expandedKeyLength.isPresent() ? 0 : ivLength)) * 2;
-        var keyBlock = generateBlock(negotiatedVersion, negotiatedCipher.hashFactory(), localMasterSecretKey.data(), clientRandom, serverRandom, keyBlockLen);
-
-        var clientMacKey = macLength != 0 ? readBytes(keyBlock, macLength) : null;
-        var serverMacKey = macLength != 0 ? readBytes(keyBlock, macLength) : null;
-
-        var localMacKey = switch (mode) {
-            case CLIENT -> clientMacKey;
-            case SERVER -> serverMacKey;
-        };
-        var remoteMacKey = switch (mode) {
-            case CLIENT -> serverMacKey;
-            case SERVER -> clientMacKey;
-        };
-
-        var localAuthenticator = TlsExchangeMac.of(
-                negotiatedVersion,
-                localMacKey == null ? null : negotiatedCipher.hashFactory(),
-                localMacKey
-        );
-        var remoteAuthenticator = TlsExchangeMac.of(
-                negotiatedVersion,
-                remoteMacKey == null ? null : negotiatedCipher.hashFactory(),
-                remoteMacKey
-        );
-
-        if (keyLength == 0) {
-            localCipherMode.init(true, null, null, null);
-            remoteCipherMode.init(false, null, null, null);
-            return;
-        }
-
-        var clientKey = readBytes(keyBlock, keyLength);
-        var serverKey = readBytes(keyBlock, keyLength);
-        if (expandedKeyLength.isEmpty()) {
-            var localKey = switch (mode) {
-                case CLIENT -> clientKey;
-                case SERVER -> serverKey;
-            };
-            var remoteKey = switch (mode) {
-                case CLIENT -> serverKey;
-                case SERVER -> clientKey;
-            };
-
-            var clientIv = ivLength == 0 ? null : readBytes(keyBlock, ivLength);
-            var serverIv = ivLength == 0 ? null : readBytes(keyBlock, ivLength);
-            var localIv = switch (mode) {
-                case CLIENT -> clientIv;
-                case SERVER -> serverIv;
-            };
-            var remoteIv = switch (mode) {
-                case CLIENT -> serverIv;
-                case SERVER -> clientIv;
-            };
-
-            System.out.printf(
-                    """
-                            ______________________________
-                            Client mac: %s
-                            Server mac: %s
-                            Client IV: %s
-                            Server IV: %s
-                            Client Key: %s
-                            Server Key: %s
-                            ______________________________
-                            %n""", clientMacKey == null ? "none" : Arrays.toString(clientMacKey),
-                    serverMacKey == null ? "none" : Arrays.toString(serverMacKey),
-                    clientIv == null ? "none" : Arrays.toString(clientIv),
-                    serverIv == null ? "none" : Arrays.toString(serverIv),
-                    Arrays.toString(clientKey),
-                    Arrays.toString(serverKey)
-            );
-            localCipherMode.init(true, localKey, localIv, localAuthenticator);
-            remoteCipherMode.init(false, remoteKey, remoteIv, remoteAuthenticator);
-            return;
-        }
-
-        switch (negotiatedVersion) {
-            case SSL30 -> {
-                var md5 = TlsHash.md5();
-                md5.update(clientKey);
-                md5.update(clientRandom);
-                md5.update(serverRandom);
-                var expandedClientKey = md5.digest(true, 0, expandedKeyLength.getAsInt());
-
-                md5.update(serverKey);
-                md5.update(serverRandom);
-                md5.update(clientRandom);
-                var expandedServerKey = md5.digest(true, 0, expandedKeyLength.getAsInt());
-
-                var localKey = switch (mode) {
-                    case CLIENT -> expandedClientKey;
-                    case SERVER -> expandedServerKey;
-                };
-                var remoteKey = switch (mode) {
-                    case CLIENT -> expandedServerKey;
-                    case SERVER -> expandedClientKey;
-                };
-
-                if (ivLength == 0) {
-                    localCipherMode.init(true, localKey, new byte[0], localAuthenticator);
-                    remoteCipherMode.init(false, remoteKey, new byte[0], remoteAuthenticator);
-                }else {
-                    md5.update(clientRandom);
-                    md5.update(serverRandom);
-                    var clientIv = md5.digest(true, 0, ivLength);
-
-                    md5.update(serverRandom);
-                    md5.update(clientRandom);
-                    var serverIv = md5.digest(true, 0, ivLength);
-
-                    var localIv = switch (mode) {
-                        case CLIENT -> clientIv;
-                        case SERVER -> serverIv;
-                    };
-                    var remoteIv = switch (mode) {
-                        case CLIENT -> serverIv;
-                        case SERVER -> clientIv;
-                    };
-                    localCipherMode.init(true, localKey, localIv, localAuthenticator);
-                    remoteCipherMode.init(false, remoteKey, remoteIv, remoteAuthenticator);
-                }
-            }
-
-            case TLS10 -> {
-                var seed = TlsPRF.seed(clientRandom, serverRandom);
-                var expandedClientKey = TlsPRF.tls10Prf(clientKey, LABEL_CLIENT_WRITE_KEY, seed, expandedKeyLength.getAsInt());
-                var expandedServerKey = TlsPRF.tls10Prf(serverKey, LABEL_SERVER_WRITE_KEY, seed, expandedKeyLength.getAsInt());
-
-                var localKey = switch (mode) {
-                    case CLIENT -> expandedClientKey;
-                    case SERVER -> expandedServerKey;
-                };
-                var remoteKey = switch (mode) {
-                    case CLIENT -> expandedServerKey;
-                    case SERVER -> expandedClientKey;
-                };
-
-                if (ivLength == 0) {
-                    localCipherMode.init(true, localKey, new byte[0], localAuthenticator);
-                    remoteCipherMode.init(false, remoteKey, new byte[0], remoteAuthenticator);
-                }else {
-                    var block = TlsPRF.tls10Prf(null, LABEL_IV_BLOCK, seed, ivLength << 1);
-                    var clientIv = Arrays.copyOf(block, ivLength);
-                    var serverIv = Arrays.copyOfRange(block, ivLength, ivLength << 2);
-
-                    var localIv = switch (mode) {
-                        case CLIENT -> clientIv;
-                        case SERVER -> serverIv;
-                    };
-                    var remoteIv = switch (mode) {
-                        case CLIENT -> serverIv;
-                        case SERVER -> clientIv;
-                    };
-
-                    localCipherMode.init(true, localKey, localIv, localAuthenticator);
-                    remoteCipherMode.init(false, remoteKey, remoteIv, remoteAuthenticator);
-                }
-            }
-
-            default -> throw new TlsException("TLS 1.1+ should not be negotiating exportable ciphersuites");
-        }
-    }
-
-    private static ByteBuffer generateBlock(TlsVersion version, TlsHashFactory hashFactory, byte[] masterSecret, byte[] clientRandom, byte[] serverRandom, int keyBlockLen) {
-        return switch (version) {
-            case SSL30 -> generateBlockSSL30(masterSecret, clientRandom, serverRandom, keyBlockLen);
-            case TLS10, TLS11 -> generateBlockTls11(masterSecret, clientRandom, serverRandom, keyBlockLen);
-            default -> generateBlock(hashFactory, masterSecret, clientRandom, serverRandom, keyBlockLen);
-        };
-    }
-
-    private static ByteBuffer generateBlockSSL30(byte[] masterSecret, byte[] clientRandom, byte[] serverRandom, int keyBlockLen) {
-        var md5 = TlsHash.md5();
-        var sha = TlsHash.sha1();
-        var keyBlock = new byte[keyBlockLen];
-        var tmp = new byte[20];
-        for (int i = 0, remaining = keyBlockLen; remaining > 0; i++, remaining -= 16) {
-            sha.update(SSL3_CONSTANT[i]);
-            sha.update(masterSecret);
-            sha.update(serverRandom);
-            sha.update(clientRandom);
-            sha.digest(tmp, 0, 20, true);
-
-            md5.update(masterSecret);
-            md5.update(tmp);
-
-            if (remaining >= 16) {
-                md5.digest(keyBlock, i << 4, 16, true);
-            } else {
-                md5.digest(tmp, 0, 16, true);
-                System.arraycopy(tmp, 0, keyBlock, i << 4, remaining);
-            }
-        }
-        return ByteBuffer.wrap(keyBlock);
-    }
-
-    private static ByteBuffer generateBlockTls11(byte[] masterSecret, byte[] clientRandom, byte[] serverRandom, int keyBlockLen) {
-        var seed = TlsPRF.seed(serverRandom, clientRandom);
-        var result = TlsPRF.tls10Prf(
-                masterSecret,
-                LABEL_KEY_EXPANSION,
-                seed,
-                keyBlockLen
-        );
-        return ByteBuffer.wrap(result);
-    }
-
-    private static ByteBuffer generateBlock(TlsHashFactory factory, byte[] masterSecret, byte[] clientRandom, byte[] serverRandom, int keyBlockLen) {
-        var seed = TlsPRF.seed(serverRandom, clientRandom);
-        var result = TlsPRF.tls12Prf(
-                masterSecret,
-                LABEL_KEY_EXPANSION,
-                seed,
-                keyBlockLen,
-                factory.newHash()
-        );
-        return ByteBuffer.wrap(result);
-    }
-
-    public Optional<TlsCipherMode> localCipher() {
-        return Optional.ofNullable(localCipher);
-    }
-
-    public Optional<TlsCipherMode> remoteCipher() {
-        return Optional.ofNullable(remoteCipher);
-    }
-
-    public Optional<TlsMasterSecret> masterSecretKey() {
-        return Optional.ofNullable(localMasterSecretKey);
-    }
-
-    public Optional<PublicKey> remotePublicKey() {
-        return Optional.ofNullable(remotePublicKey);
-    }
-
-    public void setLocalKeyPair(KeyPair keyPair) {
-        this.localKeyPair = keyPair;
-    }
-
-    public List<X509Certificate> remoteCertificates() {
-        if(remoteCertificates == null) {
-            return List.of();
-        }else {
-            return remoteCertificates;
-        }
-    }
-
-    public List<X509Certificate> localCertificates() {
-        if(localCertificates == null) {
-            return List.of();
-        }else {
-            return localCertificates;
-        }
+    public TlsContext setRemoteConnectionState(TlsConnection remoteConnectionState) {
+        this.remoteConnectionState = remoteConnectionState;
+        return this;
     }
 
     public TlsContext setSelectedMode(TlsMode mode) {
@@ -505,41 +116,330 @@ public class TlsContext {
         return this;
     }
 
-    public TlsContext setRemoteRandomData(byte[] remoteRandomData) {
-        this.remoteRandomData = remoteRandomData;
+    public TlsContext setRemoteAddress(InetSocketAddress remoteAddress) {
+        this.remoteAddress = remoteAddress;
         return this;
     }
 
-    public TlsContext setRemoteSessionId(byte[] remoteSessionId) {
-        this.remoteSessionId = remoteSessionId;
+    public <I, O> TlsContext addNegotiableProperty(TlsProperty<I, O> property, I propertyValue) {
+        var value = PropertyValue.of(propertyValue);
+        properties.put(property, value);
         return this;
     }
 
-    public TlsContext setRemoteCertificates(List<X509Certificate> remoteCertificates) {
-        var certificate = certificatesHandler.validateChain(remoteCertificates, TlsSource.REMOTE, this);
-        this.remotePublicKey = certificate == null ? null : certificate.getPublicKey();
-        this.remoteCertificates = remoteCertificates;
+    public <I, O> TlsContext addNegotiableProperty(TlsProperty<I, O> property, I propertyValue, Supplier<O> negotiatedValue) {
+        var value = PropertyValue.ofLazy(propertyValue, negotiatedValue);
+        properties.put(property, value);
         return this;
     }
 
-    public TlsContext setLocalCertificates(List<X509Certificate> localCertificates) {
-        var certificate = certificatesHandler.validateChain(remoteCertificates, TlsSource.LOCAL, this);
-        this.localPublicKey = certificate == null ? null : certificate.getPublicKey();
-        this.localCertificates = localCertificates;
+    public <I, O> TlsContext addNegotiatedProperty(TlsProperty<I, O> property, O propertyValue) {
+        var value = (PropertyValue<I, O>) properties.get(property);
+        if(value == null) {
+            throw new TlsException("Missing property: " + property.id());
+        }
+
+        value.setNegotiated(propertyValue);
         return this;
     }
 
-    public TlsContext setLocalKeyExchange(TlsKeyExchange localKeyExchange) {
-        this.localKeyExchange = localKeyExchange;
+    public boolean removeProperty(TlsProperty<?, ?> property) {
+        return properties.remove(property) != null;
+    }
+
+    public <I, O> Optional<I> getNegotiableValue(TlsProperty<I, O> property) {
+        var value = (PropertyValue<I, O>) properties.get(property);
+        if(value == null) {
+            return Optional.empty();
+        }
+
+        return Optional.ofNullable(value.negotiable());
+    }
+
+    public <I, O> Optional<O> getNegotiatedValue(TlsProperty<I, O> property) {
+        var value = (PropertyValue<I, O>) properties.get(property);
+        if (value == null) {
+            return Optional.empty();
+        }
+
+        return value.negotiated();
+    }
+
+    public TlsContext addBufferedMessage(ByteBuffer buffer) {
+        bufferedMessages.add(buffer);
         return this;
     }
 
-    public TlsContext setRemoteKeyExchange(TlsKeyExchange remoteKeyExchange) {
-        this.remoteKeyExchange = remoteKeyExchange;
-        return this;
+    public Optional<ByteBuffer> lastBufferedMessage() {
+        return bufferedMessages.isEmpty() ? Optional.empty() : Optional.ofNullable(bufferedMessages.peek());
     }
 
-    public <V> Optional<V> getNegotiatedProperty(TlsNegotiableProperty<V> property) {
-        return negotiatedProperties.get(property);
+    public void pollBufferedMessage() {
+        bufferedMessages.poll();
+    }
+
+    public TlsMasterSecretGenerator masterSecretGenerator() {
+        return masterSecretGenerator;
+    }
+
+    public TlsConnectionInitializer connectionInitializer() {
+        return connectionInitializer;
+    }
+
+    private sealed abstract static class PropertyValue<I, O> {
+        public static <I, O> PropertyValue<I, O> of(I negotiable) {
+            return new Static<>(negotiable);
+        }
+
+        public static <I, O> PropertyValue<I, O> ofLazy(I negotiable, Supplier<O> supplier) {
+            return new Lazy<>(negotiable, supplier);
+        }
+
+        private final I negotiable;
+        private PropertyValue(I negotiable) {
+            this.negotiable = negotiable;
+        }
+
+        public I negotiable() {
+            return negotiable;
+        }
+
+        public abstract Optional<O> negotiated();
+
+        public abstract void setNegotiated(O negotiated);
+
+        private static final class Static<I, O> extends PropertyValue<I, O> {
+            private O value;
+            private Static(I negotiable) {
+                super(negotiable);
+            }
+
+            @Override
+            public Optional<O> negotiated() {
+                return Optional.ofNullable(value);
+            }
+
+            @Override
+            public void setNegotiated(O negotiated) {
+                this.value = negotiated;
+            }
+        }
+
+        private static final class Lazy<I, O> extends PropertyValue<I, O> {
+            private Supplier<O> supplier;
+            private O value;
+            private Lazy(I negotiable, Supplier<O> supplier) {
+                super(negotiable);
+                this.supplier = supplier;
+            }
+
+            @Override
+            public Optional<O> negotiated() {
+                if(supplier != null) {
+                    this.value = supplier.get();
+                    this.supplier = null;
+                }
+
+                return Optional.ofNullable(value);
+            }
+
+            @Override
+            public void setNegotiated(O negotiated) {
+                this.supplier = null;
+                this.value = negotiated;
+            }
+        }
+    }
+
+    private sealed interface TlsHandshakeHash {
+        static TlsHandshakeHash of(TlsVersion version, TlsHashFactory hash) {
+            return switch (version) {
+                case TLS13, DTLS13 -> new T13VerifyDataGenerator(hash.newHash());
+                case TLS12, DTLS12 -> new T12VerifyDataGenerator(hash.newHash());
+                case TLS10, TLS11, DTLS10 -> new T10VerifyDataGenerator();
+                case SSL30 -> new S30VerifyDataGenerator();
+            };
+        }
+
+        void update(byte[] input);
+        byte[] digest(TlsMode mode, TlsSource source);
+        default boolean useClientLabel(TlsSource source, TlsMode mode) {
+            return (mode == TlsMode.CLIENT && source == TlsSource.LOCAL)
+                    || (mode == TlsMode.SERVER && source == TlsSource.REMOTE);
+        }
+
+        final class S30VerifyDataGenerator implements TlsHandshakeHash {
+            private static final byte[] MD5_PAD1 = genPad(0x36, 48);
+            private static final byte[] MD5_PAD2 = genPad(0x5c, 48);
+            private static final byte[] SHA_PAD1 = genPad(0x36, 40);
+            private static final byte[] SHA_PAD2 = genPad(0x5c, 40);
+            private static final byte[] SSL_CLIENT = { 0x43, 0x4C, 0x4E, 0x54 };
+            private static final byte[] SSL_SERVER = { 0x53, 0x52, 0x56, 0x52 };
+
+            private static byte[] genPad(int b, int count) {
+                byte[] padding = new byte[count];
+                Arrays.fill(padding, (byte)b);
+                return padding;
+            }
+
+            private final TlsHash md5;
+            private final TlsHash sha1;
+
+            private S30VerifyDataGenerator() {
+                this.md5 = TlsHash.md5();
+                this.sha1 = TlsHash.sha1();
+            }
+
+            @Override
+            public void update(byte[] input) {
+                md5.update(input);
+                sha1.update(input);
+            }
+
+            @Override
+            public byte[] digest(TlsMode mode, TlsSource source) {
+                var masterSecret = context.masterSecretKey()
+                        .orElseThrow(() -> new TlsException("Master secret key is not available yet"))
+                        .data();
+                var useClientLabel = useClientLabel(source, mode);
+                if (useClientLabel) {
+                    md5.update(SSL_CLIENT);
+                    sha1.update(SSL_CLIENT);
+                } else {
+                    md5.update(SSL_SERVER);
+                    sha1.update(SSL_SERVER);
+                }
+
+                md5.update(masterSecret);
+                md5.update(MD5_PAD1);
+                var md5Temp = md5.digest(false);
+                md5.update(masterSecret);
+                md5.update(MD5_PAD2);
+                md5.update(md5Temp);
+
+                sha1.update(masterSecret);
+                sha1.update(SHA_PAD1);
+                var sha1Temp = sha1.digest(false);
+                sha1.update(masterSecret);
+                sha1.update(SHA_PAD2);
+                sha1.update(sha1Temp);
+
+                var digest = new byte[36];
+                var offset = md5.digest(digest, 0, md5.length(), false);
+                sha1.digest(digest, offset, sha1.length(), false);
+
+                return digest;
+            }
+        }
+
+        final class T10VerifyDataGenerator implements TlsHandshakeHash {
+            private final TlsHash md5;
+            private final TlsHash sha1;
+
+            private T10VerifyDataGenerator() {
+                this.md5 = TlsHash.md5();
+                this.sha1 = TlsHash.sha1();
+            }
+
+            @Override
+            public void update(byte[] input) {
+                md5.update(input);
+                sha1.update(input);
+            }
+
+            @Override
+            public byte[] digest(TlsMode mode, TlsSource source) {
+                var masterSecret = context.masterSecretKey()
+                        .orElseThrow(() -> new TlsException("Master secret key is not available yet"))
+                        .data();
+                var useClientLabel = useClientLabel(source, mode);
+                var tlsLabel = useClientLabel ? "client finished" : "server finished";
+                var digest = new byte[36];
+                var offset = md5.digest(digest, 0, md5.length(), false);
+                sha1.digest(digest, offset, sha1.length(), false);
+                return TlsPRF.tls10Prf(
+                        masterSecret,
+                        tlsLabel.getBytes(),
+                        digest,
+                        12,
+                        TlsHash.none(),
+                        TlsHash.none()
+                );
+            }
+        }
+
+        final class T12VerifyDataGenerator implements TlsHandshakeHash {
+            private final TlsHash hash;
+            private T12VerifyDataGenerator(TlsHash hash) {
+                this.hash = hash;
+            }
+
+            @Override
+            public void update(byte[] input) {
+                hash.update(input);
+            }
+
+            @Override
+            public byte[] digest(TlsMode mode, TlsSource source) {
+                var masterSecret = context.masterSecretKey()
+                        .orElseThrow(() -> new TlsException("Master secret key is not available yet"))
+                        .data();
+                var useClientLabel = useClientLabel(source, mode);
+                var tlsLabel = useClientLabel ? "client finished" : "server finished";
+                return TlsPRF.tls12Prf(
+                        masterSecret,
+                        tlsLabel.getBytes(),
+                        hash.digest(false),
+                        12,
+                        hash.duplicate()
+                );
+            }
+        }
+
+        final class T13VerifyDataGenerator implements TlsHandshakeHash {
+            private static final byte[] HKDF_LABEL = "tls13 finished".getBytes();
+            private static final byte[] HKDF_CONTEXT = new byte[0];
+
+            private final TlsHash hash;
+            private T13VerifyDataGenerator(TlsHash hash) {
+                this.hash = hash;
+            }
+
+            @Override
+            public void update(byte[] input) {
+                hash.update(input);
+            }
+
+            @Override
+            public byte[] digest(TlsMode mode, TlsSource source) {
+                /*
+                sun.security.ssl.Finished
+                     var hash = context.getNegotiatedValue(TlsProperty.ciphers())
+                        .orElseThrow(() -> TlsException.noNegotiatedProperty(TlsProperty.ciphers()))
+                        .hashFactory()
+                        .newHash();
+
+                var hkdf = TlsHkdf.of(TlsHmac.of(hash));
+                hkdf.expand()
+
+                var hmac = TlsHmac.of(hash);
+                hmac.init(finishedSecret);
+                hmac.update(handshakeHash);
+                return hmac.doFinal();
+
+                CipherSuite.HashAlg hashAlg = context.negotiatedCipherSuite.hashAlg;
+                SecretKey secret = isValidation ? context.baseReadSecret : context.baseWriteSecret;
+                SSLBasicKeyDerivation kdf = new SSLBasicKeyDerivation(secret, hashAlg.name, hkdfLabel, hkdfContext, hashAlg.hashLength);
+                AlgorithmParameterSpec keySpec = new SSLBasicKeyDerivation.SecretSizeSpec(hashAlg.hashLength);
+                SecretKey finishedSecret = kdf.deriveKey("TlsFinishedSecret", keySpec);
+
+                String hmacAlg = "Hmac" + hashAlg.name.replace("-", "");
+                Mac hmac = Mac.getInstance(hmacAlg);
+                hmac.init(finishedSecret);
+                return hmac.doFinal(context.handshakeHash.digest());
+                 */
+                throw new UnsupportedOperationException();
+            }
+        }
     }
 }

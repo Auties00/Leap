@@ -1,6 +1,6 @@
 package it.auties.leap.tls.signature;
 
-import it.auties.leap.tls.exception.TlsException;
+import it.auties.leap.tls.TlsException;
 
 import java.net.URI;
 import java.util.Objects;

@@ -3,11 +3,11 @@ package it.auties.leap.tls.compression;
 import it.auties.leap.tls.compression.implementation.DeflateCompression;
 import it.auties.leap.tls.compression.implementation.NoCompression;
 import it.auties.leap.tls.compression.implementation.ReservedCompression;
-import it.auties.leap.tls.TlsIdentifiable;
+import it.auties.leap.tls.property.TlsIdentifiableProperty;
 
 import java.util.List;
 
-public sealed interface TlsCompression extends TlsIdentifiable<Byte>, TlsCompressionHandler permits DeflateCompression, NoCompression, ReservedCompression {
+public sealed interface TlsCompression extends TlsIdentifiableProperty<Byte>, TlsCompressionHandler permits DeflateCompression, NoCompression, ReservedCompression {
     static TlsCompression none() {
         return NoCompression.instance();
     }

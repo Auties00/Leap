@@ -1,14 +1,12 @@
 package it.auties.leap.tls.message.implementation;
 
-import it.auties.leap.tls.TlsContext;
-import it.auties.leap.tls.TlsMode;
-import it.auties.leap.tls.TlsSource;
-import it.auties.leap.tls.exception.TlsException;
+import it.auties.leap.tls.*;
+import it.auties.leap.tls.connection.TlsConnection;
 import it.auties.leap.tls.extension.TlsExtension;
-import it.auties.leap.tls.hash.TlsHandshakeHash;
 import it.auties.leap.tls.message.TlsHandshakeMessage;
 import it.auties.leap.tls.message.TlsMessageContentType;
 import it.auties.leap.tls.message.TlsMessageMetadata;
+import it.auties.leap.tls.property.TlsProperty;
 import it.auties.leap.tls.version.TlsVersion;
 import it.auties.leap.tls.version.TlsVersionId;
 
@@ -78,21 +76,24 @@ public sealed abstract class HelloMessage extends TlsHandshakeMessage {
             var extensions = new ArrayList<TlsExtension.Concrete>();
             var extensionsLength = readBigEndianInt16(buffer);
             try(var _ = scopedRead(buffer, extensionsLength)) {
+                var extensionTypeToDecoder = context.getNegotiableValue(TlsProperty.extensions())
+                        .orElseThrow(() -> TlsException.noNegotiableProperty(TlsProperty.extensions()))
+                        .stream()
+                        .collect(Collectors.toUnmodifiableMap(TlsExtension::extensionType, TlsExtension::decoder));
                 while (buffer.hasRemaining()) {
                     var extensionType = readBigEndianInt16(buffer);
+                    var extensionDecoder = extensionTypeToDecoder.get(extensionType);
+                    if(extensionDecoder == null) {
+                        throw new TlsException("Unknown extension");
+                    }
+
                     var extensionLength = readBigEndianInt16(buffer);
                     if(extensionLength == 0) {
                         continue;
                     }
 
-                    for(var configurable : context.negotiableExtensions()) {
-                        var extension = configurable.decoder()
-                                .deserialize(context, TlsSource.REMOTE, extensionType, buffer);
-                        if (extension.isPresent()) {
-                            extensions.add(extension.get());
-                            break;
-                        }
-                    }
+                    extensionDecoder.deserialize(context, TlsSource.REMOTE, extensionType, buffer)
+                            .ifPresent(extensions::add);
                 }
             }
             return new Client(tlsVersion, metadata.source(), clientRandom, sessionId, cookie, ciphers, compressions, extensions, extensionsLength);
@@ -206,7 +207,8 @@ public sealed abstract class HelloMessage extends TlsHandshakeMessage {
 
             var compressionMethodId = readBigEndianInt8(buffer);
 
-            var extensionTypeToDecoder = context.negotiableExtensions()
+            var extensionTypeToDecoder = context.getNegotiableValue(TlsProperty.extensions())
+                    .orElseThrow(() -> TlsException.noNegotiableProperty(TlsProperty.extensions()))
                     .stream()
                     .collect(Collectors.toUnmodifiableMap(TlsExtension::extensionType, TlsExtension::decoder));
             var extensions = new ArrayList<TlsExtension.Concrete>();
@@ -252,20 +254,31 @@ public sealed abstract class HelloMessage extends TlsHandshakeMessage {
 
         @Override
         public void validateAndUpdate(TlsContext context) {
-            context.setRemoteRandomData(randomData);
-            context.setRemoteSessionId(sessionId);
-            var negotiatedCipher = context.getNegotiableCipher(cipher)
+            var credentials = TlsConnection.of(randomData, sessionId, null);
+            context.setRemoteConnectionState(credentials);
+
+            var negotiatedCipher = context.getNegotiableValue(TlsProperty.cipher())
+                    .orElseThrow(() -> TlsException.noNegotiableProperty(TlsProperty.cipher()))
+                    .stream()
+                    .filter(entry -> entry.id() == cipher)
+                    .findFirst()
                     .orElseThrow(() -> new TlsException("Remote negotiated a cipher that wasn't available"));
-            context.setNegotiatedCipher(negotiatedCipher);
-            var negotiatedCompression = context.getNegotiableCompression(compression)
+            context.addNegotiatedProperty(TlsProperty.cipher(), negotiatedCipher);
+
+            var negotiatedCompression = context.getNegotiableValue(TlsProperty.compression())
+                    .orElseThrow(() -> TlsException.noNegotiableProperty(TlsProperty.compression()))
+                    .stream()
+                    .filter(entry -> entry.id() == compression)
+                    .findFirst()
                     .orElseThrow(() -> new TlsException("Remote negotiated a compression that wasn't available"));
-            context.setNegotiatedCompression(negotiatedCompression);
-            context.setHandshakeHash(TlsHandshakeHash.of(version(), negotiatedCipher.hashFactory()));
+            context.addNegotiatedProperty(TlsProperty.compression(), negotiatedCompression);
+
             for(var extension : extensions) {
                 extension.apply(context, source);
             }
-            if(context.negotiatedVersion().isEmpty()) {
-                context.setNegotiatedVersion(version);
+
+            if(context.getNegotiatedValue(TlsProperty.version()).isEmpty()) {
+                context.addNegotiatedProperty(TlsProperty.version(), version);
             }
         }
 

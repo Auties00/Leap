@@ -9,6 +9,9 @@ import java.nio.ByteBuffer;
 public interface TlsECParametersDeserializer {
     byte type();
     TlsECParameters deserialize(ByteBuffer buffer);
+    default boolean accepts(byte ecType) {
+        return ecType == type();
+    }
 
     static TlsECParametersDeserializer explicitChar2() {
         return ExplicitChar2Parameters.deserializer();

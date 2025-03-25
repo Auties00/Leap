@@ -1,7 +1,7 @@
-package it.auties.leap.tls.secret.implementation;
+package it.auties.leap.tls.connection.preMasterSecret.implementation;
 
 import it.auties.leap.tls.TlsContext;
-import it.auties.leap.tls.secret.TlsPreMasterSecretGenerator;
+import it.auties.leap.tls.connection.preMasterSecret.TlsPreMasterSecretGenerator;
 
 // https://www.ietf.org/archive/id/draft-smyshlyaev-tls12-gost-suites-18.html
 public final class GOSTR256PreMasterSecretGenerator implements TlsPreMasterSecretGenerator {

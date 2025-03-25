@@ -3,10 +3,10 @@ package it.auties.leap.tls.extension.implementation;
 import it.auties.leap.tls.TlsContext;
 import it.auties.leap.tls.TlsSource;
 import it.auties.leap.tls.ec.TlsECPointFormat;
-import it.auties.leap.tls.exception.TlsException;
+import it.auties.leap.tls.TlsException;
 import it.auties.leap.tls.extension.TlsExtension;
 import it.auties.leap.tls.extension.TlsExtensionDeserializer;
-import it.auties.leap.tls.TlsIdentifiable;
+import it.auties.leap.tls.property.TlsIdentifiableProperty;
 import it.auties.leap.tls.version.TlsVersion;
 
 import java.nio.ByteBuffer;
@@ -23,7 +23,7 @@ public record ECPointFormatExtension(
 ) implements TlsExtension.Concrete {
     public ECPointFormatExtension(List<TlsECPointFormat> formats) {
         var ids = formats.stream()
-                .map(TlsIdentifiable::id)
+                .map(TlsIdentifiableProperty::id)
                 .toList();
         var length = formats.size();
         this(ids, length);

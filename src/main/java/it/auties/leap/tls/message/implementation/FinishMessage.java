@@ -2,7 +2,7 @@ package it.auties.leap.tls.message.implementation;
 
 import it.auties.leap.tls.TlsContext;
 import it.auties.leap.tls.TlsSource;
-import it.auties.leap.tls.exception.TlsException;
+import it.auties.leap.tls.TlsException;
 import it.auties.leap.tls.message.TlsHandshakeMessage;
 import it.auties.leap.tls.message.TlsMessageContentType;
 import it.auties.leap.tls.message.TlsMessageMetadata;
@@ -12,14 +12,14 @@ import java.nio.ByteBuffer;
 
 import static it.auties.leap.tls.util.BufferUtils.*;;
 
-public sealed abstract class FinishedMessage extends TlsHandshakeMessage {
+public sealed abstract class FinishMessage extends TlsHandshakeMessage {
     private static final int MIN_HASH_LENGTH = 12;
 
-    FinishedMessage(TlsVersion version, TlsSource source) {
+    FinishMessage(TlsVersion version, TlsSource source) {
         super(version, source);
     }
 
-    public static final class Server extends FinishedMessage {
+    public static final class Server extends FinishMessage {
         public static final int ID = 0x14;
 
         private final byte[] hash;
@@ -63,7 +63,7 @@ public sealed abstract class FinishedMessage extends TlsHandshakeMessage {
         }
     }
 
-    public static final class Client extends FinishedMessage {
+    public static final class Client extends FinishMessage {
         public static final int ID = 0x14;
 
         private final byte[] hash;

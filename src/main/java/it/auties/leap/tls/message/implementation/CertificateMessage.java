@@ -1,9 +1,10 @@
 package it.auties.leap.tls.message.implementation;
 
-import it.auties.leap.tls.cipher.exchange.TlsKeyExchangeType;
 import it.auties.leap.tls.TlsContext;
+import it.auties.leap.tls.property.TlsProperty;
 import it.auties.leap.tls.TlsSource;
-import it.auties.leap.tls.exception.TlsException;
+import it.auties.leap.tls.cipher.exchange.TlsKeyExchangeType;
+import it.auties.leap.tls.TlsException;
 import it.auties.leap.tls.message.TlsHandshakeMessage;
 import it.auties.leap.tls.message.TlsMessageContentType;
 import it.auties.leap.tls.message.TlsMessageMetadata;
@@ -72,8 +73,11 @@ public sealed abstract class CertificateMessage extends TlsHandshakeMessage {
             var mode = context.selectedMode()
                     .orElseThrow(() -> new TlsException("No mode was selected yet"));
             switch (mode) {
-                case CLIENT -> context.setLocalCertificates(certificates);
-                case SERVER -> context.setRemoteCertificates(certificates);
+                case CLIENT -> context.localConnectionState()
+                        .setCertificates(certificates);
+                case SERVER -> context.remoteConnectionState()
+                        .orElseThrow(() -> new TlsException("No remote credentials"))
+                        .setCertificates(certificates);
             }
         }
 
@@ -164,11 +168,14 @@ public sealed abstract class CertificateMessage extends TlsHandshakeMessage {
             var mode = context.selectedMode()
                     .orElseThrow(() -> new TlsException("No mode was selected yet"));
             switch (mode) {
-                case CLIENT -> context.setRemoteCertificates(certificates);
-                case SERVER -> context.setLocalCertificates(certificates);
+                case CLIENT -> context.remoteConnectionState()
+                        .orElseThrow(() -> new TlsException("No remote credentials"))
+                        .setCertificates(certificates);
+                case SERVER -> context.localConnectionState()
+                        .setCertificates(certificates);
             }
-            var negotiatedCipher = context.negotiatedCipher()
-                    .orElseThrow(() -> new TlsException("No cipher was selected yet"));
+            var negotiatedCipher = context.getNegotiatedValue(TlsProperty.cipher())
+                .orElseThrow(() -> TlsException.noNegotiatedProperty(TlsProperty.cipher()));
             if(negotiatedCipher.keyExchangeFactory().type() == TlsKeyExchangeType.STATIC) {
                 context.setLocalKeyExchange(negotiatedCipher.keyExchangeFactory().newLocalKeyExchange(context));
             }

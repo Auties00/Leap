@@ -4,7 +4,7 @@ import it.auties.leap.tls.cipher.auth.TlsAuthFactory;
 import it.auties.leap.tls.cipher.engine.TlsCipherEngineFactory;
 import it.auties.leap.tls.cipher.exchange.TlsKeyExchangeFactory;
 import it.auties.leap.tls.cipher.mode.TlsCipherModeFactory;
-import it.auties.leap.tls.exception.TlsException;
+import it.auties.leap.tls.TlsException;
 import it.auties.leap.tls.extension.TlsExtension;
 import it.auties.leap.tls.extension.implementation.GREASEExtension;
 import it.auties.leap.tls.hash.TlsHashFactory;

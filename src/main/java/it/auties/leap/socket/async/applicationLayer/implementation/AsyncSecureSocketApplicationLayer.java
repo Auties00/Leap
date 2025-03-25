@@ -8,7 +8,7 @@ import it.auties.leap.tls.cipher.TlsCipher;
 import it.auties.leap.tls.compression.TlsCompression;
 import it.auties.leap.tls.TlsContext;
 import it.auties.leap.tls.TlsSource;
-import it.auties.leap.tls.exception.TlsException;
+import it.auties.leap.tls.TlsException;
 import it.auties.leap.tls.message.*;
 import it.auties.leap.tls.message.implementation.*;
 import it.auties.leap.tls.version.TlsVersion;
@@ -181,7 +181,7 @@ public class AsyncSecureSocketApplicationLayer extends AsyncSocketApplicationLay
         return write(changeCipherSpecBuffer).thenCompose(_ -> {
             var handshakeHash = tlsContext.getHandshakeVerificationData(TlsSource.LOCAL)
                     .orElseThrow(() -> new TlsException("Missing handshake"));
-            var finishedMessage = new FinishedMessage.Client(
+            var finishedMessage = new FinishMessage.Client(
                     version,
                     TlsSource.LOCAL,
                     handshakeHash

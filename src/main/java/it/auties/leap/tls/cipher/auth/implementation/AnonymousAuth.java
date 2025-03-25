@@ -4,7 +4,7 @@ import it.auties.leap.tls.cipher.auth.TlsAuth;
 import it.auties.leap.tls.cipher.auth.TlsAuthFactory;
 import it.auties.leap.tls.TlsContext;
 import it.auties.leap.tls.TlsSource;
-import it.auties.leap.tls.exception.TlsException;
+import it.auties.leap.tls.TlsException;
 
 import java.security.cert.X509Certificate;
 import java.util.List;
