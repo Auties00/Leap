@@ -115,13 +115,13 @@ public final class TlsGREASE {
         return GREASE_FA;
     }
 
-    public static List<TlsGREASE> greaseValues() {
+    public static List<TlsGREASE> values() {
         return VALUES;
     }
 
     public static TlsVersionId greaseRandom() {
         try {
-            var values = TlsGREASE.greaseValues();
+            var values = TlsGREASE.values();
             var index = SecureRandom.getInstanceStrong()
                     .nextInt(0, values.size());
             return values.get(index)

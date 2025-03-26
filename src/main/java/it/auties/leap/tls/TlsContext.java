@@ -39,7 +39,6 @@ public class TlsContext {
     private volatile TlsMode mode;
     private volatile TlsConnection remoteConnectionState;
 
-
     TlsContext(
             List<TlsVersion> versions,
             List<TlsExtension> extensions,

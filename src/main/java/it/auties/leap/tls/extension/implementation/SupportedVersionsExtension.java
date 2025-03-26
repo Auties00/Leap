@@ -18,6 +18,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 import static it.auties.leap.tls.util.BufferUtils.*;
 
@@ -43,31 +45,49 @@ public abstract sealed class SupportedVersionsExtension {
             var major = readBigEndianInt8(buffer);
             var minor = readBigEndianInt8(buffer);
             var versionId = TlsVersionId.of(major, minor);
-            var extension = new Server(versionId);
+            var supportedVersions = context.getNegotiatedValue(TlsProperty.version())
+                    .stream()
+                    .collect(Collectors.toUnmodifiableMap(TlsVersion::id, Function.identity()));
+            var supportedVersion = supportedVersions.get(versionId);
+            if(supportedVersion == null) {
+                throw new TlsAlert("Remote tried to negotiate a version that wasn't advertised");
+            }
+
+            var extension = new Server(supportedVersion);
             return Optional.of(extension);
         }
     };
 
-    public static abstract sealed class Client extends SupportedVersionsExtension {
+    public static TlsConfigurableExtension instance() {
+        return Client.Configurable.INSTANCE;
+    }
+
+    private static abstract sealed class Client extends SupportedVersionsExtension {
         public static final class Concrete extends Client implements TlsConcreteExtension {
-            private final List<TlsVersionId> tlsVersions;
-            public Concrete(List<TlsVersionId> tlsVersions) {
-                this.tlsVersions = tlsVersions;
+            private final List<TlsVersionId> versions;
+
+            public Concrete(List<TlsVersionId> versions) {
+                this.versions = versions;
             }
 
             @Override
             public void serializeExtensionPayload(ByteBuffer buffer) {
-                var payloadSize = tlsVersions.size() * INT16_LENGTH;
+                var payloadSize = versions.size() * INT16_LENGTH;
                 writeBigEndianInt8(buffer, payloadSize);
-                for (var tlsVersion : tlsVersions) {
+                for (var tlsVersion : versions) {
                     writeBigEndianInt8(buffer, tlsVersion.major());
                     writeBigEndianInt8(buffer, tlsVersion.minor());
                 }
             }
 
             @Override
+            public void apply(TlsContext context, TlsSource source) {
+
+            }
+
+            @Override
             public int extensionPayloadLength() {
-                return INT8_LENGTH + INT16_LENGTH * tlsVersions.size();
+                return INT8_LENGTH + INT16_LENGTH * versions.size();
             }
 
             @Override
@@ -86,57 +106,53 @@ public abstract sealed class SupportedVersionsExtension {
             }
 
             @Override
-            public boolean equals(Object obj) {
-                if (obj == this) return true;
-                if (obj == null || obj.getClass() != this.getClass()) return false;
-                var that = (Client.Concrete) obj;
-                return Objects.equals(this.tlsVersions, that.tlsVersions);
+            public boolean equals(Object o) {
+                return o instanceof Concrete concrete
+                        && Objects.equals(versions, concrete.versions);
             }
 
             @Override
             public int hashCode() {
-                return Objects.hash(tlsVersions);
+                return Objects.hashCode(versions);
             }
 
             @Override
             public String toString() {
                 return "SupportedVersionsExtension[" +
-                        "versions=" + tlsVersions + ']';
+                        "versions=" + versions + ']';
             }
         }
 
         public static final class Configurable extends SupportedVersionsExtension implements TlsConfigurableExtension {
             private static final TlsConfigurableExtension INSTANCE = new Client.Configurable();
-            public static final TlsExtensionDependencies DEPENDENCIES = TlsExtensionDependencies.some(GREASEExtension.greaseValues()
-                    .stream()
-                    .map(GREASEExtension::extensionType)
-                    .toArray(Integer[]::new));
 
             private Configurable() {
 
             }
 
-            public static TlsConfigurableExtension instance() {
-                return INSTANCE;
-            }
-
             @Override
             public Optional<? extends TlsConcreteExtension> newInstance(TlsContext context, int messageLength) {
                 var supportedVersions = new ArrayList<TlsVersionId>();
-                for (var tlsVersion : context.negotiableVersions()) {
-                    supportedVersions.add(tlsVersion.id());
-                }
-
-                if (context.processedExtensions().stream().anyMatch(entry -> TlsGREASE.isGrease(entry.extensionType()))) {
+                context.getNegotiableValue(TlsProperty.version())
+                        .orElseThrow(() -> TlsAlert.noNegotiableProperty(TlsProperty.version()))
+                        .forEach(version -> supportedVersions.add(version.id()));
+                var grease = context.getNegotiableValue(TlsProperty.extensions())
+                        .orElseThrow(() -> TlsAlert.noNegotiableProperty(TlsProperty.extensions()))
+                        .stream()
+                        .anyMatch(entry -> TlsGREASE.isGrease(entry.extensionType()));
+                if (grease) {
                     supportedVersions.add(TlsGREASE.greaseRandom());
                 }
-
                 return Optional.of(new Client.Concrete(supportedVersions));
             }
 
             @Override
             public TlsExtensionDependencies dependencies() {
-                return DEPENDENCIES;
+                var values = TlsGREASE.values()
+                        .stream()
+                        .map(grease -> grease.versionId().value())
+                        .toArray(Integer[]::new);
+                return TlsExtensionDependencies.some(values);
             }
 
             @Override
