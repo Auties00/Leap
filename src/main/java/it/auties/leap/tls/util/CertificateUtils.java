@@ -2,7 +2,7 @@ package it.auties.leap.tls.util;
 
 import it.auties.leap.tls.cipher.exchange.TlsKeyExchangeType;
 import it.auties.leap.tls.TlsMode;
-import it.auties.leap.tls.TlsException;
+import it.auties.leap.tls.alert.TlsAlert;
 import it.auties.leap.tls.util.sun.HostnameChecker;
 
 import java.io.File;
@@ -37,13 +37,13 @@ public final class CertificateUtils {
     private static void checkAlgorithm(String expectedAlgorithm, X509Certificate leafCert) {
         var sigAlgName = leafCert.getSigAlgName();
         if (sigAlgName == null || !sigAlgName.toUpperCase().contains(expectedAlgorithm.toUpperCase())) {
-            throw new TlsException("Certificate signature algorithm (%s) does not match expected algorithm (%s).".formatted(sigAlgName, expectedAlgorithm));
+            throw new TlsAlert("Certificate signature algorithm (%s) does not match expected algorithm (%s).".formatted(sigAlgName, expectedAlgorithm));
         }
     }
 
     private static X509Certificate getLeafCert(List<X509Certificate> certificateChain) {
         if (certificateChain == null || certificateChain.isEmpty()) {
-            throw new TlsException("Remote certificate chain is empty.");
+            throw new TlsAlert("Remote certificate chain is empty.");
         }
 
         return certificateChain.getFirst();
@@ -53,14 +53,14 @@ public final class CertificateUtils {
         try {
             HostnameChecker.match(remoteAddress.getHostName(), leafCert, false);
         } catch (CertificateException e) {
-            throw new TlsException("Invalid remote address", e);
+            throw new TlsAlert("Invalid remote address", e);
         }
     }
 
     private static void validateCertificate(KeyStore trustedKeyStore, List<X509Certificate> certificateChain) {
         var trustAnchors = getTrustAnchors(trustedKeyStore);
         if (trustAnchors.isEmpty()) {
-            throw new TlsException("Cannot validate certificate: no trust anchors");
+            throw new TlsAlert("Cannot validate certificate: no trust anchors");
         }
 
         try {
@@ -71,7 +71,7 @@ public final class CertificateUtils {
             var cpv = CertPathValidator.getInstance("PKIX");
             cpv.validate(certPath, pkixParams);
         }catch (GeneralSecurityException exception) {
-            throw new TlsException("Cannot validate certificate: certificate error", exception);
+            throw new TlsAlert("Cannot validate certificate: certificate error", exception);
         }
     }
 
@@ -95,7 +95,7 @@ public final class CertificateUtils {
             }
             return trustAnchors;
         } catch (KeyStoreException exception) {
-            throw new TlsException("Cannot get trust anchors", exception);
+            throw new TlsAlert("Cannot get trust anchors", exception);
         }
     }
 
@@ -109,16 +109,16 @@ public final class CertificateUtils {
                     switch (type) {
                         case STATIC -> {
                             if (keyUsage.length <= KU_KEY_ENCIPHERMENT || !keyUsage[KU_KEY_ENCIPHERMENT]) {
-                                throw new TlsException("Extended key usage does not permit key encipherment");
+                                throw new TlsAlert("Extended key usage does not permit key encipherment");
                             }
 
                             if (keyUsage.length <= KU_KEY_AGREEMENT || !keyUsage[KU_KEY_AGREEMENT]) {
-                                throw new TlsException("Extended key usage does not permit key agreement");
+                                throw new TlsAlert("Extended key usage does not permit key agreement");
                             }
                         }
                         case EPHEMERAL -> {
                             if (keyUsage.length <= KU_SIGNATURE || !keyUsage[KU_SIGNATURE]) {
-                                throw new TlsException("Extended key usage does not permit digital signature");
+                                throw new TlsAlert("Extended key usage does not permit digital signature");
                             }
                         }
                     }
@@ -127,19 +127,19 @@ public final class CertificateUtils {
                 if(extendedKeyUsage != null
                         && !extendedKeyUsage.contains(ANY_USE_OID)
                         && !extendedKeyUsage.contains(SERVER_AUTH_USE_OID)) {
-                    throw new TlsException("Extended key usage does not permit use for TLS server authentication");
+                    throw new TlsAlert("Extended key usage does not permit use for TLS server authentication");
                 }
             }
 
             case SERVER -> {
                 if (keyUsage != null && (keyUsage.length <= KU_SIGNATURE || !keyUsage[KU_SIGNATURE])) {
-                    throw new TlsException("Extended key usage does not permit digital signature");
+                    throw new TlsAlert("Extended key usage does not permit digital signature");
                 }
 
                 if (extendedKeyUsage != null
                         && !extendedKeyUsage.contains(ANY_USE_OID)
                         && !extendedKeyUsage.contains(CLIENT_AUTH_USE_OID)) {
-                    throw new TlsException("Extended key usage does not permit use for TLS client authentication");
+                    throw new TlsAlert("Extended key usage does not permit use for TLS client authentication");
                 }
             }
         }

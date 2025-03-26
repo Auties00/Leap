@@ -1,7 +1,7 @@
 package it.auties.leap.tls.connection.preMasterSecret.implementation;
 
 import it.auties.leap.tls.TlsContext;
-import it.auties.leap.tls.TlsException;
+import it.auties.leap.tls.alert.TlsAlert;
 import it.auties.leap.tls.connection.TlsConnection;
 import it.auties.leap.tls.connection.preMasterSecret.TlsPreMasterSecretGenerator;
 import it.auties.leap.tls.property.TlsProperty;
@@ -28,11 +28,11 @@ public final class RSAPreMasterSecretGenerator implements TlsPreMasterSecretGene
             var cipher = Cipher.getInstance("RSA/ECB/PKCS1Padding");
             var remotePublicKey = context.remoteConnectionState()
                     .flatMap(TlsConnection::publicKey)
-                    .orElseThrow(TlsException::noRemoteConnectionState);
+                    .orElseThrow(TlsAlert::noRemoteConnectionState);
             cipher.init(Cipher.WRAP_MODE, remotePublicKey);
             return cipher.wrap(new SecretKeySpec(preMasterSecret, "raw"));
         }catch (Throwable throwable) {
-            throw TlsException.preMasterSecretError(throwable); // Should never happen
+            throw TlsAlert.preMasterSecretError(throwable); // Should never happen
         }
     }
 
@@ -41,12 +41,12 @@ public final class RSAPreMasterSecretGenerator implements TlsPreMasterSecretGene
             var preMasterSecret = new byte[48];
             SecureRandom.getInstanceStrong().nextBytes(preMasterSecret);
             var version = context.getNegotiatedValue(TlsProperty.version())
-                    .orElseThrow(() -> TlsException.noNegotiableProperty(TlsProperty.version()));
+                    .orElseThrow(() -> TlsAlert.noNegotiableProperty(TlsProperty.version()));
             preMasterSecret[0] = version.id().minor();
             preMasterSecret[1] = version.id().major();
             return preMasterSecret;
         }catch (NoSuchAlgorithmException _) {
-            throw TlsException.noSecureRandom();
+            throw TlsAlert.noSecureRandom();
         }
     }
 }

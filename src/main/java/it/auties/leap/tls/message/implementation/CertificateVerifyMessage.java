@@ -41,7 +41,7 @@ public sealed abstract class CertificateVerifyMessage extends TlsHandshakeMessag
         }
 
         @Override
-        public void validateAndUpdate(TlsContext context) {
+        public void apply(TlsContext context) {
 
         }
     }

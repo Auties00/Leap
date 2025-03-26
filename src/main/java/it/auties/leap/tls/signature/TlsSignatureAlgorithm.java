@@ -1,6 +1,6 @@
 package it.auties.leap.tls.signature;
 
-import it.auties.leap.tls.TlsException;
+import it.auties.leap.tls.alert.TlsAlert;
 import it.auties.leap.tls.property.TlsIdentifiableProperty;
 
 import java.net.URI;
@@ -110,7 +110,7 @@ public final class TlsSignatureAlgorithm implements TlsSignature {
 
         public static Hash reservedForPrivateUse(byte id) {
             if (id != -32 && id != -31) {
-                throw new TlsException(
+                throw new TlsAlert(
                         "Only values from 224-255 (decimal) inclusive are reserved for Private Use",
                         URI.create("https://www.rfc-editor.org/rfc/rfc5246.html"),
                         "12"
@@ -182,7 +182,7 @@ public final class TlsSignatureAlgorithm implements TlsSignature {
 
         public static Hash reservedForPrivateUse(byte id) {
             if (id != -32 && id != -31) {
-                throw new TlsException(
+                throw new TlsAlert(
                         "Only values from 224-255 (decimal) inclusive are reserved for Private Use",
                         URI.create("https://www.rfc-editor.org/rfc/rfc5246.html"),
                         "12"

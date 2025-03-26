@@ -1,7 +1,10 @@
 package it.auties.leap.tls.util;
 
 import it.auties.leap.tls.TlsContext;
-import it.auties.leap.tls.TlsException;
+import it.auties.leap.tls.alert.TlsAlert;
+import it.auties.leap.tls.extension.TlsConcreteExtension;
+import it.auties.leap.tls.extension.TlsConfigurableExtension;
+import it.auties.leap.tls.extension.TlsExtensionDependencies;
 import it.auties.leap.tls.property.TlsProperty;
 import it.auties.leap.tls.extension.TlsExtension;
 
@@ -12,12 +15,12 @@ import java.util.List;
 
 public final class TlsExtensionsUtils {
     // Do not take directly extensions and supportedVersions as those might be changed after initialization
-    public static List<TlsExtension.Concrete> process(TlsContext context) {
+    public static List<TlsConcreteExtension> process(TlsContext context) {
         var extensions = context.getNegotiableValue(TlsProperty.extensions())
-                .orElseThrow(() -> TlsException.noNegotiableProperty(TlsProperty.extensions()));
+                .orElseThrow(() -> TlsAlert.noNegotiableProperty(TlsProperty.extensions()));
         var supportedVersions = context.getNegotiableValue(TlsProperty.version())
                 .map(HashSet::new)
-                .orElseThrow(() -> new TlsException("Missing negotiable property versions"));
+                .orElseThrow(() -> new TlsAlert("Missing negotiable property versions"));
         var dependenciesTree = new LinkedHashMap<Integer, TlsExtension>();
         for (var extension : extensions) {
             if (supportedVersions.stream().anyMatch(version -> extension.versions().contains(version))) {
@@ -33,19 +36,25 @@ public final class TlsExtensionsUtils {
             }
         }
 
-        var result = new ArrayList<TlsExtension.Concrete>(dependenciesTree.size());
-        var deferred = new ArrayList<TlsExtension.Configurable>();
+        var results = new ArrayList<TlsConcreteExtension>(dependenciesTree.size());
+        var length = 0;
+        var deferred = new ArrayList<TlsConfigurableExtension>();
         while (!dependenciesTree.isEmpty()) {
             var entry = dependenciesTree.pollFirstEntry();
             var extension = entry.getValue();
             switch (extension) {
-                case TlsExtension.Concrete concrete -> result.add(concrete);
-                case TlsExtension.Configurable configurableExtension -> {
+                case TlsConcreteExtension concrete -> results.add(concrete);
+                case TlsConfigurableExtension configurableExtension -> {
                     switch (configurableExtension.dependencies()) {
-                        case TlsExtension.Configurable.Dependencies.None _ -> configurableExtension.newInstance(context)
-                                .ifPresent(result::add);
+                        case TlsExtensionDependencies.None _ -> {
+                           var result = configurableExtension.newInstance(context, length);
+                           if(result.isPresent()) {
+                               results.add(result.get());
+                               length += result.get().extensionLength();
+                           }
+                        }
 
-                        case TlsExtension.Configurable.Dependencies.Some some -> {
+                        case TlsExtensionDependencies.Some some -> {
                             var conflict = false;
                             for(var dependency : some.includedTypes()) {
                                 if(dependenciesTree.containsKey(dependency)) {
@@ -54,24 +63,30 @@ public final class TlsExtensionsUtils {
                                 }
                             }
                             if(conflict) {
-                                dependenciesTree.put(entry.getKey(), entry.getValue());
+                                dependenciesTree.putLast(entry.getKey(), entry.getValue());
                             }else {
-                                configurableExtension.newInstance(context)
-                                        .ifPresent(result::add);
+                                var result = configurableExtension.newInstance(context, length);
+                                if(result.isPresent()) {
+                                    results.add(result.get());
+                                    length += result.get().extensionLength();
+                                }
                             }
                         }
 
-                        case TlsExtension.Configurable.Dependencies.All _ -> deferred.add(configurableExtension);
+                        case TlsExtensionDependencies.All _ -> deferred.add(configurableExtension);
                     }
                 }
             }
         }
 
         for(var configurableExtension : deferred) {
-            configurableExtension.newInstance(context)
-                    .ifPresent(result::add);
+            var result = configurableExtension.newInstance(context, length);
+            if(result.isPresent()) {
+                results.add(result.get());
+                length += result.get().extensionLength();
+            }
         }
 
-        return result;
+        return results;
     }
 }

@@ -3,7 +3,9 @@ package it.auties.leap.tls.message.implementation;
 import it.auties.leap.socket.SocketException;
 import it.auties.leap.tls.TlsContext;
 import it.auties.leap.tls.TlsSource;
-import it.auties.leap.tls.TlsException;
+import it.auties.leap.tls.alert.TlsAlertLevel;
+import it.auties.leap.tls.alert.TlsAlertType;
+import it.auties.leap.tls.alert.TlsAlert;
 import it.auties.leap.tls.message.*;
 import it.auties.leap.tls.version.TlsVersion;
 
@@ -64,12 +66,12 @@ public final class AlertMessage extends TlsMessage {
     }
 
     @Override
-    public void validateAndUpdate(TlsContext context) {
+    public void apply(TlsContext context) {
         if(alertType == TlsAlertType.CLOSE_NOTIFY) {
             throw SocketException.closed();
         }
 
-        throw new TlsException("Received alert: " + context);
+        throw new TlsAlert("Received alert: " + context);
     }
 
 }

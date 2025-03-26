@@ -5,7 +5,7 @@ import it.auties.leap.tls.property.TlsProperty;
 import it.auties.leap.tls.cipher.exchange.TlsKeyExchange;
 import it.auties.leap.tls.cipher.exchange.TlsKeyExchangeFactory;
 import it.auties.leap.tls.cipher.exchange.TlsKeyExchangeType;
-import it.auties.leap.tls.TlsException;
+import it.auties.leap.tls.alert.TlsAlert;
 import it.auties.leap.tls.group.TlsSupportedFiniteField;
 import it.auties.leap.tls.connection.preMasterSecret.TlsPreMasterSecretGenerator;
 
@@ -93,7 +93,7 @@ public abstract sealed class DHKeyExchange implements TlsKeyExchange {
                 );
                 return parsedPublicKey = (DHPublicKey) keyFactory.generatePublic(dhPubKeySpecs);
             }catch (GeneralSecurityException exception) {
-                throw new TlsException("Cannot parse DH key", exception);
+                throw new TlsAlert("Cannot parse DH key", exception);
             }
         }
     }
@@ -149,7 +149,7 @@ public abstract sealed class DHKeyExchange implements TlsKeyExchange {
                 );
                 return parsedPublicKey = (DHPublicKey) keyFactory.generatePublic(dhPubKeySpecs);
             }catch (GeneralSecurityException exception) {
-                throw new TlsException("Cannot parse DH key", exception);
+                throw new TlsAlert("Cannot parse DH key", exception);
             }
         }
     }
@@ -157,7 +157,7 @@ public abstract sealed class DHKeyExchange implements TlsKeyExchange {
     private record DHKeyExchangeFactory(TlsKeyExchangeType type) implements TlsKeyExchangeFactory {
         @Override
         public TlsKeyExchange newLocalKeyExchange(TlsContext context) {
-            return switch (context.selectedMode().orElseThrow(TlsException::noModeSelected)) {
+            return switch (context.selectedMode().orElseThrow(TlsAlert::noModeSelected)) {
                 case CLIENT -> newClientKeyExchange(context);
                 case SERVER -> newServerKeyExchange(context);
             };
@@ -166,7 +166,7 @@ public abstract sealed class DHKeyExchange implements TlsKeyExchange {
         private TlsKeyExchange newClientKeyExchange(TlsContext context) {
             var remoteDhKeyExchange = context.remoteKeyExchange()
                     .map(entry -> entry instanceof Server serverKeyExchange ? serverKeyExchange : null)
-                    .orElseThrow(() -> new TlsException("Missing remote DH key exchange"));
+                    .orElseThrow(() -> new TlsAlert("Missing remote DH key exchange"));
             var keyPair = generateKeyPair(context, remoteDhKeyExchange);
             var publicKey = (DHPublicKey) keyPair.getPublic();
             context.localConnectionState()
@@ -184,7 +184,7 @@ public abstract sealed class DHKeyExchange implements TlsKeyExchange {
         private TlsKeyExchange newServerKeyExchange(TlsContext context) {
             var remoteDhKeyExchange = context.remoteKeyExchange()
                     .map(entry -> entry instanceof Client clientKeyExchange ? clientKeyExchange : null)
-                    .orElseThrow(() -> new TlsException("Missing remote DH key exchange"));
+                    .orElseThrow(() -> new TlsAlert("Missing remote DH key exchange"));
             var keyPair = generateKeyPair(context, remoteDhKeyExchange);
             var publicKey = (DHPublicKey) keyPair.getPublic();
             context.localConnectionState()
@@ -203,23 +203,23 @@ public abstract sealed class DHKeyExchange implements TlsKeyExchange {
 
         private KeyPair generateKeyPair(TlsContext context, TlsKeyExchange remoteDhKeyExchange) {
             return context.getNegotiatedValue(TlsProperty.supportedGroups())
-                .orElseThrow(() -> TlsException.noNegotiatedProperty(TlsProperty.supportedGroups()))
+                .orElseThrow(() -> TlsAlert.noNegotiatedProperty(TlsProperty.supportedGroups()))
                     .stream()
                     .filter(entry -> entry instanceof TlsSupportedFiniteField supportedFiniteField && supportedFiniteField.accepts(remoteDhKeyExchange))
                     .findFirst()
-                    .orElseThrow(TlsException::noSupportedFiniteField)
+                    .orElseThrow(TlsAlert::noSupportedFiniteField)
                     .generateLocalKeyPair(context);
         }
 
         @Override
         public TlsKeyExchange decodeRemoteKeyExchange(TlsContext context, ByteBuffer buffer) {
-            return switch (context.selectedMode().orElseThrow(TlsException::noModeSelected)) {
+            return switch (context.selectedMode().orElseThrow(TlsAlert::noModeSelected)) {
                 case SERVER -> {
                     var localPublicKey = context.localConnectionState()
                             .publicKey()
-                            .orElseThrow(() -> new TlsException("Missing local key pair"));
+                            .orElseThrow(() -> new TlsAlert("Missing local key pair"));
                     if(!(localPublicKey instanceof DHPublicKey dhPublicKey)) {
-                        throw new TlsException("Unsupported key type");
+                        throw new TlsAlert("Unsupported key type");
                     }
                     yield new Client(type, buffer, dhPublicKey.getParams().getP(), dhPublicKey.getParams().getG());
                 }

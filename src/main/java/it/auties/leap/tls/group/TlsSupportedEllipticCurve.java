@@ -4,7 +4,7 @@ import it.auties.leap.tls.ec.TlsECParameters;
 import it.auties.leap.tls.ec.TlsECParametersDeserializer;
 import it.auties.leap.tls.ec.implementation.ExplicitChar2Parameters;
 import it.auties.leap.tls.ec.implementation.ExplicitPrimeParameters;
-import it.auties.leap.tls.TlsException;
+import it.auties.leap.tls.alert.TlsAlert;
 import it.auties.leap.tls.group.implementation.ExplicitChar2EllipticCurve;
 import it.auties.leap.tls.group.implementation.ExplicitPrimeEllipticCurve;
 import it.auties.leap.tls.group.implementation.NamedEllipticCurve;
@@ -192,7 +192,7 @@ public non-sealed interface TlsSupportedEllipticCurve extends TlsSupportedGroup 
 
     static TlsSupportedEllipticCurve explicitPrime(TlsECParameters parameters) {
         if (!(parameters instanceof ExplicitPrimeParameters primeParameters)) {
-            throw new TlsException("Parameters mismatch");
+            throw new TlsAlert("Parameters mismatch");
         }
 
         return new ExplicitPrimeEllipticCurve(primeParameters);
@@ -200,7 +200,7 @@ public non-sealed interface TlsSupportedEllipticCurve extends TlsSupportedGroup 
 
     static TlsSupportedEllipticCurve explicitChar2(TlsECParameters parameters) {
         if (!(parameters instanceof ExplicitChar2Parameters char2Parameters)) {
-            throw new TlsException("Parameters mismatch");
+            throw new TlsAlert("Parameters mismatch");
         }
 
         return new ExplicitChar2EllipticCurve(char2Parameters);

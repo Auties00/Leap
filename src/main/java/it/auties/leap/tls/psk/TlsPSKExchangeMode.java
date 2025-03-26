@@ -1,6 +1,6 @@
 package it.auties.leap.tls.psk;
 
-import it.auties.leap.tls.TlsException;
+import it.auties.leap.tls.alert.TlsAlert;
 import it.auties.leap.tls.property.TlsIdentifiableProperty;
 import it.auties.leap.tls.version.TlsVersion;
 
@@ -59,7 +59,7 @@ public sealed interface TlsPSKExchangeMode extends TlsIdentifiableProperty<Byte>
 
         private Reserved(byte id, TlsPSKExchangeModeGenerator generator) {
             if(id != -32 && id != -31) {
-                throw new TlsException(
+                throw new TlsAlert(
                         "Only values from 224-255 (decimal) inclusive are reserved for Private Use",
                         URI.create("https://www.rfc-editor.org/rfc/rfc8446.html"),
                         "11"
@@ -78,7 +78,7 @@ public sealed interface TlsPSKExchangeMode extends TlsIdentifiableProperty<Byte>
         @Override
         public Optional<byte[]> generate(TlsVersion version) {
             if(generator == null) {
-                throw TlsException.stub();
+                throw TlsAlert.stub();
             }else {
                 return generator.generate(version);
             }

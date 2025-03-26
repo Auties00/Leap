@@ -1,6 +1,4 @@
-package it.auties.leap.tls.message;
-
-import it.auties.leap.tls.message.implementation.AlertMessage;
+package it.auties.leap.tls.alert;
 
 import java.util.Arrays;
 import java.util.Map;

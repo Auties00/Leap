@@ -3,8 +3,11 @@ package it.auties.leap.tls.property;
 import it.auties.leap.tls.cipher.TlsCipher;
 import it.auties.leap.tls.compression.TlsCompression;
 import it.auties.leap.tls.ec.TlsECPointFormat;
+import it.auties.leap.tls.extension.TlsConcreteExtension;
 import it.auties.leap.tls.extension.TlsExtension;
 import it.auties.leap.tls.group.TlsSupportedGroup;
+import it.auties.leap.tls.psk.TlsPSKExchangeMode;
+import it.auties.leap.tls.signature.TlsSignature;
 import it.auties.leap.tls.version.TlsVersion;
 
 import java.util.List;
@@ -13,12 +16,17 @@ import java.util.Objects;
 @SuppressWarnings("unused")
 public final class TlsProperty<I, O> implements TlsIdentifiableProperty<String> {
     private static final TlsProperty<List<TlsVersion>, TlsVersion> VERSION = new TlsProperty<>("version");
-    private static final TlsProperty<List<TlsExtension>, List<TlsExtension.Concrete>> EXTENSIONS = new TlsProperty<>("extensions");
+    private static final TlsProperty<List<TlsExtension>, List<TlsConcreteExtension>> EXTENSIONS = new TlsProperty<>("extensions");
     private static final TlsProperty<List<TlsCipher>, TlsCipher> CIPHER = new TlsProperty<>("cipher");
     private static final TlsProperty<List<TlsCompression>, TlsCompression> COMPRESSION = new TlsProperty<>("compression");
     private static final TlsProperty<List<TlsSupportedGroup>, List<TlsSupportedGroup>> SUPPORTED_GROUPS = new TlsProperty<>("supportedGroups");
     private static final TlsProperty<List<TlsECPointFormat>, List<TlsECPointFormat>> EC_POINTS_FORMATS = new TlsProperty<>("ecPointsFormat");
     private static final TlsProperty<Boolean, Boolean> EXTENDED_MASTER_SECRET = new TlsProperty<>("extendedMasterSecret");
+    private static final TlsProperty<Boolean, Boolean> ENCRYPT_THEN_MAC = new TlsProperty<>("encryptThenMac");
+    private static final TlsProperty<Boolean, Boolean> POST_HANDSHAKE_AUTH = new TlsProperty<>("postHandshakeAuth");
+    private static final TlsProperty<List<String>, List<String>> APPLICATION_PROTOCOLS = new TlsProperty<>("applicationProtocols");
+    private static final TlsProperty<List<TlsPSKExchangeMode>, List<TlsPSKExchangeMode>> PSK_EXCHANGE_MODES = new TlsProperty<>("pskExchangeModes");
+    private static final TlsProperty<List<TlsSignature>, List<TlsSignature>> SIGNATURE_ALGORITHMS = new TlsProperty<>("signatureAlgorithms");
 
     public static <K, V extends TlsIdentifiableProperty<K>> TlsProperty<K, V> of(String key) {
         return new TlsProperty<>(key);
@@ -28,7 +36,7 @@ public final class TlsProperty<I, O> implements TlsIdentifiableProperty<String> 
         return VERSION;
     }
 
-    public static TlsProperty<List<TlsExtension>, List<TlsExtension.Concrete>> extensions() {
+    public static TlsProperty<List<TlsExtension>, List<TlsConcreteExtension>> extensions() {
         return EXTENSIONS;
     }
 
@@ -44,6 +52,18 @@ public final class TlsProperty<I, O> implements TlsIdentifiableProperty<String> 
         return EXTENDED_MASTER_SECRET;
     }
 
+    public static TlsProperty<Boolean, Boolean> encryptThenMac() {
+        return ENCRYPT_THEN_MAC;
+    }
+
+    public static TlsProperty<Boolean, Boolean> postHandshakeAuth() {
+        return POST_HANDSHAKE_AUTH;
+    }
+
+    public static TlsProperty<List<String>, List<String>> applicationProtocols() {
+        return APPLICATION_PROTOCOLS;
+    }
+
     public static TlsProperty<List<TlsSupportedGroup>, List<TlsSupportedGroup>> supportedGroups() {
         return SUPPORTED_GROUPS;
     }
@@ -56,6 +76,14 @@ public final class TlsProperty<I, O> implements TlsIdentifiableProperty<String> 
 
     private TlsProperty(String id) {
         this.id = id;
+    }
+
+    public static TlsProperty<List<TlsPSKExchangeMode>, List<TlsPSKExchangeMode>> pskExchangeModes() {
+        return PSK_EXCHANGE_MODES;
+    }
+
+    public static TlsProperty<List<TlsSignature>, List<TlsSignature>> signatureAlgorithms() {
+        return SIGNATURE_ALGORITHMS;
     }
 
     @Override

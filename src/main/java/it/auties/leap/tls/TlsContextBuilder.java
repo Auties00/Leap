@@ -6,9 +6,9 @@ import it.auties.leap.tls.certificate.TlsCertificatesProvider;
 import it.auties.leap.tls.cipher.TlsCipher;
 import it.auties.leap.tls.compression.TlsCompression;
 import it.auties.leap.tls.connection.TlsConnection;
-import it.auties.leap.tls.connection.TlsConnectionInitializer;
+import it.auties.leap.tls.connection.initializer.TlsConnectionInitializer;
 import it.auties.leap.tls.connection.masterSecret.TlsMasterSecretGenerator;
-import it.auties.leap.tls.connection.preMasterSecret.TlsPreMasterSecretGenerator;
+import it.auties.leap.tls.alert.TlsAlert;
 import it.auties.leap.tls.extension.TlsExtension;
 import it.auties.leap.tls.message.TlsMessageDeserializer;
 import it.auties.leap.tls.util.CertificateUtils;
@@ -43,7 +43,7 @@ public final class TlsContextBuilder {
         if(versions != null && !versions.isEmpty()) {
             for (var version : versions) {
                 if (version.protocol() != protocol) {
-                    throw new TlsException("Protocol mismatch");
+                    throw new TlsAlert("Protocol mismatch");
                 }
             }
         }

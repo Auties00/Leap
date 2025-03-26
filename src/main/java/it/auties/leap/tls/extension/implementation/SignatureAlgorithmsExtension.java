@@ -1,9 +1,17 @@
 package it.auties.leap.tls.extension.implementation;
 
-import it.auties.leap.tls.extension.TlsExtension;
+import it.auties.leap.tls.TlsContext;
+import it.auties.leap.tls.TlsMode;
+import it.auties.leap.tls.TlsSource;
+import it.auties.leap.tls.alert.TlsAlert;
+import it.auties.leap.tls.extension.TlsConcreteExtension;
 import it.auties.leap.tls.extension.TlsExtensionDeserializer;
+import it.auties.leap.tls.property.TlsIdentifiableProperty;
+import it.auties.leap.tls.property.TlsProperty;
 import it.auties.leap.tls.signature.TlsSignature;
 import it.auties.leap.tls.signature.TlsSignatureAlgorithm;
+import it.auties.leap.tls.signature.TlsSignatureAlgorithm.Hash;
+import it.auties.leap.tls.signature.TlsSignatureAlgorithm.Signature;
 import it.auties.leap.tls.signature.TlsSignatureScheme;
 import it.auties.leap.tls.version.TlsVersion;
 
@@ -11,54 +19,57 @@ import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
-import static it.auties.leap.tls.signature.TlsSignatureAlgorithm.Hash.*;
-import static it.auties.leap.tls.signature.TlsSignatureAlgorithm.Signature.*;
-import static it.auties.leap.tls.signature.TlsSignatureScheme.*;
 import static it.auties.leap.tls.util.BufferUtils.*;
 
-public record SignatureAlgorithmsExtension(
-        List<Integer> algorithms
-) implements TlsExtension.Concrete {
-    private static final TlsExtensionDeserializer DECODER = (_, _, _, buffer) -> {
+public record SignatureAlgorithmsExtension(List<TlsSignature> algorithms) implements TlsConcreteExtension {
+    private static final SignatureAlgorithmsExtension RECOMMENDED = new SignatureAlgorithmsExtension(List.of(
+            TlsSignatureScheme.ecdsaSecp256r1Sha256(),
+            TlsSignatureScheme.ecdsaSecp384r1Sha384(),
+            TlsSignatureScheme.ecdsaSecp521r1Sha512(),
+            TlsSignatureScheme.ed25519(),
+            TlsSignatureScheme.ed448(),
+            TlsSignatureScheme.rsaPssPssSha256(),
+            TlsSignatureScheme.rsaPssPssSha384(),
+            TlsSignatureScheme.rsaPssPssSha512(),
+            TlsSignatureScheme.rsaPssRsaeSha256(),
+            TlsSignatureScheme.rsaPssRsaeSha384(),
+            TlsSignatureScheme.rsaPssRsaeSha512(),
+            TlsSignatureScheme.rsaPkcs1Sha256(),
+            TlsSignatureScheme.rsaPkcs1Sha384(),
+            TlsSignatureScheme.rsaPkcs1Sha512(),
+            TlsSignatureAlgorithm.of(Signature.ecdsa(), Hash.sha224()),
+            TlsSignatureAlgorithm.of(Signature.rsa(), Hash.sha224()),
+            TlsSignatureAlgorithm.of(Signature.dsa(), Hash.sha224()),
+            TlsSignatureAlgorithm.of(Signature.dsa(), Hash.sha256()),
+            TlsSignatureAlgorithm.of(Signature.dsa(), Hash.sha384()),
+            TlsSignatureAlgorithm.of(Signature.dsa(), Hash.sha512())
+    ));
+
+    private static final TlsExtensionDeserializer DECODER = (context, source, _, buffer) -> {
         var algorithmsSize = readBigEndianInt16(buffer);
-        var algorithms = new ArrayList<Integer>(algorithmsSize);
+        var algorithms = new ArrayList<TlsSignature>(algorithmsSize);
+        var knownAlgorithms = context.getNegotiableValue(TlsProperty.signatureAlgorithms())
+                .orElseThrow(() -> TlsAlert.noNegotiableProperty(TlsProperty.signatureAlgorithms()))
+                .stream()
+                .collect(Collectors.toUnmodifiableMap(TlsIdentifiableProperty::id, Function.identity()));
+        var mode = context.selectedMode()
+                .orElseThrow(TlsAlert::noModeSelected);
+        var incomingToClient = mode == TlsMode.CLIENT && source == TlsSource.REMOTE;
         for (var i = 0; i < algorithmsSize; i++) {
             var algorithmId = readBigEndianInt16(buffer);
-            algorithms.add(algorithmId);
+            var algorithm = knownAlgorithms.get(algorithmId);
+            if(algorithm != null) {
+                algorithms.add(algorithm);
+            }else if(incomingToClient) {
+                throw new TlsAlert("Remote tried to negotiate a signature algorithm that wasn't advertised");
+            }
         }
         var extension = new SignatureAlgorithmsExtension(algorithms);
         return Optional.of(extension);
     };
-
-    private static final SignatureAlgorithmsExtension RECOMMENDED = new SignatureAlgorithmsExtension(List.of(
-            ecdsaSecp256r1Sha256().id(),
-            ecdsaSecp384r1Sha384().id(),
-            ecdsaSecp521r1Sha512().id(),
-            TlsSignatureScheme.ed25519().id(),
-            TlsSignatureScheme.ed448().id(),
-            TlsSignatureScheme.rsaPssPssSha256().id(),
-            TlsSignatureScheme.rsaPssPssSha384().id(),
-            TlsSignatureScheme.rsaPssPssSha512().id(),
-            TlsSignatureScheme.rsaPssRsaeSha256().id(),
-            TlsSignatureScheme.rsaPssRsaeSha384().id(),
-            TlsSignatureScheme.rsaPssRsaeSha512().id(),
-            rsaPkcs1Sha256().id(),
-            rsaPkcs1Sha384().id(),
-            rsaPkcs1Sha512().id(),
-            TlsSignatureAlgorithm.of(ecdsa(), sha224()).id(),
-            TlsSignatureAlgorithm.of(rsa(), sha224()).id(),
-            TlsSignatureAlgorithm.of(dsa(), sha224()).id(),
-            TlsSignatureAlgorithm.of(dsa(), sha256()).id(),
-            TlsSignatureAlgorithm.of(dsa(), sha384()).id(),
-            TlsSignatureAlgorithm.of(dsa(), sha512()).id()
-    ));
-
-    public static SignatureAlgorithmsExtension of(List<TlsSignature> signatures) {
-        return new SignatureAlgorithmsExtension(signatures.stream()
-                .map(TlsSignature::id)
-                .toList());
-    }
 
     public static SignatureAlgorithmsExtension recommended() {
         return RECOMMENDED;
@@ -66,16 +77,23 @@ public record SignatureAlgorithmsExtension(
 
     @Override
     public void serializeExtensionPayload(ByteBuffer buffer) {
-        var size = algorithms.size() * INT16_LENGTH;
-        writeBigEndianInt16(buffer, size);
+        writeBigEndianInt16(buffer, algorithms.size() * INT16_LENGTH);
         for (var ecPointFormat : algorithms) {
-            writeBigEndianInt16(buffer, ecPointFormat);
+            writeBigEndianInt16(buffer, ecPointFormat.id());
         }
     }
 
     @Override
     public int extensionPayloadLength() {
         return INT16_LENGTH + INT16_LENGTH * algorithms.size();
+    }
+
+    @Override
+    public void apply(TlsContext context, TlsSource source) {
+        switch (source) {
+            case LOCAL -> context.addNegotiableProperty(TlsProperty.signatureAlgorithms(), algorithms);
+            case REMOTE -> context.addNegotiatedProperty(TlsProperty.signatureAlgorithms(), algorithms);
+        }
     }
 
     @Override

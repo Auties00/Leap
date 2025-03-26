@@ -1,8 +1,10 @@
 package it.auties.leap.tls.extension.implementation;
 
 import it.auties.leap.tls.TlsContext;
-import it.auties.leap.tls.extension.TlsExtension;
-import it.auties.leap.tls.extension.TlsExtensionDeserializer;
+import it.auties.leap.tls.TlsSource;
+import it.auties.leap.tls.alert.TlsAlert;
+import it.auties.leap.tls.extension.*;
+import it.auties.leap.tls.property.TlsProperty;
 import it.auties.leap.tls.version.TlsVersion;
 
 import java.nio.ByteBuffer;
@@ -26,7 +28,11 @@ public sealed abstract class KeyShareExtension {
         return Optional.of(extension);
     };
 
-    public static final class Concrete extends KeyShareExtension implements TlsExtension.Concrete {
+    public static TlsExtension instance() {
+        return Configurable.INSTANCE;
+    }
+
+    private static final class Concrete extends KeyShareExtension implements TlsConcreteExtension {
         private final List<Entry> entries;
         private final int entriesLength;
 
@@ -41,6 +47,11 @@ public sealed abstract class KeyShareExtension {
             for(var entry : entries) {
                 entry.serialize(buffer);
             }
+        }
+
+        @Override
+        public void apply(TlsContext context, TlsSource source) {
+
         }
 
         @Override
@@ -83,24 +94,22 @@ public sealed abstract class KeyShareExtension {
         }
     }
 
-    public static final class Configurable extends KeyShareExtension implements TlsExtension.Configurable {
+    private static final class Configurable extends KeyShareExtension implements TlsConfigurableExtension {
         private static final KeyShareExtension.Configurable INSTANCE = new KeyShareExtension.Configurable();
 
         private Configurable() {
 
         }
 
-        public static TlsExtension instance() {
-            return INSTANCE;
-        }
-
         @Override
-        public Optional<? extends TlsExtension.Concrete> newInstance(TlsContext context) {
+        public Optional<? extends TlsConcreteExtension> newInstance(TlsContext context, int messageLength) {
             var entries = new ArrayList<Entry>();
             var entriesLength = 0;
-            for(var supportedGroup : context.localSupportedGroups()) {
+            var supportedGroups = context.getNegotiableValue(TlsProperty.supportedGroups())
+                    .orElseThrow(() -> TlsAlert.noNegotiableProperty(TlsProperty.supportedGroups()));
+            for(var supportedGroup : supportedGroups) {
                 var keyPair = supportedGroup.generateLocalKeyPair(context);
-                var publicKey = supportedGroup.dumpPublicKey(keyPair);
+                var publicKey = supportedGroup.dumpPublicKey(keyPair.getPublic());
                 var entry = new Entry(supportedGroup.id(), publicKey);
                 entries.add(entry);
                 entriesLength += entry.length();
@@ -109,8 +118,8 @@ public sealed abstract class KeyShareExtension {
         }
 
         @Override
-        public Dependencies dependencies() {
-            return Dependencies.some(SUPPORTED_GROUPS_TYPE);
+        public TlsExtensionDependencies dependencies() {
+            return TlsExtensionDependencies.some(SUPPORTED_GROUPS_TYPE);
         }
 
         @Override

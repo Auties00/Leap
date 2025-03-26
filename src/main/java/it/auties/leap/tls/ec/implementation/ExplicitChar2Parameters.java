@@ -3,7 +3,7 @@ package it.auties.leap.tls.ec.implementation;
 import it.auties.leap.tls.TlsContext;
 import it.auties.leap.tls.ec.TlsECParameters;
 import it.auties.leap.tls.ec.TlsECParametersDeserializer;
-import it.auties.leap.tls.TlsException;
+import it.auties.leap.tls.alert.TlsAlert;
 import it.auties.leap.tls.group.TlsSupportedEllipticCurve;
 
 import java.math.BigInteger;
@@ -50,7 +50,7 @@ public final class ExplicitChar2Parameters implements TlsECParameters {
                     var cofactor = readBytesBigEndian8(input);
                     yield new ExplicitChar2Parameters(m, basis, k1, k2, k3, a, b, encoding, order, cofactor);
                 }
-                default -> throw new TlsException("Unknown basis: " + basis);
+                default -> throw new TlsAlert("Unknown basis: " + basis);
             };
         }
     };
@@ -98,7 +98,7 @@ public final class ExplicitChar2Parameters implements TlsECParameters {
                 writeBigEndianInt8(buffer, k2);
                 writeBigEndianInt8(buffer, k3);
             }
-            default -> throw new TlsException("Unknown basis: " + basis);
+            default -> throw new TlsAlert("Unknown basis: " + basis);
         }
         writeBytesBigEndian8(buffer, a);
         writeBytesBigEndian8(buffer, b);
@@ -123,7 +123,7 @@ public final class ExplicitChar2Parameters implements TlsECParameters {
         return switch (basis) {
             case BASIS_TRINOMIAL -> INT8_LENGTH;
             case BASIS_PENTANOMIAL -> INT8_LENGTH + INT8_LENGTH + INT8_LENGTH;
-            default -> throw new TlsException("Unknown basis: " + basis);
+            default -> throw new TlsAlert("Unknown basis: " + basis);
         };
     }
 

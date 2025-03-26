@@ -44,4 +44,6 @@ module it.auties.leap {
     exports it.auties.leap.tls.connection;
     exports it.auties.leap.tls.connection.masterSecret;
     exports it.auties.leap.tls.connection.preMasterSecret;
+    exports it.auties.leap.tls.connection.initializer;
+    exports it.auties.leap.tls.alert;
 }

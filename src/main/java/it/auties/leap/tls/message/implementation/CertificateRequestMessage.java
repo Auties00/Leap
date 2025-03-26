@@ -79,7 +79,7 @@ public sealed abstract class CertificateRequestMessage extends TlsHandshakeMessa
         }
 
         @Override
-        public void validateAndUpdate(TlsContext context) {
+        public void apply(TlsContext context) {
             
         }
 

@@ -1,10 +1,9 @@
-package it.auties.leap.tls.connection.implementation;
+package it.auties.leap.tls.connection.initializer.implementation;
 
 import it.auties.leap.tls.TlsContext;
-import it.auties.leap.tls.TlsException;
+import it.auties.leap.tls.alert.TlsAlert;
 import it.auties.leap.tls.cipher.mode.TlsCipherMode;
-import it.auties.leap.tls.connection.TlsConnection;
-import it.auties.leap.tls.connection.TlsConnectionInitializer;
+import it.auties.leap.tls.connection.initializer.TlsConnectionInitializer;
 import it.auties.leap.tls.hash.TlsHash;
 import it.auties.leap.tls.hash.TlsHashFactory;
 import it.auties.leap.tls.hash.TlsPRF;
@@ -31,18 +30,18 @@ public final class StandardConnectionInitializer implements TlsConnectionInitial
     }
 
     @Override
-    public void initialize(TlsContext context, TlsConnection state) {
+    public void initialize(TlsContext context) {
         var mode = context.selectedMode()
-                .orElseThrow(TlsException::noModeSelected);
+                .orElseThrow(TlsAlert::noModeSelected);
 
         var localConnectionState = context.localConnectionState();
         var remoteConnectionState = context.remoteConnectionState()
-                .orElseThrow(TlsException::noRemoteConnectionState);
+                .orElseThrow(TlsAlert::noRemoteConnectionState);
 
         var negotiatedVersion = context.getNegotiatedValue(TlsProperty.version())
-                .orElseThrow(() -> TlsException.noNegotiatedProperty(TlsProperty.version()));
+                .orElseThrow(() -> TlsAlert.noNegotiatedProperty(TlsProperty.version()));
         var negotiatedCipher = context.getNegotiatedValue(TlsProperty.cipher())
-                .orElseThrow(() -> TlsException.noNegotiatedProperty(TlsProperty.cipher()));
+                .orElseThrow(() -> TlsAlert.noNegotiatedProperty(TlsProperty.cipher()));
         var clientRandom = switch (mode) {
             case CLIENT -> localConnectionState.randomData();
             case SERVER -> remoteConnectionState.randomData();
@@ -251,7 +250,7 @@ public final class StandardConnectionInitializer implements TlsConnectionInitial
                 }
             }
 
-            default -> throw new TlsException("TLS 1.1+ should not be negotiating exportable ciphersuites");
+            default -> throw new TlsAlert("TLS 1.1+ should not be negotiating exportable ciphersuites");
         }
     }
 

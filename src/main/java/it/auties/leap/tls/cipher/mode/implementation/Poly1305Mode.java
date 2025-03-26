@@ -5,7 +5,7 @@ import it.auties.leap.tls.cipher.engine.implementation.ChaCha20Engine;
 import it.auties.leap.tls.cipher.mode.TlsCipherMode;
 import it.auties.leap.tls.cipher.mode.TlsCipherModeFactory;
 import it.auties.leap.tls.TlsContext;
-import it.auties.leap.tls.TlsException;
+import it.auties.leap.tls.alert.TlsAlert;
 import it.auties.leap.tls.mac.TlsExchangeMac;
 import it.auties.leap.tls.message.TlsMessage;
 import it.auties.leap.tls.message.TlsMessageMetadata;
@@ -55,7 +55,7 @@ public class Poly1305Mode extends TlsCipherMode.Stream {
 
     private Poly1305Mode(TlsCipherEngine engine) {
         if(!(engine instanceof ChaCha20Engine)) {
-            throw new TlsException("POLY1305 mode is supported only by ChaCha20 engines");
+            throw new TlsAlert("POLY1305 mode is supported only by ChaCha20 engines");
         }
         super(engine);
         this.poly1305 = new Mac();

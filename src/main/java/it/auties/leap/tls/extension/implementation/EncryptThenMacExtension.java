@@ -1,23 +1,28 @@
 package it.auties.leap.tls.extension.implementation;
 
-import it.auties.leap.tls.extension.TlsExtension;
+import it.auties.leap.tls.TlsContext;
+import it.auties.leap.tls.TlsSource;
+import it.auties.leap.tls.alert.TlsAlert;
+import it.auties.leap.tls.extension.TlsConcreteExtension;
 import it.auties.leap.tls.extension.TlsExtensionDeserializer;
+import it.auties.leap.tls.property.TlsProperty;
 import it.auties.leap.tls.version.TlsVersion;
 
 import java.nio.ByteBuffer;
 import java.util.List;
 import java.util.Optional;
 
-public final class EncryptThenMacExtension implements TlsExtension.Concrete {
-    private static final EncryptThenMacExtension INSTANCE = new EncryptThenMacExtension();
-
+public final class EncryptThenMacExtension implements TlsConcreteExtension {
+    // No check on the legality of the extension are performed as a client/server can only decode this extension if it was advertised
     private static final TlsExtensionDeserializer DECODER = (_, _, _, buffer) -> {
         if (buffer.hasRemaining()) {
-            throw new IllegalArgumentException("Unexpected extension payload");
+            throw new TlsAlert("Unexpected extension payload");
         }
 
-        return Optional.of(EncryptThenMacExtension.instance());
+        return Optional.of(EncryptThenMacExtension.INSTANCE);
     };
+
+    private static final EncryptThenMacExtension INSTANCE = new EncryptThenMacExtension();
 
     private EncryptThenMacExtension() {
 
@@ -38,6 +43,14 @@ public final class EncryptThenMacExtension implements TlsExtension.Concrete {
     }
 
     @Override
+    public void apply(TlsContext context, TlsSource source) {
+        switch (source) {
+            case LOCAL -> context.addNegotiableProperty(TlsProperty.encryptThenMac(), true);
+            case REMOTE -> context.addNegotiatedProperty(TlsProperty.encryptThenMac(), true);
+        }
+    }
+
+    @Override
     public int extensionType() {
         return ENCRYPT_THEN_MAC_TYPE;
     }
@@ -54,7 +67,7 @@ public final class EncryptThenMacExtension implements TlsExtension.Concrete {
 
     @Override
     public boolean equals(Object obj) {
-        return obj == this || obj != null && obj.getClass() == this.getClass();
+        return obj instanceof EncryptThenMacExtension;
     }
 
     @Override

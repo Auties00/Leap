@@ -5,7 +5,7 @@ import it.auties.leap.tls.cipher.exchange.TlsKeyExchangeFactory;
 import it.auties.leap.tls.cipher.exchange.TlsKeyExchangeType;
 import it.auties.leap.tls.TlsContext;
 import it.auties.leap.tls.TlsMode;
-import it.auties.leap.tls.TlsException;
+import it.auties.leap.tls.alert.TlsAlert;
 import it.auties.leap.tls.connection.preMasterSecret.TlsPreMasterSecretGenerator;
 
 import java.nio.ByteBuffer;
@@ -24,7 +24,7 @@ public sealed abstract class ContextualKeyExchange implements TlsKeyExchange {
         @Override
         public TlsKeyExchange decodeRemoteKeyExchange(TlsContext context, ByteBuffer buffer) {
             if(buffer.hasRemaining()) {
-                throw new TlsException("Expected empty buffer");
+                throw new TlsAlert("Expected empty buffer");
             }
 
             return switch (getMode(context)) {
@@ -35,7 +35,7 @@ public sealed abstract class ContextualKeyExchange implements TlsKeyExchange {
 
         private TlsMode getMode(TlsContext context) {
             return context.selectedMode()
-                    .orElseThrow(TlsException::noModeSelected);
+                    .orElseThrow(TlsAlert::noModeSelected);
         }
 
         @Override

@@ -1,126 +1,84 @@
 package it.auties.leap.tls.extension.implementation;
 
 import it.auties.leap.tls.TlsContext;
+import it.auties.leap.tls.TlsSource;
+import it.auties.leap.tls.alert.TlsAlert;
+import it.auties.leap.tls.extension.TlsConcreteExtension;
 import it.auties.leap.tls.extension.TlsExtension;
 import it.auties.leap.tls.extension.TlsExtensionDeserializer;
+import it.auties.leap.tls.property.TlsProperty;
 import it.auties.leap.tls.version.TlsVersion;
 
 import java.nio.ByteBuffer;
 import java.util.List;
 import java.util.Optional;
 
-public final class ExtendedMasterSecretExtension {
+public final class ExtendedMasterSecretExtension implements TlsConcreteExtension {
+    // No check on the legality of the extension are performed as a client/server can only decode this extension if it was advertised
     private static final TlsExtensionDeserializer DECODER = (_, _, _, buffer) -> {
         if(buffer.hasRemaining()) {
-            throw new IllegalArgumentException("Unexpected extension payload");
+            throw new TlsAlert("Unexpected extension payload");
         }
 
-        return Optional.of(Concrete.instance());
+        return Optional.of(ExtendedMasterSecretExtension.INSTANCE);
     };
 
 
-    public static final class Concrete implements TlsExtension.Concrete {
-        private static final ExtendedMasterSecretExtension.Concrete INSTANCE = new ExtendedMasterSecretExtension.Concrete();
+    private static final ExtendedMasterSecretExtension INSTANCE = new ExtendedMasterSecretExtension();
 
-        private Concrete() {
+    private ExtendedMasterSecretExtension() {
 
-        }
+    }
 
-        public static ExtendedMasterSecretExtension.Concrete instance() {
-            return INSTANCE;
-        }
+    public static TlsExtension instance() {
+        return INSTANCE;
+    }
 
-        @Override
-        public void serializeExtensionPayload(ByteBuffer buffer) {
+    @Override
+    public void serializeExtensionPayload(ByteBuffer buffer) {
 
-        }
+    }
 
-        @Override
-        public int extensionPayloadLength() {
-            return 0;
-        }
+    @Override
+    public int extensionPayloadLength() {
+        return 0;
+    }
 
-        @Override
-        public int extensionType() {
-            return EXTENDED_MASTER_SECRET_TYPE;
-        }
-
-        @Override
-        public List<TlsVersion> versions() {
-            return EXTENDED_MASTER_SECRET_VERSIONS;
-        }
-
-        @Override
-        public TlsExtensionDeserializer decoder() {
-            return DECODER;
-        }
-
-        @Override
-        public boolean equals(Object obj) {
-            return obj == this || obj != null && obj.getClass() == this.getClass();
-        }
-
-        @Override
-        public int hashCode() {
-            return 1;
-        }
-
-        @Override
-        public String toString() {
-            return "ExtendedMasterSecretExtension[]";
+    @Override
+    public void apply(TlsContext context, TlsSource source) {
+        switch (source) {
+            case LOCAL -> context.addNegotiableProperty(TlsProperty.extendedMasterSecret(), true);
+            case REMOTE -> context.addNegotiatedProperty(TlsProperty.extendedMasterSecret(), true);
         }
     }
 
-    public static final class Configurable implements TlsExtension.Configurable {
-        private static final ExtendedMasterSecretExtension.Configurable INSTANCE = new ExtendedMasterSecretExtension.Configurable();
+    @Override
+    public int extensionType() {
+        return EXTENDED_MASTER_SECRET_TYPE;
+    }
 
-        private Configurable() {
+    @Override
+    public List<TlsVersion> versions() {
+        return EXTENDED_MASTER_SECRET_VERSIONS;
+    }
 
-        }
+    @Override
+    public TlsExtensionDeserializer decoder() {
+        return DECODER;
+    }
 
-        public static ExtendedMasterSecretExtension.Configurable instance() {
-            return INSTANCE;
-        }
+    @Override
+    public boolean equals(Object obj) {
+        return obj instanceof ExtendedMasterSecretExtension;
+    }
 
-        @Override
-        public Optional<? extends Concrete> newInstance(TlsContext context) {
-            context.setExtendedMasterSecret(true);
-            return Optional.of(ExtendedMasterSecretExtension.Concrete.instance());
-        }
+    @Override
+    public int hashCode() {
+        return 1;
+    }
 
-        @Override
-        public Dependencies dependencies() {
-            return Dependencies.none();
-        }
-
-        @Override
-        public int extensionType() {
-            return EXTENDED_MASTER_SECRET_TYPE;
-        }
-
-        @Override
-        public List<TlsVersion> versions() {
-            return EXTENDED_MASTER_SECRET_VERSIONS;
-        }
-
-        @Override
-        public TlsExtensionDeserializer decoder() {
-            return DECODER;
-        }
-
-        @Override
-        public boolean equals(Object obj) {
-            return obj == this || obj != null && obj.getClass() == this.getClass();
-        }
-
-        @Override
-        public int hashCode() {
-            return 1;
-        }
-
-        @Override
-        public String toString() {
-            return "ExtendedMasterSecretExtension[]";
-        }
+    @Override
+    public String toString() {
+        return "ExtendedMasterSecretExtension[]";
     }
 }

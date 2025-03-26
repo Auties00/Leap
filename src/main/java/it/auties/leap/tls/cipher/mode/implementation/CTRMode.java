@@ -5,7 +5,7 @@ import it.auties.leap.tls.cipher.engine.implementation.MagmaEngine;
 import it.auties.leap.tls.cipher.mode.TlsCipherMode;
 import it.auties.leap.tls.cipher.mode.TlsCipherModeFactory;
 import it.auties.leap.tls.TlsContext;
-import it.auties.leap.tls.TlsException;
+import it.auties.leap.tls.alert.TlsAlert;
 import it.auties.leap.tls.mac.TlsExchangeMac;
 import it.auties.leap.tls.message.TlsMessage;
 import it.auties.leap.tls.message.TlsMessageMetadata;
@@ -17,7 +17,7 @@ public final class CTRMode extends TlsCipherMode.Block {
 
     private CTRMode(TlsCipherEngine engine) {
         if(!(engine instanceof MagmaEngine)) {
-            throw new TlsException("CTR mode is supported only by Magma engines");
+            throw new TlsAlert("CTR mode is supported only by Magma engines");
         }
         super(engine);
     }

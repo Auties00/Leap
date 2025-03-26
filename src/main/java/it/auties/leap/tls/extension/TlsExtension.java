@@ -1,7 +1,5 @@
 package it.auties.leap.tls.extension;
 
-import it.auties.leap.tls.TlsContext;
-import it.auties.leap.tls.TlsSource;
 import it.auties.leap.tls.ec.TlsECPointFormat;
 import it.auties.leap.tls.extension.implementation.*;
 import it.auties.leap.tls.group.TlsSupportedGroup;
@@ -10,15 +8,11 @@ import it.auties.leap.tls.signature.TlsSignature;
 import it.auties.leap.tls.version.TlsVersion;
 import it.auties.leap.tls.version.TlsVersionId;
 
-import java.nio.ByteBuffer;
 import java.util.List;
-import java.util.Optional;
-import java.util.Set;
 
 import static it.auties.leap.tls.util.BufferUtils.INT16_LENGTH;
-import static it.auties.leap.tls.util.BufferUtils.writeBigEndianInt16;
 
-public sealed interface TlsExtension {
+public sealed interface TlsExtension permits TlsConcreteExtension, TlsConfigurableExtension {
     List<TlsVersion> TLS_UNTIL_12 = List.of(TlsVersion.TLS10, TlsVersion.TLS11, TlsVersion.TLS12);
     List<TlsVersion> TLS_UNTIL_13 = List.of(TlsVersion.TLS10, TlsVersion.TLS11, TlsVersion.TLS12, TlsVersion.TLS13);
     List<TlsVersion> DTLS_UNTIL_12 = List.of(TlsVersion.TLS10, TlsVersion.TLS11, TlsVersion.TLS12, TlsVersion.DTLS10, TlsVersion.DTLS12);
@@ -91,7 +85,6 @@ public sealed interface TlsExtension {
     List<TlsVersion> CONNECTION_ID_VERSIONS = DTLS_UNTIL_13;
     List<TlsVersion> GREASE_VERSIONS = List.of(TlsVersion.TLS12, TlsVersion.TLS13);
 
-
     int SERVER_NAME_TYPE = 0;
     int MAX_FRAGMENT_LENGTH_TYPE = 1;
     int CLIENT_CERTIFICATE_URL_TYPE = 2;
@@ -159,7 +152,7 @@ public sealed interface TlsExtension {
     int RENEGOTIATION_INFO_TYPE = 65281;
 
     static TlsExtension extendedMasterSecret() {
-        return ExtendedMasterSecretExtension.Configurable.instance();
+        return ExtendedMasterSecretExtension.instance();
     }
 
     static TlsExtension encryptThenMac() {
@@ -171,11 +164,11 @@ public sealed interface TlsExtension {
     }
 
     static TlsExtension nextProtocolNegotiation() {
-        return NPNExtension.Client.instance();
+        return NPNExtension.instance();
     }
 
     static TlsExtension serverNameIndication() {
-        return SNIExtension.Configurable.instance();
+        return SNIExtension.instance();
     }
 
     static TlsExtension supportedVersions() {
@@ -191,7 +184,7 @@ public sealed interface TlsExtension {
     }
 
     static TlsExtension padding(int targetLength) {
-        return new PaddingExtension.Configurable(targetLength);
+        return PaddingExtension.of(targetLength);
     }
 
     static TlsExtension ecPointFormats() {
@@ -203,11 +196,11 @@ public sealed interface TlsExtension {
     }
 
     static TlsExtension supportedGroups() {
-        return SupportedGroupsExtension.Configurable.recommended();
+        return SupportedGroupsExtension.recommended();
     }
 
     static TlsExtension supportedGroups(List<TlsSupportedGroup> groups) {
-        return new SupportedGroupsExtension.Configurable(groups);
+        return new SupportedGroupsExtension(groups);
     }
 
     static TlsExtension signatureAlgorithms() {
@@ -215,15 +208,15 @@ public sealed interface TlsExtension {
     }
 
     static TlsExtension signatureAlgorithms(List<TlsSignature> algorithms) {
-        return SignatureAlgorithmsExtension.of(algorithms);
+        return new SignatureAlgorithmsExtension(algorithms);
     }
 
     static TlsExtension pskExchangeModes(List<TlsPSKExchangeMode> modes) {
-        return PSKExchangeModesExtension.of(modes);
+        return new PSKExchangeModesExtension(modes);
     }
 
     static TlsExtension keyShare() {
-        return KeyShareExtension.Configurable.instance();
+        return KeyShareExtension.instance();
     }
 
     static List<TlsExtension> required(List<TlsVersion> versions) {
@@ -234,75 +227,12 @@ public sealed interface TlsExtension {
         return List.of(supportedVersions(), keyShare(), signatureAlgorithms());
     }
 
-    void apply(TlsContext context, TlsSource source);
-
     int extensionType();
 
+    default int extensionHeaderLength() {
+        return INT16_LENGTH + INT16_LENGTH;
+    }
+
     List<TlsVersion> versions();
-
     TlsExtensionDeserializer decoder();
-
-    non-sealed interface Concrete extends TlsExtension {
-        default void serializeExtension(ByteBuffer buffer) {
-            writeBigEndianInt16(buffer, extensionType());
-            writeBigEndianInt16(buffer, extensionPayloadLength());
-            serializeExtensionPayload(buffer);
-        }
-
-        default int extensionLength() {
-            return INT16_LENGTH + INT16_LENGTH + extensionPayloadLength();
-        }
-
-        void serializeExtensionPayload(ByteBuffer buffer);
-
-        int extensionPayloadLength();
-    }
-
-    non-sealed interface Configurable extends TlsExtension {
-        Optional<? extends Concrete> newInstance(TlsContext context);
-
-        Dependencies dependencies();
-
-        sealed interface Dependencies {
-            static None none() {
-                return None.INSTANCE;
-            }
-
-            static Some some(Integer... includedTypes) {
-                return new Some(Set.of(includedTypes));
-            }
-
-            static All all() {
-                return All.INSTANCE;
-            }
-
-            final class None implements Dependencies {
-                private static final None INSTANCE = new None();
-
-                private None() {
-
-                }
-            }
-
-            final class Some implements Dependencies {
-                private final Set<Integer> includedTypes;
-
-                private Some(Set<Integer> includedTypes) {
-                    this.includedTypes = includedTypes;
-                }
-
-                public Set<Integer> includedTypes() {
-                    return includedTypes;
-                }
-            }
-
-            final class All implements Dependencies {
-                private static final All INSTANCE = new All();
-
-                private All() {
-
-                }
-            }
-        }
-    }
 }

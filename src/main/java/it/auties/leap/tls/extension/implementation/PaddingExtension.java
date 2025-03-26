@@ -1,8 +1,8 @@
 package it.auties.leap.tls.extension.implementation;
 
 import it.auties.leap.tls.TlsContext;
-import it.auties.leap.tls.extension.TlsExtension;
-import it.auties.leap.tls.extension.TlsExtensionDeserializer;
+import it.auties.leap.tls.TlsSource;
+import it.auties.leap.tls.extension.*;
 import it.auties.leap.tls.version.TlsVersion;
 
 import java.nio.ByteBuffer;
@@ -10,7 +10,6 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 
-import static it.auties.leap.tls.util.BufferUtils.INT16_LENGTH;
 import static it.auties.leap.tls.util.BufferUtils.readBigEndianInt8;
 
 public sealed abstract class PaddingExtension {
@@ -20,10 +19,14 @@ public sealed abstract class PaddingExtension {
         return Optional.of(extension);
     };
 
-    public static final class Concrete extends PaddingExtension implements TlsExtension.Concrete {
+    public static TlsExtension of(int targetLength) {
+        return new Configurable(targetLength);
+    }
+
+    private static final class Concrete extends PaddingExtension implements TlsConcreteExtension {
         private final int length;
 
-        public Concrete(int length) {
+        private Concrete(int length) {
             this.length = length;
         }
 
@@ -45,6 +48,11 @@ public sealed abstract class PaddingExtension {
         }
 
         @Override
+        public void apply(TlsContext context, TlsSource source) {
+
+        }
+
+        @Override
         public List<TlsVersion> versions() {
             return PADDING_VERSIONS;
         }
@@ -61,16 +69,10 @@ public sealed abstract class PaddingExtension {
                     ']';
         }
 
-        public int length() {
-            return length;
-        }
-
         @Override
         public boolean equals(Object obj) {
-            if (obj == this) return true;
-            if (obj == null || obj.getClass() != this.getClass()) return false;
-            var that = (PaddingExtension.Concrete) obj;
-            return this.length == that.length;
+            return obj instanceof PaddingExtension.Concrete that
+                    && this.length == that.length;
         }
 
         @Override
@@ -79,16 +81,16 @@ public sealed abstract class PaddingExtension {
         }
     }
 
-    public static final class Configurable extends PaddingExtension implements TlsExtension.Configurable {
+    public static final class Configurable extends PaddingExtension implements TlsConfigurableExtension {
         private final int targetLength;
 
-        public Configurable(int targetLength) {
+        private Configurable(int targetLength) {
             this.targetLength = targetLength;
         }
 
         @Override
-        public Optional<? extends TlsExtension.Concrete> newInstance(TlsContext context) {
-            var actualLength = context.processedExtensionsLength() + INT16_LENGTH + INT16_LENGTH;
+        public Optional<? extends TlsConcreteExtension> newInstance(TlsContext context, int messageLength) {
+            var actualLength = messageLength + extensionHeaderLength();
             if (actualLength > targetLength) {
                 return Optional.empty();
             }
@@ -98,8 +100,8 @@ public sealed abstract class PaddingExtension {
         }
 
         @Override
-        public Dependencies dependencies() {
-            return Dependencies.all();
+        public TlsExtensionDependencies dependencies() {
+            return TlsExtensionDependencies.all();
         }
 
         @Override
@@ -118,9 +120,20 @@ public sealed abstract class PaddingExtension {
         }
 
         @Override
+        public boolean equals(Object obj) {
+            return obj instanceof PaddingExtension.Configurable that
+                    && this.targetLength == that.targetLength;
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(targetLength);
+        }
+
+        @Override
         public String toString() {
             return "PaddingExtension[" +
-                    "length=configurable" +
+                    "length=<configurable>" +
                     ']';
         }
     }

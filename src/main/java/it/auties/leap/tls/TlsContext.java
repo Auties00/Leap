@@ -4,12 +4,11 @@ import it.auties.leap.socket.SocketProtocol;
 import it.auties.leap.tls.certificate.TlsCertificatesHandler;
 import it.auties.leap.tls.certificate.TlsCertificatesProvider;
 import it.auties.leap.tls.cipher.TlsCipher;
-import it.auties.leap.tls.cipher.exchange.TlsKeyExchange;
 import it.auties.leap.tls.compression.TlsCompression;
 import it.auties.leap.tls.connection.TlsConnection;
-import it.auties.leap.tls.connection.TlsConnectionInitializer;
+import it.auties.leap.tls.connection.initializer.TlsConnectionInitializer;
 import it.auties.leap.tls.connection.masterSecret.TlsMasterSecretGenerator;
-import it.auties.leap.tls.connection.preMasterSecret.TlsPreMasterSecretGenerator;
+import it.auties.leap.tls.alert.TlsAlert;
 import it.auties.leap.tls.extension.TlsExtension;
 import it.auties.leap.tls.hash.TlsHash;
 import it.auties.leap.tls.hash.TlsHashFactory;
@@ -36,11 +35,10 @@ public class TlsContext {
     private final TlsConnection localConnectionState;
     private final Map<TlsProperty<?, ?>, PropertyValue<?, ?>> properties;
     private final Queue<ByteBuffer> bufferedMessages;
-    private volatile InetSocketAddress remoteAddress;
+    private volatile InetSocketAddress address;
     private volatile TlsMode mode;
     private volatile TlsConnection remoteConnectionState;
-    private volatile TlsKeyExchange localKeyExchange;
-    private volatile TlsKeyExchange remoteKeyExchange;
+
 
     TlsContext(
             List<TlsVersion> versions,
@@ -102,8 +100,8 @@ public class TlsContext {
         return messageDeserializer;
     }
 
-    public Optional<InetSocketAddress> remoteAddress() {
-        return Optional.ofNullable(remoteAddress);
+    public Optional<InetSocketAddress> address() {
+        return Optional.ofNullable(address);
     }
 
     public TlsContext setRemoteConnectionState(TlsConnection remoteConnectionState) {
@@ -116,8 +114,8 @@ public class TlsContext {
         return this;
     }
 
-    public TlsContext setRemoteAddress(InetSocketAddress remoteAddress) {
-        this.remoteAddress = remoteAddress;
+    public TlsContext setAddress(InetSocketAddress address) {
+        this.address = address;
         return this;
     }
 
@@ -136,7 +134,7 @@ public class TlsContext {
     public <I, O> TlsContext addNegotiatedProperty(TlsProperty<I, O> property, O propertyValue) {
         var value = (PropertyValue<I, O>) properties.get(property);
         if(value == null) {
-            throw new TlsException("Missing property: " + property.id());
+            throw new TlsAlert("Missing property: " + property.id());
         }
 
         value.setNegotiated(propertyValue);
@@ -299,7 +297,7 @@ public class TlsContext {
             @Override
             public byte[] digest(TlsMode mode, TlsSource source) {
                 var masterSecret = context.masterSecretKey()
-                        .orElseThrow(() -> new TlsException("Master secret key is not available yet"))
+                        .orElseThrow(() -> new TlsAlert("Master secret key is not available yet"))
                         .data();
                 var useClientLabel = useClientLabel(source, mode);
                 if (useClientLabel) {
@@ -350,7 +348,7 @@ public class TlsContext {
             @Override
             public byte[] digest(TlsMode mode, TlsSource source) {
                 var masterSecret = context.masterSecretKey()
-                        .orElseThrow(() -> new TlsException("Master secret key is not available yet"))
+                        .orElseThrow(() -> new TlsAlert("Master secret key is not available yet"))
                         .data();
                 var useClientLabel = useClientLabel(source, mode);
                 var tlsLabel = useClientLabel ? "client finished" : "server finished";
@@ -382,7 +380,7 @@ public class TlsContext {
             @Override
             public byte[] digest(TlsMode mode, TlsSource source) {
                 var masterSecret = context.masterSecretKey()
-                        .orElseThrow(() -> new TlsException("Master secret key is not available yet"))
+                        .orElseThrow(() -> new TlsAlert("Master secret key is not available yet"))
                         .data();
                 var useClientLabel = useClientLabel(source, mode);
                 var tlsLabel = useClientLabel ? "client finished" : "server finished";

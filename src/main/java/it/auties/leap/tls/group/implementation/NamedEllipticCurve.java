@@ -7,7 +7,7 @@ import it.auties.leap.tls.cipher.exchange.implementation.ECDHKeyExchange;
 import it.auties.leap.tls.ec.TlsECParameters;
 import it.auties.leap.tls.ec.TlsECParametersDeserializer;
 import it.auties.leap.tls.ec.implementation.NamedCurveParameters;
-import it.auties.leap.tls.TlsException;
+import it.auties.leap.tls.alert.TlsAlert;
 import it.auties.leap.tls.group.TlsSupportedEllipticCurve;
 import it.auties.leap.tls.util.ECKeyUtils;
 import org.bouncycastle.jce.ECNamedCurveTable;
@@ -291,30 +291,30 @@ public final class NamedEllipticCurve implements TlsSupportedEllipticCurve {
             keyPairGenerator.initialize(spec);
             return keyPairGenerator.generateKeyPair();
         } catch (GeneralSecurityException exception) {
-            throw new TlsException("Cannot generate EC keypair", exception);
+            throw new TlsAlert("Cannot generate EC keypair", exception);
         }
     }
 
     private PublicKey parseRemotePublicKey(TlsContext context) {
         var mode = context.selectedMode()
-                .orElseThrow(TlsException::noModeSelected);
+                .orElseThrow(TlsAlert::noModeSelected);
         var remoteKeyExchange = context.remoteConnectionState()
-                .orElseThrow(TlsException::noRemoteConnectionState)
+                .orElseThrow(TlsAlert::noRemoteConnectionState)
                 .keyExchange()
-                .orElseThrow(TlsException::noRemoteConnectionState);
+                .orElseThrow(TlsAlert::noRemoteConnectionState);
         try {
             return switch (spec) {
                 case ECNamedCurveParameterSpec bcSpec -> {
                     var key = switch (mode) {
                         case CLIENT -> {
                             if(!(remoteKeyExchange instanceof ECDHKeyExchange serverKeyExchange)) {
-                                throw new TlsException("Unsupported key type");
+                                throw new TlsAlert("Unsupported key type");
                             }
                             yield serverKeyExchange.publicKey();
                         }
                         case SERVER -> {
                             if(!(remoteKeyExchange instanceof ECDHKeyExchange clientKeyExchange)) {
-                                throw new TlsException("Unsupported key type");
+                                throw new TlsAlert("Unsupported key type");
                             }
                             yield clientKeyExchange.publicKey();
                         }
@@ -335,13 +335,13 @@ public final class NamedEllipticCurve implements TlsSupportedEllipticCurve {
                     var key = switch (mode) {
                         case CLIENT -> {
                             if(!(remoteKeyExchange instanceof ECDHKeyExchange serverKeyExchange)) {
-                                throw new TlsException("Unsupported key type");
+                                throw new TlsAlert("Unsupported key type");
                             }
                             yield serverKeyExchange.publicKey();
                         }
                         case SERVER -> {
                             if(!(remoteKeyExchange instanceof ECDHKeyExchange clientKeyExchange)) {
-                                throw new TlsException("Unsupported key type");
+                                throw new TlsAlert("Unsupported key type");
                             }
                             yield clientKeyExchange.publicKey();
                         }
@@ -350,12 +350,12 @@ public final class NamedEllipticCurve implements TlsSupportedEllipticCurve {
                     var xecPublicKeySpec = new XECPublicKeySpec(namedParameterSpec, ECKeyUtils.fromUnsignedLittleEndianBytes(key));
                     yield keyFactory.generatePublic(xecPublicKeySpec);
                 }
-                default -> throw new TlsException("Unsupported spec");
+                default -> throw new TlsAlert("Unsupported spec");
             };
         } catch (NoSuchAlgorithmException exception) {
-            throw new TlsException("Missing DH implementation", exception);
+            throw new TlsAlert("Missing DH implementation", exception);
         } catch (GeneralSecurityException exception) {
-            throw new TlsException("Cannot parse public DH key", exception);
+            throw new TlsAlert("Cannot parse public DH key", exception);
         }
     }
 
@@ -365,7 +365,7 @@ public final class NamedEllipticCurve implements TlsSupportedEllipticCurve {
             case XECPublicKey publicKey -> ECKeyUtils.toUnsignedLittleEndianBytes(publicKey.getU());
             case DHPublicKey publicKey -> ECKeyUtils.toUnsignedLittleEndianBytes(publicKey.getY());
             case ECPublicKey publicKey -> publicKey.getQ().getEncoded(false);
-            default -> throw new TlsException("Unsupported key type");
+            default -> throw new TlsAlert("Unsupported key type");
         };
     }
 
@@ -373,15 +373,15 @@ public final class NamedEllipticCurve implements TlsSupportedEllipticCurve {
     public byte[] computeSharedSecret(TlsContext context) {
         var privateKey = context.localConnectionState()
                 .privateKey()
-                .orElseThrow(() -> new TlsException("Missing local private key"));
+                .orElseThrow(() -> new TlsAlert("Missing local private key"));
         var keyExchangeType = context.getNegotiatedValue(TlsProperty.cipher())
-                .orElseThrow(() -> TlsException.noNegotiatedProperty(TlsProperty.cipher()))
+                .orElseThrow(() -> TlsAlert.noNegotiatedProperty(TlsProperty.cipher()))
                 .keyExchangeFactory()
                 .type();
         var publicKey = switch (keyExchangeType) {
             case STATIC -> context.remoteConnectionState()
                     .flatMap(TlsConnection::publicKey)
-                    .orElseThrow(() -> new TlsException("Missing remote public key for static pre master secret generation"));
+                    .orElseThrow(() -> new TlsAlert("Missing remote public key for static pre master secret generation"));
             case EPHEMERAL -> parseRemotePublicKey(context);
         };
         try {
@@ -390,7 +390,7 @@ public final class NamedEllipticCurve implements TlsSupportedEllipticCurve {
             keyAgreement.doPhase(publicKey, true);
             return keyAgreement.generateSecret();
         }catch (GeneralSecurityException exception) {
-            throw new TlsException("Cannot compute shared secret", exception);
+            throw new TlsAlert("Cannot compute shared secret", exception);
         }
     }
 }

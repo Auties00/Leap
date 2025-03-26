@@ -1,11 +1,16 @@
 package it.auties.leap.tls.extension.implementation;
 
 import it.auties.leap.tls.TlsContext;
-import it.auties.leap.tls.extension.TlsExtension;
+import it.auties.leap.tls.TlsMode;
+import it.auties.leap.tls.TlsSource;
+import it.auties.leap.tls.alert.TlsAlert;
+import it.auties.leap.tls.extension.TlsConcreteExtension;
 import it.auties.leap.tls.extension.TlsExtensionDeserializer;
 import it.auties.leap.tls.group.TlsSupportedEllipticCurve;
 import it.auties.leap.tls.group.TlsSupportedFiniteField;
 import it.auties.leap.tls.group.TlsSupportedGroup;
+import it.auties.leap.tls.property.TlsIdentifiableProperty;
+import it.auties.leap.tls.property.TlsProperty;
 import it.auties.leap.tls.version.TlsVersion;
 
 import java.nio.ByteBuffer;
@@ -13,152 +18,105 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 import static it.auties.leap.tls.util.BufferUtils.*;
 
-public abstract sealed class SupportedGroupsExtension {
-    private static final TlsExtensionDeserializer DECODER = (_, _, _, buffer) -> {
+public final class SupportedGroupsExtension implements TlsConcreteExtension {
+    private static final TlsExtensionDeserializer DECODER = (context, source, _, buffer) -> {
         var groupsSize = readBigEndianInt16(buffer);
-        var groups = new ArrayList<Integer>(groupsSize);
+        var groups = new ArrayList<TlsSupportedGroup>(groupsSize);
+        var knownGroups = context.getNegotiableValue(TlsProperty.supportedGroups())
+                .orElseThrow(() -> TlsAlert.noNegotiableProperty(TlsProperty.ecPointsFormats()))
+                .stream()
+                .collect(Collectors.toUnmodifiableMap(TlsIdentifiableProperty::id, Function.identity()));
+        var mode = context.selectedMode()
+                .orElseThrow(TlsAlert::noModeSelected);
+        var incomingToClient = mode == TlsMode.CLIENT && source == TlsSource.REMOTE;
         for (var i = 0; i < groupsSize; i++) {
             var groupId = readBigEndianInt16(buffer);
-            groups.add(groupId);
+            var group = knownGroups.get(groupId);
+            if(group != null) {
+                groups.add(group);
+            }else if(incomingToClient) {
+                throw new TlsAlert("Remote tried to negotiate a supported group that wasn't advertised");
+            }
         }
-        var extension = new Concrete(groups);
+        var extension = new SupportedGroupsExtension(groups);
         return Optional.of(extension);
     };
 
-    public static final class Concrete extends SupportedGroupsExtension implements TlsExtension.Concrete {
-        private final List<Integer> groups;
-        public Concrete(List<Integer> groups) {
-            this.groups = groups;
-        }
+    private static final SupportedGroupsExtension RECOMMENDED = new SupportedGroupsExtension(List.of(
+            TlsSupportedEllipticCurve.x25519(),
+            TlsSupportedEllipticCurve.x448(),
+            TlsSupportedFiniteField.ffdhe2048(),
+            TlsSupportedFiniteField.ffdhe3072(),
+            TlsSupportedFiniteField.ffdhe4096(),
+            TlsSupportedFiniteField.ffdhe6144(),
+            TlsSupportedFiniteField.ffdhe8192()
+    ));
 
-        public List<Integer> groups() {
-            return groups;
-        }
+    public static SupportedGroupsExtension recommended() {
+        return RECOMMENDED;
+    }
 
-        @Override
-        public void serializeExtensionPayload(ByteBuffer buffer) {
-            var size = groups.size() * INT16_LENGTH;
-            writeBigEndianInt16(buffer, size);
-            for (var ecPointFormat : groups) {
-                writeBigEndianInt16(buffer, ecPointFormat);
-            }
-        }
+    private final List<TlsSupportedGroup> groups;
+    public SupportedGroupsExtension(List<TlsSupportedGroup> groups) {
+        this.groups = groups;
+    }
 
-        @Override
-        public int extensionPayloadLength() {
-            return INT16_LENGTH + INT16_LENGTH * groups.size();
-        }
-
-        @Override
-        public int extensionType() {
-            return SUPPORTED_GROUPS_TYPE;
-        }
-
-        @Override
-        public List<TlsVersion> versions() {
-            return SUPPORTED_GROUPS_VERSIONS;
-        }
-
-        @Override
-        public TlsExtensionDeserializer decoder() {
-            return DECODER;
-        }
-
-        @Override
-        public boolean equals(Object obj) {
-            if (obj == this) return true;
-            if (obj == null || obj.getClass() != this.getClass()) return false;
-            var that = (SupportedGroupsExtension.Concrete) obj;
-            return Objects.equals(this.groups, that.groups);
-        }
-
-        @Override
-        public int hashCode() {
-            return Objects.hash(groups);
-        }
-
-        @Override
-        public String toString() {
-            return "SupportedGroupsExtension[" +
-                    "groups=" + groups + ']';
+    @Override
+    public void serializeExtensionPayload(ByteBuffer buffer) {
+        var size = groups.size() * INT16_LENGTH;
+        writeBigEndianInt16(buffer, size);
+        for (var ecPointFormat : groups) {
+            writeBigEndianInt16(buffer, ecPointFormat.id());
         }
     }
 
-    public static final class Configurable extends SupportedGroupsExtension implements TlsExtension.Configurable {
-        private static final List<TlsSupportedGroup> RECOMMENDED_GROUPS = List.of(
-                TlsSupportedEllipticCurve.x25519(),
-                TlsSupportedEllipticCurve.x448(),
-                TlsSupportedFiniteField.ffdhe2048(),
-                TlsSupportedFiniteField.ffdhe3072(),
-                TlsSupportedFiniteField.ffdhe4096(),
-                TlsSupportedFiniteField.ffdhe6144(),
-                TlsSupportedFiniteField.ffdhe8192()
-        );
-        private static final SupportedGroupsExtension.Configurable RECOMMENDED = new SupportedGroupsExtension.Configurable(RECOMMENDED_GROUPS);
+    @Override
+    public int extensionPayloadLength() {
+        return INT16_LENGTH + INT16_LENGTH * groups.size();
+    }
 
-        private final List<TlsSupportedGroup> groups;
-        public Configurable(List<TlsSupportedGroup> groups) {
-            this.groups = groups;
+    @Override
+    public void apply(TlsContext context, TlsSource source) {
+        switch (source) {
+            case LOCAL -> context.addNegotiableProperty(TlsProperty.supportedGroups(), groups);
+            case REMOTE -> context.addNegotiatedProperty(TlsProperty.supportedGroups(), groups);
         }
+    }
 
-        public static TlsExtension recommended() {
-            return RECOMMENDED;
-        }
+    @Override
+    public int extensionType() {
+        return SUPPORTED_GROUPS_TYPE;
+    }
 
-        public static List<TlsSupportedGroup> recommendedGroups() {
-            return RECOMMENDED_GROUPS;
-        }
+    @Override
+    public List<TlsVersion> versions() {
+        return SUPPORTED_GROUPS_VERSIONS;
+    }
 
-        public List<TlsSupportedGroup> groups() {
-            return groups;
-        }
+    @Override
+    public TlsExtensionDeserializer decoder() {
+        return DECODER;
+    }
 
-        @Override
-        public Optional<? extends TlsExtension.Concrete> newInstance(TlsContext context) {
-            context.setLocalSupportedGroups(groups);
-            return Optional.of(new SupportedGroupsExtension.Concrete(groups.stream().map(TlsSupportedGroup::id).toList()));
-        }
+    @Override
+    public boolean equals(Object o) {
+        return o instanceof SupportedGroupsExtension concrete
+                && Objects.equals(groups, concrete.groups);
+    }
 
-        @Override
-        public Dependencies dependencies() {
-            return Dependencies.none();
-        }
+    @Override
+    public int hashCode() {
+        return Objects.hashCode(groups);
+    }
 
-        @Override
-        public int extensionType() {
-            return SUPPORTED_GROUPS_TYPE;
-        }
-
-        @Override
-        public List<TlsVersion> versions() {
-            return SUPPORTED_GROUPS_VERSIONS;
-        }
-
-        @Override
-        public TlsExtensionDeserializer decoder() {
-            return DECODER;
-        }
-
-        @Override
-        public boolean equals(Object obj) {
-            if (obj == this) return true;
-            if (obj == null || obj.getClass() != this.getClass()) return false;
-            var that = (SupportedGroupsExtension.Configurable) obj;
-            return Objects.equals(this.groups, that.groups);
-        }
-
-        @Override
-        public int hashCode() {
-            return Objects.hash(groups);
-        }
-
-        @Override
-        public String toString() {
-            return "SupportedGroupsExtension[" +
-                    "groups=" + groups + ']';
-        }
+    @Override
+    public String toString() {
+        return "SupportedGroupsExtension[" +
+                "groups=" + groups + ']';
     }
 }

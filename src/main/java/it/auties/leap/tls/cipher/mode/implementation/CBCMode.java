@@ -4,7 +4,7 @@ import it.auties.leap.tls.cipher.engine.TlsCipherEngine;
 import it.auties.leap.tls.cipher.mode.TlsCipherMode;
 import it.auties.leap.tls.cipher.mode.TlsCipherModeFactory;
 import it.auties.leap.tls.TlsContext;
-import it.auties.leap.tls.TlsException;
+import it.auties.leap.tls.alert.TlsAlert;
 import it.auties.leap.tls.mac.TlsExchangeMac;
 import it.auties.leap.tls.message.TlsMessage;
 import it.auties.leap.tls.message.TlsMessageMetadata;
@@ -47,7 +47,7 @@ public final class CBCMode extends TlsCipherMode.Block {
         switch (authenticator.version()) {
             case TLS10, DTLS10, SSL30 -> throw new UnsupportedOperationException();
             case TLS11, TLS12, DTLS12 -> tls11Encrypt(context, message, output);
-            case TLS13, DTLS13 -> throw new TlsException("CBC ciphers are not allowed in (D)TLSv1.3");
+            case TLS13, DTLS13 -> throw new TlsAlert("CBC ciphers are not allowed in (D)TLSv1.3");
         };
     }
 
@@ -66,7 +66,7 @@ public final class CBCMode extends TlsCipherMode.Block {
         }
         var plaintextLength = addPadding(input);
         if(plaintextLength != encryptBlock(input, output)) {
-            throw new TlsException("Unexpected number of plaintext bytes");
+            throw new TlsAlert("Unexpected number of plaintext bytes");
         }
     }
 
@@ -75,7 +75,7 @@ public final class CBCMode extends TlsCipherMode.Block {
         return switch (authenticator.version()) {
             case TLS10, DTLS10, SSL30 -> throw new UnsupportedOperationException();
             case TLS11, TLS12, DTLS12 -> tls11Decrypt(metadata, input);
-            case TLS13, DTLS13 -> throw new TlsException("CBC ciphers are not allowed in (D)TLSv1.3");
+            case TLS13, DTLS13 -> throw new TlsAlert("CBC ciphers are not allowed in (D)TLSv1.3");
         };
     }
 
@@ -83,7 +83,7 @@ public final class CBCMode extends TlsCipherMode.Block {
         var output = input.duplicate();
         var cipheredLength = input.remaining();
         if(cipheredLength != decryptBlock(input, output)) {
-            throw new TlsException("Unexpected number of ciphered bytes");
+            throw new TlsAlert("Unexpected number of ciphered bytes");
         }
         removePadding(output);
         checkCbcMac(output, metadata.contentType().type(), null);
@@ -123,17 +123,17 @@ public final class CBCMode extends TlsCipherMode.Block {
         var toCheck = output.duplicate()
                 .position(offset + newLen);
         if(!toCheck.hasRemaining()) {
-            throw new TlsException("Padding length should be positive");
+            throw new TlsAlert("Padding length should be positive");
         }
 
         if (authenticator.version() == TlsVersion.SSL30) {
             if (padValue > engine().blockLength()) {
-                throw new TlsException("Padding length (" + padValue + ") of SSLv3 message should not be bigger than the block size (" + engine().blockLength() + ")");
+                throw new TlsAlert("Padding length (" + padValue + ") of SSLv3 message should not be bigger than the block size (" + engine().blockLength() + ")");
             }
         }else {
             while (toCheck.hasRemaining()) {
                 if (toCheck.get() != padValue) {
-                    throw new TlsException("Invalid TLS padding data");
+                    throw new TlsAlert("Invalid TLS padding data");
                 }
             }
         }

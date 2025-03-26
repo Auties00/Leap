@@ -4,7 +4,7 @@ import it.auties.leap.tls.cipher.auth.TlsAuthFactory;
 import it.auties.leap.tls.cipher.engine.TlsCipherEngineFactory;
 import it.auties.leap.tls.cipher.exchange.TlsKeyExchangeFactory;
 import it.auties.leap.tls.cipher.mode.TlsCipherModeFactory;
-import it.auties.leap.tls.TlsException;
+import it.auties.leap.tls.alert.TlsAlert;
 import it.auties.leap.tls.extension.TlsExtension;
 import it.auties.leap.tls.extension.implementation.GREASEExtension;
 import it.auties.leap.tls.hash.TlsHashFactory;
@@ -17,8 +17,8 @@ import java.util.List;
 import java.util.Objects;
 
 public final class TlsGREASE {
-    private static final TlsCipherEngineFactory ENGINE_FACTORY = () -> { throw new TlsException("GREASE cipher should not be selected"); };
-    private static final TlsCipherModeFactory MODE_FACTORY = _ -> { throw new TlsException("GREASE cipher should not be selected"); };
+    private static final TlsCipherEngineFactory ENGINE_FACTORY = () -> { throw new TlsAlert("GREASE cipher should not be selected"); };
+    private static final TlsCipherModeFactory MODE_FACTORY = _ -> { throw new TlsAlert("GREASE cipher should not be selected"); };
 
     private static final TlsGREASE GREASE_0A = new TlsGREASE(TlsVersionId.of(0x0A0A), createGREASECipher(0x0A0A), GREASEExtension.grease0A());
     private static final TlsGREASE GREASE_1A = new TlsGREASE(TlsVersionId.of(0x1A1A), createGREASECipher(0x1A1A), GREASEExtension.grease1A());
@@ -127,7 +127,7 @@ public final class TlsGREASE {
             return values.get(index)
                     .versionId();
         }catch (NoSuchAlgorithmException _) {
-            throw TlsException.noSecureRandom();
+            throw TlsAlert.noSecureRandom();
         }
     }
 

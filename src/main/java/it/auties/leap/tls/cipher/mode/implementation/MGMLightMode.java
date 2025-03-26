@@ -6,7 +6,7 @@ import it.auties.leap.tls.cipher.engine.implementation.MagmaEngine;
 import it.auties.leap.tls.cipher.mode.TlsCipherMode;
 import it.auties.leap.tls.cipher.mode.TlsCipherModeFactory;
 import it.auties.leap.tls.TlsContext;
-import it.auties.leap.tls.TlsException;
+import it.auties.leap.tls.alert.TlsAlert;
 import it.auties.leap.tls.mac.TlsExchangeMac;
 import it.auties.leap.tls.message.TlsMessage;
 import it.auties.leap.tls.message.TlsMessageMetadata;
@@ -18,7 +18,7 @@ public final class MGMLightMode extends TlsCipherMode.Block {
 
     private MGMLightMode(TlsCipherEngine engine) {
         if(!(engine instanceof KuznyechikEngine) && !(engine instanceof MagmaEngine)) {
-            throw new TlsException("MGM_L mode is supported only by Kuznyechik and Magma engines");
+            throw new TlsAlert("MGM_L mode is supported only by Kuznyechik and Magma engines");
         }
         super(engine);
     }

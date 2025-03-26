@@ -1,6 +1,6 @@
 package it.auties.leap.tls.util;
 
-import it.auties.leap.tls.TlsException;
+import it.auties.leap.tls.alert.TlsAlert;
 
 import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
@@ -23,7 +23,7 @@ public final class TlsKeyUtils {
                     .nextBytes(data);
             return data;
         }catch (NoSuchAlgorithmException _) {
-            throw TlsException.noSecureRandom();
+            throw TlsAlert.noSecureRandom();
         }
     }
 }

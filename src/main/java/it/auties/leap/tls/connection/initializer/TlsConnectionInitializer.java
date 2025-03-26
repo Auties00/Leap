@@ -1,12 +1,12 @@
-package it.auties.leap.tls.connection;
+package it.auties.leap.tls.connection.initializer;
 
 import it.auties.leap.tls.TlsContext;
-import it.auties.leap.tls.connection.implementation.StandardConnectionInitializer;
+import it.auties.leap.tls.connection.initializer.implementation.StandardConnectionInitializer;
 
 public interface TlsConnectionInitializer {
     static TlsConnectionInitializer standard() {
         return StandardConnectionInitializer.instance();
     }
 
-    void initialize(TlsContext context, TlsConnection state);
+    void initialize(TlsContext context);
 }

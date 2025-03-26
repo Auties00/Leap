@@ -2,7 +2,7 @@ package it.auties.leap.tls.message.implementation;
 
 import it.auties.leap.tls.TlsContext;
 import it.auties.leap.tls.TlsSource;
-import it.auties.leap.tls.TlsException;
+import it.auties.leap.tls.alert.TlsAlert;
 import it.auties.leap.tls.message.TlsHandshakeMessage;
 import it.auties.leap.tls.message.TlsMessageContentType;
 import it.auties.leap.tls.message.TlsMessageMetadata;
@@ -23,7 +23,7 @@ public sealed abstract class ChangeCipherSpecMessage extends TlsHandshakeMessage
         return switch(context.selectedMode().orElse(null)) {
             case CLIENT -> ChangeCipherSpecMessage.Server.of(metadata.version(), metadata.source(), buffer);
             case SERVER -> ChangeCipherSpecMessage.Client.of(metadata.version(), metadata.source(), buffer);
-            case null -> throw new TlsException("No engine mode has been selected yet");
+            case null -> throw new TlsAlert("No engine mode has been selected yet");
         };
     }
 
@@ -37,7 +37,7 @@ public sealed abstract class ChangeCipherSpecMessage extends TlsHandshakeMessage
         public static Server of(TlsVersion tlsVersion, TlsSource source, ByteBuffer buffer) {
             var messageId = readBigEndianInt8(buffer);
             if(messageId != ID) {
-                throw new TlsException("Cannot decode TLS message, invalid change cipher spec message id: " + messageId);
+                throw new TlsAlert("Cannot decode TLS message, invalid change cipher spec message id: " + messageId);
             }
 
             return new Server(tlsVersion, source);
@@ -71,7 +71,7 @@ public sealed abstract class ChangeCipherSpecMessage extends TlsHandshakeMessage
         }
 
         @Override
-        public void validateAndUpdate(TlsContext context) {
+        public void apply(TlsContext context) {
 
         }
     }
@@ -85,7 +85,7 @@ public sealed abstract class ChangeCipherSpecMessage extends TlsHandshakeMessage
 
         public static Client of(TlsVersion tlsVersion, TlsSource source, ByteBuffer buffer) {
             if(buffer.hasRemaining()) {
-                throw new TlsException("Cannot decode TLS message, invalid payload length");
+                throw new TlsAlert("Cannot decode TLS message, invalid payload length");
             }
 
             return new Client(tlsVersion, source);
@@ -119,7 +119,7 @@ public sealed abstract class ChangeCipherSpecMessage extends TlsHandshakeMessage
         }
 
         @Override
-        public void validateAndUpdate(TlsContext context) {
+        public void apply(TlsContext context) {
 
         }
     }

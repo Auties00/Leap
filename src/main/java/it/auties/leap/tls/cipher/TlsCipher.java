@@ -4,7 +4,7 @@ import it.auties.leap.tls.cipher.auth.TlsAuthFactory;
 import it.auties.leap.tls.cipher.engine.TlsCipherEngineFactory;
 import it.auties.leap.tls.cipher.exchange.TlsKeyExchangeFactory;
 import it.auties.leap.tls.cipher.mode.TlsCipherModeFactory;
-import it.auties.leap.tls.TlsException;
+import it.auties.leap.tls.alert.TlsAlert;
 import it.auties.leap.tls.hash.TlsHashFactory;
 import it.auties.leap.tls.property.TlsIdentifiableProperty;
 import it.auties.leap.tls.version.TlsVersion;
@@ -2151,7 +2151,7 @@ public final class TlsCipher implements TlsIdentifiableProperty<Integer> {
             boolean secure
     ) {
         if(id >>> 8 != 0xFF) {
-            throw new TlsException(
+            throw new TlsAlert(
                     "Only values from 0xFF00-0xFFFF inclusive are reserved for Private Use",
                     URI.create("https://www.iana.org/assignments/tls-parameters/tls-parameters-4.csv")
             );

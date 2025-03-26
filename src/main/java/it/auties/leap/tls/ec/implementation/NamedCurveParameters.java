@@ -4,7 +4,7 @@ import it.auties.leap.tls.TlsContext;
 import it.auties.leap.tls.property.TlsProperty;
 import it.auties.leap.tls.ec.TlsECParameters;
 import it.auties.leap.tls.ec.TlsECParametersDeserializer;
-import it.auties.leap.tls.TlsException;
+import it.auties.leap.tls.alert.TlsAlert;
 import it.auties.leap.tls.group.TlsSupportedEllipticCurve;
 
 import java.nio.ByteBuffer;
@@ -48,11 +48,11 @@ public final class NamedCurveParameters implements TlsECParameters {
     @Override
     public TlsSupportedEllipticCurve toGroup(TlsContext context) {
         return context.getNegotiatedValue(TlsProperty.supportedGroups())
-                .orElseThrow(() -> TlsException.noNegotiatedProperty(TlsProperty.supportedGroups()))
+                .orElseThrow(() -> TlsAlert.noNegotiatedProperty(TlsProperty.supportedGroups()))
                 .stream()
                 .filter(entry -> entry instanceof TlsSupportedEllipticCurve supportedCurve && supportedCurve.accepts(namedGroup))
                 .findFirst()
                 .map(entry -> (TlsSupportedEllipticCurve) entry)
-                .orElseThrow(TlsException::noSupportedEllipticCurve);
+                .orElseThrow(TlsAlert::noSupportedEllipticCurve);
     }
 }

@@ -2,7 +2,7 @@ package it.auties.leap.tls.group.implementation;
 
 import it.auties.leap.tls.TlsContext;
 import it.auties.leap.tls.connection.TlsConnection;
-import it.auties.leap.tls.TlsException;
+import it.auties.leap.tls.alert.TlsAlert;
 import it.auties.leap.tls.property.TlsProperty;
 import it.auties.leap.tls.cipher.exchange.TlsKeyExchange;
 import it.auties.leap.tls.cipher.exchange.implementation.DHKeyExchange;
@@ -77,7 +77,7 @@ public final class NamedFiniteField implements TlsSupportedFiniteField {
             keyPairGenerator.initialize(spec);
             return keyPairGenerator.generateKeyPair();
         } catch (GeneralSecurityException exception) {
-            throw new TlsException("Cannot generate EC keypair", exception);
+            throw new TlsAlert("Cannot generate EC keypair", exception);
         }
     }
 
@@ -85,15 +85,15 @@ public final class NamedFiniteField implements TlsSupportedFiniteField {
     public byte[] computeSharedSecret(TlsContext context) {
         var privateKey = context.localConnectionState()
                 .privateKey()
-                .orElseThrow(() -> new TlsException("Missing local key pair"));
+                .orElseThrow(() -> new TlsAlert("Missing local key pair"));
         var keyExchangeType = context.getNegotiatedValue(TlsProperty.cipher())
-                .orElseThrow(() -> TlsException.noNegotiatedProperty(TlsProperty.cipher()))
+                .orElseThrow(() -> TlsAlert.noNegotiatedProperty(TlsProperty.cipher()))
                 .keyExchangeFactory()
                 .type();
         var publicKey = switch (keyExchangeType) {
             case STATIC -> context.remoteConnectionState()
                     .flatMap(TlsConnection::publicKey)
-                    .orElseThrow(() -> new TlsException("Missing remote public key for static pre master secret generation"));
+                    .orElseThrow(() -> new TlsAlert("Missing remote public key for static pre master secret generation"));
             case EPHEMERAL -> parseRemotePublicKey(context);
         };
         try {
@@ -105,15 +105,17 @@ public final class NamedFiniteField implements TlsSupportedFiniteField {
             System.out.println("Pre master secret: " + Arrays.toString(result));
             return result;
         }catch (GeneralSecurityException exception) {
-            throw new TlsException("Cannot compute shared secret", exception);
+            throw new TlsAlert("Cannot compute shared secret", exception);
         }
     }
 
     private PublicKey parseRemotePublicKey(TlsContext context) {
-        var remoteKeyExchange = context.remoteKeyExchange()
-                .orElseThrow(() -> new TlsException("Missing remote key exchange"));
+        var remoteKeyExchange = context.remoteConnectionState()
+                .orElseThrow(TlsAlert::noRemoteConnectionState)
+                .keyExchange()
+                .orElseThrow(TlsAlert::noRemoteKeyExchange);
         if(!(remoteKeyExchange instanceof DHKeyExchange clientKeyExchange)) {
-            throw new TlsException("Unsupported key type");
+            throw TlsAlert.remoteKeyExchangeTypeMismatch("DH");
         }
         return clientKeyExchange.getOrParsePublicKey();
     }
@@ -121,7 +123,7 @@ public final class NamedFiniteField implements TlsSupportedFiniteField {
     @Override
     public byte[] dumpPublicKey(PublicKey jcePublicKey) {
         if(!(jcePublicKey instanceof DHPublicKey publicKey)) {
-            throw new TlsException("Unsupported key type");
+            throw new TlsAlert("Unsupported key type");
         }
 
         return publicKey.getY()

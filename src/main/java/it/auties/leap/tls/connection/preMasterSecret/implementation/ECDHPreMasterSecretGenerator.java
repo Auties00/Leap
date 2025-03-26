@@ -1,7 +1,7 @@
 package it.auties.leap.tls.connection.preMasterSecret.implementation;
 
 import it.auties.leap.tls.TlsContext;
-import it.auties.leap.tls.TlsException;
+import it.auties.leap.tls.alert.TlsAlert;
 import it.auties.leap.tls.cipher.exchange.implementation.ECDHKeyExchange;
 import it.auties.leap.tls.connection.preMasterSecret.TlsPreMasterSecretGenerator;
 
@@ -18,16 +18,16 @@ public final class ECDHPreMasterSecretGenerator implements TlsPreMasterSecretGen
     @Override
     public byte[] generatePreMasterSecret(TlsContext context) {
         var serverKeyExchange = context.remoteConnectionState()
-                .orElseThrow(TlsException::noRemoteConnectionState)
+                .orElseThrow(TlsAlert::noRemoteConnectionState)
                 .keyExchange()
-                .orElseThrow(TlsException::noRemoteKeyExchange);
+                .orElseThrow(TlsAlert::noRemoteKeyExchange);
         if(!(serverKeyExchange instanceof ECDHKeyExchange ecdhKeyExchange)) {
-            throw TlsException.remoteKeyExchangeTypeMismatch("ECDH");
+            throw TlsAlert.remoteKeyExchangeTypeMismatch("ECDH");
         }
 
 
         return ecdhKeyExchange.parameters()
-                .orElseThrow(TlsException::malformedRemoteKeyExchange)
+                .orElseThrow(TlsAlert::malformedRemoteKeyExchange)
                 .toGroup(context)
                 .computeSharedSecret(context);
     }

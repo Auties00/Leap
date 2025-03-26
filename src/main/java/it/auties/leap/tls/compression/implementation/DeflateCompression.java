@@ -1,7 +1,7 @@
 package it.auties.leap.tls.compression.implementation;
 
 import it.auties.leap.tls.compression.TlsCompression;
-import it.auties.leap.tls.TlsException;
+import it.auties.leap.tls.alert.TlsAlert;
 
 import java.nio.ByteBuffer;
 import java.util.zip.DataFormatException;
@@ -41,7 +41,7 @@ public final class DeflateCompression implements TlsCompression {
                 inflater.end();
                 output.limit(output.position() + compressedDataLength);
             } catch (DataFormatException exception) {
-                throw new TlsException("Cannot process data", exception);
+                throw new TlsAlert("Cannot process data", exception);
             }
         }
     }

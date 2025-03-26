@@ -1,6 +1,6 @@
 package it.auties.leap.tls.ec;
 
-import it.auties.leap.tls.TlsException;
+import it.auties.leap.tls.alert.TlsAlert;
 import it.auties.leap.tls.property.TlsIdentifiableProperty;
 
 import java.net.URI;
@@ -21,7 +21,7 @@ public sealed interface TlsECPointFormat extends TlsIdentifiableProperty<Byte> {
 
     static TlsECPointFormat reservedForPrivateUse(byte id) {
         if(id < -8 || id > -1) {
-            throw new TlsException(
+            throw new TlsAlert(
                     "Only values from 248-255 (decimal) inclusive are reserved for Private Use",
                     URI.create("https://www.rfc-editor.org/rfc/rfc8422.html"),
                     "5.1.2"

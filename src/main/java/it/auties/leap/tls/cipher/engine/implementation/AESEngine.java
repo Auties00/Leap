@@ -2,7 +2,7 @@ package it.auties.leap.tls.cipher.engine.implementation;
 
 import it.auties.leap.tls.cipher.engine.TlsCipherEngine;
 import it.auties.leap.tls.cipher.engine.TlsCipherEngineFactory;
-import it.auties.leap.tls.TlsException;
+import it.auties.leap.tls.alert.TlsAlert;
 
 import java.nio.ByteBuffer;
 
@@ -53,7 +53,7 @@ public final class AESEngine extends TlsCipherEngine.Block {
         switch (key.length) {
             case 16 -> handle128BitsKey(key, blocks);
             case 32 -> handle256BitsKey(key, blocks);
-            default -> throw new TlsException("Unexpected AES key size: " + key.length);
+            default -> throw new TlsAlert("Unexpected AES key size: " + key.length);
         }
 
         if (!forEncryption) {

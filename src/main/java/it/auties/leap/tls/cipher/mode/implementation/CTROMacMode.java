@@ -6,7 +6,7 @@ import it.auties.leap.tls.cipher.engine.implementation.MagmaEngine;
 import it.auties.leap.tls.cipher.mode.TlsCipherMode;
 import it.auties.leap.tls.cipher.mode.TlsCipherModeFactory;
 import it.auties.leap.tls.TlsContext;
-import it.auties.leap.tls.TlsException;
+import it.auties.leap.tls.alert.TlsAlert;
 import it.auties.leap.tls.mac.TlsExchangeMac;
 import it.auties.leap.tls.message.TlsMessage;
 import it.auties.leap.tls.message.TlsMessageMetadata;
@@ -18,7 +18,7 @@ public final class CTROMacMode extends TlsCipherMode.Block {
 
     private CTROMacMode(TlsCipherEngine engine) {
         if(!(engine instanceof KuznyechikEngine) && !(engine instanceof MagmaEngine)) {
-            throw new TlsException("CTR_OMAC mode is supported only by Kuznyechik and Magma engines");
+            throw new TlsAlert("CTR_OMAC mode is supported only by Kuznyechik and Magma engines");
         }
         super(engine);
     }

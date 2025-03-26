@@ -4,11 +4,22 @@ import it.auties.leap.tls.TlsSource;
 import it.auties.leap.tls.version.TlsVersion;
 
 import java.nio.ByteBuffer;
+import java.util.Objects;
 
 import static it.auties.leap.tls.util.BufferUtils.*;
 
-public record TlsMessageMetadata(TlsMessageContentType contentType, TlsVersion version, int messageLength) {
+public final class TlsMessageMetadata {
     private static final int LENGTH = INT8_LENGTH + INT16_LENGTH + INT16_LENGTH;
+
+    private final TlsMessageContentType contentType;
+    private final TlsVersion version;
+    private final int messageLength;
+
+    private TlsMessageMetadata(TlsMessageContentType contentType, TlsVersion version, int messageLength) {
+        this.contentType = contentType;
+        this.version = version;
+        this.messageLength = messageLength;
+    }
 
     public static TlsMessageMetadata of(ByteBuffer buffer) {
         var contentTypeId = readBigEndianInt8(buffer);
@@ -32,5 +43,38 @@ public record TlsMessageMetadata(TlsMessageContentType contentType, TlsVersion v
 
     public TlsMessageMetadata withMessageLength(int messageLength) {
         return new TlsMessageMetadata(contentType, version, messageLength);
+    }
+
+    public TlsMessageContentType contentType() {
+        return contentType;
+    }
+
+    public TlsVersion version() {
+        return version;
+    }
+
+    public int messageLength() {
+        return messageLength;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        return o instanceof TlsMessageMetadata that
+                && messageLength == that.messageLength
+                && contentType == that.contentType
+                && version == that.version;
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(contentType, version, messageLength);
+    }
+
+    @Override
+    public String toString() {
+        return "TlsMessageMetadata[" +
+                "contentType=" + contentType + ", " +
+                "version=" + version + ", " +
+                "messageLength=" + messageLength + ']';
     }
 }

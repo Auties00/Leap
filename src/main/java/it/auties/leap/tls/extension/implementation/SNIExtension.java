@@ -1,8 +1,8 @@
 package it.auties.leap.tls.extension.implementation;
 
 import it.auties.leap.tls.TlsContext;
-import it.auties.leap.tls.extension.TlsExtension;
-import it.auties.leap.tls.extension.TlsExtensionDeserializer;
+import it.auties.leap.tls.TlsSource;
+import it.auties.leap.tls.extension.*;
 import it.auties.leap.tls.util.sun.IPAddressUtil;
 import it.auties.leap.tls.version.TlsVersion;
 
@@ -23,36 +23,45 @@ public sealed abstract class SNIExtension {
 
         try(var _ = scopedRead(buffer, listLength)) {
             var nameTypeId = readBigEndianInt8(buffer);
-            var nameType = NameType.of(nameTypeId)
-                    .orElseThrow(() -> new IllegalArgumentException("Unknown name type: " + nameTypeId));
+            var nameType = NameType.of(nameTypeId);
+            if(nameType.isEmpty()) {
+                return Optional.empty();
+            }
+
             var nameBytes = readBytesBigEndian16(buffer);
-            var extension = new Concrete(nameBytes, nameType);
+            var extension = new Concrete(nameBytes, nameType.get());
             return Optional.of(extension);
         }
     };
 
-    public static final class Concrete extends SNIExtension implements TlsExtension.Concrete {
+    public static TlsExtension instance() {
+        return Configurable.INSTANCE;
+    }
+
+    private static final class Concrete extends SNIExtension implements TlsConcreteExtension {
         private final byte[] name;
         private final NameType nameType;
 
-        public Concrete(byte[] name, NameType nameType) {
+        private Concrete(byte[] name, NameType nameType) {
             this.name = name;
             this.nameType = nameType;
         }
 
         @Override
         public void serializeExtensionPayload(ByteBuffer buffer) {
-            var listLength = INT8_LENGTH + INT16_LENGTH + name.length;
-            writeBigEndianInt16(buffer, listLength);
-
+            writeBigEndianInt16(buffer, INT8_LENGTH + INT16_LENGTH + name.length);
             writeBigEndianInt8(buffer, nameType.id());
-
             writeBytesBigEndian16(buffer, name);
         }
 
         @Override
         public int extensionPayloadLength() {
             return INT16_LENGTH + INT8_LENGTH + INT16_LENGTH + name.length;
+        }
+
+        @Override
+        public void apply(TlsContext context, TlsSource source) {
+
         }
 
         @Override
@@ -70,21 +79,11 @@ public sealed abstract class SNIExtension {
             return DECODER;
         }
 
-        public byte[] name() {
-            return name;
-        }
-
-        public NameType nameType() {
-            return nameType;
-        }
-
         @Override
-        public boolean equals(Object obj) {
-            if (obj == this) return true;
-            if (obj == null || obj.getClass() != this.getClass()) return false;
-            var that = (SNIExtension.Concrete) obj;
-            return Arrays.equals(this.name, that.name) &&
-                    Objects.equals(this.nameType, that.nameType);
+        public boolean equals(Object o) {
+            return o instanceof SNIExtension.Concrete concrete
+                    && Objects.deepEquals(name, concrete.name)
+                    && nameType == concrete.nameType;
         }
 
         @Override
@@ -101,37 +100,24 @@ public sealed abstract class SNIExtension {
 
     }
 
-    public static final class Configurable extends SNIExtension implements TlsExtension.Configurable {
+    private static final class Configurable extends SNIExtension implements TlsConfigurableExtension {
         private static final SNIExtension.Configurable INSTANCE = new SNIExtension.Configurable();
         private Configurable() {
 
         }
 
-        public static SNIExtension.Configurable instance() {
-            return INSTANCE;
-        }
-
         @Override
-        public Optional<? extends TlsExtension.Concrete> newInstance(TlsContext context) {
-            var hostname = context.remoteAddress()
-                    .map(InetSocketAddress::getHostName)
-                    .orElse(null);
-            if(hostname == null) {
-                return Optional.empty();
-            }
-
+        public Optional<? extends TlsConcreteExtension> newInstance(TlsContext context, int messageLength) {
             var type = NameType.HOST_NAME;
-            if(!type.isValid(hostname)) {
-                return Optional.empty();
-            }
-
-            var result = new SNIExtension.Concrete(hostname.getBytes(StandardCharsets.US_ASCII), type);
-            return Optional.of(result);
+            return context.address()
+                    .map(InetSocketAddress::getHostName)
+                    .filter(type::isValid)
+                    .map(hostName -> new SNIExtension.Concrete(hostName.getBytes(StandardCharsets.US_ASCII), type));
         }
 
         @Override
-        public Dependencies dependencies() {
-            return Dependencies.none();
+        public TlsExtensionDependencies dependencies() {
+            return TlsExtensionDependencies.none();
         }
 
         @Override
@@ -150,7 +136,9 @@ public sealed abstract class SNIExtension {
         }
     }
 
-    public enum NameType {
+    // Is it a good idea to move this to a public location?
+    // Technically there could be one day more supported values as the spec lists [1, 255] as reserved for future use
+    private enum NameType {
         HOST_NAME((byte) 0, IPAddressUtil::isHostName);
 
         private static final Map<Byte, NameType> VALUES = Map.of(

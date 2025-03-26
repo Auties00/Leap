@@ -2,7 +2,7 @@ package it.auties.leap.tls.cipher.mode;
 
 import it.auties.leap.tls.cipher.engine.TlsCipherEngine;
 import it.auties.leap.tls.TlsContext;
-import it.auties.leap.tls.TlsException;
+import it.auties.leap.tls.alert.TlsAlert;
 import it.auties.leap.tls.mac.TlsExchangeMac;
 import it.auties.leap.tls.mac.TlsHmac;
 import it.auties.leap.tls.message.TlsMessage;
@@ -24,11 +24,11 @@ public sealed abstract class TlsCipherMode {
     @SuppressWarnings("unused")
     public void init(boolean forEncryption, byte[] key, byte[] fixedIv, TlsExchangeMac authenticator) {
         if(engine != null && engine.isInitialized()) {
-            throw new TlsException("Engine already initialized");
+            throw new TlsAlert("Engine already initialized");
         }
 
         if(initialized) {
-            throw new TlsException("Engine mode is already initialized");
+            throw new TlsAlert("Engine mode is already initialized");
         }
         
         this.authenticator = authenticator;
@@ -67,7 +67,7 @@ public sealed abstract class TlsCipherMode {
         }
 
         var hmac = authenticator.createAuthenticationHmacBlock(contentId, destination, null, false)
-                .orElseThrow(() -> new TlsException("Expected mac capabilities from an authenticator with an HMAC"));
+                .orElseThrow(() -> new TlsAlert("Expected mac capabilities from an authenticator with an HMAC"));
         System.out.println("Using HMAC: " + Arrays.toString(hmac));
         var hmacPosition = destination.limit();
         destination.limit(hmacPosition + hmac.length);
@@ -89,11 +89,11 @@ public sealed abstract class TlsCipherMode {
 
         var contentLen = bb.remaining() - tagLen;
         if (contentLen < 0) {
-            throw new TlsException("bad record");
+            throw new TlsAlert("bad record");
         }
 
         if (!checkMacTags(tagLen, contentType, bb, sequence, false)) {
-            throw new TlsException("bad record MAC");
+            throw new TlsAlert("bad record MAC");
         }
     }
 
@@ -112,11 +112,11 @@ public sealed abstract class TlsCipherMode {
 
         var contentLen = bb.remaining() - tagLen;
         if (contentLen < 0) {
-            throw new TlsException("bad record");
+            throw new TlsAlert("bad record");
         }
 
         if (!checkMacTags(tagLen, contentType, bb, sequence, false)) {
-            throw new TlsException("bad record MAC");
+            throw new TlsAlert("bad record MAC");
         }
 
         var cipheredLength = bb.remaining();
@@ -131,7 +131,7 @@ public sealed abstract class TlsCipherMode {
         var macOffset = lim - tagLen;
         bb.limit(macOffset);
         var hash = authenticator.createAuthenticationHmacBlock(contentType, bb, sequence, isSimulated)
-                .orElseThrow(() -> new TlsException("Expected mac capabilities from an authenticator with an HMAC"));
+                .orElseThrow(() -> new TlsAlert("Expected mac capabilities from an authenticator with an HMAC"));
         bb.position(macOffset);
         bb.limit(lim);
         try {
@@ -159,7 +159,7 @@ public sealed abstract class TlsCipherMode {
     public abstract non-sealed static class Block extends TlsCipherMode {
         protected Block(TlsCipherEngine engine) {
             if(engine != null && !(engine instanceof TlsCipherEngine.Block)) {
-                throw new TlsException("Expected block engine");
+                throw new TlsAlert("Expected block engine");
             }
             super(engine);
         }
@@ -173,7 +173,7 @@ public sealed abstract class TlsCipherMode {
     public abstract non-sealed static class Stream extends TlsCipherMode {
         protected Stream(TlsCipherEngine engine) {
             if(engine != null && !(engine instanceof TlsCipherEngine.Stream)) {
-                throw new TlsException("Expected stream engine");
+                throw new TlsAlert("Expected stream engine");
             }
             super(engine);
         }

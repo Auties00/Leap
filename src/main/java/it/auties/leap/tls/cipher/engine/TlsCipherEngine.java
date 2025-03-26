@@ -1,6 +1,6 @@
 package it.auties.leap.tls.cipher.engine;
 
-import it.auties.leap.tls.TlsException;
+import it.auties.leap.tls.alert.TlsAlert;
 
 import java.nio.ByteBuffer;
 import java.util.OptionalInt;
@@ -17,11 +17,11 @@ public sealed abstract class TlsCipherEngine permits TlsCipherEngine.Block, TlsC
     
     public void init(boolean forEncryption, byte[] key) {
         if(initialized) {
-            throw new TlsException("Engine is already initialized");
+            throw new TlsAlert("Engine is already initialized");
         }
 
         if ((keyLength != 0 || key != null) && (key == null || key.length != keyLength)) {
-            throw new TlsException("Unexpected key size");
+            throw new TlsAlert("Unexpected key size");
         }
 
         this.forEncryption = forEncryption;

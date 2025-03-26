@@ -1,44 +1,49 @@
 package it.auties.leap.tls.extension.implementation;
 
 import it.auties.leap.tls.TlsContext;
+import it.auties.leap.tls.TlsMode;
 import it.auties.leap.tls.TlsSource;
+import it.auties.leap.tls.alert.TlsAlert;
 import it.auties.leap.tls.ec.TlsECPointFormat;
-import it.auties.leap.tls.TlsException;
+import it.auties.leap.tls.extension.TlsConcreteExtension;
 import it.auties.leap.tls.extension.TlsExtension;
 import it.auties.leap.tls.extension.TlsExtensionDeserializer;
 import it.auties.leap.tls.property.TlsIdentifiableProperty;
+import it.auties.leap.tls.property.TlsProperty;
 import it.auties.leap.tls.version.TlsVersion;
 
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 import static it.auties.leap.tls.util.BufferUtils.*;
 
-public record ECPointFormatExtension(
-        List<Byte> ecPointFormats,
-        int ecPointFormatsLength
-) implements TlsExtension.Concrete {
-    public ECPointFormatExtension(List<TlsECPointFormat> formats) {
-        var ids = formats.stream()
-                .map(TlsIdentifiableProperty::id)
-                .toList();
-        var length = formats.size();
-        this(ids, length);
-    }
-
+public record ECPointFormatExtension(List<TlsECPointFormat> ecPointFormats) implements TlsConcreteExtension {
     private static final ECPointFormatExtension ALL = new ECPointFormatExtension(TlsECPointFormat.values());
 
-    private static final TlsExtensionDeserializer DECODER = (_, _, _, buffer) -> {
+    private static final TlsExtensionDeserializer DECODER = (context, source, _, buffer) -> {
         var ecPointFormatsLength = readBigEndianInt8(buffer);
-        var ecPointFormats = new ArrayList<Byte>();
+        var ecPointFormats = new ArrayList<TlsECPointFormat>();
+        var knownFormats = context.getNegotiableValue(TlsProperty.ecPointsFormats())
+                .orElseThrow(() -> TlsAlert.noNegotiableProperty(TlsProperty.ecPointsFormats()))
+                .stream()
+                .collect(Collectors.toUnmodifiableMap(TlsIdentifiableProperty::id, Function.identity()));
+        var mode = context.selectedMode()
+                .orElseThrow(TlsAlert::noModeSelected);
+        var incomingToClient = mode == TlsMode.CLIENT && source == TlsSource.REMOTE;
         for(var i = 0; i < ecPointFormatsLength; i++) {
             var ecPointFormatId = readBigEndianInt8(buffer);
-            ecPointFormats.add(ecPointFormatId);
+            var ecPointFormat = knownFormats.get(ecPointFormatId);
+            if(ecPointFormat != null) {
+                ecPointFormats.add(ecPointFormat);
+            }else if(incomingToClient) {
+                throw new TlsAlert("Remote tried to negotiate an ec point that wasn't advertised");
+            }
         }
-        var extension = new ECPointFormatExtension(ecPointFormats, ecPointFormatsLength);
+        var extension = new ECPointFormatExtension(ecPointFormats);
         return Optional.of(extension);
     };
 
@@ -50,28 +55,20 @@ public record ECPointFormatExtension(
     public void serializeExtensionPayload(ByteBuffer buffer) {
         writeBigEndianInt8(buffer, ecPointFormats.size());
         for (var ecPointFormat : ecPointFormats) {
-            writeBigEndianInt8(buffer, ecPointFormat);
+            writeBigEndianInt8(buffer, ecPointFormat.id());
         }
     }
 
     @Override
     public int extensionPayloadLength() {
-        return INT8_LENGTH + INT8_LENGTH * ecPointFormatsLength;
+        return INT8_LENGTH + INT8_LENGTH * ecPointFormats.size();
     }
 
     @Override
     public void apply(TlsContext context, TlsSource source) {
         switch (source) {
-            case LOCAL -> context.setNegotiableProtocols(supportedProtocols);
-            case REMOTE -> {
-                var negotiableProtocols = new HashSet<>(context.negotiableProtocols());
-                for(var supportedProtocol : supportedProtocols) {
-                    if(!negotiableProtocols.contains(supportedProtocol)) {
-                        throw new TlsException("Protocol %s was not negotiable".formatted(supportedProtocol));
-                    }
-                }
-                context.setNegotiableProtocols(supportedProtocols);
-            }
+            case LOCAL -> context.addNegotiableProperty(TlsProperty.ecPointsFormats(), ecPointFormats);
+            case REMOTE -> context.addNegotiatedProperty(TlsProperty.ecPointsFormats(), ecPointFormats);
         }
     }
 

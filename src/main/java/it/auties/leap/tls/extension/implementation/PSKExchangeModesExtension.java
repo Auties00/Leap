@@ -1,7 +1,13 @@
 package it.auties.leap.tls.extension.implementation;
 
-import it.auties.leap.tls.extension.TlsExtension;
+import it.auties.leap.tls.TlsContext;
+import it.auties.leap.tls.TlsMode;
+import it.auties.leap.tls.TlsSource;
+import it.auties.leap.tls.alert.TlsAlert;
+import it.auties.leap.tls.extension.TlsConcreteExtension;
 import it.auties.leap.tls.extension.TlsExtensionDeserializer;
+import it.auties.leap.tls.property.TlsIdentifiableProperty;
+import it.auties.leap.tls.property.TlsProperty;
 import it.auties.leap.tls.psk.TlsPSKExchangeMode;
 import it.auties.leap.tls.version.TlsVersion;
 
@@ -10,40 +16,54 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 import static it.auties.leap.tls.util.BufferUtils.*;
 
-public record PSKExchangeModesExtension(
-        List<Byte> modes
-) implements TlsExtension.Concrete {
-    private static final TlsExtensionDeserializer DECODER = (_, _, _, buffer) -> {
+public record PSKExchangeModesExtension(List<TlsPSKExchangeMode> modes) implements TlsConcreteExtension {
+    private static final TlsExtensionDeserializer DECODER = (context, source, _, buffer) -> {
         var modesSize = readBigEndianInt16(buffer);
-        var modes = new ArrayList<Byte>(modesSize);
+        var modes = new ArrayList<TlsPSKExchangeMode>(modesSize);
+        var knownModes = context.getNegotiableValue(TlsProperty.pskExchangeModes())
+                .orElseThrow(() -> TlsAlert.noNegotiableProperty(TlsProperty.pskExchangeModes()))
+                .stream()
+                .collect(Collectors.toUnmodifiableMap(TlsIdentifiableProperty::id, Function.identity()));
+        var mode = context.selectedMode()
+                .orElseThrow(TlsAlert::noModeSelected);
+        var incomingToClient = mode == TlsMode.CLIENT && source == TlsSource.REMOTE;
         for(var i = 0; i < modesSize; i++) {
-            var modeId = readBigEndianInt8(buffer);
-            modes.add(modeId);
+            var pskModeId = readBigEndianInt8(buffer);
+            var pskMode = knownModes.get(pskModeId);
+            if(pskMode != null) {
+                modes.add(pskMode);
+            }else if(incomingToClient) {
+                throw new TlsAlert("Remote tried to negotiate a psk exchange mode that wasn't advertised");
+            }
         }
         var extension = new PSKExchangeModesExtension(modes);
         return Optional.of(extension);
     };
 
-    public static PSKExchangeModesExtension of(List<TlsPSKExchangeMode> modes) {
-        return new PSKExchangeModesExtension(modes.stream()
-                .map(TlsPSKExchangeMode::id)
-                .toList());
-    }
-
     @Override
     public void serializeExtensionPayload(ByteBuffer buffer) {
         writeBigEndianInt8(buffer, modes.size());
         for (var mode : modes) {
-            writeBigEndianInt8(buffer, mode);
+            writeBigEndianInt8(buffer, mode.id());
         }
     }
 
     @Override
     public int extensionPayloadLength() {
         return INT8_LENGTH + INT8_LENGTH * modes.size();
+    }
+
+    @Override
+    public void apply(TlsContext context, TlsSource source) {
+        switch (source) {
+            case LOCAL -> context.addNegotiableProperty(TlsProperty.pskExchangeModes(), modes);
+            case REMOTE -> context.addNegotiatedProperty(TlsProperty.pskExchangeModes(), modes);
+        }
     }
 
     @Override
@@ -63,15 +83,13 @@ public record PSKExchangeModesExtension(
 
     @Override
     public boolean equals(Object obj) {
-        if (obj == this) return true;
-        if (obj == null || obj.getClass() != this.getClass()) return false;
-        var that = (PSKExchangeModesExtension) obj;
-        return Objects.equals(this.modes, that.modes);
+        return obj instanceof PSKExchangeModesExtension(List<TlsPSKExchangeMode> modes)
+                && Objects.equals(this.modes, modes);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(modes);
+        return Objects.hashCode(modes);
     }
 
     @Override

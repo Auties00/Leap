@@ -7,5 +7,5 @@ import java.nio.ByteBuffer;
 import java.util.Optional;
 
 public interface TlsExtensionDeserializer {
-    Optional<? extends TlsExtension.Concrete> deserialize(TlsContext context, TlsSource source, int type, ByteBuffer buffer);
+    Optional<? extends TlsConcreteExtension> deserialize(TlsContext context, TlsSource source, int type, ByteBuffer buffer);
 }

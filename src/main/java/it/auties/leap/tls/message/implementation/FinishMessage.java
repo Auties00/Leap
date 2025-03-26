@@ -2,7 +2,7 @@ package it.auties.leap.tls.message.implementation;
 
 import it.auties.leap.tls.TlsContext;
 import it.auties.leap.tls.TlsSource;
-import it.auties.leap.tls.TlsException;
+import it.auties.leap.tls.alert.TlsAlert;
 import it.auties.leap.tls.message.TlsHandshakeMessage;
 import it.auties.leap.tls.message.TlsMessageContentType;
 import it.auties.leap.tls.message.TlsMessageMetadata;
@@ -26,7 +26,7 @@ public sealed abstract class FinishMessage extends TlsHandshakeMessage {
         public Server(TlsVersion tlsVersion, TlsSource source, byte[] hash) {
             super(tlsVersion, source);
             if(hash == null || hash.length < MIN_HASH_LENGTH) {
-                throw new TlsException("The hash should be at least %s bytes long".formatted(MIN_HASH_LENGTH));
+                throw new TlsAlert("The hash should be at least %s bytes long".formatted(MIN_HASH_LENGTH));
             }
 
             this.hash = hash;
@@ -58,7 +58,7 @@ public sealed abstract class FinishMessage extends TlsHandshakeMessage {
         }
 
         @Override
-        public void validateAndUpdate(TlsContext context) {
+        public void apply(TlsContext context) {
             // TODO: Validate
         }
     }
@@ -70,7 +70,7 @@ public sealed abstract class FinishMessage extends TlsHandshakeMessage {
         public Client(TlsVersion tlsVersion, TlsSource source, byte[] hash) {
             super(tlsVersion, source);
             if(hash == null || hash.length < MIN_HASH_LENGTH) {
-                throw new TlsException("The hash should be at least %s bytes long".formatted(MIN_HASH_LENGTH));
+                throw new TlsAlert("The hash should be at least %s bytes long".formatted(MIN_HASH_LENGTH));
             }
 
             this.hash = hash;
@@ -102,7 +102,7 @@ public sealed abstract class FinishMessage extends TlsHandshakeMessage {
         }
 
         @Override
-        public void validateAndUpdate(TlsContext context) {
+        public void apply(TlsContext context) {
             // TODO: Validate
         }
     }

@@ -1,6 +1,6 @@
 package it.auties.leap.tls.signature;
 
-import it.auties.leap.tls.TlsException;
+import it.auties.leap.tls.alert.TlsAlert;
 
 import java.net.URI;
 import java.util.Objects;
@@ -180,7 +180,7 @@ public final class TlsSignatureScheme implements TlsSignature {
 
     public static TlsSignature reservedForPrivateUse(int id) {
         if(id < 0xFE00 || id > 0xFFFF) {
-            throw new TlsException(
+            throw new TlsAlert(
                     "Only values from 0xFE00-0xFFFF (hex) inclusive are reserved for Private Use",
                     URI.create("https://www.iana.org/assignments/tls-parameters/tls-signaturescheme.csv")
             );

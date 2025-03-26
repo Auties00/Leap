@@ -1,6 +1,6 @@
 package it.auties.leap.tls.certificate;
 
-import it.auties.leap.tls.TlsException;
+import it.auties.leap.tls.alert.TlsAlert;
 import it.auties.leap.tls.property.TlsIdentifiableProperty;
 
 import java.net.URI;
@@ -56,7 +56,7 @@ public sealed interface TlsClientCertificateType extends TlsIdentifiableProperty
 
     static TlsClientCertificateType reservedForPrivateUse(byte id) {
         if(id < -32 || id > -1) {
-            throw new TlsException(
+            throw new TlsAlert(
                     "Only values from 224-255 (decimal) inclusive are reserved for Private Use",
                     URI.create("https://www.ietf.org/rfc/rfc3749.txt"),
                     "2"

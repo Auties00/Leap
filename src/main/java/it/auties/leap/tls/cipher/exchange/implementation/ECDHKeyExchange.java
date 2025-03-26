@@ -6,7 +6,7 @@ import it.auties.leap.tls.cipher.exchange.TlsKeyExchange;
 import it.auties.leap.tls.cipher.exchange.TlsKeyExchangeFactory;
 import it.auties.leap.tls.cipher.exchange.TlsKeyExchangeType;
 import it.auties.leap.tls.ec.TlsECParameters;
-import it.auties.leap.tls.TlsException;
+import it.auties.leap.tls.alert.TlsAlert;
 import it.auties.leap.tls.group.TlsSupportedEllipticCurve;
 import it.auties.leap.tls.group.TlsSupportedGroup;
 import it.auties.leap.tls.connection.preMasterSecret.TlsPreMasterSecretGenerator;
@@ -99,7 +99,7 @@ public sealed abstract class ECDHKeyExchange implements TlsKeyExchange {
                     .filter(group -> group instanceof TlsSupportedEllipticCurve supportedEllipticCurve && supportedEllipticCurve.accepts(ecType))
                     .findFirst()
                     .map(group -> (TlsSupportedEllipticCurve) group)
-                    .orElseThrow(TlsException::noSupportedEllipticCurve)
+                    .orElseThrow(TlsAlert::noSupportedEllipticCurve)
                     .parametersDeserializer()
                     .deserialize(buffer);
             this.publicKey = readBytesBigEndian8(buffer);
@@ -130,7 +130,7 @@ public sealed abstract class ECDHKeyExchange implements TlsKeyExchange {
     private record ECDHKeyExchangeFactory(TlsKeyExchangeType type) implements TlsKeyExchangeFactory {
         @Override
         public TlsKeyExchange newLocalKeyExchange(TlsContext context) {
-            return switch (context.selectedMode().orElseThrow(TlsException::noModeSelected)) {
+            return switch (context.selectedMode().orElseThrow(TlsAlert::noModeSelected)) {
                 case CLIENT -> newClientKeyExchange(context);
                 case SERVER -> newServerKeyExchange(context);
             };
@@ -138,11 +138,11 @@ public sealed abstract class ECDHKeyExchange implements TlsKeyExchange {
 
         @Override
         public TlsKeyExchange decodeRemoteKeyExchange(TlsContext context, ByteBuffer buffer) {
-            return switch (context.selectedMode().orElseThrow(TlsException::noModeSelected)) {
+            return switch (context.selectedMode().orElseThrow(TlsAlert::noModeSelected)) {
                 case SERVER -> new Client(type, buffer);
                 case CLIENT -> {
                     var supportedGroups = context.getNegotiatedValue(TlsProperty.supportedGroups())
-                            .orElseThrow(() -> TlsException.noNegotiatedProperty(TlsProperty.supportedGroups()));
+                            .orElseThrow(() -> TlsAlert.noNegotiatedProperty(TlsProperty.supportedGroups()));
                     yield new Server(type, buffer, supportedGroups);
                 }
             };
@@ -151,9 +151,9 @@ public sealed abstract class ECDHKeyExchange implements TlsKeyExchange {
         private TlsKeyExchange newClientKeyExchange(TlsContext context) {
             var group = context.remoteKeyExchange()
                     .map(entry -> entry instanceof Server serverKeyExchange ? serverKeyExchange : null)
-                    .orElseThrow(() -> new TlsException("Missing remote ECDH key exchange"))
+                    .orElseThrow(() -> new TlsAlert("Missing remote ECDH key exchange"))
                     .parameters()
-                    .orElseThrow(() -> new TlsException("Missing remote ECDH key parameters"))
+                    .orElseThrow(() -> new TlsAlert("Missing remote ECDH key parameters"))
                     .toGroup(context);
             var keyPair = group.generateLocalKeyPair(context);
             context.localConnectionState()
@@ -165,12 +165,12 @@ public sealed abstract class ECDHKeyExchange implements TlsKeyExchange {
 
         private Server newServerKeyExchange(TlsContext context) {
             var supportedEllipticCurve = context.getNegotiatedValue(TlsProperty.supportedGroups())
-                    .orElseThrow(() -> TlsException.noNegotiatedProperty(TlsProperty.supportedGroups()))
+                    .orElseThrow(() -> TlsAlert.noNegotiatedProperty(TlsProperty.supportedGroups()))
                     .stream()
                     .filter(supportedGroup -> supportedGroup instanceof TlsSupportedEllipticCurve)
                     .map(supportedGroup -> (TlsSupportedEllipticCurve) supportedGroup)
                     .findFirst()
-                    .orElseThrow(TlsException::noSupportedEllipticCurve);
+                    .orElseThrow(TlsAlert::noSupportedEllipticCurve);
             var keyPair = supportedEllipticCurve.generateLocalKeyPair(context);
             context.localConnectionState()
                     .setPublicKey(keyPair.getPublic())

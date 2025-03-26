@@ -1,7 +1,7 @@
 package it.auties.leap.tls.cipher.exchange;
 
 import it.auties.leap.tls.TlsContext;
-import it.auties.leap.tls.TlsException;
+import it.auties.leap.tls.alert.TlsAlert;
 import it.auties.leap.tls.connection.preMasterSecret.TlsPreMasterSecretGenerator;
 import it.auties.leap.tls.util.CertificateUtils;
 
@@ -22,7 +22,7 @@ public interface TlsKeyExchange {
 
     default void acceptsOrThrow(X509Certificate certificate, TlsContext context) {
         var mode = context.selectedMode()
-                .orElseThrow(() -> new TlsException("No mode was selected yet"));
+                .orElseThrow(() -> new TlsAlert("No mode was selected yet"));
         CertificateUtils.validateUsage(certificate, type(), mode);
     }
 }

@@ -32,7 +32,7 @@ public sealed abstract class TlsMessage
     public abstract TlsMessageContentType contentType();
     public abstract void serializeMessagePayload(ByteBuffer buffer);
     public abstract int messagePayloadLength();
-    public abstract void validateAndUpdate(TlsContext context);
+    public abstract void apply(TlsContext context);
 
     public void serializeMessageWithRecord(ByteBuffer payload) {
         var messagePayloadLength = messagePayloadLength();

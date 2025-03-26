@@ -1,68 +1,52 @@
 package it.auties.leap.tls.extension.implementation;
 
 import it.auties.leap.tls.TlsContext;
+import it.auties.leap.tls.TlsMode;
 import it.auties.leap.tls.TlsSource;
-import it.auties.leap.tls.TlsException;
-import it.auties.leap.tls.extension.TlsExtension.Concrete;
+import it.auties.leap.tls.alert.TlsAlert;
+import it.auties.leap.tls.extension.TlsConcreteExtension;
+import it.auties.leap.tls.extension.TlsExtension;
 import it.auties.leap.tls.extension.TlsExtensionDeserializer;
+import it.auties.leap.tls.property.TlsProperty;
 import it.auties.leap.tls.version.TlsVersion;
 
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
-import java.util.Arrays;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 
 import static it.auties.leap.tls.util.BufferUtils.*;
-import static it.auties.leap.tls.util.BufferUtils.writeBytesBigEndian8;
 
-public abstract sealed class NPNExtension {
-    private static final TlsExtensionDeserializer DECODER = new TlsExtensionDeserializer() {
-        @Override
-        public Optional<? extends Concrete> deserialize(TlsContext context, TlsSource source, int type, ByteBuffer buffer) {
-            return switch (context.selectedMode().orElse(null)) {
-                case CLIENT -> switch (source) {
-                    case LOCAL -> deserializeClient(buffer);
-                    case REMOTE -> deserializeServer(buffer);
-                };
-                case SERVER ->  switch (source) {
-                    case REMOTE -> deserializeClient(buffer);
-                    case LOCAL -> deserializeServer(buffer);
-                };
-                case null -> throw new TlsException("No mode was selected yet");
-            };
-        }
-
-        private Optional<Server> deserializeServer(ByteBuffer buffer) {
-            var selectedProtocol = readBytesBigEndian8(buffer);
+public sealed abstract class NPNExtension {
+    private static final TlsExtensionDeserializer DECODER = (context, source, _, buffer) -> {
+        var mode = context.selectedMode()
+                .orElseThrow(TlsAlert::noModeSelected);
+        if(mode == TlsMode.CLIENT && source == TlsSource.LOCAL || mode == TlsMode.SERVER && source == TlsSource.REMOTE) {
+            var selectedProtocol = new String(readBytesBigEndian8(buffer), StandardCharsets.US_ASCII);
             // https://datatracker.ietf.org/doc/html/draft-agl-tls-nextprotoneg-04
             // The padding SHOULD...
             // We ignore the padding check
             buffer.position(buffer.limit());
             return Optional.of(new Server(selectedProtocol));
-        }
-
-        private Optional<Client> deserializeClient(ByteBuffer buffer) {
+        }else {
             if (buffer.hasRemaining()) {
-                throw new IllegalArgumentException("Unexpected extension payload");
+                throw new TlsAlert("Unexpected extension payload");
             }
 
-            return Optional.of(Client.instance());
+            return Optional.of(Client.INSTANCE);
         }
     };
 
-    private NPNExtension() {
-
+    public static TlsExtension instance() {
+        return Client.INSTANCE;
     }
 
-    public static final class Client extends NPNExtension implements Concrete {
+    private static final class Client extends NPNExtension implements TlsConcreteExtension {
         private static final Client INSTANCE = new Client();
+
         private Client() {
 
-        }
-
-        public static Client instance() {
-            return INSTANCE;
         }
 
         @Override
@@ -76,6 +60,11 @@ public abstract sealed class NPNExtension {
         }
 
         @Override
+        public void apply(TlsContext context, TlsSource source) {
+
+        }
+
+        @Override
         public int extensionType() {
             return NEXT_PROTOCOL_NEGOTIATION_TYPE;
         }
@@ -92,7 +81,7 @@ public abstract sealed class NPNExtension {
 
         @Override
         public boolean equals(Object obj) {
-            return obj == this || obj != null && obj.getClass() == this.getClass();
+            return obj instanceof Client;
         }
 
         @Override
@@ -106,22 +95,26 @@ public abstract sealed class NPNExtension {
         }
     }
 
-    public static final class Server extends NPNExtension implements Concrete {
-        private final byte[] selectedProtocol;
-        public Server(byte[] selectedProtocol) {
-            assertBytesBigEndian8(selectedProtocol);
+    private static final class Server extends NPNExtension implements TlsConcreteExtension {
+        private final String selectedProtocol;
+
+        private Server(String selectedProtocol) {
             this.selectedProtocol = selectedProtocol;
         }
 
         @Override
         public void serializeExtensionPayload(ByteBuffer buffer) {
-            writeBytesBigEndian8(buffer, selectedProtocol);
+            writeBytesBigEndian8(buffer, selectedProtocol.getBytes(StandardCharsets.US_ASCII));
         }
 
         @Override
         public int extensionPayloadLength() {
-            return INT8_LENGTH + selectedProtocol.length
-                    + (32 - ((selectedProtocol.length + 2) % 32));
+            return INT8_LENGTH + selectedProtocol.length();
+        }
+
+        @Override
+        public void apply(TlsContext context, TlsSource source) {
+            context.addNegotiatedProperty(TlsProperty.applicationProtocols(), List.of(selectedProtocol));
         }
 
         @Override
@@ -140,27 +133,20 @@ public abstract sealed class NPNExtension {
         }
 
         @Override
-        public String toString() {
-            return "NPNExtension[" +
-                    "selectedProtocol=" + new String(selectedProtocol, StandardCharsets.US_ASCII) +
-                    ']';
-        }
-
-        public byte[] selectedProtocol() {
-            return selectedProtocol;
-        }
-
-        @Override
-        public boolean equals(Object obj) {
-            if (obj == this) return true;
-            if (obj == null || obj.getClass() != this.getClass()) return false;
-            var that = (Server) obj;
-            return Arrays.equals(this.selectedProtocol, that.selectedProtocol);
+        public boolean equals(Object o) {
+            return o instanceof Server server
+                    && Objects.equals(selectedProtocol, server.selectedProtocol);
         }
 
         @Override
         public int hashCode() {
-            return Arrays.hashCode(selectedProtocol);
+            return Objects.hashCode(selectedProtocol);
+        }
+
+        @Override
+        public String toString() {
+            return "Server[" +
+                    "selectedProtocol=" + selectedProtocol + ']';
         }
     }
 }
