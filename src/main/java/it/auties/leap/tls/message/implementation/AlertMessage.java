@@ -8,7 +8,7 @@ import it.auties.leap.tls.context.TlsContext;
 import it.auties.leap.tls.context.TlsSource;
 import it.auties.leap.tls.message.TlsMessage;
 import it.auties.leap.tls.message.TlsMessageContentType;
-import it.auties.leap.tls.message.TlsMessageMetadata;
+import it.auties.leap.tls.message.TlsMessageDeserializer;
 import it.auties.leap.tls.version.TlsVersion;
 
 import java.nio.ByteBuffer;
@@ -16,7 +16,20 @@ import java.nio.ByteBuffer;
 import static it.auties.leap.tls.util.BufferUtils.*;
 
 public final class AlertMessage extends TlsMessage {
+    private static final TlsMessageDeserializer DESERIALIZER = (_, buffer, metadata) -> {
+        var levelId = readBigEndianInt8(buffer);
+        var level = TlsAlertLevel.of(levelId)
+                .orElseThrow(() -> new IllegalArgumentException("Cannot decode TLS message, unknown alert level: " + levelId));
+        var typeId = readBigEndianInt8(buffer);
+        var type = TlsAlertType.of(typeId)
+                .orElseThrow(() -> new IllegalArgumentException("Cannot decode TLS message, unknown alert type: " + typeId));
+        return new AlertMessage(metadata.version(), metadata.source(), level, type);
+    };
     private static final int LENGTH = INT8_LENGTH + INT8_LENGTH;
+
+    public static TlsMessageDeserializer deserializer() {
+        return DESERIALIZER;
+    }
 
     private final TlsAlertLevel alertLevel;
     private final TlsAlertType alertType;
@@ -25,16 +38,6 @@ public final class AlertMessage extends TlsMessage {
         super(tlsVersion, source);
         this.alertLevel = alertLevel;
         this.alertType = alertType;
-    }
-
-    public static AlertMessage of(TlsContext ignoredEngine, ByteBuffer buffer, TlsMessageMetadata metadata) {
-        var levelId = readBigEndianInt8(buffer);
-        var level = TlsAlertLevel.of(levelId)
-                .orElseThrow(() -> new IllegalArgumentException("Cannot decode TLS message, unknown alert level: " + levelId));
-        var typeId = readBigEndianInt8(buffer);
-        var type = TlsAlertType.of(typeId)
-                .orElseThrow(() -> new IllegalArgumentException("Cannot decode TLS message, unknown alert type: " + typeId));
-        return new AlertMessage(metadata.version(), metadata.source(), level, type);
     }
 
     @Override
@@ -48,13 +51,13 @@ public final class AlertMessage extends TlsMessage {
     }
 
     @Override
-    public void serializeMessagePayload(ByteBuffer buffer) {
+    public void serializePayload(ByteBuffer buffer) {
         writeBigEndianInt8(buffer, alertLevel.id());
         writeBigEndianInt8(buffer, alertType.id());
     }
 
     @Override
-    public int messagePayloadLength() {
+    public int payloadLength() {
         return LENGTH;
     }
 

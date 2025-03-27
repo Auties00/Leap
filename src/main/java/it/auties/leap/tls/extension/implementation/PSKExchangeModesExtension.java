@@ -46,7 +46,7 @@ public record PSKExchangeModesExtension(List<TlsPSKExchangeMode> modes) implemen
     };
 
     @Override
-    public void serializeExtensionPayload(ByteBuffer buffer) {
+    public void serializePayload(ByteBuffer buffer) {
         writeBigEndianInt8(buffer, modes.size());
         for (var mode : modes) {
             writeBigEndianInt8(buffer, mode.id());
@@ -54,7 +54,7 @@ public record PSKExchangeModesExtension(List<TlsPSKExchangeMode> modes) implemen
     }
 
     @Override
-    public int extensionPayloadLength() {
+    public int payloadLength() {
         return INT8_LENGTH + INT8_LENGTH * modes.size();
     }
 

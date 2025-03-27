@@ -108,8 +108,8 @@ public class AsyncSecureSocketApplicationLayer extends AsyncSocketApplicationLay
                 extensions.length()
         );
         var helloBuffer = writeBuffer();
-        helloMessage.serializeMessageWithRecord(helloBuffer);
-        updateHandshakeHash(helloBuffer, TlsMessage.messageRecordHeaderLength());
+        helloMessage.serializeWithRecord(helloBuffer);
+        updateHandshakeHash(helloBuffer, TlsMessage.recordHeaderLength());
         return write(handshakeBuffer)
                 .thenAccept(_ -> helloMessage.apply(tlsContext));
     }
@@ -134,8 +134,8 @@ public class AsyncSecureSocketApplicationLayer extends AsyncSocketApplicationLay
                 certificatesProvider.get(tlsContext)
         );
         var certificatesBuffer = writeBuffer();
-        certificatesMessage.serializeMessageWithRecord(certificatesBuffer);
-        updateHandshakeHash(certificatesBuffer, TlsMessage.messageRecordHeaderLength());
+        certificatesMessage.serializeWithRecord(certificatesBuffer);
+        updateHandshakeHash(certificatesBuffer, TlsMessage.recordHeaderLength());
         return write(certificatesBuffer)
                 .thenCompose(_ -> handleOrClose(certificatesMessage));
     }
@@ -152,8 +152,8 @@ public class AsyncSecureSocketApplicationLayer extends AsyncSocketApplicationLay
                 parameters
         );
         var keyExchangeBuffer = writeBuffer();
-        keyExchangeMessage.serializeMessageWithRecord(keyExchangeBuffer);
-        updateHandshakeHash(keyExchangeBuffer, TlsMessage.messageRecordHeaderLength());
+        keyExchangeMessage.serializeWithRecord(keyExchangeBuffer);
+        updateHandshakeHash(keyExchangeBuffer, TlsMessage.recordHeaderLength());
         return write(keyExchangeBuffer)
                 .thenCompose(_ -> handleOrClose(keyExchangeMessage));
     }
@@ -170,8 +170,8 @@ public class AsyncSecureSocketApplicationLayer extends AsyncSocketApplicationLay
                 TlsSource.LOCAL
         );
         var clientVerifyBuffer = writeBuffer();
-        clientVerifyCertificate.serializeMessageWithRecord(clientVerifyBuffer);
-        updateHandshakeHash(clientVerifyBuffer, TlsMessage.messageRecordHeaderLength());
+        clientVerifyCertificate.serializeWithRecord(clientVerifyBuffer);
+        updateHandshakeHash(clientVerifyBuffer, TlsMessage.recordHeaderLength());
         return write(clientVerifyBuffer)
                 .thenCompose(_ -> handleOrClose(clientVerifyCertificate));
     }
@@ -184,7 +184,7 @@ public class AsyncSecureSocketApplicationLayer extends AsyncSocketApplicationLay
                 TlsSource.LOCAL
         );
         var changeCipherSpecBuffer = writeBuffer();
-        changeCipherSpec.serializeMessageWithRecord(changeCipherSpecBuffer);
+        changeCipherSpec.serializeWithRecord(changeCipherSpecBuffer);
         return write(changeCipherSpecBuffer).thenCompose(_ -> {
             var handshakeHash = getHandshakeVerificationData(TlsSource.LOCAL);
             var finishedMessage = new FinishedMessage.Client(
@@ -273,9 +273,9 @@ public class AsyncSecureSocketApplicationLayer extends AsyncSocketApplicationLay
     }
 
     private CompletableFuture<Void> readAndHandleMessage() {
-        var buffer = readBuffer(TlsMessageMetadata.length());
+        var buffer = readBuffer(TlsMessageMetadata.structureLength());
         return transportLayer.read(buffer)
-                .thenApply(_ -> TlsMessageMetadata.of(buffer))
+                .thenApply(_ -> TlsMessageMetadata.of(buffer, TlsSource.REMOTE))
                 .thenCompose(this::decodeMessage);
     }
 
@@ -291,7 +291,7 @@ public class AsyncSecureSocketApplicationLayer extends AsyncSocketApplicationLay
                 .map(cipher -> {
                     var plaintext = cipher.decrypt(tlsContext, metadata, buffer);
                     var message = tlsContext.messageDeserializer()
-                            .deserialize(tlsContext, plaintext, metadata.withMessageLength(plaintext.remaining()))
+                            .deserialize(tlsContext, plaintext, metadata.withLength(plaintext.remaining()))
                             .orElseThrow(() -> new TlsAlert("Cannot deserialize message: unknown type"));
                     return handleOrClose(message);
                 })
@@ -354,7 +354,7 @@ public class AsyncSecureSocketApplicationLayer extends AsyncSocketApplicationLay
                 .cipher()
                 .orElseThrow(() -> new InternalError("Missing negotiated cipher"))
                 .ivLength();
-        var reservedSpace = TlsMessage.messageRecordHeaderLength() + leftPadding;
+        var reservedSpace = TlsMessage.recordHeaderLength() + leftPadding;
         var messagePayloadBuffer = writeBuffer()
                 .position(reservedSpace);
         messagePayloadBuffer.limit(messagePayloadBuffer.position())

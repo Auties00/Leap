@@ -145,7 +145,7 @@ public sealed abstract class HelloMessage extends TlsHandshakeMessage {
             if(!extensions.isEmpty()) {
                 writeBigEndianInt16(payload, extensionsLength);
                 for (var extension : extensions) {
-                    extension.serializeExtension(payload);
+                    extension.serialize(payload);
                 }
             }
         }

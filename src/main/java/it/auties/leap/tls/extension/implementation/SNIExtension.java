@@ -48,14 +48,14 @@ public sealed abstract class SNIExtension {
         }
 
         @Override
-        public void serializeExtensionPayload(ByteBuffer buffer) {
+        public void serializePayload(ByteBuffer buffer) {
             writeBigEndianInt16(buffer, INT8_LENGTH + INT16_LENGTH + name.length);
             writeBigEndianInt8(buffer, nameType.id());
             writeBytesBigEndian16(buffer, name);
         }
 
         @Override
-        public int extensionPayloadLength() {
+        public int payloadLength() {
             return INT16_LENGTH + INT8_LENGTH + INT16_LENGTH + name.length;
         }
 

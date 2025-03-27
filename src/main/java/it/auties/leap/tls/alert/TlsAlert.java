@@ -77,4 +77,8 @@ public class TlsAlert extends RuntimeException {
     public static TlsAlert destroyedSecret() {
         return new TlsAlert("Tried to access a destroyed secret");
     }
+
+    public static TlsAlert noCertificatesProvider() {
+        return new TlsAlert("No certificates provider");
+    }
 }

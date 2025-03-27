@@ -23,7 +23,7 @@ public final class NoneMode extends TlsCipherMode.Block {
     @Override
     public void encrypt(TlsContext context, TlsMessage message, ByteBuffer output) {
         var input = output.duplicate();
-        message.serializeMessage(input);
+        message.serialize(input);
         addMac(input, message.contentType().type());
         move(input, output);
     }

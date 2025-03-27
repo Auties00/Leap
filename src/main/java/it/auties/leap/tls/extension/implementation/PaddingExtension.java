@@ -31,14 +31,14 @@ public sealed abstract class PaddingExtension {
         }
 
         @Override
-        public void serializeExtensionPayload(ByteBuffer buffer) {
+        public void serializePayload(ByteBuffer buffer) {
             for (var j = 0; j < length; j++) {
                 buffer.put((byte) 0);
             }
         }
 
         @Override
-        public int extensionPayloadLength() {
+        public int payloadLength() {
             return length;
         }
 

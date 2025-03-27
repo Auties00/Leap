@@ -30,39 +30,39 @@ public sealed abstract class TlsMessage
     public abstract byte id();
 
     public abstract TlsMessageContentType contentType();
-    public abstract void serializeMessagePayload(ByteBuffer buffer);
-    public abstract int messagePayloadLength();
+    public abstract void serializePayload(ByteBuffer buffer);
+    public abstract int payloadLength();
     public abstract void apply(TlsContext context);
 
-    public void serializeMessageWithRecord(ByteBuffer payload) {
-        var messagePayloadLength = messagePayloadLength();
-        var recordLength = messageRecordHeaderLength() + messagePayloadLength;
+    public void serializeWithRecord(ByteBuffer payload) {
+        var messagePayloadLength = payloadLength();
+        var recordLength = recordHeaderLength() + messagePayloadLength;
         try(var _ = scopedWrite(payload, recordLength, true)) {
             writeBigEndianInt8(payload, contentType().type());
             writeBigEndianInt8(payload, version().id().major());
             writeBigEndianInt8(payload, version().id().minor());
             writeBigEndianInt16(payload, messagePayloadLength);
-            serializeMessagePayload(payload);
+            serializePayload(payload);
         }
     }
 
-    public void serializeMessage(ByteBuffer payload) {
-        try(var _ = scopedWrite(payload, messagePayloadLength(), true)) {
-            serializeMessagePayload(payload);
+    public void serialize(ByteBuffer payload) {
+        try(var _ = scopedWrite(payload, payloadLength(), true)) {
+            serializePayload(payload);
         }
     }
 
-    public static int messageRecordHeaderLength() {
+    public static int recordHeaderLength() {
         return INT8_LENGTH + INT8_LENGTH + INT8_LENGTH + INT16_LENGTH;
     }
 
     public static void putRecord(TlsVersion version, TlsMessageContentType type, ByteBuffer message) {
         var messageLength = message.remaining();
-        if(message.position() < messageRecordHeaderLength()) {
+        if(message.position() < recordHeaderLength()) {
             throw new BufferUnderflowException();
         }
 
-        var newReadPosition = message.position() - messageRecordHeaderLength();
+        var newReadPosition = message.position() - recordHeaderLength();
         message.position(newReadPosition);
         writeBigEndianInt8(message, type.type());
         writeBigEndianInt8(message, version.id().major());

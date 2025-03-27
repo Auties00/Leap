@@ -72,7 +72,7 @@ public abstract sealed class SupportedVersionsExtension {
             }
 
             @Override
-            public void serializeExtensionPayload(ByteBuffer buffer) {
+            public void serializePayload(ByteBuffer buffer) {
                 var payloadSize = versions.size() * INT16_LENGTH;
                 writeBigEndianInt8(buffer, payloadSize);
                 for (var tlsVersion : versions) {
@@ -87,7 +87,7 @@ public abstract sealed class SupportedVersionsExtension {
             }
 
             @Override
-            public int extensionPayloadLength() {
+            public int payloadLength() {
                 return INT8_LENGTH + INT16_LENGTH * versions.size();
             }
 
@@ -186,13 +186,13 @@ public abstract sealed class SupportedVersionsExtension {
         }
 
         @Override
-        public void serializeExtensionPayload(ByteBuffer buffer) {
+        public void serializePayload(ByteBuffer buffer) {
             writeBigEndianInt8(buffer, version.id().major());
             writeBigEndianInt8(buffer, version.id().minor());
         }
 
         @Override
-        public int extensionPayloadLength() {
+        public int payloadLength() {
             return INT16_LENGTH;
         }
 

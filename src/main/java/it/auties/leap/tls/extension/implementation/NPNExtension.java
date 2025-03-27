@@ -50,12 +50,12 @@ public sealed abstract class NPNExtension {
         }
 
         @Override
-        public void serializeExtensionPayload(ByteBuffer buffer) {
+        public void serializePayload(ByteBuffer buffer) {
 
         }
 
         @Override
-        public int extensionPayloadLength() {
+        public int payloadLength() {
             return 0;
         }
 
@@ -103,12 +103,12 @@ public sealed abstract class NPNExtension {
         }
 
         @Override
-        public void serializeExtensionPayload(ByteBuffer buffer) {
+        public void serializePayload(ByteBuffer buffer) {
             writeBytesBigEndian8(buffer, selectedProtocol.getBytes(StandardCharsets.US_ASCII));
         }
 
         @Override
-        public int extensionPayloadLength() {
+        public int payloadLength() {
             return INT8_LENGTH + selectedProtocol.length();
         }
 

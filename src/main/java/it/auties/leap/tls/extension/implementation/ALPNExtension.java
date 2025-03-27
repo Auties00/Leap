@@ -56,7 +56,7 @@ public record ALPNExtension(
     };
 
     @Override
-    public void serializeExtensionPayload(ByteBuffer buffer) {
+    public void serializePayload(ByteBuffer buffer) {
         writeBigEndianInt16(buffer, supportedProtocolsSize);
         for (var protocolName : supportedProtocols) {
             writeBytesBigEndian8(buffer, protocolName.getBytes(StandardCharsets.US_ASCII));
@@ -64,7 +64,7 @@ public record ALPNExtension(
     }
 
     @Override
-    public int extensionPayloadLength() {
+    public int payloadLength() {
         return INT16_LENGTH + supportedProtocolsSize;
     }
 

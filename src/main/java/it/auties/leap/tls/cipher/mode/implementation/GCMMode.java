@@ -104,7 +104,7 @@ public final class GCMMode extends TlsCipherMode.Block {
     @Override
     public void encrypt(TlsContext context, TlsMessage message, ByteBuffer output) {
         var input = output.duplicate();
-        message.serializeMessage(input);
+        message.serialize(input);
 
         var iv = new byte[ivLength()];
         System.arraycopy(fixedIv, 0, iv, 0, fixedIv.length);

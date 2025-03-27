@@ -33,12 +33,12 @@ public final class EncryptThenMacExtension implements TlsConcreteExtension {
     }
 
     @Override
-    public void serializeExtensionPayload(ByteBuffer buffer) {
+    public void serializePayload(ByteBuffer buffer) {
 
     }
 
     @Override
-    public int extensionPayloadLength() {
+    public int payloadLength() {
         return 0;
     }
 

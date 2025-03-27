@@ -8,19 +8,19 @@ import java.nio.ByteBuffer;
 import static it.auties.leap.tls.util.BufferUtils.writeBigEndianInt16;
 
 non-sealed public interface TlsConcreteExtension extends TlsExtension {
-    default void serializeExtension(ByteBuffer buffer) {
+    default void serialize(ByteBuffer buffer) {
         writeBigEndianInt16(buffer, extensionType());
-        writeBigEndianInt16(buffer, extensionPayloadLength());
-        serializeExtensionPayload(buffer);
+        writeBigEndianInt16(buffer, payloadLength());
+        serializePayload(buffer);
     }
 
-    default int extensionLength() {
-        return extensionHeaderLength() + extensionPayloadLength();
+    default int length() {
+        return extensionHeaderLength() + payloadLength();
     }
 
-    void serializeExtensionPayload(ByteBuffer buffer);
+    void serializePayload(ByteBuffer buffer);
 
-    int extensionPayloadLength();
+    int payloadLength();
 
     void apply(TlsContext context, TlsSource source);
 }

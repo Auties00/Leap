@@ -58,7 +58,7 @@ public final class StandardExtensionsInitializer implements TlsExtensionsInitial
                            var result = configurableExtension.newInstance(context, length);
                            if(result.isPresent()) {
                                results.add(result.get());
-                               length += result.get().extensionLength();
+                               length += result.get().length();
                            }
                         }
 
@@ -76,7 +76,7 @@ public final class StandardExtensionsInitializer implements TlsExtensionsInitial
                                 var result = configurableExtension.newInstance(context, length);
                                 if(result.isPresent()) {
                                     results.add(result.get());
-                                    length += result.get().extensionLength();
+                                    length += result.get().length();
                                 }
                             }
                         }
@@ -91,7 +91,7 @@ public final class StandardExtensionsInitializer implements TlsExtensionsInitial
             var result = configurableExtension.newInstance(context, length);
             if(result.isPresent()) {
                 results.add(result.get());
-                length += result.get().extensionLength();
+                length += result.get().length();
             }
         }
 

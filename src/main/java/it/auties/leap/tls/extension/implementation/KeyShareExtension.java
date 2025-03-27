@@ -42,7 +42,7 @@ public sealed abstract class KeyShareExtension {
         }
 
         @Override
-        public void serializeExtensionPayload(ByteBuffer buffer) {
+        public void serializePayload(ByteBuffer buffer) {
             writeBigEndianInt16(buffer, entriesLength);
             for(var entry : entries) {
                 entry.serialize(buffer);
@@ -55,7 +55,7 @@ public sealed abstract class KeyShareExtension {
         }
 
         @Override
-        public int extensionPayloadLength() {
+        public int payloadLength() {
             return INT16_LENGTH + entriesLength;
         }
 

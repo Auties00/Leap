@@ -13,15 +13,17 @@ public final class TlsMessageMetadata {
 
     private final TlsMessageContentType contentType;
     private final TlsVersion version;
-    private final int messageLength;
+    private final int length;
+    private final TlsSource source;
 
-    private TlsMessageMetadata(TlsMessageContentType contentType, TlsVersion version, int messageLength) {
+    private TlsMessageMetadata(TlsMessageContentType contentType, TlsVersion version, int length, TlsSource source) {
         this.contentType = contentType;
         this.version = version;
-        this.messageLength = messageLength;
+        this.length = length;
+        this.source = source;
     }
 
-    public static TlsMessageMetadata of(ByteBuffer buffer) {
+    public static TlsMessageMetadata of(ByteBuffer buffer, TlsSource source) {
         var contentTypeId = readBigEndianInt8(buffer);
         var contentType = TlsMessageContentType.of(contentTypeId)
                 .orElseThrow(() -> new IllegalArgumentException("Cannot decode TLS message, unknown content type: " + contentTypeId));
@@ -29,20 +31,12 @@ public final class TlsMessageMetadata {
         var protocolVersionMinor = readBigEndianInt8(buffer);
         var protocolVersion = TlsVersion.of(protocolVersionMajor, protocolVersionMinor)
                 .orElseThrow(() -> new IllegalArgumentException("Cannot decode TLS message, unknown protocol version: major %s, minor %s".formatted(protocolVersionMajor, protocolVersionMinor)));
-        var messageLength = readBigEndianInt16(buffer);
-        return new TlsMessageMetadata(contentType, protocolVersion, messageLength);
+        var length = readBigEndianInt16(buffer);
+        return new TlsMessageMetadata(contentType, protocolVersion, length, source);
     }
 
-    public TlsSource source() {
-        return TlsSource.REMOTE;
-    }
-
-    public static int length() {
+    public static int structureLength() {
         return LENGTH;
-    }
-
-    public TlsMessageMetadata withMessageLength(int messageLength) {
-        return new TlsMessageMetadata(contentType, version, messageLength);
     }
 
     public TlsMessageContentType contentType() {
@@ -54,27 +48,42 @@ public final class TlsMessageMetadata {
     }
 
     public int messageLength() {
-        return messageLength;
+        return length;
+    }
+
+    public TlsSource source() {
+        return source;
+    }
+
+    public TlsMessageMetadata withLength(int length) {
+        return new TlsMessageMetadata(contentType, version, length, source);
+    }
+
+    public TlsMessageMetadata withSource(TlsSource source) {
+        return new TlsMessageMetadata(contentType, version, length, source);
     }
 
     @Override
     public boolean equals(Object o) {
         return o instanceof TlsMessageMetadata that
-                && messageLength == that.messageLength
+                && length == that.length
                 && contentType == that.contentType
-                && version == that.version;
+                && version == that.version
+                && source == that.source;
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(contentType, version, messageLength);
+        return Objects.hash(contentType, version, length, source);
     }
 
     @Override
     public String toString() {
-        return "TlsMessageMetadata[" +
-                "contentType=" + contentType + ", " +
-                "version=" + version + ", " +
-                "messageLength=" + messageLength + ']';
+        return "TlsMessageMetadata{" +
+                "contentType=" + contentType +
+                ", version=" + version +
+                ", length=" + length +
+                ", source=" + source +
+                '}';
     }
 }

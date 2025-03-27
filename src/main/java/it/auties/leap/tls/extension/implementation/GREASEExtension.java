@@ -23,14 +23,14 @@ public record GREASEExtension(int extensionType, byte[] data) implements TlsConc
     };
 
     @Override
-    public void serializeExtensionPayload(ByteBuffer buffer) {
+    public void serializePayload(ByteBuffer buffer) {
         if(data != null) {
             writeBytes(buffer, data);
         }
     }
 
     @Override
-    public int extensionPayloadLength() {
+    public int payloadLength() {
         return 0;
     }
 

@@ -67,7 +67,7 @@ public final class SupportedGroupsExtension implements TlsConcreteExtension {
     }
 
     @Override
-    public void serializeExtensionPayload(ByteBuffer buffer) {
+    public void serializePayload(ByteBuffer buffer) {
         var size = groups.size() * INT16_LENGTH;
         writeBigEndianInt16(buffer, size);
         for (var ecPointFormat : groups) {
@@ -76,7 +76,7 @@ public final class SupportedGroupsExtension implements TlsConcreteExtension {
     }
 
     @Override
-    public int extensionPayloadLength() {
+    public int payloadLength() {
         return INT16_LENGTH + INT16_LENGTH * groups.size();
     }
 

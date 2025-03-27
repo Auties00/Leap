@@ -52,7 +52,7 @@ public record ECPointFormatExtension(List<TlsECPointFormat> ecPointFormats) impl
     }
 
     @Override
-    public void serializeExtensionPayload(ByteBuffer buffer) {
+    public void serializePayload(ByteBuffer buffer) {
         writeBigEndianInt8(buffer, ecPointFormats.size());
         for (var ecPointFormat : ecPointFormats) {
             writeBigEndianInt8(buffer, ecPointFormat.id());
@@ -60,7 +60,7 @@ public record ECPointFormatExtension(List<TlsECPointFormat> ecPointFormats) impl
     }
 
     @Override
-    public int extensionPayloadLength() {
+    public int payloadLength() {
         return INT8_LENGTH + INT8_LENGTH * ecPointFormats.size();
     }
 

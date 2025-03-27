@@ -70,7 +70,7 @@ public class Poly1305Mode extends TlsCipherMode.Stream {
     @Override
     public void encrypt(TlsContext context, TlsMessage message, ByteBuffer output) {
         var input = output.duplicate();
-        message.serializeMessage(input);
+        message.serialize(input);
         var initialPosition = output.position();
         this.state = engine.forEncryption() ? State.ENC_INIT : State.DEC_INIT;
             byte[] sn = authenticator.sequenceNumber();

@@ -76,7 +76,7 @@ public record SignatureAlgorithmsExtension(List<TlsSignature> algorithms) implem
     }
 
     @Override
-    public void serializeExtensionPayload(ByteBuffer buffer) {
+    public void serializePayload(ByteBuffer buffer) {
         writeBigEndianInt16(buffer, algorithms.size() * INT16_LENGTH);
         for (var ecPointFormat : algorithms) {
             writeBigEndianInt16(buffer, ecPointFormat.id());
@@ -84,7 +84,7 @@ public record SignatureAlgorithmsExtension(List<TlsSignature> algorithms) implem
     }
 
     @Override
-    public int extensionPayloadLength() {
+    public int payloadLength() {
         return INT16_LENGTH + INT16_LENGTH * algorithms.size();
     }
 
