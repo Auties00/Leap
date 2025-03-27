@@ -1,12 +1,14 @@
-package it.auties.leap.tls.mac;
+package it.auties.leap.tls.cipher.exchange;
 
 import it.auties.leap.tls.hash.TlsHashFactory;
+import it.auties.leap.tls.hash.TlsHmac;
 import it.auties.leap.tls.version.TlsVersion;
 
 import java.nio.ByteBuffer;
 import java.util.Arrays;
 import java.util.Optional;
 
+// TODO: Handle this in a better way
 public abstract sealed class TlsExchangeMac {
     private static final int BLOCK_LENGTH = 8;
     private static final byte[] EMPTY_BUFFER = new byte[0];

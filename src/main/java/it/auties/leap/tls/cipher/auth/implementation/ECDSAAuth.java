@@ -2,8 +2,8 @@ package it.auties.leap.tls.cipher.auth.implementation;
 
 import it.auties.leap.tls.cipher.auth.TlsAuth;
 import it.auties.leap.tls.cipher.auth.TlsAuthFactory;
-import it.auties.leap.tls.TlsContext;
-import it.auties.leap.tls.TlsSource;
+import it.auties.leap.tls.context.TlsContext;
+import it.auties.leap.tls.context.TlsSource;
 import it.auties.leap.tls.util.CertificateUtils;
 
 import java.security.cert.X509Certificate;

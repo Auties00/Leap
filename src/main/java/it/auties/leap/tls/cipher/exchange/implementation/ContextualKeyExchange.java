@@ -3,10 +3,10 @@ package it.auties.leap.tls.cipher.exchange.implementation;
 import it.auties.leap.tls.cipher.exchange.TlsKeyExchange;
 import it.auties.leap.tls.cipher.exchange.TlsKeyExchangeFactory;
 import it.auties.leap.tls.cipher.exchange.TlsKeyExchangeType;
-import it.auties.leap.tls.TlsContext;
-import it.auties.leap.tls.TlsMode;
+import it.auties.leap.tls.context.TlsContext;
+import it.auties.leap.tls.context.TlsContextMode;
 import it.auties.leap.tls.alert.TlsAlert;
-import it.auties.leap.tls.connection.preMasterSecret.TlsPreMasterSecretGenerator;
+import it.auties.leap.tls.secret.TlsPreMasterSecretGenerator;
 
 import java.nio.ByteBuffer;
 
@@ -33,7 +33,7 @@ public sealed abstract class ContextualKeyExchange implements TlsKeyExchange {
             };
         }
 
-        private TlsMode getMode(TlsContext context) {
+        private TlsContextMode getMode(TlsContext context) {
             return context.selectedMode()
                     .orElseThrow(TlsAlert::noModeSelected);
         }

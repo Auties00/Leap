@@ -5,6 +5,7 @@ import it.auties.leap.socket.SocketProtocol;
 import it.auties.leap.socket.async.applicationLayer.AsyncSocketApplicationLayerFactory;
 import it.auties.leap.socket.async.transportLayer.AsyncSocketTransportLayerFactory;
 import it.auties.leap.socket.async.tunnelLayer.AsyncSocketTunnelLayerFactory;
+import it.auties.leap.tls.context.TlsContext;
 
 import java.net.URI;
 import java.util.Objects;
@@ -39,9 +40,9 @@ public final class AsyncSocketClientBuilder extends SocketClientBuilder {
         return this;
     }
 
-    public AsyncSocketClientBuilder secure(TlsConfig config) {
+    public AsyncSocketClientBuilder secure(TlsContext context) {
         this.applicationFactory = AsyncSocketApplicationLayerFactory.secure();
-        this.applicationParameter = config;
+        this.applicationParameter = context;
         return this;
     }
 

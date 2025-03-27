@@ -1,10 +1,11 @@
-package it.auties.leap.tls.connection.preMasterSecret.implementation;
+package it.auties.leap.tls.secret.implementation;
 
-import it.auties.leap.tls.TlsContext;
 import it.auties.leap.tls.alert.TlsAlert;
-import it.auties.leap.tls.connection.preMasterSecret.TlsPreMasterSecretGenerator;
+import it.auties.leap.tls.context.TlsContext;
 import it.auties.leap.tls.group.TlsSupportedFiniteField;
 import it.auties.leap.tls.property.TlsProperty;
+import it.auties.leap.tls.secret.TlsPreMasterSecretGenerator;
+import it.auties.leap.tls.secret.TlsSecret;
 
 public final class DHPreMasterSecretGenerator implements TlsPreMasterSecretGenerator {
     private static final DHPreMasterSecretGenerator INSTANCE = new DHPreMasterSecretGenerator();
@@ -17,7 +18,7 @@ public final class DHPreMasterSecretGenerator implements TlsPreMasterSecretGener
     }
 
     @Override
-    public byte[] generatePreMasterSecret(TlsContext context) {
+    public TlsSecret generatePreMasterSecret(TlsContext context) {
         return context.getNegotiatedValue(TlsProperty.supportedGroups())
                 .orElseThrow(() -> TlsAlert.noNegotiatedProperty(TlsProperty.supportedGroups()))
                 .stream()

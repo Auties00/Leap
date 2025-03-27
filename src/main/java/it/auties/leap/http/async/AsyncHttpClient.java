@@ -40,7 +40,7 @@ public final class AsyncHttpClient implements HttpClient {
         var client = clients.computeIfAbsent(address, (_) -> {
             var underlyingSocket = SocketClient.newBuilder()
                     .async(SocketProtocol.TCP)
-                    .secure(config.tlsConfig())
+                    .secure(config.tlsContext())
                     .build();
             return new Connection(address, underlyingSocket);
         });

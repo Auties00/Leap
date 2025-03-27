@@ -1,26 +1,33 @@
-package it.auties.leap.tls.util;
+package it.auties.leap.tls.extension.implementation;
 
-import it.auties.leap.tls.TlsContext;
+import it.auties.leap.tls.context.TlsContext;
 import it.auties.leap.tls.alert.TlsAlert;
-import it.auties.leap.tls.extension.TlsConcreteExtension;
-import it.auties.leap.tls.extension.TlsConfigurableExtension;
-import it.auties.leap.tls.extension.TlsExtensionDependencies;
+import it.auties.leap.tls.extension.*;
 import it.auties.leap.tls.property.TlsProperty;
-import it.auties.leap.tls.extension.TlsExtension;
 
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
-import java.util.List;
 
-public final class TlsExtensionsUtils {
-    // Do not take directly extensions and supportedVersions as those might be changed after initialization
-    public static List<TlsConcreteExtension> process(TlsContext context) {
+public final class StandardExtensionsInitializer implements TlsExtensionsInitializer {
+    private static final StandardExtensionsInitializer INSTANCE = new StandardExtensionsInitializer();
+
+    private StandardExtensionsInitializer() {
+
+    }
+
+    public static StandardExtensionsInitializer instance() {
+        return INSTANCE;
+    }
+
+    @Override
+    public TlsExtensions process(TlsContext context) {
         var extensions = context.getNegotiableValue(TlsProperty.extensions())
                 .orElseThrow(() -> TlsAlert.noNegotiableProperty(TlsProperty.extensions()));
         var supportedVersions = context.getNegotiableValue(TlsProperty.version())
                 .map(HashSet::new)
-                .orElseThrow(() -> new TlsAlert("Missing negotiable property versions"));
+                .orElseThrow(() -> TlsAlert.noNegotiableProperty(TlsProperty.version()));
+
         var dependenciesTree = new LinkedHashMap<Integer, TlsExtension>();
         for (var extension : extensions) {
             if (supportedVersions.stream().anyMatch(version -> extension.versions().contains(version))) {
@@ -38,6 +45,7 @@ public final class TlsExtensionsUtils {
 
         var results = new ArrayList<TlsConcreteExtension>(dependenciesTree.size());
         var length = 0;
+
         var deferred = new ArrayList<TlsConfigurableExtension>();
         while (!dependenciesTree.isEmpty()) {
             var entry = dependenciesTree.pollFirstEntry();
@@ -87,6 +95,6 @@ public final class TlsExtensionsUtils {
             }
         }
 
-        return results;
+        return new TlsExtensions(results, length);
     }
 }

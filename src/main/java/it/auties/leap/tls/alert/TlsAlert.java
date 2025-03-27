@@ -73,4 +73,8 @@ public class TlsAlert extends RuntimeException {
     public static TlsAlert preMasterSecretError(Throwable cause) {
         return new TlsAlert("Cannot generate pre master secret", cause);
     }
+
+    public static TlsAlert destroyedSecret() {
+        return new TlsAlert("Tried to access a destroyed secret");
+    }
 }

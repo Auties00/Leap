@@ -3,21 +3,22 @@ package it.auties.leap.socket.blocking.applicationLayer.implementation;
 import it.auties.leap.socket.blocking.applicationLayer.BlockingSocketApplicationLayer;
 import it.auties.leap.socket.blocking.applicationLayer.BlockingSocketApplicationLayerFactory;
 import it.auties.leap.socket.blocking.transportLayer.BlockingSocketTransportLayer;
+import it.auties.leap.tls.context.TlsContext;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
 
 public class BlockingSecureApplicationLayer extends BlockingSocketApplicationLayer {
-    private static final BlockingSocketApplicationLayerFactory<TlsConfig> FACTORY = BlockingSecureApplicationLayer::new;
+    private static final BlockingSocketApplicationLayerFactory<TlsContext> FACTORY = BlockingSecureApplicationLayer::new;
 
-    private final TlsConfig config;
+    private final TlsContext context;
 
-    public BlockingSecureApplicationLayer(BlockingSocketTransportLayer transportLayer, TlsConfig config) {
+    public BlockingSecureApplicationLayer(BlockingSocketTransportLayer transportLayer, TlsContext context) {
         super(transportLayer);
-        this.config = config;
+        this.context = context;
     }
 
-    public static BlockingSocketApplicationLayerFactory<TlsConfig> factory() {
+    public static BlockingSocketApplicationLayerFactory<TlsContext> factory() {
         return FACTORY;
     }
 

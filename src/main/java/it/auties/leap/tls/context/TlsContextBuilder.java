@@ -1,4 +1,4 @@
-package it.auties.leap.tls;
+package it.auties.leap.tls.context;
 
 import it.auties.leap.socket.SocketProtocol;
 import it.auties.leap.tls.certificate.TlsCertificatesHandler;
@@ -6,10 +6,11 @@ import it.auties.leap.tls.certificate.TlsCertificatesProvider;
 import it.auties.leap.tls.cipher.TlsCipher;
 import it.auties.leap.tls.compression.TlsCompression;
 import it.auties.leap.tls.connection.TlsConnection;
-import it.auties.leap.tls.connection.initializer.TlsConnectionInitializer;
-import it.auties.leap.tls.connection.masterSecret.TlsMasterSecretGenerator;
+import it.auties.leap.tls.connection.TlsConnectionInitializer;
+import it.auties.leap.tls.secret.TlsMasterSecretGenerator;
 import it.auties.leap.tls.alert.TlsAlert;
 import it.auties.leap.tls.extension.TlsExtension;
+import it.auties.leap.tls.extension.TlsExtensionsInitializer;
 import it.auties.leap.tls.message.TlsMessageDeserializer;
 import it.auties.leap.tls.util.CertificateUtils;
 import it.auties.leap.tls.util.TlsKeyUtils;
@@ -31,6 +32,7 @@ public final class TlsContextBuilder {
     private TlsMessageDeserializer messageDeserializer;
     private TlsMasterSecretGenerator masterSecretGenerator;
     private TlsConnectionInitializer connectionInitializer;
+    private TlsExtensionsInitializer extensionsInitializer;
     private byte[] randomData;
     private byte[] sessionId;
     private byte[] dtlsCookie;
@@ -111,6 +113,11 @@ public final class TlsContextBuilder {
         return this;
     }
 
+    public TlsContextBuilder extensionsInitializer(TlsExtensionsInitializer extensionsInitializer) {
+        this.extensionsInitializer = extensionsInitializer;
+        return this;
+    }
+
     public TlsContext build() {
         var randomData = Objects.requireNonNullElseGet(this.randomData, TlsKeyUtils::randomData);
         var sessionId = Objects.requireNonNullElseGet(this.sessionId, TlsKeyUtils::randomData);
@@ -125,6 +132,7 @@ public final class TlsContextBuilder {
         var messageDeserializer = Objects.requireNonNullElse(this.messageDeserializer, TlsMessageDeserializer.standard());
         var masterSecretGenerator = Objects.requireNonNullElse(this.masterSecretGenerator, TlsMasterSecretGenerator.standard());
         var connectionInitializer = Objects.requireNonNullElse(this.connectionInitializer, TlsConnectionInitializer.standard());
-        return new TlsContext(versions, extensions, ciphers, compressions, credentials, certificatesProvider, certificatesHandler, trustedKeyStore, messageDeserializer, masterSecretGenerator, connectionInitializer);
+        var extensionsInitializer = Objects.requireNonNullElse(this.extensionsInitializer, TlsExtensionsInitializer.standard());
+        return new TlsContext(versions, extensions, ciphers, compressions, credentials, certificatesProvider, certificatesHandler, trustedKeyStore, messageDeserializer, masterSecretGenerator, connectionInitializer, extensionsInitializer);
     }
 }

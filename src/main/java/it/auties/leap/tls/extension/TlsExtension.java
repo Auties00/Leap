@@ -172,11 +172,11 @@ public sealed interface TlsExtension permits TlsConcreteExtension, TlsConfigurab
     }
 
     static TlsExtension supportedVersions() {
-        return SupportedVersionsExtension.Client.Configurable.instance();
+        return SupportedVersionsExtension.instance();
     }
 
     static TlsExtension supportedVersions(List<TlsVersionId> tlsVersions) {
-        return new SupportedVersionsExtension.Client.Concrete(tlsVersions);
+        return SupportedVersionsExtension.of(tlsVersions);
     }
 
     static TlsExtension alpn(List<String> supportedProtocols) {

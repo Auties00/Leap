@@ -1,8 +1,10 @@
 package it.auties.leap.tls.message.implementation;
 
-import it.auties.leap.tls.*;
-import it.auties.leap.tls.connection.TlsConnection;
 import it.auties.leap.tls.alert.TlsAlert;
+import it.auties.leap.tls.connection.TlsConnection;
+import it.auties.leap.tls.context.TlsContext;
+import it.auties.leap.tls.context.TlsContextMode;
+import it.auties.leap.tls.context.TlsSource;
 import it.auties.leap.tls.extension.TlsConcreteExtension;
 import it.auties.leap.tls.extension.TlsExtension;
 import it.auties.leap.tls.message.TlsHandshakeMessage;
@@ -157,7 +159,9 @@ public sealed abstract class HelloMessage extends TlsHandshakeMessage {
 
         @Override
         public void apply(TlsContext tlsContext) {
-            tlsContext.setSelectedMode(TlsMode.CLIENT);
+            if(source == TlsSource.LOCAL) {
+                tlsContext.setSelectedMode(TlsContextMode.CLIENT);
+            }
         }
 
         private int getCiphersCount() {
@@ -256,6 +260,10 @@ public sealed abstract class HelloMessage extends TlsHandshakeMessage {
 
         @Override
         public void apply(TlsContext context) {
+            if(source == TlsSource.LOCAL) {
+                context.setSelectedMode(TlsContextMode.SERVER);
+            }
+
             var credentials = TlsConnection.of(randomData, sessionId, null);
             context.setRemoteConnectionState(credentials);
 
@@ -279,9 +287,12 @@ public sealed abstract class HelloMessage extends TlsHandshakeMessage {
                 extension.apply(context, source);
             }
 
-            if(context.getNegotiatedValue(TlsProperty.version()).isEmpty()) {
-                context.addNegotiatedProperty(TlsProperty.version(), version);
-            }
+            var version = context.getNegotiatedValue(TlsProperty.version()).orElseGet(() -> {
+                context.addNegotiatedProperty(TlsProperty.version(), this.version); // supported_versions extension wasn't in the extensions list, default to legacyVersion
+                return this.version;
+            });
+            context.connectionIntegrity()
+                    .init(version, negotiatedCipher.hashFactory());
         }
 
         @Override

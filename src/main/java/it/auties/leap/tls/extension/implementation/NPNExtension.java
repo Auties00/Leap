@@ -1,9 +1,9 @@
 package it.auties.leap.tls.extension.implementation;
 
-import it.auties.leap.tls.TlsContext;
-import it.auties.leap.tls.TlsMode;
-import it.auties.leap.tls.TlsSource;
 import it.auties.leap.tls.alert.TlsAlert;
+import it.auties.leap.tls.context.TlsContext;
+import it.auties.leap.tls.context.TlsContextMode;
+import it.auties.leap.tls.context.TlsSource;
 import it.auties.leap.tls.extension.TlsConcreteExtension;
 import it.auties.leap.tls.extension.TlsExtension;
 import it.auties.leap.tls.extension.TlsExtensionDeserializer;
@@ -22,7 +22,7 @@ public sealed abstract class NPNExtension {
     private static final TlsExtensionDeserializer DECODER = (context, source, _, buffer) -> {
         var mode = context.selectedMode()
                 .orElseThrow(TlsAlert::noModeSelected);
-        if(mode == TlsMode.CLIENT && source == TlsSource.LOCAL || mode == TlsMode.SERVER && source == TlsSource.REMOTE) {
+        if(mode == TlsContextMode.CLIENT && source == TlsSource.LOCAL || mode == TlsContextMode.SERVER && source == TlsSource.REMOTE) {
             var selectedProtocol = new String(readBytesBigEndian8(buffer), StandardCharsets.US_ASCII);
             // https://datatracker.ietf.org/doc/html/draft-agl-tls-nextprotoneg-04
             // The padding SHOULD...

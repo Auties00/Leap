@@ -1,6 +1,5 @@
 module it.auties.leap {
     requires org.bouncycastle.provider; // TODO: Drop this dependency
-    requires java.net.http;
 
     exports it.auties.leap.http;
 
@@ -10,7 +9,6 @@ module it.auties.leap {
 
     exports it.auties.leap.tls.certificate;
 
-    exports it.auties.leap.tls;
     exports it.auties.leap.tls.cipher;
     exports it.auties.leap.tls.cipher.exchange;
     exports it.auties.leap.tls.cipher.engine;
@@ -22,7 +20,6 @@ module it.auties.leap {
     exports it.auties.leap.tls.compression;
     exports it.auties.leap.tls.ec;
     exports it.auties.leap.tls.psk;
-    exports it.auties.leap.tls.mac;
     exports it.auties.leap.tls.group;
     exports it.auties.leap.tls.connection;
     exports it.auties.leap.tls.cipher.auth;
@@ -41,9 +38,7 @@ module it.auties.leap {
     exports it.auties.leap.http.exchange.headers;
     exports it.auties.leap.tls.message.implementation;
     exports it.auties.leap.tls.property;
-    exports it.auties.leap.tls.connection;
-    exports it.auties.leap.tls.connection.masterSecret;
-    exports it.auties.leap.tls.connection.preMasterSecret;
-    exports it.auties.leap.tls.connection.initializer;
     exports it.auties.leap.tls.alert;
+    exports it.auties.leap.tls.context;
+    exports it.auties.leap.tls.secret;
 }

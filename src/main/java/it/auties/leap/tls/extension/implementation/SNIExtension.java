@@ -1,7 +1,7 @@
 package it.auties.leap.tls.extension.implementation;
 
-import it.auties.leap.tls.TlsContext;
-import it.auties.leap.tls.TlsSource;
+import it.auties.leap.tls.context.TlsContext;
+import it.auties.leap.tls.context.TlsSource;
 import it.auties.leap.tls.extension.*;
 import it.auties.leap.tls.util.sun.IPAddressUtil;
 import it.auties.leap.tls.version.TlsVersion;

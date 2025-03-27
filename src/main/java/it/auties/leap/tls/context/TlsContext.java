@@ -1,0 +1,214 @@
+package it.auties.leap.tls.context;
+
+import it.auties.leap.socket.SocketProtocol;
+import it.auties.leap.tls.alert.TlsAlert;
+import it.auties.leap.tls.certificate.TlsCertificatesHandler;
+import it.auties.leap.tls.certificate.TlsCertificatesProvider;
+import it.auties.leap.tls.cipher.TlsCipher;
+import it.auties.leap.tls.compression.TlsCompression;
+import it.auties.leap.tls.connection.TlsConnection;
+import it.auties.leap.tls.connection.TlsConnectionInitializer;
+import it.auties.leap.tls.connection.TlsConnectionIntegrity;
+import it.auties.leap.tls.extension.TlsExtension;
+import it.auties.leap.tls.extension.TlsExtensionsInitializer;
+import it.auties.leap.tls.message.TlsMessageDeserializer;
+import it.auties.leap.tls.property.TlsProperty;
+import it.auties.leap.tls.secret.TlsMasterSecretGenerator;
+import it.auties.leap.tls.secret.TlsSecret;
+import it.auties.leap.tls.version.TlsVersion;
+
+import java.net.InetSocketAddress;
+import java.nio.ByteBuffer;
+import java.security.KeyStore;
+import java.util.*;
+
+@SuppressWarnings({"UnusedReturnValue", "unchecked"})
+public class TlsContext {
+    private final TlsCertificatesProvider certificatesProvider;
+    private final TlsCertificatesHandler certificatesHandler;
+    private final KeyStore trustedKeyStore;
+    private final TlsMessageDeserializer messageDeserializer;
+    private final TlsMasterSecretGenerator masterSecretGenerator;
+    private final TlsConnectionInitializer connectionInitializer;
+    private final TlsExtensionsInitializer extensionsInitializer;
+    private final TlsConnection localConnectionState;
+    private final Map<TlsProperty<?, ?>, PropertyValue<?, ?>> properties;
+    private final Queue<ByteBuffer> bufferedMessages;
+    private final TlsConnectionIntegrity connectionIntegrity;
+    private volatile InetSocketAddress address;
+    private volatile TlsContextMode mode;
+    private volatile TlsConnection remoteConnectionState;
+
+    TlsContext(
+            List<TlsVersion> versions,
+            List<TlsExtension> extensions,
+            List<TlsCipher> ciphers,
+            List<TlsCompression> compressions,
+            TlsConnection localConnectionState,
+            TlsCertificatesProvider certificatesProvider,
+            TlsCertificatesHandler certificatesHandler,
+            KeyStore trustedKeyStore,
+            TlsMessageDeserializer messageDeserializer,
+            TlsMasterSecretGenerator masterSecretGenerator,
+            TlsConnectionInitializer connectionInitializer,
+            TlsExtensionsInitializer extensionsInitializer
+    ) {
+        this.localConnectionState = localConnectionState;
+        this.certificatesProvider = certificatesProvider;
+        this.certificatesHandler = certificatesHandler;
+        this.trustedKeyStore = trustedKeyStore;
+        this.messageDeserializer = messageDeserializer;
+        this.masterSecretGenerator = masterSecretGenerator;
+        this.connectionInitializer = connectionInitializer;
+        this.extensionsInitializer = extensionsInitializer;
+        this.properties = new HashMap<>();
+        this.bufferedMessages = new LinkedList<>();
+        this.connectionIntegrity = new TlsConnectionIntegrity();
+        addNegotiableProperty(TlsProperty.version(), versions);
+        addNegotiableProperty(TlsProperty.extensions(), extensions);
+        addNegotiableProperty(TlsProperty.cipher(), ciphers);
+        addNegotiableProperty(TlsProperty.compression(), compressions);
+    }
+
+    public static TlsContextBuilder newBuilder(SocketProtocol protocol) {
+        return new TlsContextBuilder(protocol);
+    }
+
+    public KeyStore trustedKeyStore() {
+        return trustedKeyStore;
+    }
+
+    public Optional<TlsContextMode> selectedMode() {
+        return Optional.ofNullable(mode);
+    }
+
+    public TlsCertificatesHandler certificatesHandler() {
+        return certificatesHandler;
+    }
+
+    public Optional<TlsCertificatesProvider> certificatesProvider() {
+        return Optional.ofNullable(certificatesProvider);
+    }
+
+    public TlsConnection localConnectionState() {
+        return localConnectionState;
+    }
+
+    public Optional<TlsConnection> remoteConnectionState() {
+        return Optional.ofNullable(remoteConnectionState);
+    }
+
+    public TlsMessageDeserializer messageDeserializer() {
+        return messageDeserializer;
+    }
+
+    public TlsExtensionsInitializer extensionsInitializer() {
+        return extensionsInitializer;
+    }
+
+    public TlsMasterSecretGenerator masterSecretGenerator() {
+        return masterSecretGenerator;
+    }
+
+    public TlsConnectionInitializer connectionInitializer() {
+        return connectionInitializer;
+    }
+
+    public Optional<InetSocketAddress> address() {
+        return Optional.ofNullable(address);
+    }
+
+    public TlsContext setRemoteConnectionState(TlsConnection remoteConnectionState) {
+        this.remoteConnectionState = remoteConnectionState;
+        return this;
+    }
+
+    public TlsContext setSelectedMode(TlsContextMode mode) {
+        this.mode = mode;
+        return this;
+    }
+
+    public TlsContext setAddress(InetSocketAddress address) {
+        this.address = address;
+        return this;
+    }
+
+    public <I, O> TlsContext addNegotiableProperty(TlsProperty<I, O> property, I propertyValue) {
+        var value = new PropertyValue<I, O>(propertyValue);
+        properties.put(property, value);
+        return this;
+    }
+
+    public <I, O> TlsContext addNegotiatedProperty(TlsProperty<I, O> property, O propertyValue) {
+        var value = (PropertyValue<I, O>) properties.get(property);
+        if(value == null) {
+            throw TlsAlert.noNegotiableProperty(property);
+        }
+
+        value.setNegotiated(propertyValue);
+        return this;
+    }
+
+    public boolean removeProperty(TlsProperty<?, ?> property) {
+        return properties.remove(property) != null;
+    }
+
+    public <I, O> Optional<I> getNegotiableValue(TlsProperty<I, O> property) {
+        var value = (PropertyValue<I, O>) properties.get(property);
+        if(value == null) {
+            return Optional.empty();
+        }
+
+        return Optional.ofNullable(value.negotiable());
+    }
+
+    public <I, O> Optional<O> getNegotiatedValue(TlsProperty<I, O> property) {
+        var value = (PropertyValue<I, O>) properties.get(property);
+        if (value == null) {
+            return Optional.empty();
+        }
+
+        return value.negotiated();
+    }
+
+    public TlsContext addBufferedMessage(ByteBuffer buffer) {
+        bufferedMessages.add(buffer);
+        return this;
+    }
+
+    public Optional<ByteBuffer> lastBufferedMessage() {
+        return Optional.ofNullable(bufferedMessages.peek());
+    }
+
+    public void pollBufferedMessage() {
+        bufferedMessages.poll();
+    }
+
+    public Optional<TlsSecret> masterSecretKey() {
+        return Optional.empty();
+    }
+
+    public TlsConnectionIntegrity connectionIntegrity() {
+        return connectionIntegrity;
+    }
+
+    private static final class PropertyValue<I, O> {
+        private final I negotiable;
+        private O value;
+        private PropertyValue(I negotiable) {
+            this.negotiable = negotiable;
+        }
+
+        private I negotiable() {
+            return negotiable;
+        }
+
+        private Optional<O> negotiated() {
+            return Optional.ofNullable(value);
+        }
+
+        private void setNegotiated(O negotiated) {
+            this.value = negotiated;
+        }
+    }
+}

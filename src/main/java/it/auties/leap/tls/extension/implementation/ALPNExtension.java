@@ -1,9 +1,9 @@
 package it.auties.leap.tls.extension.implementation;
 
-import it.auties.leap.tls.TlsContext;
-import it.auties.leap.tls.TlsMode;
-import it.auties.leap.tls.TlsSource;
 import it.auties.leap.tls.alert.TlsAlert;
+import it.auties.leap.tls.context.TlsContext;
+import it.auties.leap.tls.context.TlsContextMode;
+import it.auties.leap.tls.context.TlsSource;
 import it.auties.leap.tls.extension.TlsConcreteExtension;
 import it.auties.leap.tls.extension.TlsExtensionDeserializer;
 import it.auties.leap.tls.property.TlsProperty;
@@ -40,7 +40,7 @@ public record ALPNExtension(
         var negotiableProtocolsSet = new HashSet<>(negotiableProtocols);
         var mode = context.selectedMode()
                 .orElseThrow(TlsAlert::noModeSelected);
-        var incomingToClient = mode == TlsMode.CLIENT && source == TlsSource.REMOTE;
+        var incomingToClient = mode == TlsContextMode.CLIENT && source == TlsSource.REMOTE;
         try(var _ = scopedRead(buffer, supportedProtocolsSize)) {
             while (buffer.hasRemaining()) {
                 var supportedProtocol = new String(readBytesBigEndian8(buffer), StandardCharsets.US_ASCII);

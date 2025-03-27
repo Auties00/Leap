@@ -1,11 +1,12 @@
-package it.auties.leap.tls.connection.masterSecret.implementation;
+package it.auties.leap.tls.secret.implementation;
 
-import it.auties.leap.tls.TlsContext;
+import it.auties.leap.tls.context.TlsContext;
 import it.auties.leap.tls.alert.TlsAlert;
-import it.auties.leap.tls.connection.masterSecret.TlsMasterSecretGenerator;
+import it.auties.leap.tls.secret.TlsMasterSecretGenerator;
 import it.auties.leap.tls.hash.TlsHash;
 import it.auties.leap.tls.hash.TlsPRF;
 import it.auties.leap.tls.property.TlsProperty;
+import it.auties.leap.tls.secret.TlsSecret;
 
 import static it.auties.leap.tls.util.TlsKeyUtils.*;
 
@@ -22,11 +23,11 @@ public final class StandardMasterSecretGenerator implements TlsMasterSecretGener
     }
 
     @Override
-    public byte[] generateMasterSecret(TlsContext context) {
+    public TlsSecret generateMasterSecret(TlsContext context) {
         var localKeyExchange = context.localConnectionState()
                 .keyExchange()
                 .orElseThrow(TlsAlert::noLocalKeyExchange);
-        var preMasterKey = localKeyExchange
+        var preMasterSecret = localKeyExchange
                 .preMasterSecret()
                 .orElseGet(() -> localKeyExchange.preMasterSecretGenerator().generatePreMasterSecret(context));
         var mode = context.selectedMode()
@@ -50,29 +51,29 @@ public final class StandardMasterSecretGenerator implements TlsMasterSecretGener
             case SERVER -> context.localConnectionState()
                     .randomData();
         };
-        return switch (version) {
+        var masterSecret = switch (version) {
             case SSL30 -> {
-                var master = new byte[LENGTH];
+                var result = new byte[LENGTH];
                 var md5 = TlsHash.md5();
                 var sha = TlsHash.sha1();
                 var tmp = new byte[20];
                 for (var i = 0; i < 3; i++) {
                     sha.update(SSL3_CONSTANT[i]);
-                    sha.update(preMasterKey);
+                    sha.update(preMasterSecret.data());
                     sha.update(clientRandom);
                     sha.update(serverRandom);
                     sha.digest(tmp, 0, 20, true);
-                    md5.update(preMasterKey);
+                    md5.update(preMasterSecret.data());
                     md5.update(tmp);
-                    md5.digest(master, i << 4, 16, true);
+                    md5.digest(result, i << 4, 16, true);
                 }
-                yield master;
+                yield result;
             }
             case TLS10, TLS11, DTLS10 -> {
                 var label = extendedMasterSecretSessionHash != null ? LABEL_EXTENDED_MASTER_SECRET : LABEL_MASTER_SECRET;
                 var seed = extendedMasterSecretSessionHash != null ? extendedMasterSecretSessionHash : TlsPRF.seed(clientRandom, serverRandom);
                 yield TlsPRF.tls10Prf(
-                        preMasterKey,
+                        preMasterSecret.data(),
                         label,
                         seed,
                         LENGTH
@@ -84,7 +85,7 @@ public final class StandardMasterSecretGenerator implements TlsMasterSecretGener
                 var label = extendedMasterSecretSessionHash != null ? LABEL_EXTENDED_MASTER_SECRET : LABEL_MASTER_SECRET;
                 var seed = extendedMasterSecretSessionHash != null ? extendedMasterSecretSessionHash : TlsPRF.seed(clientRandom, serverRandom);
                 yield TlsPRF.tls12Prf(
-                        preMasterKey,
+                        preMasterSecret.data(),
                         label,
                         seed,
                         LENGTH,
@@ -92,5 +93,7 @@ public final class StandardMasterSecretGenerator implements TlsMasterSecretGener
                 );
             }
         };
+        preMasterSecret.destroy();
+        return TlsSecret.of(masterSecret);
     }
 }

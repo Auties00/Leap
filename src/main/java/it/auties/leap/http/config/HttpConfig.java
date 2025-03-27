@@ -1,6 +1,7 @@
 package it.auties.leap.http.config;
 
 import it.auties.leap.http.HttpVersion;
+import it.auties.leap.tls.context.TlsContext;
 
 import java.net.CookieHandler;
 import java.net.URI;
@@ -11,15 +12,15 @@ public final class HttpConfig {
     public static final HttpConfig DEFAULTS = HttpConfig.newBuilder()
             .build();
 
-    private final TlsConfig tlsConfig;
+    private final TlsContext tlsContext;
     private final CookieHandler cookieHandler;
     private final Duration keepAlive;
     private final URI proxy;
     private final HttpVersion version;
     private final HttpRedirectHandler redirectPolicy;
 
-    HttpConfig(TlsConfig tlsConfig, CookieHandler cookieHandler, Duration keepAlive, URI proxy, HttpVersion version, HttpRedirectHandler redirectPolicy) {
-        this.tlsConfig = tlsConfig;
+    HttpConfig(TlsContext tlsContext, CookieHandler cookieHandler, Duration keepAlive, URI proxy, HttpVersion version, HttpRedirectHandler redirectPolicy) {
+        this.tlsContext = tlsContext;
         this.cookieHandler = cookieHandler;
         this.keepAlive = keepAlive;
         this.proxy = proxy;
@@ -35,8 +36,8 @@ public final class HttpConfig {
         return DEFAULTS;
     }
 
-    public TlsConfig tlsConfig() {
-        return tlsConfig;
+    public TlsContext tlsContext() {
+        return tlsContext;
     }
 
     public Duration keepAlive() {
@@ -59,9 +60,9 @@ public final class HttpConfig {
         return redirectPolicy;
     }
 
-    public HttpConfig withTlsConfig(TlsConfig tlsConfig) {
+    public HttpConfig withTlsConfig(TlsContext tlsContext) {
         return new HttpConfig(
-                tlsConfig,
+                tlsContext,
                 this.cookieHandler,
                 this.keepAlive,
                 this.proxy,
@@ -72,7 +73,7 @@ public final class HttpConfig {
 
     public HttpConfig withCookieHandler(CookieHandler cookieHandler) {
         return new HttpConfig(
-                this.tlsConfig,
+                this.tlsContext,
                 cookieHandler,
                 this.keepAlive,
                 this.proxy,
@@ -83,7 +84,7 @@ public final class HttpConfig {
 
     public HttpConfig withKeepAlive(Duration keepAlive) {
         return new HttpConfig(
-                this.tlsConfig,
+                this.tlsContext,
                 this.cookieHandler,
                 keepAlive,
                 this.proxy,
@@ -94,7 +95,7 @@ public final class HttpConfig {
 
     public HttpConfig withProxy(URI proxy) {
         return new HttpConfig(
-                this.tlsConfig,
+                this.tlsContext,
                 this.cookieHandler,
                 this.keepAlive,
                 proxy,
@@ -105,7 +106,7 @@ public final class HttpConfig {
 
     public HttpConfig withVersion(HttpVersion version) {
         return new HttpConfig(
-                this.tlsConfig,
+                this.tlsContext,
                 this.cookieHandler,
                 this.keepAlive,
                 this.proxy,
@@ -116,7 +117,7 @@ public final class HttpConfig {
 
     public HttpConfig withRedirectPolicy(HttpRedirectHandler redirectPolicy) {
         return new HttpConfig(
-                this.tlsConfig,
+                this.tlsContext,
                 this.cookieHandler,
                 this.keepAlive,
                 this.proxy,

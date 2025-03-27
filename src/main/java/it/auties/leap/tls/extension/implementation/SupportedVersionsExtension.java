@@ -1,14 +1,11 @@
 package it.auties.leap.tls.extension.implementation;
 
-import it.auties.leap.tls.TlsMode;
-import it.auties.leap.tls.TlsSource;
-import it.auties.leap.tls.cipher.TlsGREASE;
-import it.auties.leap.tls.TlsContext;
 import it.auties.leap.tls.alert.TlsAlert;
-import it.auties.leap.tls.extension.TlsConfigurableExtension;
-import it.auties.leap.tls.extension.TlsConcreteExtension;
-import it.auties.leap.tls.extension.TlsExtensionDependencies;
-import it.auties.leap.tls.extension.TlsExtensionDeserializer;
+import it.auties.leap.tls.cipher.TlsGREASE;
+import it.auties.leap.tls.context.TlsContext;
+import it.auties.leap.tls.context.TlsContextMode;
+import it.auties.leap.tls.context.TlsSource;
+import it.auties.leap.tls.extension.*;
 import it.auties.leap.tls.property.TlsProperty;
 import it.auties.leap.tls.version.TlsVersion;
 import it.auties.leap.tls.version.TlsVersionId;
@@ -27,7 +24,7 @@ public abstract sealed class SupportedVersionsExtension {
     private static final TlsExtensionDeserializer DECODER = (context, source, _, buffer) -> {
         var mode = context.selectedMode()
                 .orElseThrow(TlsAlert::noModeSelected);
-        if(mode == TlsMode.CLIENT && source == TlsSource.LOCAL || mode == TlsMode.SERVER && source == TlsSource.REMOTE) {
+        if(mode == TlsContextMode.CLIENT && source == TlsSource.LOCAL || mode == TlsContextMode.SERVER && source == TlsSource.REMOTE) {
             var payloadSize = readBigEndianInt8(buffer);
             var versions = new ArrayList<TlsVersionId>();
             try (var _ = scopedRead(buffer, payloadSize)) {
@@ -60,6 +57,10 @@ public abstract sealed class SupportedVersionsExtension {
 
     public static TlsConfigurableExtension instance() {
         return Client.Configurable.INSTANCE;
+    }
+
+    public static TlsExtension of(List<TlsVersionId> tlsVersions) {
+        return new Client.Concrete(tlsVersions);
     }
 
     private static abstract sealed class Client extends SupportedVersionsExtension {

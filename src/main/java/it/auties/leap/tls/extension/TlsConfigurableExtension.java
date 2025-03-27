@@ -1,6 +1,6 @@
 package it.auties.leap.tls.extension;
 
-import it.auties.leap.tls.TlsContext;
+import it.auties.leap.tls.context.TlsContext;
 
 import java.util.Optional;
 

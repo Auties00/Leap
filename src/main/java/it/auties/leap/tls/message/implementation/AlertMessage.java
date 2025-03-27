@@ -1,12 +1,14 @@
 package it.auties.leap.tls.message.implementation;
 
 import it.auties.leap.socket.SocketException;
-import it.auties.leap.tls.TlsContext;
-import it.auties.leap.tls.TlsSource;
+import it.auties.leap.tls.alert.TlsAlert;
 import it.auties.leap.tls.alert.TlsAlertLevel;
 import it.auties.leap.tls.alert.TlsAlertType;
-import it.auties.leap.tls.alert.TlsAlert;
-import it.auties.leap.tls.message.*;
+import it.auties.leap.tls.context.TlsContext;
+import it.auties.leap.tls.context.TlsSource;
+import it.auties.leap.tls.message.TlsMessage;
+import it.auties.leap.tls.message.TlsMessageContentType;
+import it.auties.leap.tls.message.TlsMessageMetadata;
 import it.auties.leap.tls.version.TlsVersion;
 
 import java.nio.ByteBuffer;

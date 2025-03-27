@@ -1,6 +1,6 @@
 package it.auties.leap.tls.group.implementation;
 
-import it.auties.leap.tls.TlsContext;
+import it.auties.leap.tls.context.TlsContext;
 import it.auties.leap.tls.connection.TlsConnection;
 import it.auties.leap.tls.property.TlsProperty;
 import it.auties.leap.tls.cipher.exchange.implementation.ECDHKeyExchange;
@@ -9,6 +9,7 @@ import it.auties.leap.tls.ec.TlsECParametersDeserializer;
 import it.auties.leap.tls.ec.implementation.NamedCurveParameters;
 import it.auties.leap.tls.alert.TlsAlert;
 import it.auties.leap.tls.group.TlsSupportedEllipticCurve;
+import it.auties.leap.tls.secret.TlsSecret;
 import it.auties.leap.tls.util.ECKeyUtils;
 import org.bouncycastle.jce.ECNamedCurveTable;
 import org.bouncycastle.jce.interfaces.ECPublicKey;
@@ -370,7 +371,7 @@ public final class NamedEllipticCurve implements TlsSupportedEllipticCurve {
     }
 
     @Override
-    public byte[] computeSharedSecret(TlsContext context) {
+    public TlsSecret computeSharedSecret(TlsContext context) {
         var privateKey = context.localConnectionState()
                 .privateKey()
                 .orElseThrow(() -> new TlsAlert("Missing local private key"));
@@ -388,7 +389,7 @@ public final class NamedEllipticCurve implements TlsSupportedEllipticCurve {
             var keyAgreement = KeyAgreement.getInstance(algorithm);
             keyAgreement.init(privateKey, spec);
             keyAgreement.doPhase(publicKey, true);
-            return keyAgreement.generateSecret();
+            return TlsSecret.of(keyAgreement.generateSecret());
         }catch (GeneralSecurityException exception) {
             throw new TlsAlert("Cannot compute shared secret", exception);
         }

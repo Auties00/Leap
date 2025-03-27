@@ -1,13 +1,13 @@
 package it.auties.leap.tls.cipher.exchange.implementation;
 
-import it.auties.leap.tls.TlsContext;
+import it.auties.leap.tls.context.TlsContext;
 import it.auties.leap.tls.property.TlsProperty;
 import it.auties.leap.tls.cipher.exchange.TlsKeyExchange;
 import it.auties.leap.tls.cipher.exchange.TlsKeyExchangeFactory;
 import it.auties.leap.tls.cipher.exchange.TlsKeyExchangeType;
 import it.auties.leap.tls.alert.TlsAlert;
 import it.auties.leap.tls.group.TlsSupportedFiniteField;
-import it.auties.leap.tls.connection.preMasterSecret.TlsPreMasterSecretGenerator;
+import it.auties.leap.tls.secret.TlsPreMasterSecretGenerator;
 
 import javax.crypto.interfaces.DHPublicKey;
 import javax.crypto.spec.DHPublicKeySpec;
@@ -164,9 +164,14 @@ public abstract sealed class DHKeyExchange implements TlsKeyExchange {
         }
 
         private TlsKeyExchange newClientKeyExchange(TlsContext context) {
-            var remoteDhKeyExchange = context.remoteKeyExchange()
-                    .map(entry -> entry instanceof Server serverKeyExchange ? serverKeyExchange : null)
-                    .orElseThrow(() -> new TlsAlert("Missing remote DH key exchange"));
+            var remoteKeyExchange = context.remoteConnectionState()
+                    .orElseThrow(TlsAlert::noRemoteConnectionState)
+                    .keyExchange()
+                    .orElseThrow(TlsAlert::noRemoteKeyExchange);
+            if(!(remoteKeyExchange instanceof Server remoteDhKeyExchange)) {
+                throw TlsAlert.remoteKeyExchangeTypeMismatch("DH");
+            }
+
             var keyPair = generateKeyPair(context, remoteDhKeyExchange);
             var publicKey = (DHPublicKey) keyPair.getPublic();
             context.localConnectionState()
@@ -182,9 +187,14 @@ public abstract sealed class DHKeyExchange implements TlsKeyExchange {
         }
 
         private TlsKeyExchange newServerKeyExchange(TlsContext context) {
-            var remoteDhKeyExchange = context.remoteKeyExchange()
-                    .map(entry -> entry instanceof Client clientKeyExchange ? clientKeyExchange : null)
-                    .orElseThrow(() -> new TlsAlert("Missing remote DH key exchange"));
+            var remoteKeyExchange = context.remoteConnectionState()
+                    .orElseThrow(TlsAlert::noRemoteConnectionState)
+                    .keyExchange()
+                    .orElseThrow(TlsAlert::noRemoteKeyExchange);
+            if(!(remoteKeyExchange instanceof Client remoteDhKeyExchange)) {
+                throw TlsAlert.remoteKeyExchangeTypeMismatch("DH");
+            }
+
             var keyPair = generateKeyPair(context, remoteDhKeyExchange);
             var publicKey = (DHPublicKey) keyPair.getPublic();
             context.localConnectionState()

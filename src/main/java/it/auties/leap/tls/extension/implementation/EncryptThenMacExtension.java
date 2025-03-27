@@ -1,8 +1,8 @@
 package it.auties.leap.tls.extension.implementation;
 
-import it.auties.leap.tls.TlsContext;
-import it.auties.leap.tls.TlsSource;
+import it.auties.leap.tls.context.TlsContext;
 import it.auties.leap.tls.alert.TlsAlert;
+import it.auties.leap.tls.context.TlsSource;
 import it.auties.leap.tls.extension.TlsConcreteExtension;
 import it.auties.leap.tls.extension.TlsExtensionDeserializer;
 import it.auties.leap.tls.property.TlsProperty;

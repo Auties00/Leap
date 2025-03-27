@@ -3,10 +3,11 @@ package it.auties.leap.tls.cipher.exchange.implementation;
 import it.auties.leap.tls.cipher.exchange.TlsKeyExchange;
 import it.auties.leap.tls.cipher.exchange.TlsKeyExchangeFactory;
 import it.auties.leap.tls.cipher.exchange.TlsKeyExchangeType;
-import it.auties.leap.tls.TlsContext;
-import it.auties.leap.tls.TlsMode;
+import it.auties.leap.tls.context.TlsContext;
+import it.auties.leap.tls.context.TlsContextMode;
 import it.auties.leap.tls.alert.TlsAlert;
-import it.auties.leap.tls.connection.preMasterSecret.TlsPreMasterSecretGenerator;
+import it.auties.leap.tls.secret.TlsPreMasterSecretGenerator;
+import it.auties.leap.tls.secret.TlsSecret;
 
 import java.nio.ByteBuffer;
 import java.util.Optional;
@@ -19,7 +20,7 @@ public sealed abstract class RSAKeyExchange implements TlsKeyExchange {
         public TlsKeyExchange newLocalKeyExchange(TlsContext context) {
             var mode = context.selectedMode()
                     .orElseThrow(TlsAlert::noModeSelected);
-            if (mode == TlsMode.SERVER) {
+            if (mode == TlsContextMode.SERVER) {
                 throw new TlsAlert("Unsupported RSA key exchange");
             }
 
@@ -32,7 +33,7 @@ public sealed abstract class RSAKeyExchange implements TlsKeyExchange {
         public TlsKeyExchange decodeRemoteKeyExchange(TlsContext context, ByteBuffer buffer) {
             var mode = context.selectedMode()
                     .orElseThrow(TlsAlert::noModeSelected);
-            if (mode == TlsMode.SERVER) {
+            if (mode == TlsContextMode.SERVER) {
                 throw new TlsAlert("Unsupported RSA key exchange");
             }
 
@@ -60,28 +61,28 @@ public sealed abstract class RSAKeyExchange implements TlsKeyExchange {
     }
 
     private static final class Client extends RSAKeyExchange {
-        private final byte[] preMasterSecret;
+        private final TlsSecret preMasterSecret;
 
-        private Client(byte[] preMasterSecret) {
+        private Client(TlsSecret preMasterSecret) {
             this.preMasterSecret = preMasterSecret;
         }
 
         private Client(ByteBuffer buffer) {
-            this.preMasterSecret = readBytesBigEndian16(buffer);
+            this.preMasterSecret = TlsSecret.of(readBytesBigEndian16(buffer));
         }
 
         @Override
         public void serialize(ByteBuffer buffer) {
-            writeBytesBigEndian16(buffer, preMasterSecret);
+            writeBytesBigEndian16(buffer, preMasterSecret.data());
         }
 
         @Override
         public int length() {
-            return INT16_LENGTH + preMasterSecret.length;
+            return INT16_LENGTH + preMasterSecret.length();
         }
 
         @Override
-        public Optional<byte[]> preMasterSecret() {
+        public Optional<TlsSecret> preMasterSecret() {
             return Optional.of(preMasterSecret);
         }
     }

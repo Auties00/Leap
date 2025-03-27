@@ -1,6 +1,6 @@
 package it.auties.leap.tls.message.implementation;
 
-import it.auties.leap.tls.TlsContext;
+import it.auties.leap.tls.context.TlsContext;
 import it.auties.leap.tls.message.TlsMessage;
 import it.auties.leap.tls.message.TlsMessageDeserializer;
 import it.auties.leap.tls.message.TlsMessageMetadata;
@@ -39,8 +39,8 @@ public final class TlsStandardMessageDeserializer implements TlsMessageDeseriali
                                         HelloDoneMessage.Server.of(context, buffer, metadata);
                                 case CertificateRequestMessage.Server.ID ->
                                         CertificateRequestMessage.Server.of(context, buffer, metadata);
-                                case FinishMessage.Server.ID ->
-                                        FinishMessage.Server.of(context, buffer, metadata);
+                                case FinishedMessage.Server.ID ->
+                                        FinishedMessage.Server.of(context, buffer, metadata);
                                 default -> null;
                             };
                             case SERVER -> switch (id) {
@@ -50,8 +50,8 @@ public final class TlsStandardMessageDeserializer implements TlsMessageDeseriali
                                         CertificateMessage.Client.of(context, buffer, metadata);
                                 case KeyExchangeMessage.Client.ID ->
                                         KeyExchangeMessage.Client.of(context, buffer, metadata);
-                                case FinishMessage.Client.ID ->
-                                        FinishMessage.Client.of(context, buffer, metadata);
+                                case FinishedMessage.Client.ID ->
+                                        FinishedMessage.Client.of(context, buffer, metadata);
                                 default -> null;
                             };
                             case null -> null;

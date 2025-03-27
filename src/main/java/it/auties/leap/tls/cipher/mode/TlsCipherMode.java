@@ -1,10 +1,10 @@
 package it.auties.leap.tls.cipher.mode;
 
 import it.auties.leap.tls.cipher.engine.TlsCipherEngine;
-import it.auties.leap.tls.TlsContext;
+import it.auties.leap.tls.context.TlsContext;
 import it.auties.leap.tls.alert.TlsAlert;
-import it.auties.leap.tls.mac.TlsExchangeMac;
-import it.auties.leap.tls.mac.TlsHmac;
+import it.auties.leap.tls.cipher.exchange.TlsExchangeMac;
+import it.auties.leap.tls.hash.TlsHmac;
 import it.auties.leap.tls.message.TlsMessage;
 import it.auties.leap.tls.message.TlsMessageMetadata;
 

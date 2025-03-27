@@ -1,7 +1,7 @@
 package it.auties.leap.tls.util;
 
 import it.auties.leap.tls.cipher.exchange.TlsKeyExchangeType;
-import it.auties.leap.tls.TlsMode;
+import it.auties.leap.tls.context.TlsContextMode;
 import it.auties.leap.tls.alert.TlsAlert;
 import it.auties.leap.tls.util.sun.HostnameChecker;
 
@@ -100,7 +100,7 @@ public final class CertificateUtils {
     }
 
     @SuppressWarnings("NonStrictComparisonCanBeEquality")
-    public static void validateUsage(X509Certificate certificate, TlsKeyExchangeType type, TlsMode mode) {
+    public static void validateUsage(X509Certificate certificate, TlsKeyExchangeType type, TlsContextMode mode) {
         var keyUsage = certificate.getKeyUsage();
         var extendedKeyUsage = getExtendedKeyUsageIfParsable(certificate);
         switch (mode) {

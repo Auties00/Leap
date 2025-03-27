@@ -1,9 +1,9 @@
 package it.auties.leap.tls.extension.implementation;
 
-import it.auties.leap.tls.TlsContext;
-import it.auties.leap.tls.TlsMode;
-import it.auties.leap.tls.TlsSource;
 import it.auties.leap.tls.alert.TlsAlert;
+import it.auties.leap.tls.context.TlsContext;
+import it.auties.leap.tls.context.TlsContextMode;
+import it.auties.leap.tls.context.TlsSource;
 import it.auties.leap.tls.extension.TlsConcreteExtension;
 import it.auties.leap.tls.extension.TlsExtensionDeserializer;
 import it.auties.leap.tls.property.TlsIdentifiableProperty;
@@ -57,7 +57,7 @@ public record SignatureAlgorithmsExtension(List<TlsSignature> algorithms) implem
                 .collect(Collectors.toUnmodifiableMap(TlsIdentifiableProperty::id, Function.identity()));
         var mode = context.selectedMode()
                 .orElseThrow(TlsAlert::noModeSelected);
-        var incomingToClient = mode == TlsMode.CLIENT && source == TlsSource.REMOTE;
+        var incomingToClient = mode == TlsContextMode.CLIENT && source == TlsSource.REMOTE;
         for (var i = 0; i < algorithmsSize; i++) {
             var algorithmId = readBigEndianInt16(buffer);
             var algorithm = knownAlgorithms.get(algorithmId);

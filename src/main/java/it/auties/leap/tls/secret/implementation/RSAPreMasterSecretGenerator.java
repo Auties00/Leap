@@ -1,10 +1,11 @@
-package it.auties.leap.tls.connection.preMasterSecret.implementation;
+package it.auties.leap.tls.secret.implementation;
 
-import it.auties.leap.tls.TlsContext;
+import it.auties.leap.tls.context.TlsContext;
 import it.auties.leap.tls.alert.TlsAlert;
 import it.auties.leap.tls.connection.TlsConnection;
-import it.auties.leap.tls.connection.preMasterSecret.TlsPreMasterSecretGenerator;
+import it.auties.leap.tls.secret.TlsPreMasterSecretGenerator;
 import it.auties.leap.tls.property.TlsProperty;
+import it.auties.leap.tls.secret.TlsSecret;
 
 import javax.crypto.Cipher;
 import javax.crypto.spec.SecretKeySpec;
@@ -22,7 +23,7 @@ public final class RSAPreMasterSecretGenerator implements TlsPreMasterSecretGene
     }
     
     @Override
-    public byte[] generatePreMasterSecret(TlsContext context) {
+    public TlsSecret generatePreMasterSecret(TlsContext context) {
         try {
             var preMasterSecret = getPreMasterSecret(context);
             var cipher = Cipher.getInstance("RSA/ECB/PKCS1Padding");
@@ -30,7 +31,7 @@ public final class RSAPreMasterSecretGenerator implements TlsPreMasterSecretGene
                     .flatMap(TlsConnection::publicKey)
                     .orElseThrow(TlsAlert::noRemoteConnectionState);
             cipher.init(Cipher.WRAP_MODE, remotePublicKey);
-            return cipher.wrap(new SecretKeySpec(preMasterSecret, "raw"));
+            return TlsSecret.of(cipher.wrap(new SecretKeySpec(preMasterSecret, "raw")));
         }catch (Throwable throwable) {
             throw TlsAlert.preMasterSecretError(throwable); // Should never happen
         }

@@ -2,6 +2,7 @@ package it.auties.leap.http.config;
 
 import it.auties.leap.http.HttpVersion;
 import it.auties.leap.socket.SocketProtocol;
+import it.auties.leap.tls.context.TlsContext;
 import it.auties.leap.tls.cipher.TlsCipher;
 import it.auties.leap.tls.compression.TlsCompression;
 import it.auties.leap.tls.extension.TlsExtension;
@@ -17,7 +18,7 @@ import java.util.Objects;
 public final class HttpConfigBuilder {
     private static final Duration DEFAULT_KEEP_ALIVE = Duration.ofSeconds(10);
     private static final Duration NO_KEEP_ALIVE = Duration.ofSeconds(-1);
-    private static final TlsConfig DEFAULT_TLS_CONFIG;
+    private static final TlsContext DEFAULT_TLS_CONTEXT;
 
     static {
         var ciphers = List.of(
@@ -70,7 +71,7 @@ public final class HttpConfigBuilder {
         var compressions = List.of(
                 TlsCompression.none()
         );
-        DEFAULT_TLS_CONFIG = TlsConfig.newBuilder(SocketProtocol.TCP)
+        DEFAULT_TLS_CONTEXT = TlsContext.newBuilder(SocketProtocol.TCP)
                 .versions(List.of(TlsVersion.TLS12))
                 .ciphers(ciphers)
                 .extensions(extensions)
@@ -78,7 +79,7 @@ public final class HttpConfigBuilder {
                 .build();
     }
 
-    private TlsConfig tlsConfig;
+    private TlsContext tlsContext;
     private CookieHandler cookieHandler;
     private Duration keepAlive;
     private URI proxy;
@@ -89,8 +90,8 @@ public final class HttpConfigBuilder {
 
     }
 
-    public HttpConfigBuilder tlsConfig(TlsConfig tlsConfig) {
-        this.tlsConfig = tlsConfig;
+    public HttpConfigBuilder tlsContext(TlsContext tlsContext) {
+        this.tlsContext = tlsContext;
         return this;
     }
 
@@ -126,7 +127,7 @@ public final class HttpConfigBuilder {
 
     public HttpConfig build() {
         return new HttpConfig(
-                Objects.requireNonNullElse(tlsConfig, DEFAULT_TLS_CONFIG),
+                Objects.requireNonNullElse(tlsContext, DEFAULT_TLS_CONTEXT),
                 cookieHandler,
                 Objects.requireNonNullElse(keepAlive, DEFAULT_KEEP_ALIVE),
                 proxy,

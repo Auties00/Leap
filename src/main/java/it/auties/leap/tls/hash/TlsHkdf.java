@@ -1,4 +1,4 @@
-package it.auties.leap.tls.mac;
+package it.auties.leap.tls.hash;
 
 import java.util.Arrays;
 import java.util.Objects;

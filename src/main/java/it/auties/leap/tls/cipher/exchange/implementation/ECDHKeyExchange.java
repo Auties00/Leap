@@ -1,6 +1,6 @@
 package it.auties.leap.tls.cipher.exchange.implementation;
 
-import it.auties.leap.tls.TlsContext;
+import it.auties.leap.tls.context.TlsContext;
 import it.auties.leap.tls.property.TlsProperty;
 import it.auties.leap.tls.cipher.exchange.TlsKeyExchange;
 import it.auties.leap.tls.cipher.exchange.TlsKeyExchangeFactory;
@@ -9,7 +9,7 @@ import it.auties.leap.tls.ec.TlsECParameters;
 import it.auties.leap.tls.alert.TlsAlert;
 import it.auties.leap.tls.group.TlsSupportedEllipticCurve;
 import it.auties.leap.tls.group.TlsSupportedGroup;
-import it.auties.leap.tls.connection.preMasterSecret.TlsPreMasterSecretGenerator;
+import it.auties.leap.tls.secret.TlsPreMasterSecretGenerator;
 
 import java.nio.ByteBuffer;
 import java.util.List;
@@ -149,10 +149,15 @@ public sealed abstract class ECDHKeyExchange implements TlsKeyExchange {
         }
 
         private TlsKeyExchange newClientKeyExchange(TlsContext context) {
-            var group = context.remoteKeyExchange()
-                    .map(entry -> entry instanceof Server serverKeyExchange ? serverKeyExchange : null)
-                    .orElseThrow(() -> new TlsAlert("Missing remote ECDH key exchange"))
-                    .parameters()
+            var remoteKeyExchange = context.remoteConnectionState()
+                    .orElseThrow(TlsAlert::noRemoteConnectionState)
+                    .keyExchange()
+                    .orElseThrow(TlsAlert::noRemoteKeyExchange);
+            if(!(remoteKeyExchange instanceof Server remoteEcdhKeyExchange)) {
+                throw TlsAlert.remoteKeyExchangeTypeMismatch("ECDH");
+            }
+
+            var group = remoteEcdhKeyExchange.parameters()
                     .orElseThrow(() -> new TlsAlert("Missing remote ECDH key parameters"))
                     .toGroup(context);
             var keyPair = group.generateLocalKeyPair(context);

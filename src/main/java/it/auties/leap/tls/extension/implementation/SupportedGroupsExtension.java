@@ -1,9 +1,9 @@
 package it.auties.leap.tls.extension.implementation;
 
-import it.auties.leap.tls.TlsContext;
-import it.auties.leap.tls.TlsMode;
-import it.auties.leap.tls.TlsSource;
 import it.auties.leap.tls.alert.TlsAlert;
+import it.auties.leap.tls.context.TlsContext;
+import it.auties.leap.tls.context.TlsContextMode;
+import it.auties.leap.tls.context.TlsSource;
 import it.auties.leap.tls.extension.TlsConcreteExtension;
 import it.auties.leap.tls.extension.TlsExtensionDeserializer;
 import it.auties.leap.tls.group.TlsSupportedEllipticCurve;
@@ -33,7 +33,7 @@ public final class SupportedGroupsExtension implements TlsConcreteExtension {
                 .collect(Collectors.toUnmodifiableMap(TlsIdentifiableProperty::id, Function.identity()));
         var mode = context.selectedMode()
                 .orElseThrow(TlsAlert::noModeSelected);
-        var incomingToClient = mode == TlsMode.CLIENT && source == TlsSource.REMOTE;
+        var incomingToClient = mode == TlsContextMode.CLIENT && source == TlsSource.REMOTE;
         for (var i = 0; i < groupsSize; i++) {
             var groupId = readBigEndianInt16(buffer);
             var group = knownGroups.get(groupId);

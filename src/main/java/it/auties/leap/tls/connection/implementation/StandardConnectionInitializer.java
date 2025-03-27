@@ -1,13 +1,13 @@
-package it.auties.leap.tls.connection.initializer.implementation;
+package it.auties.leap.tls.connection.implementation;
 
-import it.auties.leap.tls.TlsContext;
+import it.auties.leap.tls.context.TlsContext;
 import it.auties.leap.tls.alert.TlsAlert;
 import it.auties.leap.tls.cipher.mode.TlsCipherMode;
-import it.auties.leap.tls.connection.initializer.TlsConnectionInitializer;
+import it.auties.leap.tls.connection.TlsConnectionInitializer;
 import it.auties.leap.tls.hash.TlsHash;
 import it.auties.leap.tls.hash.TlsHashFactory;
 import it.auties.leap.tls.hash.TlsPRF;
-import it.auties.leap.tls.mac.TlsExchangeMac;
+import it.auties.leap.tls.cipher.exchange.TlsExchangeMac;
 import it.auties.leap.tls.property.TlsProperty;
 import it.auties.leap.tls.version.TlsVersion;
 
@@ -51,10 +51,10 @@ public final class StandardConnectionInitializer implements TlsConnectionInitial
             case CLIENT -> remoteConnectionState.randomData();
         };
 
-        var localMasterSecretKey = context.masterSecretGenerator()
+        var masterSecret = context.masterSecretGenerator()
                 .generateMasterSecret(context);
 
-        System.out.println("Master secret: " + Arrays.toString(localMasterSecretKey));
+        System.out.println("Master secret: " + Arrays.toString(masterSecret.data()));
 
         var localCipherEngine = negotiatedCipher.engineFactory()
                 .newCipherEngine();
@@ -91,7 +91,7 @@ public final class StandardConnectionInitializer implements TlsConnectionInitial
         };
 
         var keyBlockLen = (macLength + keyLength + (expandedKeyLength.isPresent() ? 0 : ivLength)) * 2;
-        var keyBlock = generateBlock(negotiatedVersion, negotiatedCipher.hashFactory(), localMasterSecretKey, clientRandom, serverRandom, keyBlockLen);
+        var keyBlock = generateBlock(negotiatedVersion, negotiatedCipher.hashFactory(), masterSecret.data(), clientRandom, serverRandom, keyBlockLen);
 
         var clientMacKey = macLength != 0 ? readBytes(keyBlock, macLength) : null;
         var serverMacKey = macLength != 0 ? readBytes(keyBlock, macLength) : null;

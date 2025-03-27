@@ -6,6 +6,7 @@ import it.auties.leap.socket.SocketProtocol;
 import it.auties.leap.tls.certificate.TlsCertificatesHandler;
 import it.auties.leap.tls.cipher.TlsCipher;
 import it.auties.leap.tls.compression.TlsCompression;
+import it.auties.leap.tls.context.TlsContext;
 import it.auties.leap.tls.extension.TlsExtension;
 import it.auties.leap.tls.psk.TlsPSKExchangeMode;
 import it.auties.leap.tls.version.TlsVersion;
@@ -39,7 +40,7 @@ public class DHE_CHACHA20POLY1305_SocketTest {
         var compressions = List.of(
                 TlsCompression.none()
         );
-        var tlsConfig = TlsConfig.newBuilder(SocketProtocol.TCP)
+        var tlsConfig = TlsContext.newBuilder(SocketProtocol.TCP)
                 .versions(List.of(TlsVersion.TLS12))
                 .ciphers(ciphers)
                 .extensions(extensions)
