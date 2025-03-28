@@ -1,12 +1,14 @@
 package it.auties.leap.tls.alert;
 
+import it.auties.leap.tls.property.TlsIdentifiableProperty;
+
 import java.util.Arrays;
 import java.util.Map;
 import java.util.Optional;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
-public enum TlsAlertLevel {
+public enum TlsAlertLevel implements TlsIdentifiableProperty<Byte> {
     WARNING((byte) 1, "warning"),
     FATAL((byte) 2, "fatal");
 
@@ -25,7 +27,8 @@ public enum TlsAlertLevel {
         return Optional.ofNullable(VALUES.get(level));
     }
 
-    public byte id() {
+    @Override
+    public Byte id() {
         return id;
     }
 

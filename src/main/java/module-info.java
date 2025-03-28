@@ -41,4 +41,5 @@ module it.auties.leap {
     exports it.auties.leap.tls.alert;
     exports it.auties.leap.tls.context;
     exports it.auties.leap.tls.secret;
+    exports it.auties.leap.tls.name;
 }

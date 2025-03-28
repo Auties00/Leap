@@ -1,12 +1,14 @@
 package it.auties.leap.tls.alert;
 
+import it.auties.leap.tls.property.TlsIdentifiableProperty;
+
 import java.util.Arrays;
 import java.util.Map;
 import java.util.Optional;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
-public enum TlsAlertType {
+public enum TlsAlertType implements TlsIdentifiableProperty<Byte> {
     CLOSE_NOTIFY((byte) 0, "close_notify", false),
     UNEXPECTED_MESSAGE((byte) 10, "unexpected_message", false),
     BAD_RECORD_MAC((byte) 20, "bad_record_mac", false),
@@ -59,7 +61,8 @@ public enum TlsAlertType {
         return Optional.ofNullable(VALUES.get(id));
     }
 
-    public byte id() {
+    @Override
+    public Byte id() {
         return id;
     }
 

@@ -2,13 +2,14 @@ package it.auties.leap.tls.compression.implementation;
 
 import it.auties.leap.tls.compression.TlsCompression;
 import it.auties.leap.tls.alert.TlsAlert;
+import it.auties.leap.tls.compression.TlsCompressor;
 
 import java.nio.ByteBuffer;
 import java.util.zip.DataFormatException;
 import java.util.zip.Deflater;
 import java.util.zip.Inflater;
 
-public final class DeflateCompression implements TlsCompression {
+public final class DeflateCompression implements TlsCompression, TlsCompressor {
     private static final DeflateCompression INSTANCE = new DeflateCompression();
 
     private DeflateCompression() {

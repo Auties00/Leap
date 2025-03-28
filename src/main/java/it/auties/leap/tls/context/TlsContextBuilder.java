@@ -1,8 +1,8 @@
 package it.auties.leap.tls.context;
 
 import it.auties.leap.socket.SocketProtocol;
-import it.auties.leap.tls.certificate.TlsCertificatesHandler;
-import it.auties.leap.tls.certificate.TlsCertificatesProvider;
+import it.auties.leap.tls.certificate.TlsCertificatesConsumer;
+import it.auties.leap.tls.certificate.TlsCertificatesSupplier;
 import it.auties.leap.tls.cipher.TlsCipher;
 import it.auties.leap.tls.compression.TlsCompression;
 import it.auties.leap.tls.connection.TlsConnection;
@@ -10,7 +10,6 @@ import it.auties.leap.tls.connection.TlsConnectionInitializer;
 import it.auties.leap.tls.secret.TlsMasterSecretGenerator;
 import it.auties.leap.tls.alert.TlsAlert;
 import it.auties.leap.tls.extension.TlsExtension;
-import it.auties.leap.tls.extension.TlsExtensionsInitializer;
 import it.auties.leap.tls.message.TlsMessageDeserializer;
 import it.auties.leap.tls.util.CertificateUtils;
 import it.auties.leap.tls.util.TlsKeyUtils;
@@ -26,8 +25,8 @@ public final class TlsContextBuilder {
     private List<TlsCipher> ciphers;
     private List<TlsExtension> extensions;
     private List<TlsCompression> compressions;
-    private TlsCertificatesProvider certificatesProvider;
-    private TlsCertificatesHandler certificatesHandler;
+    private TlsCertificatesSupplier certificatesProvider;
+    private TlsCertificatesConsumer certificatesHandler;
     private KeyStore trustedKeyStore;
     private TlsMessageDeserializer messageDeserializer;
     private TlsMasterSecretGenerator masterSecretGenerator;
@@ -68,12 +67,12 @@ public final class TlsContextBuilder {
         return this;
     }
 
-    public TlsContextBuilder certificatesProvider(TlsCertificatesProvider certificatesProvider) {
+    public TlsContextBuilder certificatesProvider(TlsCertificatesSupplier certificatesProvider) {
         this.certificatesProvider = certificatesProvider;
         return this;
     }
 
-    public TlsContextBuilder certificatesHandler(TlsCertificatesHandler certificatesHandler) {
+    public TlsContextBuilder certificatesHandler(TlsCertificatesConsumer certificatesHandler) {
         this.certificatesHandler = certificatesHandler;
         return this;
     }
@@ -127,11 +126,11 @@ public final class TlsContextBuilder {
         var extensions = Objects.requireNonNullElseGet(this.extensions, () -> TlsExtension.required(versions));
         var ciphers = Objects.requireNonNullElse(this.ciphers, TlsCipher.recommended());
         var compressions = Objects.requireNonNullElse(this.compressions, TlsCompression.recommended());
-        var certificatesHandler = Objects.requireNonNullElse(this.certificatesHandler, TlsCertificatesHandler.validate());
+        var certificatesHandler = Objects.requireNonNullElse(this.certificatesHandler, TlsCertificatesConsumer.validate());
         var trustedKeyStore = Objects.requireNonNullElse(this.trustedKeyStore, CertificateUtils.defaultKeyStore());
         var messageDeserializer = Objects.requireNonNullElse(this.messageDeserializer, TlsMessageDeserializer.standard());
         var masterSecretGenerator = Objects.requireNonNullElse(this.masterSecretGenerator, TlsMasterSecretGenerator.standard());
-        var connectionInitializer = Objects.requireNonNullElse(this.connectionInitializer, TlsConnectionInitializer.standard());
+        var connectionInitializer = Objects.requireNonNullElse(this.connectionInitializer, TlsConnectionInitializer.builtin());
         var extensionsInitializer = Objects.requireNonNullElse(this.extensionsInitializer, TlsExtensionsInitializer.standard());
         return new TlsContext(versions, extensions, ciphers, compressions, credentials, certificatesProvider, certificatesHandler, trustedKeyStore, messageDeserializer, masterSecretGenerator, connectionInitializer, extensionsInitializer);
     }

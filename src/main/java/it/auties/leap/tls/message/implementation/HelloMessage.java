@@ -5,7 +5,6 @@ import it.auties.leap.tls.connection.TlsConnection;
 import it.auties.leap.tls.context.TlsContext;
 import it.auties.leap.tls.context.TlsContextMode;
 import it.auties.leap.tls.context.TlsSource;
-import it.auties.leap.tls.extension.TlsConcreteExtension;
 import it.auties.leap.tls.extension.TlsExtension;
 import it.auties.leap.tls.message.TlsHandshakeMessage;
 import it.auties.leap.tls.message.TlsMessageContentType;
@@ -83,7 +82,7 @@ public sealed abstract class HelloMessage extends TlsHandshakeMessage {
                 var extensionTypeToDecoder = context.getNegotiableValue(TlsProperty.extensions())
                         .orElseThrow(() -> TlsAlert.noNegotiableProperty(TlsProperty.extensions()))
                         .stream()
-                        .collect(Collectors.toUnmodifiableMap(TlsExtension::extensionType, TlsExtension::decoder));
+                        .collect(Collectors.toUnmodifiableMap(TlsExtension::extensionType, TlsExtension::negotiationDecoder));
                 while (buffer.hasRemaining()) {
                     var extensionType = readBigEndianInt16(buffer);
                     var extensionDecoder = extensionTypeToDecoder.get(extensionType);
@@ -96,7 +95,7 @@ public sealed abstract class HelloMessage extends TlsHandshakeMessage {
                         continue;
                     }
 
-                    extensionDecoder.deserialize(context, TlsSource.REMOTE, extensionType, buffer)
+                    extensionDecoder.deserialize(context, extensionType, buffer)
                             .ifPresent(extensions::add);
                 }
             }
@@ -216,7 +215,7 @@ public sealed abstract class HelloMessage extends TlsHandshakeMessage {
             var extensionTypeToDecoder = context.getNegotiableValue(TlsProperty.extensions())
                     .orElseThrow(() -> TlsAlert.noNegotiableProperty(TlsProperty.extensions()))
                     .stream()
-                    .collect(Collectors.toUnmodifiableMap(TlsExtension::extensionType, TlsExtension::decoder));
+                    .collect(Collectors.toUnmodifiableMap(TlsExtension::extensionType, TlsExtension::negotiationDecoder));
             var extensions = new ArrayList<TlsConcreteExtension>();
             if(buffer.remaining() >= INT16_LENGTH) {
                 var extensionsLength = readBigEndianInt16(buffer);
@@ -234,7 +233,7 @@ public sealed abstract class HelloMessage extends TlsHandshakeMessage {
                         }
 
                         try(var _ = scopedRead(buffer, extensionLength)) {
-                            extensionDecoder.deserialize(context, TlsSource.REMOTE, extensionType, buffer)
+                            extensionDecoder.deserialize(context, extensionType, buffer)
                                     .ifPresent(extensions::add);
                         }
                     }

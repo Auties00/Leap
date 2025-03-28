@@ -3,7 +3,6 @@ package it.auties.leap.tls.property;
 import it.auties.leap.tls.cipher.TlsCipher;
 import it.auties.leap.tls.compression.TlsCompression;
 import it.auties.leap.tls.ec.TlsECPointFormat;
-import it.auties.leap.tls.extension.TlsConcreteExtension;
 import it.auties.leap.tls.extension.TlsExtension;
 import it.auties.leap.tls.group.TlsSupportedGroup;
 import it.auties.leap.tls.psk.TlsPSKExchangeMode;

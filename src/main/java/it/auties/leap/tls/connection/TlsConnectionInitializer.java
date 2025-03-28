@@ -6,7 +6,7 @@ import it.auties.leap.tls.context.TlsContext;
 public interface TlsConnectionInitializer {
     void initialize(TlsContext context);
 
-    static TlsConnectionInitializer standard() {
+    static TlsConnectionInitializer builtin() {
         return StandardConnectionInitializer.instance();
     }
 }

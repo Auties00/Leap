@@ -3,7 +3,7 @@ package it.auties.leap.test;
 
 import it.auties.leap.socket.SocketClient;
 import it.auties.leap.socket.SocketProtocol;
-import it.auties.leap.tls.certificate.TlsCertificatesHandler;
+import it.auties.leap.tls.certificate.TlsCertificatesConsumer;
 import it.auties.leap.tls.cipher.TlsCipher;
 import it.auties.leap.tls.compression.TlsCompression;
 import it.auties.leap.tls.context.TlsContext;
@@ -45,7 +45,7 @@ public class DHE_CHACHA20POLY1305_SocketTest {
                 .ciphers(ciphers)
                 .extensions(extensions)
                 .compressions(compressions)
-                .certificatesHandler(TlsCertificatesHandler.ignore())
+                .certificatesHandler(TlsCertificatesConsumer.discard())
                 .build();
         try (
                 var socket = SocketClient.newBuilder()

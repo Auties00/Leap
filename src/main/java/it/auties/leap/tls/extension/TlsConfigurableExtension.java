@@ -4,8 +4,6 @@ import it.auties.leap.tls.context.TlsContext;
 
 import java.util.Optional;
 
-non-sealed public interface TlsConfigurableExtension extends TlsExtension {
-    Optional<? extends TlsConcreteExtension> newInstance(TlsContext context, int messageLength);
-
-    TlsExtensionDependencies dependencies();
+public sealed interface TlsConfigurableExtension extends TlsExtensionState permits TlsConfigurableClientExtension, TlsConfigurableServerExtension {
+    Optional<? extends TlsConfiguredExtension> configure(TlsContext context, int messageLength);
 }

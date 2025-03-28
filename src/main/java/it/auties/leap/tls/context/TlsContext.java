@@ -2,15 +2,14 @@ package it.auties.leap.tls.context;
 
 import it.auties.leap.socket.SocketProtocol;
 import it.auties.leap.tls.alert.TlsAlert;
-import it.auties.leap.tls.certificate.TlsCertificatesHandler;
-import it.auties.leap.tls.certificate.TlsCertificatesProvider;
+import it.auties.leap.tls.certificate.TlsCertificatesConsumer;
+import it.auties.leap.tls.certificate.TlsCertificatesSupplier;
 import it.auties.leap.tls.cipher.TlsCipher;
 import it.auties.leap.tls.compression.TlsCompression;
 import it.auties.leap.tls.connection.TlsConnection;
 import it.auties.leap.tls.connection.TlsConnectionInitializer;
 import it.auties.leap.tls.connection.TlsConnectionIntegrity;
 import it.auties.leap.tls.extension.TlsExtension;
-import it.auties.leap.tls.extension.TlsExtensionsInitializer;
 import it.auties.leap.tls.message.TlsMessageDeserializer;
 import it.auties.leap.tls.property.TlsProperty;
 import it.auties.leap.tls.secret.TlsMasterSecretGenerator;
@@ -24,8 +23,8 @@ import java.util.*;
 
 @SuppressWarnings({"UnusedReturnValue", "unchecked"})
 public class TlsContext {
-    private final TlsCertificatesProvider certificatesProvider;
-    private final TlsCertificatesHandler certificatesHandler;
+    private final TlsCertificatesSupplier certificatesProvider;
+    private final TlsCertificatesConsumer certificatesHandler;
     private final KeyStore trustedKeyStore;
     private final TlsMessageDeserializer messageDeserializer;
     private final TlsMasterSecretGenerator masterSecretGenerator;
@@ -45,8 +44,8 @@ public class TlsContext {
             List<TlsCipher> ciphers,
             List<TlsCompression> compressions,
             TlsConnection localConnectionState,
-            TlsCertificatesProvider certificatesProvider,
-            TlsCertificatesHandler certificatesHandler,
+            TlsCertificatesSupplier certificatesProvider,
+            TlsCertificatesConsumer certificatesHandler,
             KeyStore trustedKeyStore,
             TlsMessageDeserializer messageDeserializer,
             TlsMasterSecretGenerator masterSecretGenerator,
@@ -82,11 +81,11 @@ public class TlsContext {
         return Optional.ofNullable(mode);
     }
 
-    public TlsCertificatesHandler certificatesHandler() {
+    public TlsCertificatesConsumer certificatesHandler() {
         return certificatesHandler;
     }
 
-    public Optional<TlsCertificatesProvider> certificatesProvider() {
+    public Optional<TlsCertificatesSupplier> certificatesProvider() {
         return Optional.ofNullable(certificatesProvider);
     }
 

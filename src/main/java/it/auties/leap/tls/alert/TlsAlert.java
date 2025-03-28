@@ -81,4 +81,8 @@ public class TlsAlert extends RuntimeException {
     public static TlsAlert noCertificatesProvider() {
         return new TlsAlert("No certificates provider");
     }
+
+    public static TlsAlert certificateError(Throwable cause) {
+        return new TlsAlert("Cannot encode certificate", cause);
+    }
 }

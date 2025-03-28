@@ -1,18 +1,29 @@
 package it.auties.leap.tls.extension;
 
 import it.auties.leap.tls.ec.TlsECPointFormat;
-import it.auties.leap.tls.extension.implementation.*;
+import it.auties.leap.tls.extension.implementation.alpn.ALPNExtension;
+import it.auties.leap.tls.extension.implementation.ecPointFormat.ECPointFormatExtension;
+import it.auties.leap.tls.extension.implementation.encryptThenMac.EncryptThenMacExtension;
+import it.auties.leap.tls.extension.implementation.extendedMasterSecret.ExtendedMasterSecretExtension;
+import it.auties.leap.tls.extension.implementation.keyShare.KeyShareConfigurableExtension;
+import it.auties.leap.tls.extension.implementation.npn.NPNClientExtension;
+import it.auties.leap.tls.extension.implementation.npn.NPNServerExtension;
+import it.auties.leap.tls.extension.implementation.padding.PaddingExtension;
+import it.auties.leap.tls.extension.implementation.postHandshakeAuth.PostHandshakeAuthExtension;
+import it.auties.leap.tls.extension.implementation.pskExchangeModes.PSKExchangeModesExtension;
+import it.auties.leap.tls.extension.implementation.signatureAlgorithms.SignatureAlgorithmsExtension;
+import it.auties.leap.tls.extension.implementation.sni.SNIConfigurableExtension;
+import it.auties.leap.tls.extension.implementation.supportedGroups.SupportedGroupsExtension;
+import it.auties.leap.tls.extension.implementation.supportedVersions.SupportedVersionsConfigurableExtension;
 import it.auties.leap.tls.group.TlsSupportedGroup;
+import it.auties.leap.tls.name.TlsNameType;
 import it.auties.leap.tls.psk.TlsPSKExchangeMode;
 import it.auties.leap.tls.signature.TlsSignature;
 import it.auties.leap.tls.version.TlsVersion;
-import it.auties.leap.tls.version.TlsVersionId;
 
 import java.util.List;
 
-import static it.auties.leap.tls.util.BufferUtils.INT16_LENGTH;
-
-public sealed interface TlsExtension permits TlsConcreteExtension, TlsConfigurableExtension {
+public sealed interface TlsExtension permits TlsClientExtension, TlsServerExtension {
     List<TlsVersion> TLS_UNTIL_12 = List.of(TlsVersion.TLS10, TlsVersion.TLS11, TlsVersion.TLS12);
     List<TlsVersion> TLS_UNTIL_13 = List.of(TlsVersion.TLS10, TlsVersion.TLS11, TlsVersion.TLS12, TlsVersion.TLS13);
     List<TlsVersion> DTLS_UNTIL_12 = List.of(TlsVersion.TLS10, TlsVersion.TLS11, TlsVersion.TLS12, TlsVersion.DTLS10, TlsVersion.DTLS12);
@@ -164,19 +175,19 @@ public sealed interface TlsExtension permits TlsConcreteExtension, TlsConfigurab
     }
 
     static TlsExtension nextProtocolNegotiation() {
-        return NPNExtension.instance();
+        return NPNClientExtension.instance();
     }
 
-    static TlsExtension serverNameIndication() {
-        return SNIExtension.instance();
+    static TlsExtension nextProtocolNegotiation(String selectedProtocol) {
+        return new NPNServerExtension(selectedProtocol);
+    }
+
+    static TlsExtension serverNameIndication(TlsNameType nameType) {
+        return new SNIConfigurableExtension(nameType);
     }
 
     static TlsExtension supportedVersions() {
-        return SupportedVersionsExtension.instance();
-    }
-
-    static TlsExtension supportedVersions(List<TlsVersionId> tlsVersions) {
-        return SupportedVersionsExtension.of(tlsVersions);
+        return SupportedVersionsConfigurableExtension.instance();
     }
 
     static TlsExtension alpn(List<String> supportedProtocols) {
@@ -184,7 +195,7 @@ public sealed interface TlsExtension permits TlsConcreteExtension, TlsConfigurab
     }
 
     static TlsExtension padding(int targetLength) {
-        return PaddingExtension.of(targetLength);
+        return new PaddingExtension(targetLength);
     }
 
     static TlsExtension ecPointFormats() {
@@ -216,7 +227,7 @@ public sealed interface TlsExtension permits TlsConcreteExtension, TlsConfigurab
     }
 
     static TlsExtension keyShare() {
-        return KeyShareExtension.instance();
+        return KeyShareConfigurableExtension.instance();
     }
 
     static List<TlsExtension> required(List<TlsVersion> versions) {
@@ -228,11 +239,5 @@ public sealed interface TlsExtension permits TlsConcreteExtension, TlsConfigurab
     }
 
     int extensionType();
-
-    default int extensionHeaderLength() {
-        return INT16_LENGTH + INT16_LENGTH;
-    }
-
     List<TlsVersion> versions();
-    TlsExtensionDeserializer decoder();
 }

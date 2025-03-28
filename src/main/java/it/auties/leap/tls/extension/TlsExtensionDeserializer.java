@@ -1,11 +1,10 @@
 package it.auties.leap.tls.extension;
 
 import it.auties.leap.tls.context.TlsContext;
-import it.auties.leap.tls.context.TlsSource;
 
 import java.nio.ByteBuffer;
 import java.util.Optional;
 
 public interface TlsExtensionDeserializer {
-    Optional<? extends TlsConcreteExtension> deserialize(TlsContext context, TlsSource source, int type, ByteBuffer buffer);
+    Optional<? extends TlsExtension> deserialize(TlsContext context, int type, ByteBuffer buffer);
 }

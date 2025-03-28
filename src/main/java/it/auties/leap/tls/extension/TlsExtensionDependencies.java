@@ -2,7 +2,7 @@ package it.auties.leap.tls.extension;
 
 import java.util.Set;
 
-sealed public interface TlsExtensionDependencies {
+public sealed interface TlsExtensionDependencies {
     static None none() {
         return None.INSTANCE;
     }
