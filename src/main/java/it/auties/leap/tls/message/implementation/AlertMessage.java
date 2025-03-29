@@ -8,15 +8,22 @@ import it.auties.leap.tls.context.TlsContext;
 import it.auties.leap.tls.context.TlsSource;
 import it.auties.leap.tls.message.TlsMessage;
 import it.auties.leap.tls.message.TlsMessageContentType;
-import it.auties.leap.tls.message.TlsMessageDeserializer;
+import it.auties.leap.tls.message.TlsMessageMetadata;
 import it.auties.leap.tls.version.TlsVersion;
 
 import java.nio.ByteBuffer;
 
 import static it.auties.leap.tls.util.BufferUtils.*;
 
-public final class AlertMessage extends TlsMessage {
-    private static final TlsMessageDeserializer DESERIALIZER = (_, buffer, metadata) -> {
+public record AlertMessage(
+        TlsVersion tlsVersion,
+        TlsSource source,
+        TlsAlertLevel alertLevel,
+        TlsAlertType alertType
+) implements TlsMessage {
+    public static final int ID = 0x00;
+
+    public static AlertMessage of(ByteBuffer buffer, TlsMessageMetadata metadata) {
         var levelId = readBigEndianInt8(buffer);
         var level = TlsAlertLevel.of(levelId)
                 .orElseThrow(() -> new IllegalArgumentException("Cannot decode TLS message, unknown alert level: " + levelId));
@@ -24,25 +31,21 @@ public final class AlertMessage extends TlsMessage {
         var type = TlsAlertType.of(typeId)
                 .orElseThrow(() -> new IllegalArgumentException("Cannot decode TLS message, unknown alert type: " + typeId));
         return new AlertMessage(metadata.version(), metadata.source(), level, type);
-    };
-    private static final int LENGTH = INT8_LENGTH + INT8_LENGTH;
-
-    public static TlsMessageDeserializer deserializer() {
-        return DESERIALIZER;
-    }
-
-    private final TlsAlertLevel alertLevel;
-    private final TlsAlertType alertType;
-
-    public AlertMessage(TlsVersion tlsVersion, TlsSource source, TlsAlertLevel alertLevel, TlsAlertType alertType) {
-        super(tlsVersion, source);
-        this.alertLevel = alertLevel;
-        this.alertType = alertType;
     }
 
     @Override
     public byte id() {
-        return 0x00;
+        return ID;
+    }
+
+    @Override
+    public TlsVersion version() {
+        return tlsVersion;
+    }
+
+    @Override
+    public TlsSource source() {
+        return source;
     }
 
     @Override
@@ -58,16 +61,7 @@ public final class AlertMessage extends TlsMessage {
 
     @Override
     public int payloadLength() {
-        return LENGTH;
-    }
-
-    @Override
-    public String toString() {
-        return "AlertMessage[" +
-                "tlsVersion=" + version +
-                ", level=" + alertLevel +
-                ", type=" + alertType +
-                ']';
+        return INT8_LENGTH + INT8_LENGTH;
     }
 
     @Override
@@ -78,5 +72,4 @@ public final class AlertMessage extends TlsMessage {
 
         throw new TlsAlert("Received alert: " + context);
     }
-
 }

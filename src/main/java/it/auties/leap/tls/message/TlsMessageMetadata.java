@@ -79,11 +79,11 @@ public final class TlsMessageMetadata {
 
     @Override
     public String toString() {
-        return "TlsMessageMetadata{" +
+        return "TlsMessageMetadata[" +
                 "contentType=" + contentType +
                 ", version=" + version +
                 ", length=" + length +
                 ", source=" + source +
-                '}';
+                ']';
     }
 }

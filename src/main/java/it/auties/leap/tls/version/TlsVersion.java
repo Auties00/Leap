@@ -3,6 +3,7 @@ package it.auties.leap.tls.version;
 import it.auties.leap.socket.SocketProtocol;
 import it.auties.leap.tls.property.TlsIdentifiableProperty;
 
+import java.nio.ByteBuffer;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
@@ -81,5 +82,13 @@ public enum TlsVersion implements TlsIdentifiableProperty<TlsVersionId> {
             case DTLS13 -> DTLS12;
             default -> this;
         };
+    }
+
+    public void serialize(ByteBuffer payload) {
+        id.serialize(payload);
+    }
+
+    public int length() {
+        return id.length();
     }
 }

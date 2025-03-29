@@ -1,6 +1,10 @@
 package it.auties.leap.tls.version;
 
+import java.nio.ByteBuffer;
 import java.util.Objects;
+
+import static it.auties.leap.tls.util.BufferUtils.INT16_LENGTH;
+import static it.auties.leap.tls.util.BufferUtils.writeBigEndianInt8;
 
 public final class TlsVersionId {
     public static TlsVersionId of(int value) {
@@ -67,5 +71,14 @@ public final class TlsVersionId {
         return "TlsVersionId[" +
                 "major=" + major + ", " +
                 "minor=" + minor + ']';
+    }
+
+    public void serialize(ByteBuffer payload) {
+        writeBigEndianInt8(payload, major);
+        writeBigEndianInt8(payload, minor);
+    }
+
+    public int length() {
+        return INT16_LENGTH;
     }
 }

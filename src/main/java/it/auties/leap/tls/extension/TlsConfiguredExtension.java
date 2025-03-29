@@ -26,5 +26,4 @@ public sealed interface TlsConfiguredExtension extends TlsExtensionState permits
     void serializePayload(ByteBuffer buffer);
     int payloadLength();
     void apply(TlsContext context, TlsSource source);
-    TlsExtensionDeserializer deserializer();
 }

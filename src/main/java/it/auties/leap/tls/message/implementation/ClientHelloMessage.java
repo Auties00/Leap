@@ -1,0 +1,191 @@
+package it.auties.leap.tls.message.implementation;
+
+import it.auties.leap.socket.SocketProtocol;
+import it.auties.leap.tls.alert.TlsAlert;
+import it.auties.leap.tls.context.TlsContext;
+import it.auties.leap.tls.context.TlsContextMode;
+import it.auties.leap.tls.context.TlsSource;
+import it.auties.leap.tls.extension.TlsConfiguredClientExtension;
+import it.auties.leap.tls.extension.TlsExtension;
+import it.auties.leap.tls.extension.TlsExtensionState;
+import it.auties.leap.tls.message.TlsHandshakeMessage;
+import it.auties.leap.tls.message.TlsMessageContentType;
+import it.auties.leap.tls.message.TlsMessageMetadata;
+import it.auties.leap.tls.property.TlsProperty;
+import it.auties.leap.tls.version.TlsVersion;
+import it.auties.leap.tls.version.TlsVersionId;
+
+import java.nio.ByteBuffer;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.stream.Collectors;
+
+import static it.auties.leap.tls.util.BufferUtils.*;
+
+public record ClientHelloMessage(
+        TlsVersion version,
+        TlsSource source,
+        byte[] randomData,
+        byte[] sessionId,
+        byte[] cookie,
+        List<Integer> ciphers,
+        List<Byte> compressions,
+        List<TlsConfiguredClientExtension> extensions,
+        int extensionsLength
+) implements TlsHandshakeMessage {
+    public static final int ID = 0x01;
+    private static final int CLIENT_RANDOM_LENGTH = 32;
+    private static final int SESSION_ID_LENGTH = 32;
+    private static final int RANDOM_COOKIE_LENGTH = 32;
+
+    public ClientHelloMessage {
+        if(version == null) {
+            throw new TlsAlert("Invalid version");
+        }
+
+        if(source == null) {
+            throw new TlsAlert("Invalid source");
+        }
+
+        if(randomData == null || randomData.length != CLIENT_RANDOM_LENGTH) {
+            throw new TlsAlert("Invalid random data length");
+        }
+
+        if(sessionId == null || sessionId.length != SESSION_ID_LENGTH) {
+            throw new TlsAlert("Invalid session id length");
+        }
+
+        if((version.protocol() == SocketProtocol.UDP) == (cookie == null)) {
+            throw new TlsAlert("Invalid dtls cookie");
+        }
+
+        if(ciphers == null || ciphers.isEmpty()) {
+            throw new TlsAlert("Invalid ciphers");
+        }
+
+        if(compressions == null || compressions.isEmpty()) {
+            throw new TlsAlert("Invalid compressions");
+        }
+
+        if(extensions == null) {
+            throw new TlsAlert("Invalid extensions");
+        }
+    }
+
+    public static ClientHelloMessage of(TlsContext context, ByteBuffer buffer, TlsMessageMetadata metadata) {
+        var versionId = TlsVersionId.of(readBigEndianInt16(buffer));
+        var tlsVersion = TlsVersion.of(versionId)
+                .orElseThrow(() -> new IllegalArgumentException("Unknown version: " + versionId));
+        var clientRandom = readBytes(buffer, CLIENT_RANDOM_LENGTH);
+        var sessionId = readBytesBigEndian8(buffer);
+        var cookie = switch (metadata.version().protocol()) {
+            case TCP -> null;
+            case UDP -> readBytesBigEndian8(buffer);
+        };
+        var ciphersLength = readBigEndianInt16(buffer);
+        var ciphers = new ArrayList<Integer>();
+        try (var _ = scopedRead(buffer, ciphersLength)) {
+            while (buffer.hasRemaining()) {
+                var cipherId = readBigEndianInt16(buffer);
+                ciphers.add(cipherId);
+            }
+        }
+        var compressions = new ArrayList<Byte>();
+        var compressionsLength = readBigEndianInt16(buffer);
+        try (var _ = scopedRead(buffer, compressionsLength)) {
+            while (buffer.hasRemaining()) {
+                var compressionId = readBigEndianInt8(buffer);
+                compressions.add(compressionId);
+            }
+        }
+        var extensions = new ArrayList<TlsConfiguredClientExtension>();
+        var extensionsLength = readBigEndianInt16(buffer);
+        try (var _ = scopedRead(buffer, extensionsLength)) {
+            var extensionTypeToDecoder = context.getNegotiableValue(TlsProperty.clientExtensions())
+                    .orElseThrow(() -> TlsAlert.noNegotiableProperty(TlsProperty.clientExtensions()))
+                    .stream()
+                    .collect(Collectors.toUnmodifiableMap(TlsExtension::extensionType, TlsExtension::deserializer));
+            while (buffer.hasRemaining()) {
+                var extensionType = readBigEndianInt16(buffer);
+                var extensionDecoder = extensionTypeToDecoder.get(extensionType);
+                if (extensionDecoder == null) {
+                    throw new TlsAlert("Unknown extension");
+                }
+
+                var extensionLength = readBigEndianInt16(buffer);
+                if (extensionLength == 0) {
+                    continue;
+                }
+
+                extensionDecoder.deserialize(context, extensionType, buffer)
+                        .ifPresent(extensions::add);
+            }
+        }
+        return new ClientHelloMessage(tlsVersion, metadata.source(), clientRandom, sessionId, cookie, ciphers, compressions, extensions, extensionsLength);
+    }
+
+    @Override
+    public byte id() {
+        return ID;
+    }
+
+    @Override
+    public TlsMessageContentType contentType() {
+        return TlsMessageContentType.HANDSHAKE;
+    }
+
+    @Override
+    public void serializeHandshakePayload(ByteBuffer payload) {
+        writeBigEndianInt16(payload, version.id().value());
+
+        writeBytes(payload, randomData);
+
+        writeBytesBigEndian8(payload, sessionId);
+
+        if (cookie != null) {
+            writeBytesBigEndian8(payload, cookie);
+        }
+
+        var ciphersLength = ciphers.size() * INT16_LENGTH;
+        writeBigEndianInt16(payload, ciphersLength);
+        for (var cipher : ciphers) {
+            writeBigEndianInt16(payload, cipher);
+        }
+
+        var compressionsLength = compressions.size() * INT8_LENGTH;
+        writeBigEndianInt8(payload, compressionsLength);
+        for (var compression : compressions) {
+            writeBigEndianInt8(payload, compression);
+        }
+
+        if (!extensions.isEmpty()) {
+            writeBigEndianInt16(payload, extensionsLength);
+            for (var extension : extensions) {
+                extension.serialize(payload);
+            }
+        }
+    }
+
+    @Override
+    public int handshakePayloadLength() {
+        var messagePayloadNoExtensionsLength = getMessagePayloadLength(cookie, ciphers.size(), compressions.size());
+        return messagePayloadNoExtensionsLength
+                + INT16_LENGTH + extensionsLength;
+    }
+
+    @Override
+    public void apply(TlsContext tlsContext) {
+        if (source == TlsSource.LOCAL) {
+            tlsContext.setSelectedMode(TlsContextMode.CLIENT);
+        }
+    }
+
+    public static int getMessagePayloadLength(byte[] cookie, int ciphers, int compressions) {
+        return INT16_LENGTH
+                + CLIENT_RANDOM_LENGTH
+                + INT8_LENGTH + SESSION_ID_LENGTH
+                + (cookie != null ? INT8_LENGTH + RANDOM_COOKIE_LENGTH : 0)
+                + INT16_LENGTH + ciphers * INT16_LENGTH
+                + INT8_LENGTH + compressions * INT8_LENGTH;
+    }
+}

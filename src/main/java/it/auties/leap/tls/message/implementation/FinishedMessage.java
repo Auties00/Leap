@@ -3,9 +3,7 @@ package it.auties.leap.tls.message.implementation;
 import it.auties.leap.tls.alert.TlsAlert;
 import it.auties.leap.tls.context.TlsContext;
 import it.auties.leap.tls.context.TlsSource;
-import it.auties.leap.tls.message.TlsHandshakeMessage;
-import it.auties.leap.tls.message.TlsMessageContentType;
-import it.auties.leap.tls.message.TlsMessageMetadata;
+import it.auties.leap.tls.message.*;
 import it.auties.leap.tls.version.TlsVersion;
 
 import java.nio.ByteBuffer;
@@ -13,100 +11,47 @@ import java.nio.ByteBuffer;
 import static it.auties.leap.tls.util.BufferUtils.readBytes;
 import static it.auties.leap.tls.util.BufferUtils.writeBytes;
 
-;
-
-public sealed abstract class FinishedMessage extends TlsHandshakeMessage {
+public record FinishedMessage(
+        TlsVersion version,
+        TlsSource source,
+        byte[] hash
+) implements TlsHandshakeMessage {
+    public static final int ID = 0x14;
     private static final int MIN_HASH_LENGTH = 12;
 
-    FinishedMessage(TlsVersion version, TlsSource source) {
-        super(version, source);
+    public static FinishedMessage of(ByteBuffer buffer, TlsMessageMetadata metadata) {
+        var hash = readBytes(buffer, buffer.remaining());
+        return new FinishedMessage(metadata.version(), metadata.source(), hash);
     }
 
-    public static final class Server extends FinishedMessage {
-        public static final int ID = 0x14;
-
-        private final byte[] hash;
-        public Server(TlsVersion tlsVersion, TlsSource source, byte[] hash) {
-            super(tlsVersion, source);
-            if(hash == null || hash.length < MIN_HASH_LENGTH) {
-                throw new TlsAlert("The hash should be at least %s bytes long".formatted(MIN_HASH_LENGTH));
-            }
-
-            this.hash = hash;
-        }
-
-        public static Server of(TlsContext ignoredEngine, ByteBuffer buffer, TlsMessageMetadata metadata) {
-            var hash = readBytes(buffer, buffer.remaining());
-            return new Server(metadata.version(), metadata.source(), hash);
-        }
-
-        @Override
-        public byte id() {
-            return ID;
-        }
-
-        @Override
-        public TlsMessageContentType contentType() {
-            return TlsMessageContentType.HANDSHAKE;
-        }
-
-        @Override
-        public void serializeHandshakePayload(ByteBuffer buffer) {
-            writeBytes(buffer, hash);
-        }
-
-        @Override
-        public int handshakePayloadLength() {
-            return hash.length;
-        }
-
-        @Override
-        public void apply(TlsContext context) {
-            // TODO: Validate
+    public FinishedMessage {
+        if(hash == null || hash.length < MIN_HASH_LENGTH) {
+            throw new TlsAlert("The hash should be at least %s bytes long".formatted(MIN_HASH_LENGTH));
         }
     }
 
-    public static final class Client extends FinishedMessage {
-        public static final int ID = 0x14;
+    @Override
+    public byte id() {
+        return ID;
+    }
 
-        private final byte[] hash;
-        public Client(TlsVersion tlsVersion, TlsSource source, byte[] hash) {
-            super(tlsVersion, source);
-            if(hash == null || hash.length < MIN_HASH_LENGTH) {
-                throw new TlsAlert("The hash should be at least %s bytes long".formatted(MIN_HASH_LENGTH));
-            }
+    @Override
+    public TlsMessageContentType contentType() {
+        return TlsMessageContentType.HANDSHAKE;
+    }
 
-            this.hash = hash;
-        }
+    @Override
+    public void serializeHandshakePayload(ByteBuffer buffer) {
+        writeBytes(buffer, hash);
+    }
 
-        public static Client of(TlsContext ignoredEngine, ByteBuffer buffer, TlsMessageMetadata metadata) {
-            var hash = readBytes(buffer, buffer.remaining());
-            return new Client(metadata.version(), metadata.source(), hash);
-        }
+    @Override
+    public int handshakePayloadLength() {
+        return hash.length;
+    }
 
-        @Override
-        public byte id() {
-            return ID;
-        }
-
-        @Override
-        public TlsMessageContentType contentType() {
-            return TlsMessageContentType.HANDSHAKE;
-        }
-
-        @Override
-        public void serializeHandshakePayload(ByteBuffer buffer) {
-            writeBytes(buffer, hash);
-        }
-
-        @Override
-        public int handshakePayloadLength() {
-            return hash.length;
-        }
-
-        @Override
-        public void apply(TlsContext context) {
-            // TODO: Validate
-        }
+    @Override
+    public void apply(TlsContext context) {
+        // TODO: Validate
     }
 }

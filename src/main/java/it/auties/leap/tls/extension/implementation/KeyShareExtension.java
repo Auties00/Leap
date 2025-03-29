@@ -15,6 +15,19 @@ import java.util.Optional;
 import static it.auties.leap.tls.util.BufferUtils.*;
 
 public final class KeyShareExtension implements TlsConfigurableClientExtension, TlsConfigurableServerExtension {
+    private static final TlsExtensionDeserializer DESERIALIZER = (_, _, buffer) -> {
+        var entries = new ArrayList<KeyShareEntry>();
+        var entriesSize = buffer.remaining();
+        while (buffer.hasRemaining()) {
+            var namedGroupId = readBigEndianInt16(buffer);
+            var publicKey = readBytesBigEndian16(buffer);
+            var entry = new KeyShareEntry(namedGroupId, publicKey);
+            entries.add(entry);
+        }
+        var extension = new Configured(entries, entriesSize);
+        return Optional.of(extension);
+    };
+
     private static final KeyShareExtension INSTANCE = new KeyShareExtension();
     
     private KeyShareExtension() {
@@ -43,6 +56,11 @@ public final class KeyShareExtension implements TlsConfigurableClientExtension, 
     @Override
     public int hashCode() {
         return 1;
+    }
+
+    @Override
+    public TlsExtensionDeserializer deserializer() {
+        return DESERIALIZER;
     }
 
     @Override
@@ -77,19 +95,6 @@ public final class KeyShareExtension implements TlsConfigurableClientExtension, 
             List<KeyShareEntry> entries,
             int entriesLength
     ) implements TlsConfiguredClientExtension, TlsConfiguredServerExtension {
-        private static final TlsExtensionDeserializer DESERIALIZER = (_, _, buffer) -> {
-            var entries = new ArrayList<KeyShareEntry>();
-            var entriesSize = buffer.remaining();
-            while (buffer.hasRemaining()) {
-                var namedGroupId = readBigEndianInt16(buffer);
-                var publicKey = readBytesBigEndian16(buffer);
-                var entry = new KeyShareEntry(namedGroupId, publicKey);
-                entries.add(entry);
-            }
-            var extension = new Configured(entries, entriesSize);
-            return Optional.of(extension);
-        };
-
         @Override
         public void serializePayload(ByteBuffer buffer) {
             writeBigEndianInt16(buffer, entriesLength);

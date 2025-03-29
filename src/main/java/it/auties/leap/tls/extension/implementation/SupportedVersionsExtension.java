@@ -78,6 +78,11 @@ public final class SupportedVersionsExtension implements TlsConfigurableClientEx
     }
 
     @Override
+    public TlsExtensionDeserializer deserializer() {
+        return DESERIALIZER;
+    }
+
+    @Override
     public Optional<? extends TlsConfiguredExtension> configure(TlsContext context, int messageLength) {
         var mode = context.selectedMode()
                 .orElseThrow(TlsAlert::noModeSelected);
@@ -87,8 +92,8 @@ public final class SupportedVersionsExtension implements TlsConfigurableClientEx
                 context.getNegotiableValue(TlsProperty.version())
                         .orElseThrow(() -> TlsAlert.noNegotiableProperty(TlsProperty.version()))
                         .forEach(version -> supportedVersions.add(version.id()));
-                var grease = context.getNegotiableValue(TlsProperty.extensions())
-                        .orElseThrow(() -> TlsAlert.noNegotiableProperty(TlsProperty.extensions()))
+                var grease = context.getNegotiableValue(TlsProperty.clientExtensions())
+                        .orElseThrow(() -> TlsAlert.noNegotiableProperty(TlsProperty.clientExtensions()))
                         .stream()
                         .anyMatch(entry -> TlsGREASE.isGrease(entry.extensionType()));
                 if (grease) {

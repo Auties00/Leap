@@ -23,29 +23,26 @@ import static it.auties.leap.tls.util.BufferUtils.readBigEndianInt8;
 public record PSKExchangeModesExtension(
         List<TlsPSKExchangeMode> modes
 ) implements TlsConfiguredClientExtension, TlsConfiguredServerExtension {
-    private static final TlsExtensionDeserializer DESERIALIZER = new TlsExtensionDeserializer() {
-        @Override
-        public Optional<? extends TlsExtension> deserialize(TlsContext context, int type, ByteBuffer buffer) {
-            var modesSize = readBigEndianInt16(buffer);
-            var modes = new ArrayList<TlsPSKExchangeMode>(modesSize);
-            var knownModes = context.getNegotiableValue(TlsProperty.pskExchangeModes())
-                    .orElseThrow(() -> TlsAlert.noNegotiableProperty(TlsProperty.pskExchangeModes()))
-                    .stream()
-                    .collect(Collectors.toUnmodifiableMap(TlsIdentifiableProperty::id, Function.identity()));
-            var mode = context.selectedMode()
-                    .orElseThrow(TlsAlert::noModeSelected);
-            for(var i = 0; i < modesSize; i++) {
-                var pskModeId = readBigEndianInt8(buffer);
-                var pskMode = knownModes.get(pskModeId);
-                if(pskMode != null) {
-                    modes.add(pskMode);
-                }else if(mode == TlsContextMode.CLIENT) {
-                    throw new TlsAlert("Remote tried to negotiate a psk exchange mode that wasn't advertised");
-                }
+    private static final TlsExtensionDeserializer DESERIALIZER = (context, _, buffer) -> {
+        var modesSize = readBigEndianInt16(buffer);
+        var modes = new ArrayList<TlsPSKExchangeMode>(modesSize);
+        var knownModes = context.getNegotiableValue(TlsProperty.pskExchangeModes())
+                .orElseThrow(() -> TlsAlert.noNegotiableProperty(TlsProperty.pskExchangeModes()))
+                .stream()
+                .collect(Collectors.toUnmodifiableMap(TlsIdentifiableProperty::id, Function.identity()));
+        var mode = context.selectedMode()
+                .orElseThrow(TlsAlert::noModeSelected);
+        for(var i = 0; i < modesSize; i++) {
+            var pskModeId = readBigEndianInt8(buffer);
+            var pskMode = knownModes.get(pskModeId);
+            if(pskMode != null) {
+                modes.add(pskMode);
+            }else if(mode == TlsContextMode.CLIENT) {
+                throw new TlsAlert("Remote tried to negotiate a psk exchange mode that wasn't advertised");
             }
-            var extension = new PSKExchangeModesExtension(modes);
-            return Optional.of(extension);
         }
+        var extension = new PSKExchangeModesExtension(modes);
+        return Optional.of(extension);
     };
 
     @Override

@@ -6,7 +6,7 @@ import it.auties.leap.tls.secret.implementation.StandardMasterSecretGenerator;
 public interface TlsMasterSecretGenerator {
     TlsSecret generateMasterSecret(TlsContext context);
 
-    static TlsMasterSecretGenerator standard() {
+    static TlsMasterSecretGenerator builtin() {
         return StandardMasterSecretGenerator.instance();
     }
 }

@@ -19,12 +19,13 @@ import it.auties.leap.tls.property.TlsProperty;
 import it.auties.leap.tls.version.TlsVersion;
 
 import java.io.IOException;
+import java.nio.BufferUnderflowException;
 import java.nio.ByteBuffer;
 import java.util.HashSet;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 
-import static it.auties.leap.tls.util.BufferUtils.assertNotEquals;
+import static it.auties.leap.tls.util.BufferUtils.*;
 
 public class AsyncSecureSocketApplicationLayer extends AsyncSocketApplicationLayer {
     private static final int FRAGMENT_LENGTH = 18432;
@@ -96,7 +97,7 @@ public class AsyncSecureSocketApplicationLayer extends AsyncSocketApplicationLay
                 .toList();
         var extensions = tlsContext.extensionsInitializer()
                 .process(tlsContext);
-        var helloMessage = new HelloMessage.Client(
+        var helloMessage = new ClientHelloMessage(
                 legacyVersion,
                 TlsSource.LOCAL,
                 tlsContext.localConnectionState().randomData(),
@@ -109,7 +110,7 @@ public class AsyncSecureSocketApplicationLayer extends AsyncSocketApplicationLay
         );
         var helloBuffer = writeBuffer();
         helloMessage.serializeWithRecord(helloBuffer);
-        updateHandshakeHash(helloBuffer, TlsMessage.recordHeaderLength());
+        updateHandshakeHash(helloBuffer, TlsMessage.recordLength());
         return write(handshakeBuffer)
                 .thenAccept(_ -> helloMessage.apply(tlsContext));
     }
@@ -135,7 +136,7 @@ public class AsyncSecureSocketApplicationLayer extends AsyncSocketApplicationLay
         );
         var certificatesBuffer = writeBuffer();
         certificatesMessage.serializeWithRecord(certificatesBuffer);
-        updateHandshakeHash(certificatesBuffer, TlsMessage.recordHeaderLength());
+        updateHandshakeHash(certificatesBuffer, TlsMessage.recordLength());
         return write(certificatesBuffer)
                 .thenCompose(_ -> handleOrClose(certificatesMessage));
     }
@@ -146,14 +147,14 @@ public class AsyncSecureSocketApplicationLayer extends AsyncSocketApplicationLay
         var parameters = tlsContext.localConnectionState()
                 .keyExchange()
                 .orElseThrow(TlsAlert::noLocalKeyExchange);
-        var keyExchangeMessage = new KeyExchangeMessage.Client(
+        var keyExchangeMessage = new ClientKeyExchangeMessage(
                 version,
                 TlsSource.LOCAL,
                 parameters
         );
         var keyExchangeBuffer = writeBuffer();
         keyExchangeMessage.serializeWithRecord(keyExchangeBuffer);
-        updateHandshakeHash(keyExchangeBuffer, TlsMessage.recordHeaderLength());
+        updateHandshakeHash(keyExchangeBuffer, TlsMessage.recordLength());
         return write(keyExchangeBuffer)
                 .thenCompose(_ -> handleOrClose(keyExchangeMessage));
     }
@@ -171,7 +172,7 @@ public class AsyncSecureSocketApplicationLayer extends AsyncSocketApplicationLay
         );
         var clientVerifyBuffer = writeBuffer();
         clientVerifyCertificate.serializeWithRecord(clientVerifyBuffer);
-        updateHandshakeHash(clientVerifyBuffer, TlsMessage.recordHeaderLength());
+        updateHandshakeHash(clientVerifyBuffer, TlsMessage.recordLength());
         return write(clientVerifyBuffer)
                 .thenCompose(_ -> handleOrClose(clientVerifyCertificate));
     }
@@ -354,7 +355,8 @@ public class AsyncSecureSocketApplicationLayer extends AsyncSocketApplicationLay
                 .cipher()
                 .orElseThrow(() -> new InternalError("Missing negotiated cipher"))
                 .ivLength();
-        var reservedSpace = TlsMessage.recordHeaderLength() + leftPadding;
+        var recordLength = TlsMessage.recordLength();
+        var reservedSpace = recordLength + leftPadding;
         var messagePayloadBuffer = writeBuffer()
                 .position(reservedSpace);
         messagePayloadBuffer.limit(messagePayloadBuffer.position())
@@ -368,11 +370,18 @@ public class AsyncSecureSocketApplicationLayer extends AsyncSocketApplicationLay
                 .orElseThrow(() -> new TlsAlert("Cannot encrypt a message before enabling the local cipher"))
                 .encrypt(tlsContext, message, encryptedMessagePayloadBuffer);
 
-        TlsMessage.putRecord(
-                message.version(),
-                message.contentType(),
-                encryptedMessagePayloadBuffer
-        );
+        var messageLength = encryptedMessagePayloadBuffer.remaining();
+        if(encryptedMessagePayloadBuffer.position() < recordLength) {
+            throw new BufferUnderflowException();
+        }
+
+        var newReadPosition = encryptedMessagePayloadBuffer.position() - recordLength;
+        encryptedMessagePayloadBuffer.position(newReadPosition);
+        writeBigEndianInt8(encryptedMessagePayloadBuffer, message.id());
+        writeBigEndianInt8(encryptedMessagePayloadBuffer, message.version().id().major());
+        writeBigEndianInt8(encryptedMessagePayloadBuffer, message.version().id().minor());
+        writeBigEndianInt16(encryptedMessagePayloadBuffer, messageLength);
+        encryptedMessagePayloadBuffer.position(newReadPosition);
 
         return write(encryptedMessagePayloadBuffer);
     }

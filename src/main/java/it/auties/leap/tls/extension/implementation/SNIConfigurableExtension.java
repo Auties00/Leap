@@ -17,6 +17,27 @@ import static it.auties.leap.tls.util.BufferUtils.*;
 public record SNIConfigurableExtension(
         TlsNameType nameType
 ) implements TlsConfigurableClientExtension, TlsConfigurableServerExtension {
+    private static final TlsExtensionDeserializer DESERIALIZER = (_, _, buffer) -> {
+        var listLength = readBigEndianInt16(buffer);
+        if(listLength == 0) {
+            return Optional.empty();
+        }
+
+        try(var _ = scopedRead(buffer, listLength)) {
+            var nameTypeId = readBigEndianInt8(buffer);
+            var nameType = TlsNameType.of(nameTypeId);
+            if(nameType.isEmpty()) {
+                return Optional.empty();
+            }
+
+            var nameBytes = readBytesBigEndian16(buffer);
+            // TODO: Check if name matches local
+            var extension = new Configured(nameBytes, nameType.get());
+            return Optional.of(extension);
+        }
+    };
+
+
     @Override
     public TlsExtensionDependencies dependencies() {
         return TlsExtensionDependencies.none();
@@ -49,30 +70,15 @@ public record SNIConfigurableExtension(
         return SERVER_NAME_VERSIONS;
     }
 
+    @Override
+    public TlsExtensionDeserializer deserializer() {
+        return DESERIALIZER;
+    }
+
     private record Configured(
             byte[] name,
             TlsNameType nameType
     ) implements TlsConfiguredClientExtension, TlsConfiguredServerExtension {
-        private static final TlsExtensionDeserializer DESERIALIZER = (_, _, buffer) -> {
-            var listLength = readBigEndianInt16(buffer);
-            if(listLength == 0) {
-                return Optional.empty();
-            }
-
-            try(var _ = scopedRead(buffer, listLength)) {
-                var nameTypeId = readBigEndianInt8(buffer);
-                var nameType = TlsNameType.of(nameTypeId);
-                if(nameType.isEmpty()) {
-                    return Optional.empty();
-                }
-
-                var nameBytes = readBytesBigEndian16(buffer);
-                // TODO: Check if name matches local
-                var extension = new Configured(nameBytes, nameType.get());
-                return Optional.of(extension);
-            }
-        };
-
         @Override
         public void serializePayload(ByteBuffer buffer) {
             writeBigEndianInt16(buffer, INT8_LENGTH + INT16_LENGTH + name.length);

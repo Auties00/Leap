@@ -11,49 +11,42 @@ import it.auties.leap.tls.version.TlsVersion;
 import java.net.URI;
 import java.nio.ByteBuffer;
 
-public sealed abstract class HelloDoneMessage extends TlsHandshakeMessage {
-    public static final byte ID = 0x0E;
+public record HelloDoneMessage(
+        TlsVersion version,
+        TlsSource source
+) implements TlsHandshakeMessage {
+    private static final byte ID = 0x0E;
 
-    HelloDoneMessage(TlsVersion version, TlsSource source) {
-        super(version, source);
+    public static HelloDoneMessage of(ByteBuffer buffer, TlsMessageMetadata metadata) {
+        if(buffer.hasRemaining()) {
+            throw new TlsAlert("Expected server hello done message to have an empty payload", URI.create("https://datatracker.ietf.org/doc/html/rfc5246"), "7.4.5");
+        }
+
+        return new HelloDoneMessage(metadata.version(), metadata.source());
     }
 
-    public static final class Server extends HelloDoneMessage {
-        public Server(TlsVersion tlsVersion, TlsSource source) {
-            super(tlsVersion, source);
-        }
+    @Override
+    public byte id() {
+        return ID;
+    }
 
-        public static Server of(TlsContext ignoredEngine, ByteBuffer buffer, TlsMessageMetadata metadata) {
-            if(buffer.hasRemaining()) {
-                throw new TlsAlert("Expected server hello done message to have an empty payload", URI.create("https://datatracker.ietf.org/doc/html/rfc5246"), "7.4.5");
-            }
+    @Override
+    public TlsMessageContentType contentType() {
+        return TlsMessageContentType.HANDSHAKE;
+    }
 
-            return new Server(metadata.version(), metadata.source());
-        }
+    @Override
+    public void serializeHandshakePayload(ByteBuffer buffer) {
 
-        @Override
-        public byte id() {
-            return ID;
-        }
+    }
 
-        @Override
-        public TlsMessageContentType contentType() {
-            return TlsMessageContentType.HANDSHAKE;
-        }
+    @Override
+    public int handshakePayloadLength() {
+        return 0;
+    }
 
-        @Override
-        public void serializeHandshakePayload(ByteBuffer buffer) {
+    @Override
+    public void apply(TlsContext context) {
 
-        }
-
-        @Override
-        public int handshakePayloadLength() {
-            return 0;
-        }
-
-        @Override
-        public void apply(TlsContext context) {
-            
-        }
     }
 }

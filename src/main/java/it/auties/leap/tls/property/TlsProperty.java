@@ -3,7 +3,8 @@ package it.auties.leap.tls.property;
 import it.auties.leap.tls.cipher.TlsCipher;
 import it.auties.leap.tls.compression.TlsCompression;
 import it.auties.leap.tls.ec.TlsECPointFormat;
-import it.auties.leap.tls.extension.TlsExtension;
+import it.auties.leap.tls.extension.TlsClientExtension;
+import it.auties.leap.tls.extension.TlsConfigurableClientExtension;
 import it.auties.leap.tls.group.TlsSupportedGroup;
 import it.auties.leap.tls.psk.TlsPSKExchangeMode;
 import it.auties.leap.tls.signature.TlsSignature;
@@ -15,7 +16,8 @@ import java.util.Objects;
 @SuppressWarnings("unused")
 public final class TlsProperty<I, O> implements TlsIdentifiableProperty<String> {
     private static final TlsProperty<List<TlsVersion>, TlsVersion> VERSION = new TlsProperty<>("version");
-    private static final TlsProperty<List<TlsExtension>, List<TlsConcreteExtension>> EXTENSIONS = new TlsProperty<>("extensions");
+    private static final TlsProperty<List<? extends TlsClientExtension>, List<? extends TlsConfigurableClientExtension>> CLIENT_EXTENSIONS = new TlsProperty<>("clientExtensions");
+    private static final TlsProperty<List<? extends TlsClientExtension>, List<? extends TlsConfigurableClientExtension>> SERVER_EXTENSIONS = new TlsProperty<>("serverExtensions");
     private static final TlsProperty<List<TlsCipher>, TlsCipher> CIPHER = new TlsProperty<>("cipher");
     private static final TlsProperty<List<TlsCompression>, TlsCompression> COMPRESSION = new TlsProperty<>("compression");
     private static final TlsProperty<List<TlsSupportedGroup>, List<TlsSupportedGroup>> SUPPORTED_GROUPS = new TlsProperty<>("supportedGroups");
@@ -35,8 +37,12 @@ public final class TlsProperty<I, O> implements TlsIdentifiableProperty<String> 
         return VERSION;
     }
 
-    public static TlsProperty<List<TlsExtension>, List<TlsConcreteExtension>> extensions() {
-        return EXTENSIONS;
+    public static TlsProperty<List<? extends TlsClientExtension>, List<? extends TlsConfigurableClientExtension>> clientExtensions() {
+        return CLIENT_EXTENSIONS;
+    }
+
+    public static TlsProperty<List<? extends TlsClientExtension>, List<? extends TlsConfigurableClientExtension>> serverExtensions() {
+        return SERVER_EXTENSIONS;
     }
 
     public static TlsProperty<List<TlsCipher>, TlsCipher> cipher() {

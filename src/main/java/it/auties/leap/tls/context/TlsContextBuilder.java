@@ -31,7 +31,6 @@ public final class TlsContextBuilder {
     private TlsMessageDeserializer messageDeserializer;
     private TlsMasterSecretGenerator masterSecretGenerator;
     private TlsConnectionInitializer connectionInitializer;
-    private TlsExtensionsInitializer extensionsInitializer;
     private byte[] randomData;
     private byte[] sessionId;
     private byte[] dtlsCookie;
@@ -112,11 +111,6 @@ public final class TlsContextBuilder {
         return this;
     }
 
-    public TlsContextBuilder extensionsInitializer(TlsExtensionsInitializer extensionsInitializer) {
-        this.extensionsInitializer = extensionsInitializer;
-        return this;
-    }
-
     public TlsContext build() {
         var randomData = Objects.requireNonNullElseGet(this.randomData, TlsKeyUtils::randomData);
         var sessionId = Objects.requireNonNullElseGet(this.sessionId, TlsKeyUtils::randomData);
@@ -128,10 +122,9 @@ public final class TlsContextBuilder {
         var compressions = Objects.requireNonNullElse(this.compressions, TlsCompression.recommended());
         var certificatesHandler = Objects.requireNonNullElse(this.certificatesHandler, TlsCertificatesConsumer.validate());
         var trustedKeyStore = Objects.requireNonNullElse(this.trustedKeyStore, CertificateUtils.defaultKeyStore());
-        var messageDeserializer = Objects.requireNonNullElse(this.messageDeserializer, TlsMessageDeserializer.standard());
-        var masterSecretGenerator = Objects.requireNonNullElse(this.masterSecretGenerator, TlsMasterSecretGenerator.standard());
+        var messageDeserializer = Objects.requireNonNullElse(this.messageDeserializer, TlsMessageDeserializer.builtin());
+        var masterSecretGenerator = Objects.requireNonNullElse(this.masterSecretGenerator, TlsMasterSecretGenerator.builtin());
         var connectionInitializer = Objects.requireNonNullElse(this.connectionInitializer, TlsConnectionInitializer.builtin());
-        var extensionsInitializer = Objects.requireNonNullElse(this.extensionsInitializer, TlsExtensionsInitializer.standard());
-        return new TlsContext(versions, extensions, ciphers, compressions, credentials, certificatesProvider, certificatesHandler, trustedKeyStore, messageDeserializer, masterSecretGenerator, connectionInitializer, extensionsInitializer);
+        return new TlsContext(versions, extensions, ciphers, compressions, credentials, certificatesProvider, certificatesHandler, trustedKeyStore, messageDeserializer, masterSecretGenerator, connectionInitializer);
     }
 }

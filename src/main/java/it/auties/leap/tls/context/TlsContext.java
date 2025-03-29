@@ -29,7 +29,6 @@ public class TlsContext {
     private final TlsMessageDeserializer messageDeserializer;
     private final TlsMasterSecretGenerator masterSecretGenerator;
     private final TlsConnectionInitializer connectionInitializer;
-    private final TlsExtensionsInitializer extensionsInitializer;
     private final TlsConnection localConnectionState;
     private final Map<TlsProperty<?, ?>, PropertyValue<?, ?>> properties;
     private final Queue<ByteBuffer> bufferedMessages;
@@ -49,8 +48,7 @@ public class TlsContext {
             KeyStore trustedKeyStore,
             TlsMessageDeserializer messageDeserializer,
             TlsMasterSecretGenerator masterSecretGenerator,
-            TlsConnectionInitializer connectionInitializer,
-            TlsExtensionsInitializer extensionsInitializer
+            TlsConnectionInitializer connectionInitializer
     ) {
         this.localConnectionState = localConnectionState;
         this.certificatesProvider = certificatesProvider;
@@ -59,12 +57,11 @@ public class TlsContext {
         this.messageDeserializer = messageDeserializer;
         this.masterSecretGenerator = masterSecretGenerator;
         this.connectionInitializer = connectionInitializer;
-        this.extensionsInitializer = extensionsInitializer;
         this.properties = new HashMap<>();
         this.bufferedMessages = new LinkedList<>();
         this.connectionIntegrity = new TlsConnectionIntegrity();
         addNegotiableProperty(TlsProperty.version(), versions);
-        addNegotiableProperty(TlsProperty.extensions(), extensions);
+        addNegotiableProperty(TlsProperty.clientExtensions(), extensions);
         addNegotiableProperty(TlsProperty.cipher(), ciphers);
         addNegotiableProperty(TlsProperty.compression(), compressions);
     }
@@ -99,10 +96,6 @@ public class TlsContext {
 
     public TlsMessageDeserializer messageDeserializer() {
         return messageDeserializer;
-    }
-
-    public TlsExtensionsInitializer extensionsInitializer() {
-        return extensionsInitializer;
     }
 
     public TlsMasterSecretGenerator masterSecretGenerator() {

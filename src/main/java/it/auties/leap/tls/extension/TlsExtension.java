@@ -1,20 +1,7 @@
 package it.auties.leap.tls.extension;
 
 import it.auties.leap.tls.ec.TlsECPointFormat;
-import it.auties.leap.tls.extension.implementation.ALPNExtension;
-import it.auties.leap.tls.extension.implementation.ECPointFormatExtension;
-import it.auties.leap.tls.extension.implementation.EncryptThenMacExtension;
-import it.auties.leap.tls.extension.implementation.ExtendedMasterSecretExtension;
-import it.auties.leap.tls.extension.implementation.KeyShareExtension;
-import it.auties.leap.tls.extension.implementation.NPNClientExtension;
-import it.auties.leap.tls.extension.implementation.NPNServerExtension;
-import it.auties.leap.tls.extension.implementation.PaddingExtension;
-import it.auties.leap.tls.extension.implementation.PostHandshakeAuthExtension;
-import it.auties.leap.tls.extension.implementation.PSKExchangeModesExtension;
-import it.auties.leap.tls.extension.implementation.SignatureAlgorithmsExtension;
-import it.auties.leap.tls.extension.implementation.SNIConfigurableExtension;
-import it.auties.leap.tls.extension.implementation.SupportedGroupsExtension;
-import it.auties.leap.tls.extension.implementation.SupportedVersionsExtension;
+import it.auties.leap.tls.extension.implementation.*;
 import it.auties.leap.tls.group.TlsSupportedGroup;
 import it.auties.leap.tls.name.TlsNameType;
 import it.auties.leap.tls.psk.TlsPSKExchangeMode;
@@ -230,6 +217,14 @@ public sealed interface TlsExtension permits TlsClientExtension, TlsServerExtens
         return KeyShareExtension.instance();
     }
 
+    static TlsExtension grease(int type, byte[] data) {
+        return new GREASEExtension(type, data);
+    }
+
+    static TlsExtension grease(int type) {
+        return new GREASEExtension(type, null);
+    }
+
     static List<TlsExtension> required(List<TlsVersion> versions) {
         if(!versions.contains(TlsVersion.TLS13) && !versions.contains(TlsVersion.DTLS13)) {
             return List.of();
@@ -240,4 +235,6 @@ public sealed interface TlsExtension permits TlsClientExtension, TlsServerExtens
 
     int extensionType();
     List<TlsVersion> versions();
+    TlsExtensionDeserializer deserializer();
+    TlsExtensionDependencies dependencies();
 }
