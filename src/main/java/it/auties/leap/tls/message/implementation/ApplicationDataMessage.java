@@ -5,13 +5,11 @@ import it.auties.leap.tls.context.TlsSource;
 import it.auties.leap.tls.message.TlsMessage;
 import it.auties.leap.tls.message.TlsMessageContentType;
 import it.auties.leap.tls.message.TlsMessageMetadata;
-import it.auties.leap.tls.util.BufferUtils;
 import it.auties.leap.tls.version.TlsVersion;
 
 import java.nio.ByteBuffer;
 
-import static it.auties.leap.tls.util.BufferUtils.readBuffer;
-import static it.auties.leap.tls.util.BufferUtils.writeBuffer;
+import static it.auties.leap.tls.util.BufferUtils.*;
 
 public record ApplicationDataMessage(
         TlsVersion version,
@@ -37,7 +35,7 @@ public record ApplicationDataMessage(
 
     @Override
     public void serializePayload(ByteBuffer buffer) {
-        BufferUtils.assertNotEquals(buffer, message);
+        assertNotEquals(buffer, message);
         writeBuffer(buffer, message);
     }
 

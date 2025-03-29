@@ -16,12 +16,12 @@ public record CertificateVerifyMessage(
 ) implements TlsHandshakeMessage {
     public static final int ID = 0x0F;
 
-    public static HelloDoneMessage of(ByteBuffer buffer, TlsMessageMetadata metadata) {
+    public static ServerHelloDoneMessage of(ByteBuffer buffer, TlsMessageMetadata metadata) {
         if(buffer.hasRemaining()) {
             throw new TlsAlert("Expected certificate verify message to have an empty payload");
         }
 
-        return new HelloDoneMessage(metadata.version(), metadata.source());
+        return new ServerHelloDoneMessage(metadata.version(), metadata.source());
     }
 
     @Override

@@ -46,36 +46,37 @@ public record ServerHelloMessage(
 
         var cipherId = readBigEndianInt16(buffer);
 
-        var compressionMethodId = readBigEndianInt8(buffer);
+        var compressionId = readBigEndianInt8(buffer);
 
         var extensionTypeToDecoder = context.getNegotiableValue(TlsProperty.clientExtensions())
                 .orElseThrow(() -> TlsAlert.noNegotiableProperty(TlsProperty.clientExtensions()))
                 .stream()
-                .collect(Collectors.toUnmodifiableMap(TlsExtension::extensionType, TlsExtension::negotiationDecoder));
+                .collect(Collectors.toUnmodifiableMap(TlsExtension::extensionType, TlsExtension::deserializer));
         var extensions = new ArrayList<TlsConfiguredServerExtension>();
-        if (buffer.remaining() >= INT16_LENGTH) {
-            var extensionsLength = readBigEndianInt16(buffer);
-            try (var _ = scopedRead(buffer, extensionsLength)) {
-                while (buffer.hasRemaining()) {
-                    var extensionType = readBigEndianInt16(buffer);
-                    var extensionLength = readBigEndianInt16(buffer);
-                    if (extensionLength == 0) {
-                        continue;
-                    }
+        var extensionsLength = buffer.remaining() >= INT16_LENGTH ? readBigEndianInt16(buffer) : 0;
+        try (var _ = scopedRead(buffer, extensionsLength)) {
+            while (buffer.hasRemaining()) {
+                var extensionType = readBigEndianInt16(buffer);
+                var extensionLength = readBigEndianInt16(buffer);
+                if (extensionLength == 0) {
+                    continue;
+                }
 
-                    var extensionDecoder = extensionTypeToDecoder.get(extensionType);
-                    if (extensionDecoder == null) {
-                        throw new TlsAlert("Unknown extension");
-                    }
+                var extensionDecoder = extensionTypeToDecoder.get(extensionType);
+                if (extensionDecoder == null) {
+                    throw new TlsAlert("Unknown extension");
+                }
 
-                    try (var _ = scopedRead(buffer, extensionLength)) {
-                        extensionDecoder.deserialize(context, extensionType, buffer)
-                                .ifPresent(extensions::add);
+                try (var _ = scopedRead(buffer, extensionLength)) {
+                    var deserialized = extensionDecoder.deserialize(context, extensionType, buffer)
+                            .orElse(null);
+                    if (deserialized instanceof TlsConfiguredServerExtension clientExtension) {
+                        extensions.add(clientExtension);
                     }
                 }
             }
         }
-        return new ServerHelloMessage(tlsVersion, metadata.source(), serverRandom, sessionId, cipherId, extensions, compressionMethodId);
+        return new ServerHelloMessage(tlsVersion, metadata.source(), serverRandom, sessionId, cipherId, compressionId, extensions, extensionsLength);
     }
 
     @Override

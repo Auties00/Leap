@@ -7,7 +7,6 @@ import it.auties.leap.tls.context.TlsContextMode;
 import it.auties.leap.tls.context.TlsSource;
 import it.auties.leap.tls.extension.TlsConfiguredClientExtension;
 import it.auties.leap.tls.extension.TlsExtension;
-import it.auties.leap.tls.extension.TlsExtensionState;
 import it.auties.leap.tls.message.TlsHandshakeMessage;
 import it.auties.leap.tls.message.TlsMessageContentType;
 import it.auties.leap.tls.message.TlsMessageMetadata;
@@ -39,14 +38,6 @@ public record ClientHelloMessage(
     private static final int RANDOM_COOKIE_LENGTH = 32;
 
     public ClientHelloMessage {
-        if(version == null) {
-            throw new TlsAlert("Invalid version");
-        }
-
-        if(source == null) {
-            throw new TlsAlert("Invalid source");
-        }
-
         if(randomData == null || randomData.length != CLIENT_RANDOM_LENGTH) {
             throw new TlsAlert("Invalid random data length");
         }
@@ -99,7 +90,7 @@ public record ClientHelloMessage(
             }
         }
         var extensions = new ArrayList<TlsConfiguredClientExtension>();
-        var extensionsLength = readBigEndianInt16(buffer);
+        var extensionsLength = buffer.remaining() >= INT16_LENGTH ? readBigEndianInt16(buffer) : 0;
         try (var _ = scopedRead(buffer, extensionsLength)) {
             var extensionTypeToDecoder = context.getNegotiableValue(TlsProperty.clientExtensions())
                     .orElseThrow(() -> TlsAlert.noNegotiableProperty(TlsProperty.clientExtensions()))
@@ -117,8 +108,13 @@ public record ClientHelloMessage(
                     continue;
                 }
 
-                extensionDecoder.deserialize(context, extensionType, buffer)
-                        .ifPresent(extensions::add);
+                try(var _ = scopedRead(buffer, extensionLength)) {
+                    var deserialized = extensionDecoder.deserialize(context, extensionType, buffer)
+                            .orElse(null);
+                    if (deserialized instanceof TlsConfiguredClientExtension clientExtension) {
+                        extensions.add(clientExtension);
+                    }
+                }
             }
         }
         return new ClientHelloMessage(tlsVersion, metadata.source(), clientRandom, sessionId, cookie, ciphers, compressions, extensions, extensionsLength);
@@ -168,8 +164,12 @@ public record ClientHelloMessage(
 
     @Override
     public int handshakePayloadLength() {
-        var messagePayloadNoExtensionsLength = getMessagePayloadLength(cookie, ciphers.size(), compressions.size());
-        return messagePayloadNoExtensionsLength
+        return INT16_LENGTH
+                + CLIENT_RANDOM_LENGTH
+                + INT8_LENGTH + SESSION_ID_LENGTH
+                + (cookie != null ? INT8_LENGTH + RANDOM_COOKIE_LENGTH : 0)
+                + INT16_LENGTH + ciphers.size() * INT16_LENGTH
+                + INT8_LENGTH + compressions.size() * INT8_LENGTH
                 + INT16_LENGTH + extensionsLength;
     }
 
@@ -178,14 +178,5 @@ public record ClientHelloMessage(
         if (source == TlsSource.LOCAL) {
             tlsContext.setSelectedMode(TlsContextMode.CLIENT);
         }
-    }
-
-    public static int getMessagePayloadLength(byte[] cookie, int ciphers, int compressions) {
-        return INT16_LENGTH
-                + CLIENT_RANDOM_LENGTH
-                + INT8_LENGTH + SESSION_ID_LENGTH
-                + (cookie != null ? INT8_LENGTH + RANDOM_COOKIE_LENGTH : 0)
-                + INT16_LENGTH + ciphers * INT16_LENGTH
-                + INT8_LENGTH + compressions * INT8_LENGTH;
     }
 }

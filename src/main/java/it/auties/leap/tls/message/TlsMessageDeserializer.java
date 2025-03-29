@@ -25,7 +25,7 @@ public interface TlsMessageDeserializer {
 
     static TlsMessageDeserializer builtin() {
         return (context, buffer, metadata) -> {
-            try (var _ = scopedRead(buffer, metadata.messageLength())) {
+            try (var _ = scopedRead(buffer, metadata.length())) {
                 return switch (metadata.contentType()) {
                     case HANDSHAKE -> {
                         var id = readBigEndianInt8(buffer);
@@ -41,8 +41,8 @@ public interface TlsMessageDeserializer {
                                             CertificateMessage.Server.of(context, buffer, metadata);
                                     case ServerKeyExchangeMessage.ID ->
                                             ServerKeyExchangeMessage.of(context, buffer, metadata);
-                                    case HelloDoneMessage.Server.ID ->
-                                            HelloDoneMessage.Server.of(context, buffer, metadata);
+                                    case ServerHelloDoneMessage.Server.ID ->
+                                            ServerHelloDoneMessage.Server.of(context, buffer, metadata);
                                     case CertificateRequestMessage.Server.ID ->
                                             CertificateRequestMessage.Server.of(context, buffer, metadata);
                                     case FinishedMessage.Server.ID ->

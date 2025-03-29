@@ -11,18 +11,18 @@ import it.auties.leap.tls.version.TlsVersion;
 import java.net.URI;
 import java.nio.ByteBuffer;
 
-public record HelloDoneMessage(
+public record ServerHelloDoneMessage(
         TlsVersion version,
         TlsSource source
 ) implements TlsHandshakeMessage {
     private static final byte ID = 0x0E;
 
-    public static HelloDoneMessage of(ByteBuffer buffer, TlsMessageMetadata metadata) {
+    public static ServerHelloDoneMessage of(ByteBuffer buffer, TlsMessageMetadata metadata) {
         if(buffer.hasRemaining()) {
             throw new TlsAlert("Expected server hello done message to have an empty payload", URI.create("https://datatracker.ietf.org/doc/html/rfc5246"), "7.4.5");
         }
 
-        return new HelloDoneMessage(metadata.version(), metadata.source());
+        return new ServerHelloDoneMessage(metadata.version(), metadata.source());
     }
 
     @Override

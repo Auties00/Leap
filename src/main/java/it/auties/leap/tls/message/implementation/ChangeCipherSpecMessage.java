@@ -17,9 +17,8 @@ public record ChangeCipherSpecMessage(
     public static final int ID = 0x01;
 
     public static ChangeCipherSpecMessage of(ByteBuffer buffer, TlsMessageMetadata metadata) {
-        var messageId = readBigEndianInt8(buffer);
-        if(messageId != ID) {
-            throw new TlsAlert("Cannot decode TLS message, invalid change cipher spec message id: " + messageId);
+        if(buffer.hasRemaining()) {
+            throw new TlsAlert("Expected change cipher spec message to have an empty payload");
         }
 
         return new ChangeCipherSpecMessage(metadata.version(), metadata.source());

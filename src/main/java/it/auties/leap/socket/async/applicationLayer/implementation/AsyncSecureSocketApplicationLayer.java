@@ -281,7 +281,7 @@ public class AsyncSecureSocketApplicationLayer extends AsyncSocketApplicationLay
     }
 
     private CompletableFuture<Void> decodeMessage(TlsMessageMetadata metadata) {
-        var buffer = readBuffer(metadata.messageLength());
+        var buffer = readBuffer(metadata.length());
         return transportLayer.readFully(buffer)
                 .thenCompose(_ -> decodeMessage(metadata, buffer));
     }
