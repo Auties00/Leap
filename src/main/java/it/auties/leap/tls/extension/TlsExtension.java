@@ -1,20 +1,20 @@
 package it.auties.leap.tls.extension;
 
 import it.auties.leap.tls.ec.TlsECPointFormat;
-import it.auties.leap.tls.extension.implementation.alpn.ALPNExtension;
-import it.auties.leap.tls.extension.implementation.ecPointFormat.ECPointFormatExtension;
-import it.auties.leap.tls.extension.implementation.encryptThenMac.EncryptThenMacExtension;
-import it.auties.leap.tls.extension.implementation.extendedMasterSecret.ExtendedMasterSecretExtension;
-import it.auties.leap.tls.extension.implementation.keyShare.KeyShareConfigurableExtension;
-import it.auties.leap.tls.extension.implementation.npn.NPNClientExtension;
-import it.auties.leap.tls.extension.implementation.npn.NPNServerExtension;
-import it.auties.leap.tls.extension.implementation.padding.PaddingExtension;
-import it.auties.leap.tls.extension.implementation.postHandshakeAuth.PostHandshakeAuthExtension;
-import it.auties.leap.tls.extension.implementation.pskExchangeModes.PSKExchangeModesExtension;
-import it.auties.leap.tls.extension.implementation.signatureAlgorithms.SignatureAlgorithmsExtension;
-import it.auties.leap.tls.extension.implementation.sni.SNIConfigurableExtension;
-import it.auties.leap.tls.extension.implementation.supportedGroups.SupportedGroupsExtension;
-import it.auties.leap.tls.extension.implementation.supportedVersions.SupportedVersionsConfigurableExtension;
+import it.auties.leap.tls.extension.implementation.ALPNExtension;
+import it.auties.leap.tls.extension.implementation.ECPointFormatExtension;
+import it.auties.leap.tls.extension.implementation.EncryptThenMacExtension;
+import it.auties.leap.tls.extension.implementation.ExtendedMasterSecretExtension;
+import it.auties.leap.tls.extension.implementation.KeyShareExtension;
+import it.auties.leap.tls.extension.implementation.NPNClientExtension;
+import it.auties.leap.tls.extension.implementation.NPNServerExtension;
+import it.auties.leap.tls.extension.implementation.PaddingExtension;
+import it.auties.leap.tls.extension.implementation.PostHandshakeAuthExtension;
+import it.auties.leap.tls.extension.implementation.PSKExchangeModesExtension;
+import it.auties.leap.tls.extension.implementation.SignatureAlgorithmsExtension;
+import it.auties.leap.tls.extension.implementation.SNIConfigurableExtension;
+import it.auties.leap.tls.extension.implementation.SupportedGroupsExtension;
+import it.auties.leap.tls.extension.implementation.SupportedVersionsExtension;
 import it.auties.leap.tls.group.TlsSupportedGroup;
 import it.auties.leap.tls.name.TlsNameType;
 import it.auties.leap.tls.psk.TlsPSKExchangeMode;
@@ -187,7 +187,7 @@ public sealed interface TlsExtension permits TlsClientExtension, TlsServerExtens
     }
 
     static TlsExtension supportedVersions() {
-        return SupportedVersionsConfigurableExtension.instance();
+        return SupportedVersionsExtension.instance();
     }
 
     static TlsExtension alpn(List<String> supportedProtocols) {
@@ -227,7 +227,7 @@ public sealed interface TlsExtension permits TlsClientExtension, TlsServerExtens
     }
 
     static TlsExtension keyShare() {
-        return KeyShareConfigurableExtension.instance();
+        return KeyShareExtension.instance();
     }
 
     static List<TlsExtension> required(List<TlsVersion> versions) {

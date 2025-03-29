@@ -1,20 +1,26 @@
-package it.auties.leap.tls.extension.implementation.padding;
+package it.auties.leap.tls.extension.implementation;
 
 import it.auties.leap.tls.alert.TlsAlert;
 import it.auties.leap.tls.context.TlsContext;
 import it.auties.leap.tls.context.TlsSource;
-import it.auties.leap.tls.extension.TlsConfiguredClientExtension;
-import it.auties.leap.tls.extension.TlsConfiguredServerExtension;
-import it.auties.leap.tls.extension.TlsExtensionDependencies;
-import it.auties.leap.tls.extension.TlsExtensionDeserializer;
+import it.auties.leap.tls.extension.*;
 import it.auties.leap.tls.version.TlsVersion;
 
 import java.nio.ByteBuffer;
 import java.util.List;
+import java.util.Optional;
+
+import static it.auties.leap.tls.util.BufferUtils.readBigEndianInt8;
 
 public record PaddingExtension(
         int length
 ) implements TlsConfiguredClientExtension, TlsConfiguredServerExtension {
+    private static final TlsExtensionDeserializer DESERIALIZER = (_, _, buffer) -> {
+        var padding = readBigEndianInt8(buffer);
+        var extension = new PaddingExtension(padding);
+        return Optional.of(extension);
+    };
+
     public PaddingExtension {
         if(length < 0) {
             throw new TlsAlert("Invalid negative padding length");
@@ -50,7 +56,7 @@ public record PaddingExtension(
 
     @Override
     public TlsExtensionDeserializer deserializer() {
-        return PaddingExtensionDeserializer.INSTANCE;
+        return DESERIALIZER;
     }
 
     @Override

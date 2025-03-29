@@ -1,26 +1,52 @@
-package it.auties.leap.tls.extension.implementation.supportedGroups;
+package it.auties.leap.tls.extension.implementation;
 
+import it.auties.leap.tls.alert.TlsAlert;
 import it.auties.leap.tls.context.TlsContext;
+import it.auties.leap.tls.context.TlsContextMode;
 import it.auties.leap.tls.context.TlsSource;
-import it.auties.leap.tls.extension.TlsConfiguredClientExtension;
-import it.auties.leap.tls.extension.TlsConfiguredServerExtension;
-import it.auties.leap.tls.extension.TlsExtensionDependencies;
-import it.auties.leap.tls.extension.TlsExtensionDeserializer;
+import it.auties.leap.tls.extension.*;
 import it.auties.leap.tls.group.TlsSupportedEllipticCurve;
 import it.auties.leap.tls.group.TlsSupportedFiniteField;
 import it.auties.leap.tls.group.TlsSupportedGroup;
+import it.auties.leap.tls.property.TlsIdentifiableProperty;
 import it.auties.leap.tls.property.TlsProperty;
 import it.auties.leap.tls.version.TlsVersion;
 
 import java.nio.ByteBuffer;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
-import static it.auties.leap.tls.util.BufferUtils.INT16_LENGTH;
-import static it.auties.leap.tls.util.BufferUtils.writeBigEndianInt16;
+import static it.auties.leap.tls.util.BufferUtils.*;
+import static it.auties.leap.tls.util.BufferUtils.readBigEndianInt16;
 
 public record SupportedGroupsExtension(
         List<TlsSupportedGroup> groups
 ) implements TlsConfiguredClientExtension, TlsConfiguredServerExtension {
+    private static final TlsExtensionDeserializer DESERIALIZER = (context, _, buffer) -> {
+        var groupsSize = readBigEndianInt16(buffer);
+        var groups = new ArrayList<TlsSupportedGroup>(groupsSize);
+        var knownGroups = context.getNegotiableValue(TlsProperty.supportedGroups())
+                .orElseThrow(() -> TlsAlert.noNegotiableProperty(TlsProperty.ecPointsFormats()))
+                .stream()
+                .collect(Collectors.toUnmodifiableMap(TlsIdentifiableProperty::id, Function.identity()));
+        var mode = context.selectedMode()
+                .orElseThrow(TlsAlert::noModeSelected);
+        for (var i = 0; i < groupsSize; i++) {
+            var groupId = readBigEndianInt16(buffer);
+            var group = knownGroups.get(groupId);
+            if(group != null) {
+                groups.add(group);
+            }else if(mode == TlsContextMode.CLIENT) {
+                throw new TlsAlert("Remote tried to negotiate a supported group that wasn't advertised");
+            }
+        }
+        var extension = new SupportedGroupsExtension(groups);
+        return Optional.of(extension);
+    };
+
     private static final SupportedGroupsExtension RECOMMENDED = new SupportedGroupsExtension(List.of(
             TlsSupportedEllipticCurve.x25519(),
             TlsSupportedEllipticCurve.x448(),
@@ -69,7 +95,7 @@ public record SupportedGroupsExtension(
 
     @Override
     public TlsExtensionDeserializer deserializer() {
-        return SupportedGroupsExtensionDeserializer.INSTANCE;
+        return DESERIALIZER;
     }
 
     @Override

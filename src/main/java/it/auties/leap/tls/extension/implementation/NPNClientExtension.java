@@ -1,4 +1,4 @@
-package it.auties.leap.tls.extension.implementation.npn;
+package it.auties.leap.tls.extension.implementation;
 
 import it.auties.leap.tls.context.TlsContext;
 import it.auties.leap.tls.context.TlsSource;

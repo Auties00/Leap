@@ -1,5 +1,6 @@
-package it.auties.leap.tls.extension.implementation.extendedMasterSecret;
+package it.auties.leap.tls.extension.implementation;
 
+import it.auties.leap.tls.alert.TlsAlert;
 import it.auties.leap.tls.context.TlsContext;
 import it.auties.leap.tls.context.TlsSource;
 import it.auties.leap.tls.extension.*;
@@ -8,13 +9,21 @@ import it.auties.leap.tls.version.TlsVersion;
 
 import java.nio.ByteBuffer;
 import java.util.List;
+import java.util.Optional;
 
-public record ExtendedMasterSecretExtension(
+public record PostHandshakeAuthExtension(
 
 ) implements TlsConfiguredClientExtension, TlsConfiguredServerExtension {
-    static final ExtendedMasterSecretExtension INSTANCE = new ExtendedMasterSecretExtension();
+    private static final TlsExtensionDeserializer DESERIALIZER = (_, _, buffer) -> {
+        if(buffer.hasRemaining()) {
+            throw new TlsAlert("Unexpected extension payload");
+        }
 
-    public static TlsExtension instance() {
+        return Optional.of(PostHandshakeAuthExtension.INSTANCE);
+    };
+    private static final PostHandshakeAuthExtension INSTANCE = new PostHandshakeAuthExtension();
+
+    public static PostHandshakeAuthExtension instance() {
         return INSTANCE;
     }
 
@@ -31,24 +40,24 @@ public record ExtendedMasterSecretExtension(
     @Override
     public void apply(TlsContext context, TlsSource source) {
         switch (source) {
-            case LOCAL -> context.addNegotiableProperty(TlsProperty.extendedMasterSecret(), true);
-            case REMOTE -> context.addNegotiatedProperty(TlsProperty.extendedMasterSecret(), true);
+            case LOCAL -> context.addNegotiableProperty(TlsProperty.postHandshakeAuth(), true);
+            case REMOTE -> context.addNegotiatedProperty(TlsProperty.postHandshakeAuth(), true);
         }
     }
 
     @Override
     public int extensionType() {
-        return EXTENDED_MASTER_SECRET_TYPE;
+        return POST_HANDSHAKE_AUTH_TYPE;
     }
 
     @Override
     public List<TlsVersion> versions() {
-        return EXTENDED_MASTER_SECRET_VERSIONS;
+        return POST_HANDSHAKE_AUTH_VERSIONS;
     }
 
     @Override
     public TlsExtensionDeserializer deserializer() {
-        return ExtendedMasterSecretExtensionDeserializer.INSTANCE;
+        return DESERIALIZER;
     }
 
     @Override

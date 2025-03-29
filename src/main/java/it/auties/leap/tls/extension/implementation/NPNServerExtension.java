@@ -1,47 +1,51 @@
-package it.auties.leap.tls.extension.implementation.grease;
+package it.auties.leap.tls.extension.implementation;
 
 import it.auties.leap.tls.context.TlsContext;
 import it.auties.leap.tls.context.TlsSource;
-import it.auties.leap.tls.extension.TlsConfiguredClientExtension;
 import it.auties.leap.tls.extension.TlsConfiguredServerExtension;
 import it.auties.leap.tls.extension.TlsExtensionDependencies;
 import it.auties.leap.tls.extension.TlsExtensionDeserializer;
+import it.auties.leap.tls.property.TlsProperty;
 import it.auties.leap.tls.version.TlsVersion;
 
 import java.nio.ByteBuffer;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 
-import static it.auties.leap.tls.util.BufferUtils.writeBytes;
+import static it.auties.leap.tls.util.BufferUtils.INT8_LENGTH;
+import static it.auties.leap.tls.util.BufferUtils.writeBytesBigEndian8;
 
-public record GREASEExtension(
-        int extensionType,
-        byte[] data
-) implements TlsConfiguredClientExtension, TlsConfiguredServerExtension {
+public record NPNServerExtension(
+        String selectedProtocol
+) implements TlsConfiguredServerExtension {
     @Override
     public void serializePayload(ByteBuffer buffer) {
-        if(data != null) {
-            writeBytes(buffer, data);
-        }
+        writeBytesBigEndian8(buffer, selectedProtocol.getBytes(StandardCharsets.US_ASCII));
     }
 
     @Override
     public int payloadLength() {
-        return 0;
+        return INT8_LENGTH + selectedProtocol.length();
     }
 
     @Override
     public void apply(TlsContext context, TlsSource source) {
+        context.addNegotiatedProperty(TlsProperty.applicationProtocols(), List.of(selectedProtocol));
+    }
 
+    @Override
+    public int extensionType() {
+        return NEXT_PROTOCOL_NEGOTIATION_TYPE;
     }
 
     @Override
     public List<TlsVersion> versions() {
-        return GREASE_VERSIONS;
+        return NEXT_PROTOCOL_NEGOTIATION_VERSIONS;
     }
 
     @Override
     public TlsExtensionDeserializer deserializer() {
-        return GREASEExtensionDeserializer.INSTANCE;
+        return NPNExtensionDeserializer.INSTANCE;
     }
 
     @Override
