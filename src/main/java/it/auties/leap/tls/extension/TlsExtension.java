@@ -10,7 +10,7 @@ import it.auties.leap.tls.version.TlsVersion;
 
 import java.util.List;
 
-public sealed interface TlsExtension permits TlsClientExtension, TlsServerExtension {
+public sealed interface TlsExtension {
     List<TlsVersion> TLS_UNTIL_12 = List.of(TlsVersion.TLS10, TlsVersion.TLS11, TlsVersion.TLS12);
     List<TlsVersion> TLS_UNTIL_13 = List.of(TlsVersion.TLS10, TlsVersion.TLS11, TlsVersion.TLS12, TlsVersion.TLS13);
     List<TlsVersion> DTLS_UNTIL_12 = List.of(TlsVersion.TLS10, TlsVersion.TLS11, TlsVersion.TLS12, TlsVersion.DTLS10, TlsVersion.DTLS12);
@@ -149,92 +149,104 @@ public sealed interface TlsExtension permits TlsClientExtension, TlsServerExtens
     int ENCRYPTED_CLIENT_HELLO_TYPE = 65037;
     int RENEGOTIATION_INFO_TYPE = 65281;
 
-    static TlsExtension extendedMasterSecret() {
+    static Configured.Agnostic extendedMasterSecret() {
         return ExtendedMasterSecretExtension.instance();
     }
 
-    static TlsExtension encryptThenMac() {
+    static Configured.Agnostic encryptThenMac() {
         return EncryptThenMacExtension.instance();
     }
 
-    static TlsExtension postHandshakeAuth() {
+    static Configured.Agnostic postHandshakeAuth() {
         return PostHandshakeAuthExtension.instance();
     }
 
-    static TlsExtension nextProtocolNegotiation() {
+    static Configured.Client nextProtocolNegotiation() {
         return NPNClientExtension.instance();
     }
 
-    static TlsExtension nextProtocolNegotiation(String selectedProtocol) {
+    static Configured.Server nextProtocolNegotiation(String selectedProtocol) {
         return new NPNServerExtension(selectedProtocol);
     }
 
-    static TlsExtension serverNameIndication(TlsNameType nameType) {
+    static Configurable serverNameIndication(TlsNameType nameType) {
         return new SNIConfigurableExtension(nameType);
     }
 
-    static TlsExtension supportedVersions() {
+    static Configurable supportedVersions() {
         return SupportedVersionsExtension.instance();
     }
 
-    static TlsExtension alpn(List<String> supportedProtocols) {
+    static Configured.Agnostic alpn(List<String> supportedProtocols) {
         return new ALPNExtension(supportedProtocols);
     }
 
-    static TlsExtension padding(int targetLength) {
+    static Configured.Agnostic padding(int targetLength) {
         return new PaddingExtension(targetLength);
     }
 
-    static TlsExtension ecPointFormats() {
+    static Configured.Agnostic ecPointFormats() {
         return ECPointFormatExtension.all();
     }
 
-    static TlsExtension ecPointFormats(List<TlsECPointFormat> formats) {
+    static Configured.Agnostic ecPointFormats(List<TlsECPointFormat> formats) {
         return new ECPointFormatExtension(formats);
     }
 
-    static TlsExtension supportedGroups() {
+    static Configured.Agnostic supportedGroups() {
         return SupportedGroupsExtension.recommended();
     }
 
-    static TlsExtension supportedGroups(List<TlsSupportedGroup> groups) {
+    static Configured.Agnostic supportedGroups(List<TlsSupportedGroup> groups) {
         return new SupportedGroupsExtension(groups);
     }
 
-    static TlsExtension signatureAlgorithms() {
+    static Configured.Agnostic signatureAlgorithms() {
         return SignatureAlgorithmsExtension.recommended();
     }
 
-    static TlsExtension signatureAlgorithms(List<TlsSignature> algorithms) {
+    static Configured.Agnostic signatureAlgorithms(List<TlsSignature> algorithms) {
         return new SignatureAlgorithmsExtension(algorithms);
     }
 
-    static TlsExtension pskExchangeModes(List<TlsPSKExchangeMode> modes) {
+    static Configured.Agnostic pskExchangeModes(List<TlsPSKExchangeMode> modes) {
         return new PSKExchangeModesExtension(modes);
     }
 
-    static TlsExtension keyShare() {
+    static Configurable keyShare() {
         return KeyShareExtension.instance();
     }
 
-    static TlsExtension grease(int type, byte[] data) {
+    static Configured.Agnostic grease(int type, byte[] data) {
         return new GREASEExtension(type, data);
     }
 
-    static TlsExtension grease(int type) {
+    static Configured.Agnostic grease(int type) {
         return new GREASEExtension(type, null);
-    }
-
-    static List<TlsExtension> required(List<TlsVersion> versions) {
-        if(!versions.contains(TlsVersion.TLS13) && !versions.contains(TlsVersion.DTLS13)) {
-            return List.of();
-        }
-
-        return List.of(supportedVersions(), keyShare(), signatureAlgorithms());
     }
 
     int extensionType();
     List<TlsVersion> versions();
-    TlsExtensionDeserializer deserializer();
     TlsExtensionDependencies dependencies();
+
+    sealed interface Configured extends TlsExtension, TlsExtensionState.Configured {
+        TlsExtensionDeserializer<? extends TlsExtension.Configured.Client> clientDeserializer();
+        TlsExtensionDeserializer<? extends TlsExtension.Configured.Server> serverDeserializer();
+
+        non-sealed interface Client extends TlsExtension.Configured, TlsExtensionOwner.Client {
+
+        }
+
+        non-sealed interface Server extends TlsExtension.Configured, TlsExtensionOwner.Server {
+
+        }
+
+        non-sealed interface Agnostic extends TlsExtension.Configured, TlsExtensionOwner.Agnostic  {
+
+        }
+    }
+
+    non-sealed interface Configurable extends TlsExtension, TlsExtensionOwner.Agnostic, TlsExtensionState.Configurable {
+
+    }
 }

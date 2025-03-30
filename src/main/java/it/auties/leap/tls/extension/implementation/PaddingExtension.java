@@ -14,8 +14,8 @@ import static it.auties.leap.tls.util.BufferUtils.readBigEndianInt8;
 
 public record PaddingExtension(
         int length
-) implements TlsConfiguredClientExtension, TlsConfiguredServerExtension {
-    private static final TlsExtensionDeserializer DESERIALIZER = (_, _, buffer) -> {
+) implements TlsExtension.Configured.Agnostic {
+    private static final TlsExtensionDeserializer<TlsExtension.Configured.Agnostic> DESERIALIZER = (_, _, buffer) -> {
         var padding = readBigEndianInt8(buffer);
         var extension = new PaddingExtension(padding);
         return Optional.of(extension);
@@ -54,10 +54,16 @@ public record PaddingExtension(
         return PADDING_VERSIONS;
     }
 
-    @Override
-    public TlsExtensionDeserializer deserializer() {
+   @Override
+    public TlsExtensionDeserializer<? extends TlsExtension.Configured.Client> clientDeserializer() {
         return DESERIALIZER;
     }
+
+    @Override
+    public TlsExtensionDeserializer<? extends TlsExtension.Configured.Server> serverDeserializer() {
+        return DESERIALIZER;
+    }
+
 
     @Override
     public TlsExtensionDependencies dependencies() {

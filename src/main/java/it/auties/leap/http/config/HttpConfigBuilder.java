@@ -6,6 +6,7 @@ import it.auties.leap.tls.context.TlsContext;
 import it.auties.leap.tls.cipher.TlsCipher;
 import it.auties.leap.tls.compression.TlsCompression;
 import it.auties.leap.tls.extension.TlsExtension;
+import it.auties.leap.tls.name.TlsNameType;
 import it.auties.leap.tls.psk.TlsPSKExchangeMode;
 import it.auties.leap.tls.version.TlsVersion;
 
@@ -54,7 +55,7 @@ public final class HttpConfigBuilder {
                 TlsCipher.rsaWithAes128CbcSha()
         );
         var extensions = List.of(
-                TlsExtension.serverNameIndication(),
+                TlsExtension.serverNameIndication(TlsNameType.HOST_NAME),
                 TlsExtension.ecPointFormats(),
                 TlsExtension.supportedGroups(),
                 TlsExtension.nextProtocolNegotiation(),
@@ -71,7 +72,7 @@ public final class HttpConfigBuilder {
         var compressions = List.of(
                 TlsCompression.none()
         );
-        DEFAULT_TLS_CONTEXT = TlsContext.newBuilder(SocketProtocol.TCP)
+        DEFAULT_TLS_CONTEXT = TlsContext.newClientBuilder()
                 .versions(List.of(TlsVersion.TLS12))
                 .ciphers(ciphers)
                 .extensions(extensions)

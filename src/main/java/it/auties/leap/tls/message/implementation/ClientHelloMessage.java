@@ -3,9 +3,7 @@ package it.auties.leap.tls.message.implementation;
 import it.auties.leap.socket.SocketProtocol;
 import it.auties.leap.tls.alert.TlsAlert;
 import it.auties.leap.tls.context.TlsContext;
-import it.auties.leap.tls.context.TlsContextMode;
 import it.auties.leap.tls.context.TlsSource;
-import it.auties.leap.tls.extension.TlsConfiguredClientExtension;
 import it.auties.leap.tls.extension.TlsExtension;
 import it.auties.leap.tls.message.TlsHandshakeMessage;
 import it.auties.leap.tls.message.TlsMessageContentType;
@@ -29,7 +27,7 @@ public record ClientHelloMessage(
         byte[] cookie,
         List<Integer> ciphers,
         List<Byte> compressions,
-        List<TlsConfiguredClientExtension> extensions,
+        List<TlsExtension.Configured.Client> extensions,
         int extensionsLength
 ) implements TlsHandshakeMessage {
     public static final int ID = 0x01;
@@ -89,13 +87,13 @@ public record ClientHelloMessage(
                 compressions.add(compressionId);
             }
         }
-        var extensions = new ArrayList<TlsConfiguredClientExtension>();
+        var extensions = new ArrayList<TlsExtension.Configured.Client>();
         var extensionsLength = buffer.remaining() >= INT16_LENGTH ? readBigEndianInt16(buffer) : 0;
         try (var _ = scopedRead(buffer, extensionsLength)) {
-            var extensionTypeToDecoder = context.getNegotiableValue(TlsProperty.clientExtensions())
+            var extensionTypeToDecoder = context.getNegotiatedValue(TlsProperty.clientExtensions())
                     .orElseThrow(() -> TlsAlert.noNegotiableProperty(TlsProperty.clientExtensions()))
                     .stream()
-                    .collect(Collectors.toUnmodifiableMap(TlsExtension::extensionType, TlsExtension::deserializer));
+                    .collect(Collectors.toUnmodifiableMap(TlsExtension::extensionType, TlsExtension.Configured.Client::clientDeserializer));
             while (buffer.hasRemaining()) {
                 var extensionType = readBigEndianInt16(buffer);
                 var extensionDecoder = extensionTypeToDecoder.get(extensionType);
@@ -109,11 +107,8 @@ public record ClientHelloMessage(
                 }
 
                 try(var _ = scopedRead(buffer, extensionLength)) {
-                    var deserialized = extensionDecoder.deserialize(context, extensionType, buffer)
-                            .orElse(null);
-                    if (deserialized instanceof TlsConfiguredClientExtension clientExtension) {
-                        extensions.add(clientExtension);
-                    }
+                    extensionDecoder.deserialize(context, extensionType, buffer)
+                            .ifPresent(extensions::add);
                 }
             }
         }
@@ -175,8 +170,6 @@ public record ClientHelloMessage(
 
     @Override
     public void apply(TlsContext tlsContext) {
-        if (source == TlsSource.LOCAL) {
-            tlsContext.setSelectedMode(TlsContextMode.CLIENT);
-        }
+
     }
 }

@@ -35,7 +35,7 @@ public sealed abstract class ContextualKeyExchange implements TlsKeyExchange {
 
         private TlsContextMode getMode(TlsContext context) {
             return context.selectedMode()
-                    .orElseThrow(TlsAlert::noModeSelected);
+                    ;
         }
 
         @Override

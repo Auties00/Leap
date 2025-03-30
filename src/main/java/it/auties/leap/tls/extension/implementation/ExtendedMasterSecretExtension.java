@@ -13,8 +13,8 @@ import java.util.Optional;
 
 public record ExtendedMasterSecretExtension(
 
-) implements TlsConfiguredClientExtension, TlsConfiguredServerExtension {
-    private static final TlsExtensionDeserializer DESERIALIZER = (_, _, buffer) -> {
+) implements TlsExtension.Configured.Agnostic {
+    private static final TlsExtensionDeserializer<TlsExtension.Configured.Agnostic> DESERIALIZER = (_, _, buffer) -> {
         if (buffer.hasRemaining()) {
             throw new TlsAlert("Unexpected extension payload");
         }
@@ -24,7 +24,7 @@ public record ExtendedMasterSecretExtension(
 
     static final ExtendedMasterSecretExtension INSTANCE = new ExtendedMasterSecretExtension();
 
-    public static TlsExtension instance() {
+    public static TlsExtension.Configured.Agnostic instance() {
         return INSTANCE;
     }
 
@@ -56,8 +56,13 @@ public record ExtendedMasterSecretExtension(
         return EXTENDED_MASTER_SECRET_VERSIONS;
     }
 
+   @Override
+    public TlsExtensionDeserializer<? extends TlsExtension.Configured.Client> clientDeserializer() {
+        return DESERIALIZER;
+    }
+
     @Override
-    public TlsExtensionDeserializer deserializer() {
+    public TlsExtensionDeserializer<? extends TlsExtension.Configured.Server> serverDeserializer() {
         return DESERIALIZER;
     }
 

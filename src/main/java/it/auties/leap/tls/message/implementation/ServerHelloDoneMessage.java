@@ -15,7 +15,7 @@ public record ServerHelloDoneMessage(
         TlsVersion version,
         TlsSource source
 ) implements TlsHandshakeMessage {
-    private static final byte ID = 0x0E;
+    public static final byte ID = 0x0E;
 
     public static ServerHelloDoneMessage of(ByteBuffer buffer, TlsMessageMetadata metadata) {
         if(buffer.hasRemaining()) {

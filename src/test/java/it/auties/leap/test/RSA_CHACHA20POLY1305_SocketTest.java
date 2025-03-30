@@ -8,6 +8,7 @@ import it.auties.leap.tls.cipher.TlsCipher;
 import it.auties.leap.tls.compression.TlsCompression;
 import it.auties.leap.tls.context.TlsContext;
 import it.auties.leap.tls.extension.TlsExtension;
+import it.auties.leap.tls.name.TlsNameType;
 import it.auties.leap.tls.psk.TlsPSKExchangeMode;
 import it.auties.leap.tls.version.TlsVersion;
 
@@ -24,7 +25,7 @@ public class RSA_CHACHA20POLY1305_SocketTest {
                 TlsCipher.rsaWithAes128CbcSha256()
         );
         var extensions = List.of(
-                TlsExtension.serverNameIndication(),
+                TlsExtension.serverNameIndication(TlsNameType.HOST_NAME),
                 TlsExtension.ecPointFormats(),
                 TlsExtension.supportedGroups(),
                 TlsExtension.nextProtocolNegotiation(),
@@ -40,7 +41,7 @@ public class RSA_CHACHA20POLY1305_SocketTest {
         var compressions = List.of(
                 TlsCompression.none()
         );
-        var tlsConfig = TlsContext.newBuilder(SocketProtocol.TCP)
+        var tlsConfig = TlsContext.newClientBuilder()
                 .versions(List.of(TlsVersion.TLS12))
                 .ciphers(ciphers)
                 .extensions(extensions)

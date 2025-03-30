@@ -18,45 +18,7 @@ import java.util.stream.Collectors;
 
 import static it.auties.leap.tls.util.BufferUtils.*;
 
-public final class SupportedVersionsExtension implements TlsConfigurableClientExtension {
-    private static final TlsExtensionDeserializer DESERIALIZER = (context, _, buffer) -> {
-        var mode = context.selectedMode()
-                .orElseThrow(TlsAlert::noModeSelected);
-        return switch (mode) {
-            case CLIENT -> {
-                var major = readBigEndianInt8(buffer);
-                var minor = readBigEndianInt8(buffer);
-                var versionId = TlsVersionId.of(major, minor);
-                var supportedVersions = context.getNegotiatedValue(TlsProperty.version())
-                        .stream()
-                        .collect(Collectors.toUnmodifiableMap(TlsVersion::id, Function.identity()));
-                var supportedVersion = supportedVersions.get(versionId);
-                if(supportedVersion == null) {
-                    throw new TlsAlert("Remote tried to negotiate a version that wasn't advertised");
-                }
-
-                var extension = new ConfiguredServer(supportedVersion);
-                yield Optional.of(extension);
-            }
-
-            case SERVER -> {
-                var payloadSize = readBigEndianInt8(buffer);
-                var versions = new ArrayList<TlsVersionId>();
-                try (var _ = scopedRead(buffer, payloadSize)) {
-                    var versionsSize = payloadSize / INT16_LENGTH;
-                    for (var i = 0; i < versionsSize; i++) {
-                        var major = readBigEndianInt8(buffer);
-                        var minor = readBigEndianInt8(buffer);
-                        var versionId = TlsVersionId.of(major, minor);
-                        versions.add(versionId);
-                    }
-                }
-                var extension = new ConfiguredClient(versions);
-                yield Optional.of(extension);
-            }
-        };
-    };
-
+public final class SupportedVersionsExtension implements TlsExtension.Configurable {
     private static final SupportedVersionsExtension INSTANCE = new SupportedVersionsExtension();
 
     private SupportedVersionsExtension() {
@@ -78,14 +40,8 @@ public final class SupportedVersionsExtension implements TlsConfigurableClientEx
     }
 
     @Override
-    public TlsExtensionDeserializer deserializer() {
-        return DESERIALIZER;
-    }
-
-    @Override
-    public Optional<? extends TlsConfiguredExtension> configure(TlsContext context, int messageLength) {
-        var mode = context.selectedMode()
-                .orElseThrow(TlsAlert::noModeSelected);
+    public Optional<? extends TlsExtensionState.Configured> configure(TlsContext context, int messageLength) {
+        var mode = context.selectedMode();
         return switch (mode) {
             case CLIENT -> {
                 var supportedVersions = new ArrayList<TlsVersionId>();
@@ -123,7 +79,23 @@ public final class SupportedVersionsExtension implements TlsConfigurableClientEx
 
     private record ConfiguredClient(
             List<TlsVersionId> supportedVersions
-    ) implements TlsConfiguredClientExtension {
+    ) implements TlsExtension.Configured.Client {
+        private static final TlsExtensionDeserializer<TlsExtension.Configured.Server> DESERIALIZER = (context, _, buffer) -> {
+            var major = readBigEndianInt8(buffer);
+            var minor = readBigEndianInt8(buffer);
+            var versionId = TlsVersionId.of(major, minor);
+            var supportedVersions = context.getNegotiatedValue(TlsProperty.version())
+                    .stream()
+                    .collect(Collectors.toUnmodifiableMap(TlsVersion::id, Function.identity()));
+            var supportedVersion = supportedVersions.get(versionId);
+            if(supportedVersion == null) {
+                throw new TlsAlert("Remote tried to negotiate a version that wasn't advertised");
+            }
+
+            var extension = new ConfiguredServer(supportedVersion);
+            return Optional.of(extension);
+        };
+
         @Override
         public void serializePayload(ByteBuffer buffer) {
             var payloadSize = supportedVersions.size() * INT16_LENGTH;
@@ -155,7 +127,7 @@ public final class SupportedVersionsExtension implements TlsConfigurableClientEx
         }
 
         @Override
-        public TlsExtensionDeserializer deserializer() {
+        public TlsExtensionDeserializer<TlsExtension.Configured.Server> deserializer() {
             return DESERIALIZER;
         }
 
@@ -167,7 +139,23 @@ public final class SupportedVersionsExtension implements TlsConfigurableClientEx
 
     private record ConfiguredServer(
             TlsVersion version
-    ) implements TlsConfiguredServerExtension {
+    ) implements TlsExtension.Configured.Server {
+        private static final TlsExtensionDeserializer<TlsExtension.Configured.Client> DESERIALIZER = (context, _, buffer) -> {
+            var payloadSize = readBigEndianInt8(buffer);
+            var versions = new ArrayList<TlsVersionId>();
+            try (var _ = scopedRead(buffer, payloadSize)) {
+                var versionsSize = payloadSize / INT16_LENGTH;
+                for (var i = 0; i < versionsSize; i++) {
+                    var major = readBigEndianInt8(buffer);
+                    var minor = readBigEndianInt8(buffer);
+                    var versionId = TlsVersionId.of(major, minor);
+                    versions.add(versionId);
+                }
+            }
+            var extension = new ConfiguredClient(versions);
+            return Optional.of(extension);
+        };
+
         @Override
         public void serializePayload(ByteBuffer buffer) {
             writeBigEndianInt8(buffer, version.id().major());
@@ -190,7 +178,7 @@ public final class SupportedVersionsExtension implements TlsConfigurableClientEx
         }
 
         @Override
-        public TlsExtensionDeserializer deserializer() {
+        public TlsExtensionDeserializer<TlsExtension.Configured.Client> deserializer() {
             return DESERIALIZER;
         }
 

@@ -16,35 +16,14 @@ import static it.auties.leap.tls.util.BufferUtils.*;
 
 public record SNIConfigurableExtension(
         TlsNameType nameType
-) implements TlsConfigurableClientExtension, TlsConfigurableServerExtension {
-    private static final TlsExtensionDeserializer DESERIALIZER = (_, _, buffer) -> {
-        var listLength = readBigEndianInt16(buffer);
-        if(listLength == 0) {
-            return Optional.empty();
-        }
-
-        try(var _ = scopedRead(buffer, listLength)) {
-            var nameTypeId = readBigEndianInt8(buffer);
-            var nameType = TlsNameType.of(nameTypeId);
-            if(nameType.isEmpty()) {
-                return Optional.empty();
-            }
-
-            var nameBytes = readBytesBigEndian16(buffer);
-            // TODO: Check if name matches local
-            var extension = new Configured(nameBytes, nameType.get());
-            return Optional.of(extension);
-        }
-    };
-
-
+) implements TlsExtension.Configurable {
     @Override
     public TlsExtensionDependencies dependencies() {
         return TlsExtensionDependencies.none();
     }
 
     @Override
-    public Optional<? extends TlsConfiguredExtension> configure(TlsContext context, int messageLength) {
+    public Optional<? extends TlsExtension.Configured.Agnostic> configure(TlsContext context, int messageLength) {
         return switch (nameType) {
             case HOST_NAME -> {
                 var hostname = context.address()
@@ -70,15 +49,31 @@ public record SNIConfigurableExtension(
         return SERVER_NAME_VERSIONS;
     }
 
-    @Override
-    public TlsExtensionDeserializer deserializer() {
-        return DESERIALIZER;
-    }
-
     private record Configured(
             byte[] name,
             TlsNameType nameType
-    ) implements TlsConfiguredClientExtension, TlsConfiguredServerExtension {
+    ) implements TlsExtension.Configured.Agnostic {
+        private static final TlsExtensionDeserializer<TlsExtension.Configured.Agnostic> DESERIALIZER = (_, _, buffer) -> {
+            var listLength = readBigEndianInt16(buffer);
+            if(listLength == 0) {
+                return Optional.empty();
+            }
+
+            try(var _ = scopedRead(buffer, listLength)) {
+                var nameTypeId = readBigEndianInt8(buffer);
+                var nameType = TlsNameType.of(nameTypeId);
+                if(nameType.isEmpty()) {
+                    return Optional.empty();
+                }
+
+                var nameBytes = readBytesBigEndian16(buffer);
+                // TODO: Check if name matches local
+                var extension = new SNIConfigurableExtension.Configured(nameBytes, nameType.get());
+                return Optional.of(extension);
+            }
+        };
+
+
         @Override
         public void serializePayload(ByteBuffer buffer) {
             writeBigEndianInt16(buffer, INT8_LENGTH + INT16_LENGTH + name.length);
@@ -107,7 +102,7 @@ public record SNIConfigurableExtension(
         }
 
         @Override
-        public TlsExtensionDeserializer deserializer() {
+        public TlsExtensionDeserializer<TlsExtension.Configured.Agnostic> deserializer() {
             return DESERIALIZER;
         }
 

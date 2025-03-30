@@ -26,16 +26,15 @@ import static it.auties.leap.tls.util.BufferUtils.readBigEndianInt16;
 
 public record SignatureAlgorithmsExtension(
         List<TlsSignature> algorithms
-) implements TlsConfiguredClientExtension, TlsConfiguredServerExtension {
-    private static final TlsExtensionDeserializer DESERIALIZER = (context, _, buffer) -> {
+) implements TlsExtension.Configured.Agnostic {
+    private static final TlsExtensionDeserializer<TlsExtension.Configured.Agnostic> DESERIALIZER = (context, _, buffer) -> {
         var algorithmsSize = readBigEndianInt16(buffer);
         var algorithms = new ArrayList<TlsSignature>(algorithmsSize);
         var knownAlgorithms = context.getNegotiableValue(TlsProperty.signatureAlgorithms())
                 .orElseThrow(() -> TlsAlert.noNegotiableProperty(TlsProperty.signatureAlgorithms()))
                 .stream()
                 .collect(Collectors.toUnmodifiableMap(TlsIdentifiableProperty::id, Function.identity()));
-        var mode = context.selectedMode()
-                .orElseThrow(TlsAlert::noModeSelected);
+        var mode = context.selectedMode();
         for (var i = 0; i < algorithmsSize; i++) {
             var algorithmId = readBigEndianInt16(buffer);
             var algorithm = knownAlgorithms.get(algorithmId);
@@ -107,10 +106,16 @@ public record SignatureAlgorithmsExtension(
         return SIGNATURE_ALGORITHMS_VERSIONS;
     }
 
-    @Override
-    public TlsExtensionDeserializer deserializer() {
+   @Override
+    public TlsExtensionDeserializer<? extends TlsExtension.Configured.Client> clientDeserializer() {
         return DESERIALIZER;
     }
+
+    @Override
+    public TlsExtensionDeserializer<? extends TlsExtension.Configured.Server> serverDeserializer() {
+        return DESERIALIZER;
+    }
+
 
     @Override
     public TlsExtensionDependencies dependencies() {

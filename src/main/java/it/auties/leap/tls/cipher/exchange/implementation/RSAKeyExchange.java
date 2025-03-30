@@ -19,7 +19,7 @@ public sealed abstract class RSAKeyExchange implements TlsKeyExchange {
         @Override
         public TlsKeyExchange newLocalKeyExchange(TlsContext context) {
             var mode = context.selectedMode()
-                    .orElseThrow(TlsAlert::noModeSelected);
+                    ;
             if (mode == TlsContextMode.SERVER) {
                 throw new TlsAlert("Unsupported RSA key exchange");
             }
@@ -32,7 +32,7 @@ public sealed abstract class RSAKeyExchange implements TlsKeyExchange {
         @Override
         public TlsKeyExchange decodeRemoteKeyExchange(TlsContext context, ByteBuffer buffer) {
             var mode = context.selectedMode()
-                    .orElseThrow(TlsAlert::noModeSelected);
+                    ;
             if (mode == TlsContextMode.SERVER) {
                 throw new TlsAlert("Unsupported RSA key exchange");
             }

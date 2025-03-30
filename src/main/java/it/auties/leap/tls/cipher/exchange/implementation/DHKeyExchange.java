@@ -157,7 +157,7 @@ public abstract sealed class DHKeyExchange implements TlsKeyExchange {
     private record DHKeyExchangeFactory(TlsKeyExchangeType type) implements TlsKeyExchangeFactory {
         @Override
         public TlsKeyExchange newLocalKeyExchange(TlsContext context) {
-            return switch (context.selectedMode().orElseThrow(TlsAlert::noModeSelected)) {
+            return switch (context.selectedMode()) {
                 case CLIENT -> newClientKeyExchange(context);
                 case SERVER -> newServerKeyExchange(context);
             };
@@ -223,7 +223,7 @@ public abstract sealed class DHKeyExchange implements TlsKeyExchange {
 
         @Override
         public TlsKeyExchange decodeRemoteKeyExchange(TlsContext context, ByteBuffer buffer) {
-            return switch (context.selectedMode().orElseThrow(TlsAlert::noModeSelected)) {
+            return switch (context.selectedMode()) {
                 case SERVER -> {
                     var localPublicKey = context.localConnectionState()
                             .publicKey()

@@ -82,7 +82,7 @@ public sealed abstract class ConnectionIntegrityDelegate {
         @Override
         public byte[] finish(TlsContext context, TlsSource source) {
             var mode = context.selectedMode()
-                    .orElseThrow(TlsAlert::noModeSelected);
+                    ;
             var masterSecret = context.masterSecretKey()
                     .orElseThrow(() -> new TlsAlert("Master secret key is not available yet"));
             var useClientLabel = useClientLabel(source, mode);
@@ -154,7 +154,7 @@ public sealed abstract class ConnectionIntegrityDelegate {
         @Override
         public byte[] finish(TlsContext context, TlsSource source) {
             var mode = context.selectedMode()
-                    .orElseThrow(TlsAlert::noModeSelected);
+                    ;
             var masterSecret = context.masterSecretKey()
                     .orElseThrow(() -> new TlsAlert("Master secret key is not available yet"));
             var useClientLabel = useClientLabel(source, mode);
@@ -202,7 +202,7 @@ public sealed abstract class ConnectionIntegrityDelegate {
         @Override
         public byte[] finish(TlsContext context, TlsSource source) {
             var mode = context.selectedMode()
-                    .orElseThrow(TlsAlert::noModeSelected);
+                    ;
             var masterSecret = context.masterSecretKey()
                     .orElseThrow(() -> new TlsAlert("Master secret key is not available yet"));
             var useClientLabel = useClientLabel(source, mode);

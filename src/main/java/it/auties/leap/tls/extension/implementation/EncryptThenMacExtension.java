@@ -3,10 +3,9 @@ package it.auties.leap.tls.extension.implementation;
 import it.auties.leap.tls.alert.TlsAlert;
 import it.auties.leap.tls.context.TlsContext;
 import it.auties.leap.tls.context.TlsSource;
-import it.auties.leap.tls.extension.TlsConfiguredClientExtension;
-import it.auties.leap.tls.extension.TlsConfiguredServerExtension;
 import it.auties.leap.tls.extension.TlsExtensionDependencies;
 import it.auties.leap.tls.extension.TlsExtensionDeserializer;
+import it.auties.leap.tls.extension.TlsExtension;
 import it.auties.leap.tls.property.TlsProperty;
 import it.auties.leap.tls.version.TlsVersion;
 
@@ -16,8 +15,8 @@ import java.util.Optional;
 
 public record EncryptThenMacExtension(
 
-) implements TlsConfiguredClientExtension, TlsConfiguredServerExtension {
-    private static final TlsExtensionDeserializer DESERIALIZER = (_, _, buffer) -> {
+) implements TlsExtension.Configured.Agnostic {
+    private static final TlsExtensionDeserializer<TlsExtension.Configured.Agnostic> DESERIALIZER = (_, _, buffer) -> {
         if (buffer.hasRemaining()) {
             throw new TlsAlert("Unexpected extension payload");
         }
@@ -60,7 +59,12 @@ public record EncryptThenMacExtension(
     }
 
     @Override
-    public TlsExtensionDeserializer deserializer() {
+    public TlsExtensionDeserializer<? extends TlsExtension.Configured.Client> clientDeserializer() {
+        return DESERIALIZER;
+    }
+
+    @Override
+    public TlsExtensionDeserializer<? extends TlsExtension.Configured.Server> serverDeserializer() {
         return DESERIALIZER;
     }
 

@@ -64,8 +64,7 @@ public record CertificateMessage(
 
     @Override
     public void apply(TlsContext context) {
-        var mode = context.selectedMode()
-                .orElseThrow(TlsAlert::noModeSelected);
+        var mode = context.selectedMode();
         if((mode == TlsContextMode.CLIENT && source == TlsSource.LOCAL) || (mode == TlsContextMode.SERVER && source == TlsSource.REMOTE)) {
             switch (mode) {
                 case CLIENT -> context.localConnectionState()

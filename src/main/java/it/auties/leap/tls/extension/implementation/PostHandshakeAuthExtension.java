@@ -13,8 +13,8 @@ import java.util.Optional;
 
 public record PostHandshakeAuthExtension(
 
-) implements TlsConfiguredClientExtension, TlsConfiguredServerExtension {
-    private static final TlsExtensionDeserializer DESERIALIZER = (_, _, buffer) -> {
+) implements TlsExtension.Configured.Agnostic {
+    private static final TlsExtensionDeserializer<TlsExtension.Configured.Agnostic> DESERIALIZER = (_, _, buffer) -> {
         if(buffer.hasRemaining()) {
             throw new TlsAlert("Unexpected extension payload");
         }
@@ -55,10 +55,16 @@ public record PostHandshakeAuthExtension(
         return POST_HANDSHAKE_AUTH_VERSIONS;
     }
 
-    @Override
-    public TlsExtensionDeserializer deserializer() {
+   @Override
+    public TlsExtensionDeserializer<? extends TlsExtension.Configured.Client> clientDeserializer() {
         return DESERIALIZER;
     }
+
+    @Override
+    public TlsExtensionDeserializer<? extends TlsExtension.Configured.Server> serverDeserializer() {
+        return DESERIALIZER;
+    }
+
 
     @Override
     public TlsExtensionDependencies dependencies() {

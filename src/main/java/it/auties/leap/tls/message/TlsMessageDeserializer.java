@@ -26,51 +26,42 @@ public interface TlsMessageDeserializer {
     static TlsMessageDeserializer builtin() {
         return (context, buffer, metadata) -> {
             try (var _ = scopedRead(buffer, metadata.length())) {
-                return switch (metadata.contentType()) {
+                return Optional.ofNullable(switch (metadata.contentType()) {
                     case HANDSHAKE -> {
                         var id = readBigEndianInt8(buffer);
                         var messageLength = readBigEndianInt24(buffer);
                         try (var _ = scopedRead(buffer, messageLength)) {
-                            yield Optional.ofNullable(switch (context.selectedMode().orElse(null)) {
-                                case CLIENT -> switch (id) {
-                                    case HelloRequestMessage.Server.ID ->
-                                            HelloRequestMessage.Server.of(context, buffer, metadata);
-                                    case ServerHelloMessage.ID ->
-                                            ServerHelloMessage.of(context, buffer, metadata);
-                                    case CertificateMessage.Server.ID ->
-                                            CertificateMessage.Server.of(context, buffer, metadata);
-                                    case ServerKeyExchangeMessage.ID ->
-                                            ServerKeyExchangeMessage.of(context, buffer, metadata);
-                                    case ServerHelloDoneMessage.Server.ID ->
-                                            ServerHelloDoneMessage.Server.of(context, buffer, metadata);
-                                    case CertificateRequestMessage.Server.ID ->
-                                            CertificateRequestMessage.Server.of(context, buffer, metadata);
-                                    case FinishedMessage.Server.ID ->
-                                            FinishedMessage.Server.of(context, buffer, metadata);
-                                    default -> null;
-                                };
-                                case SERVER -> switch (id) {
-                                    case ClientHelloMessage.ID ->
-                                            ClientHelloMessage.of(context, buffer, metadata);
-                                    case CertificateMessage.Client.ID ->
-                                            CertificateMessage.Client.of(context, buffer, metadata);
-                                    case ClientKeyExchangeMessage.ID ->
-                                            ClientKeyExchangeMessage.of(context, buffer, metadata);
-                                    case FinishedMessage.Client.ID ->
-                                            FinishedMessage.Client.of(context, buffer, metadata);
-                                    default -> null;
-                                };
-                                case null -> null;
-                            });
+                            yield switch (id) {
+                                case HelloRequestMessage.ID ->
+                                        HelloRequestMessage.of(buffer, metadata);
+                                case ServerHelloMessage.ID ->
+                                        ServerHelloMessage.of(context, buffer, metadata);
+                                case CertificateMessage.ID ->
+                                        CertificateMessage.of(buffer, metadata);
+                                case ServerKeyExchangeMessage.ID ->
+                                        ServerKeyExchangeMessage.of(context, buffer, metadata);
+                                case ServerHelloDoneMessage.ID ->
+                                        ServerHelloDoneMessage.of(buffer, metadata);
+                                case CertificateRequestMessage.ID ->
+                                        CertificateRequestMessage.of(buffer, metadata);
+                                case FinishedMessage.ID ->
+                                        FinishedMessage.of(buffer, metadata);
+                                case ClientHelloMessage.ID ->
+                                        ClientHelloMessage.of(context, buffer, metadata);
+                                case ClientKeyExchangeMessage.ID ->
+                                        ClientKeyExchangeMessage.of(context, buffer, metadata);
+                                default ->
+                                        null;
+                            };
                         }
                     }
                     case CHANGE_CIPHER_SPEC ->
-                            Optional.of(ChangeCipherSpecMessage.of(context, buffer, metadata));
+                            ChangeCipherSpecMessage.of(buffer, metadata);
                     case ALERT ->
-                            Optional.of(AlertMessage.of(buffer, metadata));
+                            AlertMessage.of(buffer, metadata);
                     case APPLICATION_DATA ->
-                            Optional.of(ApplicationDataMessage.of(buffer, metadata));
-                };
+                            ApplicationDataMessage.of(buffer, metadata);
+                });
             }
         };
     }

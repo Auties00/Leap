@@ -2,10 +2,9 @@ package it.auties.leap.tls.extension.implementation;
 
 import it.auties.leap.tls.context.TlsContext;
 import it.auties.leap.tls.context.TlsSource;
-import it.auties.leap.tls.extension.TlsConfiguredClientExtension;
-import it.auties.leap.tls.extension.TlsConfiguredServerExtension;
 import it.auties.leap.tls.extension.TlsExtensionDependencies;
 import it.auties.leap.tls.extension.TlsExtensionDeserializer;
+import it.auties.leap.tls.extension.TlsExtension;
 import it.auties.leap.tls.version.TlsVersion;
 
 import java.nio.ByteBuffer;
@@ -18,8 +17,8 @@ import static it.auties.leap.tls.util.BufferUtils.writeBytes;
 public record GREASEExtension(
         int extensionType,
         byte[] data
-) implements TlsConfiguredClientExtension, TlsConfiguredServerExtension {
-    private static final TlsExtensionDeserializer DESERIALIZER = (_, type, buffer) -> {
+) implements TlsExtension.Configured.Agnostic {
+    private static final TlsExtensionDeserializer<TlsExtension.Configured.Agnostic> DESERIALIZER = (_, type, buffer) -> {
         var payload = buffer.hasRemaining() ? readBytes(buffer, buffer.remaining()) : null;
         var extension = new GREASEExtension(type, payload);
         return Optional.of(extension);
@@ -47,10 +46,16 @@ public record GREASEExtension(
         return GREASE_VERSIONS;
     }
 
-    @Override
-    public TlsExtensionDeserializer deserializer() {
+   @Override
+    public TlsExtensionDeserializer<? extends TlsExtension.Configured.Client> clientDeserializer() {
         return DESERIALIZER;
     }
+
+    @Override
+    public TlsExtensionDeserializer<? extends TlsExtension.Configured.Server> serverDeserializer() {
+        return DESERIALIZER;
+    }
+
 
     @Override
     public TlsExtensionDependencies dependencies() {

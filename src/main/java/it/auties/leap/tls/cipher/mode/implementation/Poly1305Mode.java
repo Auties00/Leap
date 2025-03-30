@@ -84,7 +84,7 @@ public class Poly1305Mode extends TlsCipherMode.Stream {
             reset(true);
 
             byte[] aad = authenticator.createAuthenticationBlock(
-                    message.contentType().type(), input.remaining(), null);
+                    message.contentType().id(), input.remaining(), null);
             processAADBytes(aad, 0, aad.length);
             System.out.println("IV: " + java.util.Arrays.toString(nonce));
             System.out.println("AAD: " + java.util.Arrays.toString(aad));
@@ -115,7 +115,7 @@ public class Poly1305Mode extends TlsCipherMode.Stream {
         reset(true);
 
         // update the additional authentication data
-        byte[] aad = authenticator.createAuthenticationBlock(metadata.contentType().type(), input.remaining() - tagLength(), null);
+        byte[] aad = authenticator.createAuthenticationBlock(metadata.contentType().id(), input.remaining() - tagLength(), null);
         processAADBytes(aad, 0, aad.length);
 
         var result  = processBytes(input.array(), input.position(), input.remaining(), output.array(), output.position());

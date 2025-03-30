@@ -3,9 +3,7 @@ package it.auties.leap.tls.message.implementation;
 import it.auties.leap.tls.alert.TlsAlert;
 import it.auties.leap.tls.connection.TlsConnection;
 import it.auties.leap.tls.context.TlsContext;
-import it.auties.leap.tls.context.TlsContextMode;
 import it.auties.leap.tls.context.TlsSource;
-import it.auties.leap.tls.extension.TlsConfiguredServerExtension;
 import it.auties.leap.tls.extension.TlsExtension;
 import it.auties.leap.tls.message.TlsHandshakeMessage;
 import it.auties.leap.tls.message.TlsMessageContentType;
@@ -27,7 +25,7 @@ public record ServerHelloMessage(
         byte[] sessionId,
         int cipher,
         byte compression,
-        List<TlsConfiguredServerExtension> extensions,
+        List<? extends TlsExtension.Configured.Server> extensions,
         int extensionsLength
 ) implements TlsHandshakeMessage {
     private static final int SERVER_RANDOM_LENGTH = 32;
@@ -48,11 +46,11 @@ public record ServerHelloMessage(
 
         var compressionId = readBigEndianInt8(buffer);
 
-        var extensionTypeToDecoder = context.getNegotiableValue(TlsProperty.clientExtensions())
-                .orElseThrow(() -> TlsAlert.noNegotiableProperty(TlsProperty.clientExtensions()))
+        var extensionTypeToDecoder = context.getNegotiatedValue(TlsProperty.serverExtensions())
+                .orElseThrow(() -> TlsAlert.noNegotiableProperty(TlsProperty.serverExtensions()))
                 .stream()
-                .collect(Collectors.toUnmodifiableMap(TlsExtension::extensionType, TlsExtension::deserializer));
-        var extensions = new ArrayList<TlsConfiguredServerExtension>();
+                .collect(Collectors.toUnmodifiableMap(TlsExtension::extensionType, TlsExtension.Configured.Server::serverDeserializer));
+        var extensions = new ArrayList<TlsExtension.Configured.Server>();
         var extensionsLength = buffer.remaining() >= INT16_LENGTH ? readBigEndianInt16(buffer) : 0;
         try (var _ = scopedRead(buffer, extensionsLength)) {
             while (buffer.hasRemaining()) {
@@ -68,11 +66,8 @@ public record ServerHelloMessage(
                 }
 
                 try (var _ = scopedRead(buffer, extensionLength)) {
-                    var deserialized = extensionDecoder.deserialize(context, extensionType, buffer)
-                            .orElse(null);
-                    if (deserialized instanceof TlsConfiguredServerExtension clientExtension) {
-                        extensions.add(clientExtension);
-                    }
+                    extensionDecoder.deserialize(context, extensionType, buffer)
+                            .ifPresent(extensions::add);
                 }
             }
         }
@@ -96,10 +91,6 @@ public record ServerHelloMessage(
 
     @Override
     public void apply(TlsContext context) {
-        if (source == TlsSource.LOCAL) {
-            context.setSelectedMode(TlsContextMode.SERVER);
-        }
-
         var credentials = TlsConnection.of(randomData, sessionId, null);
         context.setRemoteConnectionState(credentials);
 

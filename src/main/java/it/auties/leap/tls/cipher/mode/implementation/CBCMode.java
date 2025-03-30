@@ -54,7 +54,7 @@ public final class CBCMode extends TlsCipherMode.Block {
     private void tls11Encrypt(TlsContext context, TlsMessage message, ByteBuffer output) {
         var input = output.duplicate();
         message.serialize(input);
-        addMac(input, message.contentType().type());
+        addMac(input, message.contentType().id());
         var nonce = new byte[engine().blockLength()];
         random.nextBytes(nonce);
         System.out.println("IV: " + Arrays.toString(nonce));
@@ -86,7 +86,7 @@ public final class CBCMode extends TlsCipherMode.Block {
             throw new TlsAlert("Unexpected number of ciphered bytes");
         }
         removePadding(output);
-        checkCbcMac(output, metadata.contentType().type(), null);
+        checkCbcMac(output, metadata.contentType().id(), null);
         return output;
     }
 

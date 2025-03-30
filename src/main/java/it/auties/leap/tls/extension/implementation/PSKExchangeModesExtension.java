@@ -22,16 +22,15 @@ import static it.auties.leap.tls.util.BufferUtils.readBigEndianInt8;
 
 public record PSKExchangeModesExtension(
         List<TlsPSKExchangeMode> modes
-) implements TlsConfiguredClientExtension, TlsConfiguredServerExtension {
-    private static final TlsExtensionDeserializer DESERIALIZER = (context, _, buffer) -> {
+) implements TlsExtension.Configured.Agnostic {
+    private static final TlsExtensionDeserializer<TlsExtension.Configured.Agnostic> DESERIALIZER = (context, _, buffer) -> {
         var modesSize = readBigEndianInt16(buffer);
         var modes = new ArrayList<TlsPSKExchangeMode>(modesSize);
         var knownModes = context.getNegotiableValue(TlsProperty.pskExchangeModes())
                 .orElseThrow(() -> TlsAlert.noNegotiableProperty(TlsProperty.pskExchangeModes()))
                 .stream()
                 .collect(Collectors.toUnmodifiableMap(TlsIdentifiableProperty::id, Function.identity()));
-        var mode = context.selectedMode()
-                .orElseThrow(TlsAlert::noModeSelected);
+        var mode = context.selectedMode();
         for(var i = 0; i < modesSize; i++) {
             var pskModeId = readBigEndianInt8(buffer);
             var pskMode = knownModes.get(pskModeId);
@@ -76,10 +75,16 @@ public record PSKExchangeModesExtension(
         return PSK_KEY_EXCHANGE_MODES_VERSIONS;
     }
 
-    @Override
-    public TlsExtensionDeserializer deserializer() {
+   @Override
+    public TlsExtensionDeserializer<? extends TlsExtension.Configured.Client> clientDeserializer() {
         return DESERIALIZER;
     }
+
+    @Override
+    public TlsExtensionDeserializer<? extends TlsExtension.Configured.Server> serverDeserializer() {
+        return DESERIALIZER;
+    }
+
 
     @Override
     public TlsExtensionDependencies dependencies() {

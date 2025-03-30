@@ -12,6 +12,7 @@ import it.auties.leap.tls.compression.TlsCompression;
 import it.auties.leap.tls.connection.TlsConnection;
 import it.auties.leap.tls.context.TlsContext;
 import it.auties.leap.tls.context.TlsSource;
+import it.auties.leap.tls.extension.*;
 import it.auties.leap.tls.message.TlsMessage;
 import it.auties.leap.tls.message.TlsMessageMetadata;
 import it.auties.leap.tls.message.implementation.*;
@@ -21,7 +22,9 @@ import it.auties.leap.tls.version.TlsVersion;
 import java.io.IOException;
 import java.nio.BufferUnderflowException;
 import java.nio.ByteBuffer;
+import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 
@@ -95,8 +98,82 @@ public class AsyncSecureSocketApplicationLayer extends AsyncSocketApplicationLay
         var availableCompressionsIds = availableCompressions.stream()
                 .map(TlsCompression::id)
                 .toList();
-        var extensions = tlsContext.extensionsInitializer()
-                .process(tlsContext);
+        var extensions = tlsContext.getNegotiableValue(TlsProperty.clientExtensions())
+                .orElseThrow(() -> TlsAlert.noNegotiableProperty(TlsProperty.clientExtensions()));
+        var supportedVersions = tlsContext.getNegotiableValue(TlsProperty.version())
+                .map(HashSet::new)
+                .orElseThrow(() -> TlsAlert.noNegotiableProperty(TlsProperty.version()));
+
+        var dependenciesTree = new LinkedHashMap<Integer, TlsExtension>();
+        for (var extension : extensions) {
+            if (supportedVersions.stream().anyMatch(version -> extension.versions().contains(version))) {
+                var conflict = dependenciesTree.put(extension.extensionType(), extension);
+                if (conflict != null) {
+                    throw new IllegalArgumentException("Extension with type %s defined by <%s> conflicts with an extension processed previously with type %s defined by <%s>".formatted(
+                            extension.extensionType(),
+                            extension.getClass().getName(),
+                            extension.extensionType(),
+                            conflict.getClass().getName()
+                    ));
+                }
+            }
+        }
+
+        var results = new ArrayList<TlsExtensionState.TlsConfiguredClientExtension>(dependenciesTree.size());
+        var length = 0;
+        var deferred = new ArrayList<TlsExtensionState.Configurable>();
+        while (!dependenciesTree.isEmpty()) {
+            var entry = dependenciesTree.pollFirstEntry();
+            var extension = entry.getValue();
+            switch (extension) {
+                case TlsExtensionState.TlsConfiguredClientExtension concrete -> results.add(concrete);
+                case TlsConfigurableClientExtension configurableExtension -> {
+                    switch (configurableExtension.dependencies()) {
+                        case TlsExtensionDependencies.None _ -> {
+                            var result = configurableExtension.configure(tlsContext, length)
+                                    .orElse(null);
+                            if(result instanceof TlsExtensionState.TlsConfiguredClientExtension clientExtension) {
+                                results.add(clientExtension);
+                                length += clientExtension.length();
+                            }
+                        }
+
+                        case TlsExtensionDependencies.Some some -> {
+                            var conflict = false;
+                            for(var dependency : some.includedTypes()) {
+                                if(dependenciesTree.containsKey(dependency)) {
+                                    conflict = true;
+                                    break;
+                                }
+                            }
+                            if(conflict) {
+                                dependenciesTree.putLast(entry.getKey(), entry.getValue());
+                            }else {
+                                var result = configurableExtension.configure(tlsContext, length)
+                                        .orElse(null);
+                                if(result instanceof TlsExtensionState.TlsConfiguredClientExtension clientExtension) {
+                                    results.add(clientExtension);
+                                    length += clientExtension.length();
+                                }
+                            }
+                        }
+
+                        case TlsExtensionDependencies.All _ -> deferred.add(configurableExtension);
+                    }
+                }
+                case TlsExtension.Server _ -> {}
+            }
+        }
+
+        for(var configurableExtension : deferred) {
+            var result = configurableExtension.configure(tlsContext, length)
+                    .orElse(null);
+            if(result instanceof TlsExtensionState.TlsConfiguredClientExtension clientExtension) {
+                results.add(clientExtension);
+                length += clientExtension.length();
+            }
+        }
+
         var helloMessage = new ClientHelloMessage(
                 legacyVersion,
                 TlsSource.LOCAL,
@@ -105,8 +182,8 @@ public class AsyncSecureSocketApplicationLayer extends AsyncSocketApplicationLay
                 tlsContext.localConnectionState().dtlsCookie().orElse(null),
                 availableCiphersIds,
                 availableCompressionsIds,
-                extensions.content(),
-                extensions.length()
+                results,
+                length
         );
         var helloBuffer = writeBuffer();
         helloMessage.serializeWithRecord(helloBuffer);
@@ -129,7 +206,7 @@ public class AsyncSecureSocketApplicationLayer extends AsyncSocketApplicationLay
 
         var version = tlsContext.getNegotiatedValue(TlsProperty.version())
                 .orElseThrow(() -> TlsAlert.noNegotiatedProperty(TlsProperty.version()));
-        var certificatesMessage = new CertificateMessage.Client(
+        var certificatesMessage = new CertificateMessage(
                 version,
                 TlsSource.LOCAL,
                 certificatesProvider.get(tlsContext)
@@ -166,7 +243,7 @@ public class AsyncSecureSocketApplicationLayer extends AsyncSocketApplicationLay
 
         var version = tlsContext.getNegotiatedValue(TlsProperty.version())
                 .orElseThrow(() -> TlsAlert.noNegotiatedProperty(TlsProperty.version()));
-        var clientVerifyCertificate = new CertificateVerifyMessage.Client(
+        var clientVerifyCertificate = new CertificateVerifyMessage(
                 version,
                 TlsSource.LOCAL
         );
@@ -180,7 +257,7 @@ public class AsyncSecureSocketApplicationLayer extends AsyncSocketApplicationLay
     private CompletableFuture<Void> sendClientChangeCipherAndFinish() {
         var version = tlsContext.getNegotiatedValue(TlsProperty.version())
                 .orElseThrow(() -> TlsAlert.noNegotiatedProperty(TlsProperty.version()));
-        var changeCipherSpec = new ChangeCipherSpecMessage.Client(
+        var changeCipherSpec = new ChangeCipherSpecMessage(
                 version,
                 TlsSource.LOCAL
         );
@@ -188,7 +265,7 @@ public class AsyncSecureSocketApplicationLayer extends AsyncSocketApplicationLay
         changeCipherSpec.serializeWithRecord(changeCipherSpecBuffer);
         return write(changeCipherSpecBuffer).thenCompose(_ -> {
             var handshakeHash = getHandshakeVerificationData(TlsSource.LOCAL);
-            var finishedMessage = new FinishedMessage.Client(
+            var finishedMessage = new FinishedMessage(
                     version,
                     TlsSource.LOCAL,
                     handshakeHash

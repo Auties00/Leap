@@ -31,8 +31,7 @@ public final class StandardConnectionInitializer implements TlsConnectionInitial
 
     @Override
     public void initialize(TlsContext context) {
-        var mode = context.selectedMode()
-                .orElseThrow(TlsAlert::noModeSelected);
+        var mode = context.selectedMode();
 
         var localConnectionState = context.localConnectionState();
         var remoteConnectionState = context.remoteConnectionState()

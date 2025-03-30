@@ -38,10 +38,6 @@ public class TlsAlert extends RuntimeException {
         throw new TlsAlert("Missing negotiated property: " + property.id());
     }
 
-    public static TlsAlert noModeSelected() {
-       return new TlsAlert("No mode was selected");
-    }
-
     public static TlsAlert noRemoteConnectionState() {
         return new TlsAlert("No remote connection state was created");
     }

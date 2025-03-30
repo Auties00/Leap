@@ -21,16 +21,15 @@ import static it.auties.leap.tls.util.BufferUtils.*;
 
 public record ECPointFormatExtension(
         List<TlsECPointFormat> supportedFormats
-) implements TlsConfiguredClientExtension, TlsConfiguredServerExtension  {
-    private static final TlsExtensionDeserializer DESERIALIZER = (context, _, buffer) -> {
+) implements TlsExtension.Configured.Agnostic {
+    private static final TlsExtensionDeserializer<TlsExtension.Configured.Agnostic> DESERIALIZER = (context, _, buffer) -> {
         var ecPointFormatsLength = readBigEndianInt8(buffer);
         var ecPointFormats = new ArrayList<TlsECPointFormat>();
         var knownFormats = context.getNegotiableValue(TlsProperty.ecPointsFormats())
                 .orElseThrow(() -> TlsAlert.noNegotiableProperty(TlsProperty.ecPointsFormats()))
                 .stream()
                 .collect(Collectors.toUnmodifiableMap(TlsIdentifiableProperty::id, Function.identity()));
-        var mode = context.selectedMode()
-                .orElseThrow(TlsAlert::noModeSelected);
+        var mode = context.selectedMode();
         for(var i = 0; i < ecPointFormatsLength; i++) {
             var ecPointFormatId = readBigEndianInt8(buffer);
             var ecPointFormat = knownFormats.get(ecPointFormatId);
@@ -46,7 +45,7 @@ public record ECPointFormatExtension(
 
     private static final ECPointFormatExtension ALL = new ECPointFormatExtension(TlsECPointFormat.values());
 
-    public static TlsExtension all() {
+    public static TlsExtension.Configured.Agnostic all() {
         return ALL;
     }
 
@@ -82,7 +81,12 @@ public record ECPointFormatExtension(
     }
 
     @Override
-    public TlsExtensionDeserializer deserializer() {
+    public TlsExtensionDeserializer<? extends TlsExtension.Configured.Client> clientDeserializer() {
+        return DESERIALIZER;
+    }
+
+    @Override
+    public TlsExtensionDeserializer<? extends TlsExtension.Configured.Server> serverDeserializer() {
         return DESERIALIZER;
     }
 

@@ -24,16 +24,15 @@ import static it.auties.leap.tls.util.BufferUtils.readBigEndianInt16;
 
 public record SupportedGroupsExtension(
         List<TlsSupportedGroup> groups
-) implements TlsConfiguredClientExtension, TlsConfiguredServerExtension {
-    private static final TlsExtensionDeserializer DESERIALIZER = (context, _, buffer) -> {
+) implements TlsExtension.Configured.Agnostic {
+    private static final TlsExtensionDeserializer<TlsExtension.Configured.Agnostic> DESERIALIZER = (context, _, buffer) -> {
         var groupsSize = readBigEndianInt16(buffer);
         var groups = new ArrayList<TlsSupportedGroup>(groupsSize);
         var knownGroups = context.getNegotiableValue(TlsProperty.supportedGroups())
                 .orElseThrow(() -> TlsAlert.noNegotiableProperty(TlsProperty.ecPointsFormats()))
                 .stream()
                 .collect(Collectors.toUnmodifiableMap(TlsIdentifiableProperty::id, Function.identity()));
-        var mode = context.selectedMode()
-                .orElseThrow(TlsAlert::noModeSelected);
+        var mode = context.selectedMode();
         for (var i = 0; i < groupsSize; i++) {
             var groupId = readBigEndianInt16(buffer);
             var group = knownGroups.get(groupId);
@@ -93,10 +92,16 @@ public record SupportedGroupsExtension(
         return SUPPORTED_GROUPS_VERSIONS;
     }
 
-    @Override
-    public TlsExtensionDeserializer deserializer() {
+   @Override
+    public TlsExtensionDeserializer<? extends TlsExtension.Configured.Client> clientDeserializer() {
         return DESERIALIZER;
     }
+
+    @Override
+    public TlsExtensionDeserializer<? extends TlsExtension.Configured.Server> serverDeserializer() {
+        return DESERIALIZER;
+    }
+
 
     @Override
     public TlsExtensionDependencies dependencies() {

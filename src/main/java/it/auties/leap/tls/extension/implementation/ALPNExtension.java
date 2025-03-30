@@ -20,15 +20,14 @@ import static it.auties.leap.tls.util.BufferUtils.*;
 public record ALPNExtension(
       List<String> supportedProtocols,
       int supportedProtocolsSize
-) implements TlsConfiguredClientExtension, TlsConfiguredServerExtension {
-    private static final TlsExtensionDeserializer DESERIALIZER = (context, _, buffer) -> {
+) implements TlsExtension.Configured.Agnostic {
+    private static final TlsExtensionDeserializer<? extends TlsExtension.Configured.Agnostic> DESERIALIZER = (context, _, buffer) -> {
         var supportedProtocolsSize = readBigEndianInt16(buffer);
         var supportedProtocols = new ArrayList<String>();
         var negotiableProtocols = context.getNegotiableValue(TlsProperty.applicationProtocols())
                 .orElseThrow(() -> TlsAlert.noNegotiableProperty(TlsProperty.applicationProtocols()));
         var negotiableProtocolsSet = new HashSet<>(negotiableProtocols);
-        var mode = context.selectedMode()
-                .orElseThrow(TlsAlert::noModeSelected);
+        var mode = context.selectedMode();
         try(var _ = scopedRead(buffer, supportedProtocolsSize)) {
             while (buffer.hasRemaining()) {
                 var supportedProtocol = new String(readBytesBigEndian8(buffer), StandardCharsets.US_ASCII);
@@ -84,7 +83,12 @@ public record ALPNExtension(
     }
 
     @Override
-    public TlsExtensionDeserializer deserializer() {
+    public TlsExtensionDeserializer<? extends TlsExtension.Configured.Client> clientDeserializer() {
+        return DESERIALIZER;
+    }
+
+    @Override
+    public TlsExtensionDeserializer<? extends TlsExtension.Configured.Server> serverDeserializer() {
         return DESERIALIZER;
     }
 
