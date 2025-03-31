@@ -39,20 +39,9 @@ public final class GCMMode extends TlsCipherMode.Block {
     // Can't rely on the engine's value as that is always set on encryption mode
     private boolean forEncryption;
 
-    private GCMMode(TlsCipherEngine engine) {
-        super(engine);
+    private GCMMode(TlsCipherEngine engine, byte[] fixedIv, TlsExchangeMac authenticator) {
+        super(engine, fixedIv, authenticator);
         this.multiplier = new Tables4kGCMMultiplier();
-    }
-
-    public static TlsCipherModeFactory factory() {
-        return FACTORY;
-    }
-
-    @Override
-    public void init(boolean forEncryption, byte[] key, byte[] fixedIv, TlsExchangeMac authenticator) {
-        super.init(forEncryption, key, fixedIv, authenticator);
-        engine.init(true, key);
-        this.forEncryption = forEncryption;
         var bufLength = forEncryption ? engine().blockLength() : (engine().blockLength() + tagLength());
         this.bufBlock = new byte[bufLength];
         this.H = new byte[engine().blockLength()];
@@ -69,6 +58,12 @@ public final class GCMMode extends TlsCipherMode.Block {
         this.bufOff = 0;
         this.totalLength = 0;
     }
+
+
+    public static TlsCipherModeFactory factory() {
+        return FACTORY;
+    }
+
 
     public void processAADBytes(byte[] in, int inOff, int len) {
         var BLOCK_SIZE = engine().blockLength();

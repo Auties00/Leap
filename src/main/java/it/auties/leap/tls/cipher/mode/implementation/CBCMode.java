@@ -12,18 +12,43 @@ import it.auties.leap.tls.util.BufferUtils;
 import it.auties.leap.tls.version.TlsVersion;
 
 import java.nio.ByteBuffer;
+import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
 import java.util.Arrays;
 
 public final class CBCMode extends TlsCipherMode.Block {
-    private static final TlsCipherModeFactory FACTORY = CBCMode::new;
+    private static final TlsCipherModeFactory.Block FACTORY = new TlsCipherModeFactory.Block() {
+        @Override
+        public TlsCipherMode newCipherMode(TlsCipherEngine.Block engine, byte[] fixedIv, TlsExchangeMac authenticator) {
+            return new CBCMode(engine, fixedIv, authenticator);
+        }
 
-    private SecureRandom random;
+        @Override
+        public int ivLength(TlsCipherEngine.Block engine) {
+            return engine.blockLength();
+        }
+
+        @Override
+        public int fixedIvLength(TlsCipherEngine.Block engine) {
+            return 0;
+        }
+
+        @Override
+        public int tagLength() {
+            return 0;
+        }
+    };
+
     private ByteBuffer cbcV;
     private ByteBuffer cbcNextV;
 
-    private CBCMode(TlsCipherEngine engine) {
-        super(engine);
+    private CBCMode(TlsCipherEngine engine, byte[] fixedIv, TlsExchangeMac authenticator) {
+        super(engine, fixedIv, authenticator);
+        this.cbcV = ByteBuffer.allocate(engine().blockLength());
+        if(fixedIv != null) {
+            cbcV.put(0, fixedIv);
+        }
+        this.cbcNextV = ByteBuffer.allocate(engine().blockLength());
     }
 
     public static TlsCipherModeFactory factory() {
@@ -31,32 +56,25 @@ public final class CBCMode extends TlsCipherMode.Block {
     }
 
     @Override
-    public void init(boolean forEncryption, byte[] key, byte[] fixedIv, TlsExchangeMac authenticator) {
-        super.init(forEncryption, key, fixedIv, authenticator);
-        engine.init(forEncryption, key);
-        this.cbcV = ByteBuffer.allocate(engine().blockLength());
-        if(fixedIv != null) {
-            cbcV.put(0, fixedIv);
-        }
-        this.cbcNextV = ByteBuffer.allocate(engine().blockLength());
-        this.random = new SecureRandom();
-    }
-
-    @Override
     public void encrypt(TlsContext context, TlsMessage message, ByteBuffer output) {
         switch (authenticator.version()) {
             case TLS10, DTLS10, SSL30 -> throw new UnsupportedOperationException();
-            case TLS11, TLS12, DTLS12 -> tls11Encrypt(context, message, output);
+            case TLS11, TLS12, DTLS12 -> tls11Encrypt(message, output);
             case TLS13, DTLS13 -> throw new TlsAlert("CBC ciphers are not allowed in (D)TLSv1.3");
         };
     }
 
-    private void tls11Encrypt(TlsContext context, TlsMessage message, ByteBuffer output) {
+    private void tls11Encrypt(TlsMessage message, ByteBuffer output) {
         var input = output.duplicate();
         message.serialize(input);
         addMac(input, message.contentType().id());
         var nonce = new byte[engine().blockLength()];
-        random.nextBytes(nonce);
+        try {
+            SecureRandom.getInstanceStrong()
+                    .nextBytes(nonce);
+        }catch (NoSuchAlgorithmException _) {
+            throw TlsAlert.noSecureRandom();
+        }
         System.out.println("IV: " + Arrays.toString(nonce));
         var inputPositionWithNonce = input.position() - nonce.length;
         input.put(inputPositionWithNonce, nonce);

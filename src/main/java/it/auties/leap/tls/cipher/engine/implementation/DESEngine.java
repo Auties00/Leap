@@ -1,21 +1,27 @@
 package it.auties.leap.tls.cipher.engine.implementation;
 
+import it.auties.leap.tls.cipher.engine.TlsCipherEngine;
 import it.auties.leap.tls.cipher.engine.TlsCipherEngineFactory;
 
 import java.nio.ByteBuffer;
 
 public class DESEngine extends DESBaseEngine {
-    private static final TlsCipherEngineFactory FACTORY = DESEngine::new;
+    private static final TlsCipherEngineFactory FACTORY = new TlsCipherEngineFactory.Stream() {
+        @Override
+        public TlsCipherEngine newCipherEngine(boolean forEncryption, byte[] key) {
+            return new DESEngine(forEncryption, key);
+        }
 
-    private int[] workingKey;
+        @Override
+        public int keyLength() {
+            return 8;
+        }
+    };
 
-    private DESEngine() {
-        super(8);
-    }
+    private final int[] workingKey;
 
-    @Override
-    public void init(boolean forEncryption, byte[] key) {
-        super.init(forEncryption, key);
+    private DESEngine(boolean forEncryption, byte[] key) {
+        super(forEncryption, key);
         this.workingKey = generateWorkingKey(forEncryption, key);
     }
 

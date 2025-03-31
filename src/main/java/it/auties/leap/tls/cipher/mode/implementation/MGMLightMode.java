@@ -14,8 +14,27 @@ import it.auties.leap.tls.message.TlsMessageMetadata;
 import java.nio.ByteBuffer;
 
 public final class MGMLightMode extends TlsCipherMode.Block {
-    private static final TlsCipherModeFactory FACTORY = MGMLightMode::new;
+    private static final TlsCipherModeFactory.Block FACTORY = new TlsCipherModeFactory.Block() {
+        @Override
+        public TlsCipherMode newCipherMode(TlsCipherEngine.Block engine, byte[] fixedIv, TlsExchangeMac authenticator) {
+            return new CTRMode(engine, fixedIv, authenticator);
+        }
 
+        @Override
+        public int ivLength(TlsCipherEngine.Block engine) {
+            return 4;
+        }
+
+        @Override
+        public int fixedIvLength(TlsCipherEngine.Block engine) {
+            return engine.blockLength() - fixedIv.length;
+        }
+
+        @Override
+        public int tagLength(TlsCipherEngine.Block engine) {
+            return engine.blockLength();
+        }
+    };
     private MGMLightMode(TlsCipherEngine engine) {
         if(!(engine instanceof KuznyechikEngine) && !(engine instanceof MagmaEngine)) {
             throw new TlsAlert("MGM_L mode is supported only by Kuznyechik and Magma engines");

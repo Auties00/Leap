@@ -1,9 +1,10 @@
 package it.auties.leap.tls.cipher.mode;
 
 import it.auties.leap.tls.cipher.engine.TlsCipherEngine;
+import it.auties.leap.tls.cipher.exchange.TlsExchangeMac;
 import it.auties.leap.tls.cipher.mode.implementation.*;
 
-public interface TlsCipherModeFactory {
+public sealed interface TlsCipherModeFactory {
     static TlsCipherModeFactory poly1305() {
         return Poly1305Mode.factory();
     }
@@ -52,5 +53,17 @@ public interface TlsCipherModeFactory {
         return CTROMacMode.factory();
     }
 
-    TlsCipherMode newCipherMode(TlsCipherEngine engine);
+    non-sealed interface Block extends TlsCipherModeFactory {
+        TlsCipherMode newCipherMode(TlsCipherEngine.Block engine, byte[] fixedIv, TlsExchangeMac authenticator);
+        int ivLength(TlsCipherEngine.Block engine);
+        int fixedIvLength(TlsCipherEngine.Block engine);
+        int tagLength(TlsCipherEngine.Block engine);
+    }
+
+    non-sealed interface Stream extends TlsCipherModeFactory {
+        TlsCipherMode newCipherMode(TlsCipherEngine.Stream engine, byte[] fixedIv, TlsExchangeMac authenticator);
+        int ivLength(TlsCipherEngine.Stream engine);
+        int fixedIvLength(TlsCipherEngine.Stream engine);
+        int tagLength(TlsCipherEngine.Stream engine);
+    }
 }

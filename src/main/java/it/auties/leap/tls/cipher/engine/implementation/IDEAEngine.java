@@ -11,22 +11,32 @@ public final class IDEAEngine extends TlsCipherEngine.Block {
     private static final int BLOCK_SIZE = 8;
     private static final int MASK = 0xffff;
     private static final int BASE = 0x10001;
-    private static final TlsCipherEngineFactory FACTORY = IDEAEngine::new;
+    private static final TlsCipherEngineFactory FACTORY = new TlsCipherEngineFactory.Block() {
+        @Override
+        public int blockLength() {
+            return BLOCK_SIZE;
+        }
 
-    private int[] workingKey;
+        @Override
+        public TlsCipherEngine newCipherEngine(boolean forEncryption, byte[] key) {
+            return new IDEAEngine(forEncryption, key);
+        }
 
-    private IDEAEngine() {
-        super(16);
+        @Override
+        public int keyLength() {
+            return 16;
+        }
+    };
+
+    private final int[] workingKey;
+
+    private IDEAEngine(boolean forEncryption, byte[] key) {
+        super(forEncryption);
+        this.workingKey = forEncryption ? expandKey(key) : invertKey(expandKey(key));
     }
 
     public static TlsCipherEngineFactory factory() {
         return FACTORY;
-    }
-
-    @Override
-    public void init(boolean forEncryption, byte[] key) {
-        super.init(forEncryption, key);
-        this.workingKey = forEncryption ? expandKey(key) : invertKey(expandKey(key));
     }
 
     private int[] invertKey(int[] inKey) {

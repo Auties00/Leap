@@ -13,7 +13,22 @@ public final class KuznyechikEngine extends TlsCipherEngine.Block {
     private static final byte[] INVERSE_PI = new byte[]{-91, 45, 50, -113, 14, 48, 56, -64, 84, -26, -98, 57, 85, 126, 82, -111, 100, 3, 87, 90, 28, 96, 7, 24, 33, 114, -88, -47, 41, -58, -92, 63, -32, 39, -115, 12, -126, -22, -82, -76, -102, 99, 73, -27, 66, -28, 21, -73, -56, 6, 112, -99, 65, 117, 25, -55, -86, -4, 77, -65, 42, 115, -124, -43, -61, -81, 43, -122, -89, -79, -78, 91, 70, -45, -97, -3, -44, 15, -100, 47, -101, 67, -17, -39, 121, -74, 83, 127, -63, -16, 35, -25, 37, 94, -75, 30, -94, -33, -90, -2, -84, 34, -7, -30, 74, -68, 53, -54, -18, 120, 5, 107, 81, -31, 89, -93, -14, 113, 86, 17, 106, -119, -108, 101, -116, -69, 119, 60, 123, 40, -85, -46, 49, -34, -60, 95, -52, -49, 118, 44, -72, -40, 46, 54, -37, 105, -77, 20, -107, -66, 98, -95, 59, 22, 102, -23, 92, 108, 109, -83, 55, 97, 75, -71, -29, -70, -15, -96, -123, -125, -38, 71, -59, -80, 51, -6, -106, 111, 110, -62, -10, 80, -1, 93, -87, -114, 23, 27, -105, 125, -20, 88, -9, 31, -5, 124, 9, 13, 122, 103, 69, -121, -36, -24, 79, 29, 78, 4, -21, -8, -13, 62, 61, -67, -118, -120, -35, -51, 11, 19, -104, 2, -109, -128, -112, -48, 36, 52, -53, -19, -12, -50, -103, 16, 68, 64, -110, 58, 1, 38, 18, 26, 72, 104, -11, -127, -117, -57, -42, 32, 10, 8, 0, 76, -41, 116};
     private static final byte[] L_FACTORS = {-108, 32, -123, 16, -62, -64, 1, -5, 1, -64, -62, 16, -123, 32, -108, 1};
     private static final byte[][] TABLES = new byte[256][256];
-    private static final TlsCipherEngineFactory FACTORY = KuznyechikEngine::new;
+    private static final TlsCipherEngineFactory FACTORY = new TlsCipherEngineFactory.Block() {
+        @Override
+        public int blockLength() {
+            return BLOCK_SIZE;
+        }
+
+        @Override
+        public TlsCipherEngine newCipherEngine(boolean forEncryption, byte[] key) {
+            return new KuznyechikEngine(forEncryption, key);
+        }
+
+        @Override
+        public int keyLength() {
+            return 32;
+        }
+    };
 
     static {
         for (int x = 0; x < 256; x++) {
@@ -21,6 +36,13 @@ public final class KuznyechikEngine extends TlsCipherEngine.Block {
                 TABLES[x][y] = computeKuzMulGf256((byte) x, (byte) y);
             }
         }
+    }
+
+    private final byte[][] subKeys;
+
+    private KuznyechikEngine(boolean forEncryption, byte[] key) {
+        super(forEncryption);
+        this.subKeys = generateSubKeys(key);
     }
 
     private static byte computeKuzMulGf256(byte a, byte b) {
@@ -41,20 +63,8 @@ public final class KuznyechikEngine extends TlsCipherEngine.Block {
         return p;
     }
 
-    private byte[][] subKeys;
-
-    private KuznyechikEngine() {
-        super(32);
-    }
-
     public static TlsCipherEngineFactory factory() {
         return FACTORY;
-    }
-
-    @Override
-    public void init(boolean forEncryption, byte[] key) {
-        super.init(forEncryption, key);
-        this.subKeys = generateSubKeys(key);
     }
 
     private byte[][] generateSubKeys(byte[] userKey) {

@@ -1,67 +1,31 @@
 package it.auties.leap.tls.cipher.engine;
 
-import it.auties.leap.tls.alert.TlsAlert;
-
 import java.nio.ByteBuffer;
-import java.util.OptionalInt;
 
-public sealed abstract class TlsCipherEngine permits TlsCipherEngine.Block, TlsCipherEngine.Stream {
-    protected final int keyLength;
-    protected byte[] key;
-    protected boolean forEncryption;
-    protected boolean initialized;
+public sealed abstract class TlsCipherEngine {
+    protected final boolean forEncryption;
 
-    protected TlsCipherEngine(int keyLength) {
-        this.keyLength = keyLength;
-    }
-    
-    public void init(boolean forEncryption, byte[] key) {
-        if(initialized) {
-            throw new TlsAlert("Engine is already initialized");
-        }
-
-        if ((keyLength != 0 || key != null) && (key == null || key.length != keyLength)) {
-            throw new TlsAlert("Unexpected key size");
-        }
-
+    protected TlsCipherEngine(boolean forEncryption) {
         this.forEncryption = forEncryption;
-        this.key = key;
-        this.initialized = true;
     }
 
     public abstract void cipher(ByteBuffer input, ByteBuffer output);
-
-    public byte[] key() {
-        return key;
-    }
-
-    public int keyLength() {
-        return keyLength;
-    }
-    
-    public OptionalInt exportedKeyLength() {
-        return OptionalInt.empty();
-    }
 
     public boolean forEncryption() {
         return forEncryption;
     }
 
-    public boolean isInitialized() {
-        return initialized;
-    }
-
-    public static abstract non-sealed class Block extends TlsCipherEngine {
-        protected Block(int keyLength) {
-            super(keyLength);
+    public non-sealed abstract static class Block extends TlsCipherEngine {
+        protected Block(boolean forEncryption) {
+            super(forEncryption);
         }
 
         public abstract int blockLength();
     }
 
-    public static abstract non-sealed class Stream extends TlsCipherEngine {
-        protected Stream(int keyLength) {
-            super(keyLength);
+    public non-sealed abstract static class Stream extends TlsCipherEngine {
+        protected Stream(boolean forEncryption) {
+            super(forEncryption);
         }
     }
 }

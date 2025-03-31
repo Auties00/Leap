@@ -14,22 +14,45 @@ import it.auties.leap.tls.message.TlsMessageMetadata;
 import java.nio.ByteBuffer;
 
 public final class CNTImitMode extends TlsCipherMode.Block {
-    private static final TlsCipherModeFactory FACTORY = CNTImitMode::new;
+    private static final TlsCipherModeFactory.Block FACTORY = new TlsCipherModeFactory.Block() {
+        @Override
+        public TlsCipherMode newCipherMode(TlsCipherEngine.Block engine, byte[] fixedIv, TlsExchangeMac authenticator) {
+            return new CNTImitMode(engine, fixedIv, authenticator);
+        }
 
-    public static TlsCipherModeFactory factory() {
-        return FACTORY;
-    }
+        @Override
+        public int ivLength(TlsCipherEngine.Block engine) {
+            return switch (engine) {
+                case KuznyechikEngine _ -> 8;
+                case MagmaEngine _ -> 4;
+                default -> throw new InternalError("Init check failed");
+            };
+        }
 
-    private CNTImitMode(TlsCipherEngine engine) {
+        @Override
+        public int fixedIvLength(TlsCipherEngine.Block engine) {
+            return switch (engine) {
+                case KuznyechikEngine _ -> 8;
+                case MagmaEngine _ -> 4;
+                default -> throw new InternalError("Init check failed");
+            };
+        }
+
+        @Override
+        public int tagLength() {
+            return 0;
+        }
+    };
+
+    private CNTImitMode(TlsCipherEngine engine, byte[] fixedIv, TlsExchangeMac authenticator) {
         if(!(engine instanceof KuznyechikEngine) && !(engine instanceof MagmaEngine)) {
             throw new TlsAlert("CNT_IMIT mode is supported only by Kuznyechik and Magma engines");
         }
-        super(engine);
+        super(engine, fixedIv, authenticator);
     }
 
-    @Override
-    public void init(boolean forEncryption, byte[] key, byte[] fixedIv, TlsExchangeMac authenticator) {
-        super.init(forEncryption, key, fixedIv, authenticator);
+    public static TlsCipherModeFactory factory() {
+        return FACTORY;
     }
 
     @Override

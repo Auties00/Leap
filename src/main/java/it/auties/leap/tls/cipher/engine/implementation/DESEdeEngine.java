@@ -1,28 +1,30 @@
 package it.auties.leap.tls.cipher.engine.implementation;
 
+import it.auties.leap.tls.cipher.engine.TlsCipherEngine;
 import it.auties.leap.tls.cipher.engine.TlsCipherEngineFactory;
 
 import java.nio.ByteBuffer;
 
 public final class DESEdeEngine extends DESBaseEngine {
     private static final int BLOCK_SIZE = 8;
-    private static final TlsCipherEngineFactory FACTORY = DESEdeEngine::new;
+    private static final TlsCipherEngineFactory FACTORY = new TlsCipherEngineFactory.Stream() {
+        @Override
+        public TlsCipherEngine newCipherEngine(boolean forEncryption, byte[] key) {
+            return new DESEdeEngine(forEncryption, key);
+        }
 
-    private int[] workingKey1;
-    private int[] workingKey2;
-    private int[] workingKey3;
+        @Override
+        public int keyLength() {
+            return 24;
+        }
+    };
 
-    private DESEdeEngine() {
-        super(24);
-    }
+    private final int[] workingKey1;
+    private final int[] workingKey2;
+    private final int[] workingKey3;
 
-    public static TlsCipherEngineFactory factory() {
-        return FACTORY;
-    }
-
-    @Override
-    public void init(boolean forEncryption, byte[] key) {
-        super.init(forEncryption, key);
+    private DESEdeEngine(boolean forEncryption, byte[] key) {
+        super(forEncryption, key);
         var key1 = new byte[8];
         System.arraycopy(key, 0, key1, 0, key1.length);
         this.workingKey1 = generateWorkingKey(forEncryption, key1);
@@ -30,6 +32,10 @@ public final class DESEdeEngine extends DESBaseEngine {
         System.arraycopy(key, 8, key2, 0, key2.length);
         this.workingKey2 = generateWorkingKey(!forEncryption, key2);
         this.workingKey3 = workingKey1;
+    }
+
+    public static TlsCipherEngineFactory factory() {
+        return FACTORY;
     }
 
     @Override

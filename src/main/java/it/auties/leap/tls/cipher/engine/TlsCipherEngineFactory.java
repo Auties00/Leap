@@ -2,7 +2,9 @@ package it.auties.leap.tls.cipher.engine;
 
 import it.auties.leap.tls.cipher.engine.implementation.*;
 
-public interface TlsCipherEngineFactory {
+import java.util.OptionalInt;
+
+public sealed interface TlsCipherEngineFactory {
     static TlsCipherEngineFactory aes128() {
         return AESEngine.factory128();
     }
@@ -79,5 +81,17 @@ public interface TlsCipherEngineFactory {
         return ChaCha20Engine.factory();
     }
 
-    TlsCipherEngine newCipherEngine();
+    TlsCipherEngine newCipherEngine(boolean forEncryption, byte[] key);
+    int keyLength();
+    default OptionalInt exportedKeyLength() {
+        return OptionalInt.empty();
+    }
+
+    non-sealed interface Block extends TlsCipherEngineFactory {
+        int blockLength();
+    }
+
+    non-sealed interface Stream extends TlsCipherEngineFactory {
+
+    }
 }

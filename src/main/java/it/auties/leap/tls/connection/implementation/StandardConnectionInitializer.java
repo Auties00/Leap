@@ -70,13 +70,13 @@ public final class StandardConnectionInitializer implements TlsConnectionInitial
 
         // If I understand correctly the MAC isn't used for AEAD ciphers as the cipher concatenates the tag to the message
 
-        var macLength = localCipher.isAEAD() ? 0 : negotiatedCipher.hashFactory().length();
+        var macLength = localCipher.aead() ? 0 : negotiatedCipher.hashFactory().length();
         var expandedKeyLength = localCipherEngine.exportedKeyLength();
         var keyLength = localCipherEngine.keyLength();
 
         var ivLength = switch (localCipher) {
             case TlsCipherMode.Block block -> {
-                if (block.isAEAD()) {
+                if (block.aead()) {
                     yield localCipher.ivLength();
                 }
 

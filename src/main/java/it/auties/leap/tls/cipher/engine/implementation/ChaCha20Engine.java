@@ -12,27 +12,30 @@ public class ChaCha20Engine extends TlsCipherEngine.Stream {
     private final static int STATE_SIZE = 16;
     private final static int[] TAU_SIGMA = {1634760805, 824206446, 2036477238, 1797285236, 1634760805, 857760878, 2036477234, 1797285236};
     private static final int ROUNDS = 20;
-    private static final TlsCipherEngineFactory FACTORY = ChaCha20Engine::new;
 
+    private static final TlsCipherEngineFactory FACTORY = new TlsCipherEngineFactory.Stream() {
+        @Override
+        public TlsCipherEngine newCipherEngine(boolean forEncryption, byte[] key) {
+            return new ChaCha20Engine(forEncryption, key);
+        }
+
+        @Override
+        public int keyLength() {
+            return 32;
+        }
+    };
 
     private final int[] engineState; // state
     private final int[] x;
     private final byte[] keyStream;
     private int index;
 
-    private ChaCha20Engine() {
-        super(32);
+    private ChaCha20Engine(boolean forEncryption, byte[] key) {
+        super(forEncryption);
         this.engineState = new int[STATE_SIZE];
         this.x = new int[STATE_SIZE];
         this.keyStream = new byte[STATE_SIZE * 4];
-    }
-
-    @Override
-    public void init(boolean forEncryption, byte[] key) {
-        super.init(forEncryption, key);
-
         packTauOrSigma(key.length, engineState);
-
         for (int i = 0; i < 8; i++) {
             engineState[4 + i] = readLittleEndianInt32(key, i * 4);
         }
@@ -191,5 +194,4 @@ public class ChaCha20Engine extends TlsCipherEngine.Stream {
         resetCounter();
         generateKeyStream(keyStream);
     }
-
 }
