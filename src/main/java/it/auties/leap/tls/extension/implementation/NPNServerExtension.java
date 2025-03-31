@@ -3,9 +3,8 @@ package it.auties.leap.tls.extension.implementation;
 import it.auties.leap.tls.alert.TlsAlert;
 import it.auties.leap.tls.context.TlsContext;
 import it.auties.leap.tls.context.TlsSource;
-import it.auties.leap.tls.extension.TlsExtensionDependencies;
-import it.auties.leap.tls.extension.TlsExtensionDeserializer;
 import it.auties.leap.tls.extension.TlsExtension;
+import it.auties.leap.tls.extension.TlsExtensionDependencies;
 import it.auties.leap.tls.property.TlsProperty;
 import it.auties.leap.tls.version.TlsVersion;
 
@@ -20,14 +19,6 @@ import static it.auties.leap.tls.util.BufferUtils.writeBytesBigEndian8;
 public record NPNServerExtension(
         String selectedProtocol
 ) implements TlsExtension.Configured.Server {
-    private static final TlsExtensionDeserializer<TlsExtension.Configured.Client> DESERIALIZER = (_, _, buffer) -> {
-        if (buffer.hasRemaining()) {
-            throw new TlsAlert("Unexpected extension payload");
-        }
-
-        return Optional.of(NPNClientExtension.instance());
-    };
-
     @Override
     public void serializePayload(ByteBuffer buffer) {
         writeBytesBigEndian8(buffer, selectedProtocol.getBytes(StandardCharsets.US_ASCII));
@@ -39,12 +30,7 @@ public record NPNServerExtension(
     }
 
     @Override
-    public void apply(TlsContext context, TlsSource source) {
-        context.addNegotiatedProperty(TlsProperty.applicationProtocols(), List.of(selectedProtocol));
-    }
-
-    @Override
-    public int extensionType() {
+    public int type() {
         return NEXT_PROTOCOL_NEGOTIATION_TYPE;
     }
 
@@ -54,8 +40,20 @@ public record NPNServerExtension(
     }
 
     @Override
-    public TlsExtensionDeserializer<? extends TlsExtension.Configured.Client> responseDeserializer() {
-        return DESERIALIZER;
+    public void apply(TlsContext context, TlsSource source) {
+        switch (source) {
+            case LOCAL -> context.addNegotiableProperty(TlsProperty.applicationProtocols(), List.of(selectedProtocol));
+            case REMOTE -> context.addNegotiatedProperty(TlsProperty.applicationProtocols(), List.of(selectedProtocol));
+        }
+    }
+
+    @Override
+    public Optional<NPNClientExtension> deserialize(TlsContext context, int type, ByteBuffer response) {
+        if (response.hasRemaining()) {
+            throw new TlsAlert("Unexpected extension payload");
+        }
+
+        return Optional.of(NPNClientExtension.instance());
     }
 
     @Override

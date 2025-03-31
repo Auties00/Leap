@@ -16,24 +16,24 @@ public sealed interface TlsExtensionState extends TlsExtensionMetadataProvider {
     }
 
     sealed interface Configured extends TlsExtensionState permits TlsExtension.Configured {
-        TlsExtensionDeserializer<? extends TlsExtension.Configured> responseDeserializer();
+        void apply(TlsContext context, TlsSource source);
+        Optional<? extends TlsExtension.Configured> deserialize(TlsContext context, int type, ByteBuffer response);
 
         default void serialize(ByteBuffer buffer) {
-            writeBigEndianInt16(buffer, extensionType());
+            writeBigEndianInt16(buffer, type());
             writeBigEndianInt16(buffer, payloadLength());
             serializePayload(buffer);
         }
 
-        default int extensionHeaderLength() {
+        default int headerLength() {
             return INT16_LENGTH + INT16_LENGTH;
         }
 
         default int length() {
-            return extensionHeaderLength() + payloadLength();
+            return headerLength() + payloadLength();
         }
 
         void serializePayload(ByteBuffer buffer);
         int payloadLength();
-        void apply(TlsContext context, TlsSource source);
     }
 }

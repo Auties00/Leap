@@ -5,7 +5,6 @@ import it.auties.leap.tls.context.TlsContext;
 import it.auties.leap.tls.context.TlsSource;
 import it.auties.leap.tls.extension.TlsExtension;
 import it.auties.leap.tls.extension.TlsExtensionDependencies;
-import it.auties.leap.tls.extension.TlsExtensionDeserializer;
 import it.auties.leap.tls.property.TlsProperty;
 import it.auties.leap.tls.version.TlsVersion;
 
@@ -28,7 +27,7 @@ public final class KeyShareExtension implements TlsExtension.Configurable {
     }
 
     @Override
-    public int extensionType() {
+    public int type() {
         return KEY_SHARE_TYPE;
     }
 
@@ -88,19 +87,6 @@ public final class KeyShareExtension implements TlsExtension.Configurable {
             List<KeyShareEntry> entries,
             int entriesLength
     ) implements TlsExtension.Configured.Agnostic {
-        private static final TlsExtensionDeserializer<TlsExtension.Configured.Agnostic> DESERIALIZER = (_, _, buffer) -> {
-            var entries = new ArrayList<KeyShareEntry>();
-            var entriesSize = buffer.remaining();
-            while (buffer.hasRemaining()) {
-                var namedGroupId = readBigEndianInt16(buffer);
-                var publicKey = readBytesBigEndian16(buffer);
-                var entry = new KeyShareEntry(namedGroupId, publicKey);
-                entries.add(entry);
-            }
-            var extension = new KeyShareExtension.Configured(entries, entriesSize);
-            return Optional.of(extension);
-        };
-
         @Override
         public void serializePayload(ByteBuffer buffer) {
             writeBigEndianInt16(buffer, entriesLength);
@@ -111,7 +97,21 @@ public final class KeyShareExtension implements TlsExtension.Configurable {
 
         @Override
         public void apply(TlsContext context, TlsSource source) {
-            // TODO: Select client key?
+
+        }
+
+        @Override
+        public Optional<KeyShareExtension.Configured> deserialize(TlsContext context, int type, ByteBuffer buffer) {
+            var entries = new ArrayList<KeyShareEntry>();
+            var entriesSize = buffer.remaining();
+            while (buffer.hasRemaining()) {
+                var namedGroupId = readBigEndianInt16(buffer);
+                var publicKey = readBytesBigEndian16(buffer);
+                var entry = new KeyShareEntry(namedGroupId, publicKey);
+                entries.add(entry);
+            }
+            var extension = new KeyShareExtension.Configured(entries, entriesSize);
+            return Optional.of(extension);
         }
 
         @Override
@@ -120,18 +120,13 @@ public final class KeyShareExtension implements TlsExtension.Configurable {
         }
 
         @Override
-        public int extensionType() {
+        public int type() {
             return KEY_SHARE_TYPE;
         }
 
         @Override
         public List<TlsVersion> versions() {
             return KEY_SHARE_VERSIONS;
-        }
-
-        @Override
-        public TlsExtensionDeserializer<TlsExtension.Configured.Agnostic> responseDeserializer() {
-            return DESERIALIZER;
         }
 
         @Override

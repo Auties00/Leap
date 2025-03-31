@@ -4,7 +4,8 @@ import it.auties.leap.tls.alert.TlsAlert;
 import it.auties.leap.tls.context.TlsContext;
 import it.auties.leap.tls.context.TlsContextMode;
 import it.auties.leap.tls.context.TlsSource;
-import it.auties.leap.tls.extension.*;
+import it.auties.leap.tls.extension.TlsExtension;
+import it.auties.leap.tls.extension.TlsExtensionDependencies;
 import it.auties.leap.tls.property.TlsProperty;
 import it.auties.leap.tls.version.TlsVersion;
 
@@ -21,26 +22,6 @@ public record ALPNExtension(
       List<String> supportedProtocols,
       int supportedProtocolsSize
 ) implements TlsExtension.Configured.Agnostic {
-    private static final TlsExtensionDeserializer<? extends TlsExtension.Configured.Agnostic> DESERIALIZER = (context, _, buffer) -> {
-        var supportedProtocolsSize = readBigEndianInt16(buffer);
-        var supportedProtocols = new ArrayList<String>();
-        var negotiableProtocols = context.getNegotiableValue(TlsProperty.applicationProtocols())
-                .orElseThrow(() -> TlsAlert.noNegotiableProperty(TlsProperty.applicationProtocols()));
-        var negotiableProtocolsSet = new HashSet<>(negotiableProtocols);
-        var mode = context.selectedMode();
-        try(var _ = scopedRead(buffer, supportedProtocolsSize)) {
-            while (buffer.hasRemaining()) {
-                var supportedProtocol = new String(readBytesBigEndian8(buffer), StandardCharsets.US_ASCII);
-                if(negotiableProtocolsSet.contains(supportedProtocol)) {
-                    supportedProtocols.add(supportedProtocol);
-                }else if(mode == TlsContextMode.CLIENT) {
-                    throw new TlsAlert("Remote tried to negotiate an application protocol that wasn't advertised");
-                }
-            }
-        }
-        var extension = new ALPNExtension(supportedProtocols, supportedProtocolsSize);
-        return Optional.of(extension);
-    };
     public ALPNExtension(List<String> supportedProtocols) {
         var supportedProtocolsSources = new ArrayList<String>(supportedProtocols.size());
         var supportedProtocolsLength = 0;
@@ -73,18 +54,35 @@ public record ALPNExtension(
     }
 
     @Override
-    public int extensionType() {
+    public Optional<ALPNExtension> deserialize(TlsContext context, int type, ByteBuffer buffer) {
+        var supportedProtocolsSize = readBigEndianInt16(buffer);
+        var supportedProtocols = new ArrayList<String>();
+        var negotiableProtocols = context.getNegotiableValue(TlsProperty.applicationProtocols())
+                .orElseThrow(() -> TlsAlert.noNegotiableProperty(TlsProperty.applicationProtocols()));
+        var negotiableProtocolsSet = new HashSet<>(negotiableProtocols);
+        var mode = context.selectedMode();
+        try(var _ = scopedRead(buffer, supportedProtocolsSize)) {
+            while (buffer.hasRemaining()) {
+                var supportedProtocol = new String(readBytesBigEndian8(buffer), StandardCharsets.US_ASCII);
+                if(negotiableProtocolsSet.contains(supportedProtocol)) {
+                    supportedProtocols.add(supportedProtocol);
+                }else if(mode == TlsContextMode.CLIENT) {
+                    throw new TlsAlert("Remote tried to negotiate an application protocol that wasn't advertised");
+                }
+            }
+        }
+        var extension = new ALPNExtension(supportedProtocols, supportedProtocolsSize);
+        return Optional.of(extension);
+    }
+
+    @Override
+    public int type() {
         return APPLICATION_LAYER_PROTOCOL_NEGOTIATION_TYPE;
     }
 
     @Override
     public List<TlsVersion> versions() {
         return APPLICATION_LAYER_PROTOCOL_NEGOTIATION_VERSIONS;
-    }
-
-    @Override
-    public TlsExtensionDeserializer<? extends Agnostic> responseDeserializer() {
-        return DESERIALIZER;
     }
 
     @Override

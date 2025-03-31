@@ -4,7 +4,8 @@ import it.auties.leap.tls.alert.TlsAlert;
 import it.auties.leap.tls.cipher.TlsGREASE;
 import it.auties.leap.tls.context.TlsContext;
 import it.auties.leap.tls.context.TlsSource;
-import it.auties.leap.tls.extension.*;
+import it.auties.leap.tls.extension.TlsExtension;
+import it.auties.leap.tls.extension.TlsExtensionDependencies;
 import it.auties.leap.tls.property.TlsProperty;
 import it.auties.leap.tls.version.TlsVersion;
 import it.auties.leap.tls.version.TlsVersionId;
@@ -30,7 +31,7 @@ public final class SupportedVersionsExtension implements TlsExtension.Configurab
     }
 
     @Override
-    public int extensionType() {
+    public int type() {
         return SUPPORTED_VERSIONS_TYPE;
     }
 
@@ -48,7 +49,7 @@ public final class SupportedVersionsExtension implements TlsExtension.Configurab
         var grease = context.getNegotiableValue(TlsProperty.clientExtensions())
                 .orElseThrow(() -> TlsAlert.noNegotiableProperty(TlsProperty.clientExtensions()))
                 .stream()
-                .anyMatch(entry -> TlsGREASE.isGrease(entry.extensionType()));
+                .anyMatch(entry -> TlsGREASE.isGrease(entry.type()));
         if (grease) {
             supportedVersions.add(TlsGREASE.greaseRandom());
         }
@@ -77,22 +78,6 @@ public final class SupportedVersionsExtension implements TlsExtension.Configurab
     private record ConfiguredClient(
             List<TlsVersionId> supportedVersions
     ) implements TlsExtension.Configured.Client {
-        private static final TlsExtensionDeserializer<TlsExtension.Configured.Server> DESERIALIZER = (context, _, buffer) -> {
-            var major = readBigEndianInt8(buffer);
-            var minor = readBigEndianInt8(buffer);
-            var versionId = TlsVersionId.of(major, minor);
-            var supportedVersions = context.getNegotiatedValue(TlsProperty.version())
-                    .stream()
-                    .collect(Collectors.toUnmodifiableMap(TlsVersion::id, Function.identity()));
-            var supportedVersion = supportedVersions.get(versionId);
-            if(supportedVersion == null) {
-                throw new TlsAlert("Remote tried to negotiate a version that wasn't advertised");
-            }
-
-            var extension = new ConfiguredServer(supportedVersion);
-            return Optional.of(extension);
-        };
-
         @Override
         public void serializePayload(ByteBuffer buffer) {
             var payloadSize = supportedVersions.size() * INT16_LENGTH;
@@ -109,23 +94,34 @@ public final class SupportedVersionsExtension implements TlsExtension.Configurab
         }
 
         @Override
+        public Optional<ConfiguredServer> deserialize(TlsContext context, int type, ByteBuffer buffer) {
+            var major = readBigEndianInt8(buffer);
+            var minor = readBigEndianInt8(buffer);
+            var versionId = TlsVersionId.of(major, minor);
+            var supportedVersions = context.getNegotiatedValue(TlsProperty.version())
+                    .stream()
+                    .collect(Collectors.toUnmodifiableMap(TlsVersion::id, Function.identity()));
+            var supportedVersion = supportedVersions.get(versionId);
+            if(supportedVersion == null) {
+                throw new TlsAlert("Remote tried to negotiate a version that wasn't advertised");
+            }
+            var extension = new ConfiguredServer(supportedVersion);
+            return Optional.of(extension);
+        }
+
+        @Override
         public int payloadLength() {
             return INT8_LENGTH + INT16_LENGTH * supportedVersions.size();
         }
 
         @Override
-        public int extensionType() {
+        public int type() {
             return SUPPORTED_VERSIONS_TYPE;
         }
 
         @Override
         public List<TlsVersion> versions() {
             return SUPPORTED_VERSIONS_VERSIONS;
-        }
-
-        @Override
-        public TlsExtensionDeserializer<TlsExtension.Configured.Server> responseDeserializer() {
-            return DESERIALIZER;
         }
 
         @Override
@@ -137,7 +133,34 @@ public final class SupportedVersionsExtension implements TlsExtension.Configurab
     private record ConfiguredServer(
             TlsVersion version
     ) implements TlsExtension.Configured.Server {
-        private static final TlsExtensionDeserializer<TlsExtension.Configured.Client> DESERIALIZER = (context, _, buffer) -> {
+        @Override
+        public void serializePayload(ByteBuffer buffer) {
+            writeBigEndianInt8(buffer, version.id().major());
+            writeBigEndianInt8(buffer, version.id().minor());
+        }
+
+        @Override
+        public int payloadLength() {
+            return INT16_LENGTH;
+        }
+
+        @Override
+        public int type() {
+            return SUPPORTED_VERSIONS_TYPE;
+        }
+
+        @Override
+        public List<TlsVersion> versions() {
+            return SUPPORTED_VERSIONS_VERSIONS;
+        }
+
+        @Override
+        public void apply(TlsContext context, TlsSource source) {
+            context.addNegotiatedProperty(TlsProperty.version(), version);
+        }
+
+        @Override
+        public Optional<ConfiguredClient> deserialize(TlsContext context, int type, ByteBuffer buffer) {
             var payloadSize = readBigEndianInt8(buffer);
             var versions = new ArrayList<TlsVersionId>();
             try (var _ = scopedRead(buffer, payloadSize)) {
@@ -151,37 +174,6 @@ public final class SupportedVersionsExtension implements TlsExtension.Configurab
             }
             var extension = new ConfiguredClient(versions);
             return Optional.of(extension);
-        };
-
-        @Override
-        public void serializePayload(ByteBuffer buffer) {
-            writeBigEndianInt8(buffer, version.id().major());
-            writeBigEndianInt8(buffer, version.id().minor());
-        }
-
-        @Override
-        public int payloadLength() {
-            return INT16_LENGTH;
-        }
-
-        @Override
-        public int extensionType() {
-            return SUPPORTED_VERSIONS_TYPE;
-        }
-
-        @Override
-        public List<TlsVersion> versions() {
-            return SUPPORTED_VERSIONS_VERSIONS;
-        }
-
-        @Override
-        public TlsExtensionDeserializer<TlsExtension.Configured.Client> responseDeserializer() {
-            return DESERIALIZER;
-        }
-
-        @Override
-        public void apply(TlsContext context, TlsSource source) {
-            context.addNegotiatedProperty(TlsProperty.version(), version);
         }
 
         @Override

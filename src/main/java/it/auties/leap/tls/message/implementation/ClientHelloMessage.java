@@ -15,6 +15,7 @@ import it.auties.leap.tls.version.TlsVersionId;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import static it.auties.leap.tls.util.BufferUtils.*;
@@ -93,7 +94,7 @@ public record ClientHelloMessage(
             var extensionTypeToDecoder = context.getNegotiatedValue(TlsProperty.serverExtensions())
                     .orElseThrow(() -> TlsAlert.noNegotiatedProperty(TlsProperty.serverExtensions()))
                     .stream()
-                    .collect(Collectors.toUnmodifiableMap(TlsExtension::extensionType, TlsExtension.Configured.Server::responseDeserializer));
+                    .collect(Collectors.toUnmodifiableMap(TlsExtension::type, Function.identity()));
             while (buffer.hasRemaining()) {
                 var extensionType = readBigEndianInt16(buffer);
                 var extensionDecoder = extensionTypeToDecoder.get(extensionType);

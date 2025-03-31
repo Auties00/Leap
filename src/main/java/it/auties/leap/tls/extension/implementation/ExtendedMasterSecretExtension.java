@@ -5,7 +5,6 @@ import it.auties.leap.tls.context.TlsContext;
 import it.auties.leap.tls.context.TlsSource;
 import it.auties.leap.tls.extension.TlsExtension;
 import it.auties.leap.tls.extension.TlsExtensionDependencies;
-import it.auties.leap.tls.extension.TlsExtensionDeserializer;
 import it.auties.leap.tls.property.TlsProperty;
 import it.auties.leap.tls.version.TlsVersion;
 
@@ -16,15 +15,7 @@ import java.util.Optional;
 public record ExtendedMasterSecretExtension(
 
 ) implements TlsExtension.Configured.Agnostic {
-    private static final TlsExtensionDeserializer<TlsExtension.Configured.Agnostic> DESERIALIZER = (_, _, buffer) -> {
-        if (buffer.hasRemaining()) {
-            throw new TlsAlert("Unexpected extension payload");
-        }
-
-        return Optional.of(ExtendedMasterSecretExtension.INSTANCE);
-    };
-
-    static final ExtendedMasterSecretExtension INSTANCE = new ExtendedMasterSecretExtension();
+    private static final ExtendedMasterSecretExtension INSTANCE = new ExtendedMasterSecretExtension();
 
     public static TlsExtension.Configured.Agnostic instance() {
         return INSTANCE;
@@ -49,18 +40,22 @@ public record ExtendedMasterSecretExtension(
     }
 
     @Override
-    public int extensionType() {
+    public Optional<ExtendedMasterSecretExtension> deserialize(TlsContext context, int type, ByteBuffer buffer) {
+        if (buffer.hasRemaining()) {
+            throw new TlsAlert("Unexpected extension payload");
+        }
+
+        return Optional.of(INSTANCE);
+    }
+
+    @Override
+    public int type() {
         return EXTENDED_MASTER_SECRET_TYPE;
     }
 
     @Override
     public List<TlsVersion> versions() {
         return EXTENDED_MASTER_SECRET_VERSIONS;
-    }
-
-    @Override
-    public TlsExtensionDeserializer<? extends Agnostic> responseDeserializer() {
-        return DESERIALIZER;
     }
 
     @Override

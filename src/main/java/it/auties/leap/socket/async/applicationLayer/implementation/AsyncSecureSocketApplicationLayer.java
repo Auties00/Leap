@@ -110,7 +110,7 @@ public class AsyncSecureSocketApplicationLayer extends AsyncSocketApplicationLay
                 continue;
             }
 
-            var conflict = dependenciesTree.put(extension.extensionType(), extension);
+            var conflict = dependenciesTree.put(extension.type(), extension);
             if (conflict != null) {
                 throw new IllegalArgumentException(extensionConflictError(extension, conflict));
             }
@@ -244,18 +244,18 @@ public class AsyncSecureSocketApplicationLayer extends AsyncSocketApplicationLay
 
     private static String extensionCyclicDependencyError(TlsExtensionOwner.Client extension, TlsExtensionOwner.Client cyclicLink) {
         return "Extension with type %s defined by <%s> depends cyclically on an extension with type %s defined by <%s>".formatted(
-                extension.extensionType(),
+                extension.type(),
                 extension.getClass().getName(),
-                extension.extensionType(),
+                extension.type(),
                 cyclicLink.getClass().getName()
         );
     }
 
     private static String extensionConflictError(TlsExtensionOwner.Client extension, TlsExtensionOwner.Client conflict) {
         return "Extension with type %s defined by <%s> conflicts with an extension processed previously with type %s defined by <%s>".formatted(
-                extension.extensionType(),
+                extension.type(),
                 extension.getClass().getName(),
-                extension.extensionType(),
+                extension.type(),
                 conflict.getClass().getName()
         );
     }
@@ -263,7 +263,7 @@ public class AsyncSecureSocketApplicationLayer extends AsyncSocketApplicationLay
     private boolean hasDependency(TlsExtensionOwner.Client extension, TlsExtensionOwner.Client linked) {
         return linked != null
                 && linked.dependencies() instanceof TlsExtensionDependencies.Some nestedSome
-                && nestedSome.includedTypes().contains(extension.extensionType());
+                && nestedSome.includedTypes().contains(extension.type());
     }
 
     private CompletableFuture<Void> sendClientCertificate() {
@@ -358,7 +358,7 @@ public class AsyncSecureSocketApplicationLayer extends AsyncSocketApplicationLay
 
 
     private CompletableFuture<Void> readUntilServerDone() {
-        if (false) {
+        if (tlsContext.remoteConnectionState().flatMap(TlsConnection::keyExchange).isPresent()) {
             return CompletableFuture.completedFuture(null);
         }
 

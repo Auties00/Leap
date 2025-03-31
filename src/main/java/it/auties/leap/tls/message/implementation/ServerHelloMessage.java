@@ -3,6 +3,7 @@ package it.auties.leap.tls.message.implementation;
 import it.auties.leap.tls.alert.TlsAlert;
 import it.auties.leap.tls.connection.TlsConnection;
 import it.auties.leap.tls.context.TlsContext;
+import it.auties.leap.tls.context.TlsContextMode;
 import it.auties.leap.tls.context.TlsSource;
 import it.auties.leap.tls.extension.TlsExtension;
 import it.auties.leap.tls.message.TlsHandshakeMessage;
@@ -13,7 +14,9 @@ import it.auties.leap.tls.version.TlsVersion;
 
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import static it.auties.leap.tls.util.BufferUtils.*;
@@ -49,7 +52,7 @@ public record ServerHelloMessage(
         var extensionTypeToDecoder = context.getNegotiatedValue(TlsProperty.clientExtensions())
                 .orElseThrow(() -> TlsAlert.noNegotiatedProperty(TlsProperty.clientExtensions()))
                 .stream()
-                .collect(Collectors.toUnmodifiableMap(TlsExtension::extensionType, TlsExtension.Configured.Client::responseDeserializer));
+                .collect(Collectors.toUnmodifiableMap(TlsExtension::type, Function.identity()));
         var extensions = new ArrayList<TlsExtension.Configured.Server>();
         var extensionsLength = buffer.remaining() >= INT16_LENGTH ? readBigEndianInt16(buffer) : 0;
         try (var _ = scopedRead(buffer, extensionsLength)) {
@@ -109,7 +112,9 @@ public record ServerHelloMessage(
                 .orElseThrow(() -> new TlsAlert("Remote negotiated a compression that wasn't available"));
         context.addNegotiatedProperty(TlsProperty.compression(), negotiatedCompression);
 
+        var seen = new HashSet<Integer>();
         for (var extension : extensions) {
+            seen.add(extension.type());
             extension.apply(context, source);
         }
 
@@ -117,6 +122,15 @@ public record ServerHelloMessage(
             context.addNegotiatedProperty(TlsProperty.version(), this.version); // supported_versions extension wasn't in the extensions list, default to legacyVersion
             return this.version;
         });
+
+        if(context.selectedMode() == TlsContextMode.CLIENT && version.id().value() <= TlsVersion.DTLS12.id().value()) {
+            context.getNegotiatedValue(TlsProperty.clientExtensions())
+                    .orElseThrow(() -> TlsAlert.noNegotiatedProperty(TlsProperty.clientExtensions()))
+                    .stream()
+                    .filter(entry -> !seen.contains(entry.type()))
+                    .forEach(entry -> entry.apply(context, source));
+        }
+
         context.connectionIntegrity()
                 .init(version, negotiatedCipher.hashFactory());
     }

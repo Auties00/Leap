@@ -5,7 +5,8 @@ import it.auties.leap.tls.context.TlsContext;
 import it.auties.leap.tls.context.TlsContextMode;
 import it.auties.leap.tls.context.TlsSource;
 import it.auties.leap.tls.ec.TlsECPointFormat;
-import it.auties.leap.tls.extension.*;
+import it.auties.leap.tls.extension.TlsExtension;
+import it.auties.leap.tls.extension.TlsExtensionDependencies;
 import it.auties.leap.tls.property.TlsIdentifiableProperty;
 import it.auties.leap.tls.property.TlsProperty;
 import it.auties.leap.tls.version.TlsVersion;
@@ -22,27 +23,6 @@ import static it.auties.leap.tls.util.BufferUtils.*;
 public record ECPointFormatExtension(
         List<TlsECPointFormat> supportedFormats
 ) implements TlsExtension.Configured.Agnostic {
-    private static final TlsExtensionDeserializer<TlsExtension.Configured.Agnostic> DESERIALIZER = (context, _, buffer) -> {
-        var ecPointFormatsLength = readBigEndianInt8(buffer);
-        var ecPointFormats = new ArrayList<TlsECPointFormat>();
-        var knownFormats = context.getNegotiableValue(TlsProperty.ecPointsFormats())
-                .orElseThrow(() -> TlsAlert.noNegotiableProperty(TlsProperty.ecPointsFormats()))
-                .stream()
-                .collect(Collectors.toUnmodifiableMap(TlsIdentifiableProperty::id, Function.identity()));
-        var mode = context.selectedMode();
-        for(var i = 0; i < ecPointFormatsLength; i++) {
-            var ecPointFormatId = readBigEndianInt8(buffer);
-            var ecPointFormat = knownFormats.get(ecPointFormatId);
-            if(ecPointFormat != null) {
-                ecPointFormats.add(ecPointFormat);
-            }else if(mode == TlsContextMode.CLIENT) {
-                throw new TlsAlert("Remote tried to negotiate an ec point that wasn't advertised");
-            }
-        }
-        var extension = new ECPointFormatExtension(ecPointFormats);
-        return Optional.of(extension);
-    };
-
     private static final ECPointFormatExtension ALL = new ECPointFormatExtension(TlsECPointFormat.values());
 
     public static TlsExtension.Configured.Agnostic all() {
@@ -71,18 +51,35 @@ public record ECPointFormatExtension(
     }
 
     @Override
-    public int extensionType() {
+    public Optional<ECPointFormatExtension> deserialize(TlsContext context, int type, ByteBuffer buffer) {
+        var ecPointFormatsLength = readBigEndianInt8(buffer);
+        var ecPointFormats = new ArrayList<TlsECPointFormat>();
+        var knownFormats = context.getNegotiableValue(TlsProperty.ecPointsFormats())
+                .orElseThrow(() -> TlsAlert.noNegotiableProperty(TlsProperty.ecPointsFormats()))
+                .stream()
+                .collect(Collectors.toUnmodifiableMap(TlsIdentifiableProperty::id, Function.identity()));
+        var mode = context.selectedMode();
+        for(var i = 0; i < ecPointFormatsLength; i++) {
+            var ecPointFormatId = readBigEndianInt8(buffer);
+            var ecPointFormat = knownFormats.get(ecPointFormatId);
+            if(ecPointFormat != null) {
+                ecPointFormats.add(ecPointFormat);
+            }else if(mode == TlsContextMode.CLIENT) {
+                throw new TlsAlert("Remote tried to negotiate an ec point that wasn't advertised");
+            }
+        }
+        var extension = new ECPointFormatExtension(ecPointFormats);
+        return Optional.of(extension);
+    }
+
+    @Override
+    public int type() {
         return EC_POINT_FORMATS_TYPE;
     }
 
     @Override
     public List<TlsVersion> versions() {
         return EC_POINT_FORMATS_VERSIONS;
-    }
-
-    @Override
-    public TlsExtensionDeserializer<? extends Agnostic> responseDeserializer() {
-        return DESERIALIZER;
     }
 
     @Override

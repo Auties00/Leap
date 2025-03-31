@@ -4,7 +4,8 @@ import it.auties.leap.tls.alert.TlsAlert;
 import it.auties.leap.tls.context.TlsContext;
 import it.auties.leap.tls.context.TlsContextMode;
 import it.auties.leap.tls.context.TlsSource;
-import it.auties.leap.tls.extension.*;
+import it.auties.leap.tls.extension.TlsExtension;
+import it.auties.leap.tls.extension.TlsExtensionDependencies;
 import it.auties.leap.tls.property.TlsIdentifiableProperty;
 import it.auties.leap.tls.property.TlsProperty;
 import it.auties.leap.tls.psk.TlsPSKExchangeMode;
@@ -18,32 +19,10 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import static it.auties.leap.tls.util.BufferUtils.*;
-import static it.auties.leap.tls.util.BufferUtils.readBigEndianInt8;
 
 public record PSKExchangeModesExtension(
         List<TlsPSKExchangeMode> modes
 ) implements TlsExtension.Configured.Agnostic {
-    private static final TlsExtensionDeserializer<TlsExtension.Configured.Agnostic> DESERIALIZER = (context, _, buffer) -> {
-        var modesSize = readBigEndianInt16(buffer);
-        var modes = new ArrayList<TlsPSKExchangeMode>(modesSize);
-        var knownModes = context.getNegotiableValue(TlsProperty.pskExchangeModes())
-                .orElseThrow(() -> TlsAlert.noNegotiableProperty(TlsProperty.pskExchangeModes()))
-                .stream()
-                .collect(Collectors.toUnmodifiableMap(TlsIdentifiableProperty::id, Function.identity()));
-        var mode = context.selectedMode();
-        for(var i = 0; i < modesSize; i++) {
-            var pskModeId = readBigEndianInt8(buffer);
-            var pskMode = knownModes.get(pskModeId);
-            if(pskMode != null) {
-                modes.add(pskMode);
-            }else if(mode == TlsContextMode.CLIENT) {
-                throw new TlsAlert("Remote tried to negotiate a psk exchange mode that wasn't advertised");
-            }
-        }
-        var extension = new PSKExchangeModesExtension(modes);
-        return Optional.of(extension);
-    };
-
     @Override
     public void serializePayload(ByteBuffer buffer) {
         writeBigEndianInt8(buffer, modes.size());
@@ -66,18 +45,35 @@ public record PSKExchangeModesExtension(
     }
 
     @Override
-    public int extensionType() {
+    public Optional<PSKExchangeModesExtension> deserialize(TlsContext context, int type, ByteBuffer buffer) {
+        var modesSize = readBigEndianInt16(buffer);
+        var modes = new ArrayList<TlsPSKExchangeMode>(modesSize);
+        var knownModes = context.getNegotiableValue(TlsProperty.pskExchangeModes())
+                .orElseThrow(() -> TlsAlert.noNegotiableProperty(TlsProperty.pskExchangeModes()))
+                .stream()
+                .collect(Collectors.toUnmodifiableMap(TlsIdentifiableProperty::id, Function.identity()));
+        var mode = context.selectedMode();
+        for(var i = 0; i < modesSize; i++) {
+            var pskModeId = readBigEndianInt8(buffer);
+            var pskMode = knownModes.get(pskModeId);
+            if(pskMode != null) {
+                modes.add(pskMode);
+            }else if(mode == TlsContextMode.CLIENT) {
+                throw new TlsAlert("Remote tried to negotiate a psk exchange mode that wasn't advertised");
+            }
+        }
+        var extension = new PSKExchangeModesExtension(modes);
+        return Optional.of(extension);
+    }
+
+    @Override
+    public int type() {
         return PSK_KEY_EXCHANGE_MODES_TYPE;
     }
 
     @Override
     public List<TlsVersion> versions() {
         return PSK_KEY_EXCHANGE_MODES_VERSIONS;
-    }
-
-    @Override
-    public TlsExtensionDeserializer<? extends Agnostic> responseDeserializer() {
-        return DESERIALIZER;
     }
 
     @Override

@@ -1,5 +1,6 @@
 package it.auties.leap.tls.extension;
 
+import it.auties.leap.tls.context.TlsContext;
 import it.auties.leap.tls.ec.TlsECPointFormat;
 import it.auties.leap.tls.extension.implementation.*;
 import it.auties.leap.tls.group.TlsSupportedGroup;
@@ -8,7 +9,9 @@ import it.auties.leap.tls.psk.TlsPSKExchangeMode;
 import it.auties.leap.tls.signature.TlsSignature;
 import it.auties.leap.tls.version.TlsVersion;
 
+import java.nio.ByteBuffer;
 import java.util.List;
+import java.util.Optional;
 
 public sealed interface TlsExtension extends TlsExtensionMetadataProvider {
     List<TlsVersion> TLS_UNTIL_12 = List.of(TlsVersion.TLS10, TlsVersion.TLS11, TlsVersion.TLS12);
@@ -227,15 +230,15 @@ public sealed interface TlsExtension extends TlsExtensionMetadataProvider {
 
     sealed interface Configured extends TlsExtension, TlsExtensionState.Configured {
         non-sealed interface Client extends TlsExtension.Configured, TlsExtensionOwner.Client {
-            TlsExtensionDeserializer<? extends TlsExtension.Configured.Server> responseDeserializer();
+            Optional<? extends TlsExtension.Configured.Server> deserialize(TlsContext context, int type, ByteBuffer response);
         }
 
         non-sealed interface Server extends TlsExtension.Configured, TlsExtensionOwner.Server {
-            TlsExtensionDeserializer<? extends TlsExtension.Configured.Client> responseDeserializer();
+            Optional<? extends TlsExtension.Configured.Client> deserialize(TlsContext context, int type, ByteBuffer response);
         }
 
         non-sealed interface Agnostic extends Client, Server, TlsExtension.Configured  {
-            TlsExtensionDeserializer<? extends TlsExtension.Configured.Agnostic> responseDeserializer();
+            Optional<? extends TlsExtension.Configured.Agnostic> deserialize(TlsContext context, int type, ByteBuffer response);
         }
     }
 

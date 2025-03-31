@@ -3,9 +3,8 @@ package it.auties.leap.tls.extension.implementation;
 import it.auties.leap.tls.alert.TlsAlert;
 import it.auties.leap.tls.context.TlsContext;
 import it.auties.leap.tls.context.TlsSource;
-import it.auties.leap.tls.extension.TlsExtensionDependencies;
-import it.auties.leap.tls.extension.TlsExtensionDeserializer;
 import it.auties.leap.tls.extension.TlsExtension;
+import it.auties.leap.tls.extension.TlsExtensionDependencies;
 import it.auties.leap.tls.property.TlsProperty;
 import it.auties.leap.tls.version.TlsVersion;
 
@@ -16,14 +15,6 @@ import java.util.Optional;
 public record EncryptThenMacExtension(
 
 ) implements TlsExtension.Configured.Agnostic {
-    private static final TlsExtensionDeserializer<TlsExtension.Configured.Agnostic> DESERIALIZER = (_, _, buffer) -> {
-        if (buffer.hasRemaining()) {
-            throw new TlsAlert("Unexpected extension payload");
-        }
-
-        return Optional.of(EncryptThenMacExtension.INSTANCE);
-    };
-
     private static final EncryptThenMacExtension INSTANCE = new EncryptThenMacExtension();
 
     public static EncryptThenMacExtension instance() {
@@ -49,18 +40,22 @@ public record EncryptThenMacExtension(
     }
 
     @Override
-    public int extensionType() {
+    public Optional<EncryptThenMacExtension> deserialize(TlsContext context, int type, ByteBuffer buffer) {
+        if (buffer.hasRemaining()) {
+            throw new TlsAlert("Unexpected extension payload");
+        }
+
+        return Optional.of(INSTANCE);
+    }
+
+    @Override
+    public int type() {
         return ENCRYPT_THEN_MAC_TYPE;
     }
 
     @Override
     public List<TlsVersion> versions() {
         return ENCRYPT_THEN_MAC_VERSIONS;
-    }
-
-    @Override
-    public TlsExtensionDeserializer<? extends Agnostic> responseDeserializer() {
-        return DESERIALIZER;
     }
 
     @Override

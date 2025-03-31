@@ -4,7 +4,8 @@ import it.auties.leap.tls.alert.TlsAlert;
 import it.auties.leap.tls.context.TlsContext;
 import it.auties.leap.tls.context.TlsContextMode;
 import it.auties.leap.tls.context.TlsSource;
-import it.auties.leap.tls.extension.*;
+import it.auties.leap.tls.extension.TlsExtension;
+import it.auties.leap.tls.extension.TlsExtensionDependencies;
 import it.auties.leap.tls.property.TlsIdentifiableProperty;
 import it.auties.leap.tls.property.TlsProperty;
 import it.auties.leap.tls.signature.TlsSignature;
@@ -22,32 +23,10 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import static it.auties.leap.tls.util.BufferUtils.*;
-import static it.auties.leap.tls.util.BufferUtils.readBigEndianInt16;
 
 public record SignatureAlgorithmsExtension(
         List<TlsSignature> algorithms
 ) implements TlsExtension.Configured.Agnostic {
-    private static final TlsExtensionDeserializer<TlsExtension.Configured.Agnostic> DESERIALIZER = (context, _, buffer) -> {
-        var algorithmsSize = readBigEndianInt16(buffer);
-        var algorithms = new ArrayList<TlsSignature>(algorithmsSize);
-        var knownAlgorithms = context.getNegotiableValue(TlsProperty.signatureAlgorithms())
-                .orElseThrow(() -> TlsAlert.noNegotiableProperty(TlsProperty.signatureAlgorithms()))
-                .stream()
-                .collect(Collectors.toUnmodifiableMap(TlsIdentifiableProperty::id, Function.identity()));
-        var mode = context.selectedMode();
-        for (var i = 0; i < algorithmsSize; i++) {
-            var algorithmId = readBigEndianInt16(buffer);
-            var algorithm = knownAlgorithms.get(algorithmId);
-            if(algorithm != null) {
-                algorithms.add(algorithm);
-            }else if(mode == TlsContextMode.CLIENT) {
-                throw new TlsAlert("Remote tried to negotiate a signature algorithm that wasn't advertised");
-            }
-        }
-        var extension = new SignatureAlgorithmsExtension(algorithms);
-        return Optional.of(extension);
-    };
-
     private static final SignatureAlgorithmsExtension RECOMMENDED = new SignatureAlgorithmsExtension(List.of(
             TlsSignatureScheme.ecdsaSecp256r1Sha256(),
             TlsSignatureScheme.ecdsaSecp384r1Sha384(),
@@ -97,18 +76,35 @@ public record SignatureAlgorithmsExtension(
     }
 
     @Override
-    public int extensionType() {
+    public Optional<SignatureAlgorithmsExtension> deserialize(TlsContext context, int type, ByteBuffer buffer) {
+        var algorithmsSize = readBigEndianInt16(buffer);
+        var algorithms = new ArrayList<TlsSignature>(algorithmsSize);
+        var knownAlgorithms = context.getNegotiableValue(TlsProperty.signatureAlgorithms())
+                .orElseThrow(() -> TlsAlert.noNegotiableProperty(TlsProperty.signatureAlgorithms()))
+                .stream()
+                .collect(Collectors.toUnmodifiableMap(TlsIdentifiableProperty::id, Function.identity()));
+        var mode = context.selectedMode();
+        for (var i = 0; i < algorithmsSize; i++) {
+            var algorithmId = readBigEndianInt16(buffer);
+            var algorithm = knownAlgorithms.get(algorithmId);
+            if(algorithm != null) {
+                algorithms.add(algorithm);
+            }else if(mode == TlsContextMode.CLIENT) {
+                throw new TlsAlert("Remote tried to negotiate a signature algorithm that wasn't advertised");
+            }
+        }
+        var extension = new SignatureAlgorithmsExtension(algorithms);
+        return Optional.of(extension);
+    }
+
+    @Override
+    public int type() {
         return SIGNATURE_ALGORITHMS_TYPE;
     }
 
     @Override
     public List<TlsVersion> versions() {
         return SIGNATURE_ALGORITHMS_VERSIONS;
-    }
-
-    @Override
-    public TlsExtensionDeserializer<? extends Agnostic> responseDeserializer() {
-        return DESERIALIZER;
     }
 
     @Override

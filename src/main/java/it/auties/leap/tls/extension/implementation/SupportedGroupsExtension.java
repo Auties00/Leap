@@ -4,7 +4,8 @@ import it.auties.leap.tls.alert.TlsAlert;
 import it.auties.leap.tls.context.TlsContext;
 import it.auties.leap.tls.context.TlsContextMode;
 import it.auties.leap.tls.context.TlsSource;
-import it.auties.leap.tls.extension.*;
+import it.auties.leap.tls.extension.TlsExtension;
+import it.auties.leap.tls.extension.TlsExtensionDependencies;
 import it.auties.leap.tls.group.TlsSupportedEllipticCurve;
 import it.auties.leap.tls.group.TlsSupportedFiniteField;
 import it.auties.leap.tls.group.TlsSupportedGroup;
@@ -25,27 +26,6 @@ import static it.auties.leap.tls.util.BufferUtils.readBigEndianInt16;
 public record SupportedGroupsExtension(
         List<TlsSupportedGroup> groups
 ) implements TlsExtension.Configured.Agnostic {
-    private static final TlsExtensionDeserializer<TlsExtension.Configured.Agnostic> DESERIALIZER = (context, _, buffer) -> {
-        var groupsSize = readBigEndianInt16(buffer);
-        var groups = new ArrayList<TlsSupportedGroup>(groupsSize);
-        var knownGroups = context.getNegotiableValue(TlsProperty.supportedGroups())
-                .orElseThrow(() -> TlsAlert.noNegotiableProperty(TlsProperty.ecPointsFormats()))
-                .stream()
-                .collect(Collectors.toUnmodifiableMap(TlsIdentifiableProperty::id, Function.identity()));
-        var mode = context.selectedMode();
-        for (var i = 0; i < groupsSize; i++) {
-            var groupId = readBigEndianInt16(buffer);
-            var group = knownGroups.get(groupId);
-            if(group != null) {
-                groups.add(group);
-            }else if(mode == TlsContextMode.CLIENT) {
-                throw new TlsAlert("Remote tried to negotiate a supported group that wasn't advertised");
-            }
-        }
-        var extension = new SupportedGroupsExtension(groups);
-        return Optional.of(extension);
-    };
-
     private static final SupportedGroupsExtension RECOMMENDED = new SupportedGroupsExtension(List.of(
             TlsSupportedEllipticCurve.x25519(),
             TlsSupportedEllipticCurve.x448(),
@@ -83,18 +63,35 @@ public record SupportedGroupsExtension(
     }
 
     @Override
-    public int extensionType() {
+    public Optional<SupportedGroupsExtension> deserialize(TlsContext context, int type, ByteBuffer buffer) {
+        var groupsSize = readBigEndianInt16(buffer);
+        var groups = new ArrayList<TlsSupportedGroup>(groupsSize);
+        var knownGroups = context.getNegotiableValue(TlsProperty.supportedGroups())
+                .orElseThrow(() -> TlsAlert.noNegotiableProperty(TlsProperty.ecPointsFormats()))
+                .stream()
+                .collect(Collectors.toUnmodifiableMap(TlsIdentifiableProperty::id, Function.identity()));
+        var mode = context.selectedMode();
+        for (var i = 0; i < groupsSize; i++) {
+            var groupId = readBigEndianInt16(buffer);
+            var group = knownGroups.get(groupId);
+            if(group != null) {
+                groups.add(group);
+            }else if(mode == TlsContextMode.CLIENT) {
+                throw new TlsAlert("Remote tried to negotiate a supported group that wasn't advertised");
+            }
+        }
+        var extension = new SupportedGroupsExtension(groups);
+        return Optional.of(extension);
+    }
+
+    @Override
+    public int type() {
         return SUPPORTED_GROUPS_TYPE;
     }
 
     @Override
     public List<TlsVersion> versions() {
         return SUPPORTED_GROUPS_VERSIONS;
-    }
-
-    @Override
-    public TlsExtensionDeserializer<? extends Agnostic> responseDeserializer() {
-        return DESERIALIZER;
     }
 
     @Override

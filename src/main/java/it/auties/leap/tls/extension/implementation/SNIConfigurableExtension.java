@@ -5,7 +5,6 @@ import it.auties.leap.tls.context.TlsContext;
 import it.auties.leap.tls.context.TlsSource;
 import it.auties.leap.tls.extension.TlsExtension;
 import it.auties.leap.tls.extension.TlsExtensionDependencies;
-import it.auties.leap.tls.extension.TlsExtensionDeserializer;
 import it.auties.leap.tls.name.TlsNameType;
 import it.auties.leap.tls.property.TlsProperty;
 import it.auties.leap.tls.version.TlsVersion;
@@ -54,7 +53,7 @@ public record SNIConfigurableExtension(
     }
 
     @Override
-    public int extensionType() {
+    public int type() {
         return SERVER_NAME_TYPE;
     }
 
@@ -67,7 +66,27 @@ public record SNIConfigurableExtension(
             byte[] name,
             TlsNameType nameType
     ) implements TlsExtension.Configured.Agnostic {
-        private static final TlsExtensionDeserializer<TlsExtension.Configured.Agnostic> DESERIALIZER = (context, _, buffer) -> {
+        @Override
+        public void serializePayload(ByteBuffer buffer) {
+            writeBigEndianInt16(buffer, INT8_LENGTH + INT16_LENGTH + name.length);
+            writeBigEndianInt8(buffer, nameType.id());
+            writeBytesBigEndian16(buffer, name);
+        }
+
+        @Override
+        public int payloadLength() {
+            return INT16_LENGTH + INT8_LENGTH + INT16_LENGTH + name.length;
+        }
+
+        @Override
+        public void apply(TlsContext context, TlsSource source) {
+            if(source == TlsSource.REMOTE) {
+                // TODO: Check if name matches local
+            }
+        }
+
+        @Override
+        public Optional<? extends Agnostic> deserialize(TlsContext context, int type, ByteBuffer buffer) {
             if(!buffer.hasRemaining()) {
                 return switch (context.selectedMode()) {
                     case CLIENT -> context.getNegotiatedValue(TlsProperty.clientExtensions())
@@ -93,43 +112,19 @@ public record SNIConfigurableExtension(
                 }
 
                 var nameBytes = readBytesBigEndian16(buffer);
-                // TODO: Check if name matches local
                 var extension = new SNIConfigurableExtension.Configured(nameBytes, nameType.get());
                 return Optional.of(extension);
             }
-        };
-
-
-        @Override
-        public void serializePayload(ByteBuffer buffer) {
-            writeBigEndianInt16(buffer, INT8_LENGTH + INT16_LENGTH + name.length);
-            writeBigEndianInt8(buffer, nameType.id());
-            writeBytesBigEndian16(buffer, name);
         }
 
         @Override
-        public int payloadLength() {
-            return INT16_LENGTH + INT8_LENGTH + INT16_LENGTH + name.length;
-        }
-
-        @Override
-        public void apply(TlsContext context, TlsSource source) {
-
-        }
-
-        @Override
-        public int extensionType() {
+        public int type() {
             return SERVER_NAME_TYPE;
         }
 
         @Override
         public List<TlsVersion> versions() {
             return SERVER_NAME_VERSIONS;
-        }
-
-        @Override
-        public TlsExtensionDeserializer<TlsExtension.Configured.Agnostic> responseDeserializer() {
-            return DESERIALIZER;
         }
 
         @Override

@@ -1,14 +1,14 @@
 package it.auties.leap.tls.cipher.exchange.implementation;
 
-import it.auties.leap.tls.context.TlsContext;
-import it.auties.leap.tls.property.TlsProperty;
+import it.auties.leap.tls.alert.TlsAlert;
 import it.auties.leap.tls.cipher.exchange.TlsKeyExchange;
 import it.auties.leap.tls.cipher.exchange.TlsKeyExchangeFactory;
 import it.auties.leap.tls.cipher.exchange.TlsKeyExchangeType;
+import it.auties.leap.tls.context.TlsContext;
 import it.auties.leap.tls.ec.TlsECParameters;
-import it.auties.leap.tls.alert.TlsAlert;
 import it.auties.leap.tls.group.TlsSupportedEllipticCurve;
 import it.auties.leap.tls.group.TlsSupportedGroup;
+import it.auties.leap.tls.property.TlsProperty;
 import it.auties.leap.tls.secret.TlsPreMasterSecretGenerator;
 
 import java.nio.ByteBuffer;
@@ -96,13 +96,18 @@ public sealed abstract class ECDHKeyExchange implements TlsKeyExchange {
             super(type);
             var ecType = readBigEndianInt8(buffer);
             this.parameters = supportedGroups.stream()
-                    .filter(group -> group instanceof TlsSupportedEllipticCurve supportedEllipticCurve && supportedEllipticCurve.accepts(ecType))
+                    .filter(group -> isCompatible(group, ecType))
                     .findFirst()
                     .map(group -> (TlsSupportedEllipticCurve) group)
                     .orElseThrow(TlsAlert::noSupportedEllipticCurve)
                     .parametersDeserializer()
                     .deserialize(buffer);
             this.publicKey = readBytesBigEndian8(buffer);
+        }
+
+        private boolean isCompatible(TlsSupportedGroup group, byte ecType) {
+            return group instanceof TlsSupportedEllipticCurve supportedEllipticCurve
+                    && supportedEllipticCurve.parametersDeserializer().accepts(ecType);
         }
 
         @Override
