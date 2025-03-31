@@ -40,32 +40,29 @@ public final class SupportedVersionsExtension implements TlsExtension.Configurab
     }
 
     @Override
-    public Optional<? super TlsExtensionState.Configured> configure(TlsContext context, int messageLength) {
-        var mode = context.selectedMode();
-        return switch (mode) {
-            case CLIENT -> {
-                var supportedVersions = new ArrayList<TlsVersionId>();
-                context.getNegotiableValue(TlsProperty.version())
-                        .orElseThrow(() -> TlsAlert.noNegotiableProperty(TlsProperty.version()))
-                        .forEach(version -> supportedVersions.add(version.id()));
-                var grease = context.getNegotiableValue(TlsProperty.clientExtensions())
-                        .orElseThrow(() -> TlsAlert.noNegotiableProperty(TlsProperty.clientExtensions()))
-                        .stream()
-                        .anyMatch(entry -> TlsGREASE.isGrease(entry.extensionType()));
-                if (grease) {
-                    supportedVersions.add(TlsGREASE.greaseRandom());
-                }
-                yield Optional.of(new ConfiguredClient(supportedVersions));
-            }
-            case SERVER -> {
-                var version = context.getNegotiableValue(TlsProperty.version())
-                        .orElseThrow(() -> TlsAlert.noNegotiableProperty(TlsProperty.version()))
-                        .stream()
-                        .reduce((first, second) -> first.id().value() > second.id().value() ? first : second)
-                        .orElseThrow(() -> TlsAlert.noNegotiableProperty(TlsProperty.version()));
-                yield Optional.of(new ConfiguredServer(version));
-            }
-        };
+    public Optional<? extends TlsExtension.Configured.Client> configureClient(TlsContext context, int messageLength) {
+        var supportedVersions = new ArrayList<TlsVersionId>();
+        context.getNegotiableValue(TlsProperty.version())
+                .orElseThrow(() -> TlsAlert.noNegotiableProperty(TlsProperty.version()))
+                .forEach(version -> supportedVersions.add(version.id()));
+        var grease = context.getNegotiableValue(TlsProperty.clientExtensions())
+                .orElseThrow(() -> TlsAlert.noNegotiableProperty(TlsProperty.clientExtensions()))
+                .stream()
+                .anyMatch(entry -> TlsGREASE.isGrease(entry.extensionType()));
+        if (grease) {
+            supportedVersions.add(TlsGREASE.greaseRandom());
+        }
+        return Optional.of(new ConfiguredClient(supportedVersions));
+    }
+
+    @Override
+    public Optional<? extends TlsExtension.Configured.Server> configureServer(TlsContext context, int messageLength) {
+        var version = context.getNegotiableValue(TlsProperty.version())
+                .orElseThrow(() -> TlsAlert.noNegotiableProperty(TlsProperty.version()))
+                .stream()
+                .reduce((first, second) -> first.id().value() > second.id().value() ? first : second)
+                .orElseThrow(() -> TlsAlert.noNegotiableProperty(TlsProperty.version()));
+        return Optional.of(new ConfiguredServer(version));
     }
 
     @Override

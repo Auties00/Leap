@@ -2,7 +2,9 @@ package it.auties.leap.tls.extension.implementation;
 
 import it.auties.leap.tls.context.TlsContext;
 import it.auties.leap.tls.context.TlsSource;
-import it.auties.leap.tls.extension.*;
+import it.auties.leap.tls.extension.TlsExtension;
+import it.auties.leap.tls.extension.TlsExtensionDependencies;
+import it.auties.leap.tls.extension.TlsExtensionDeserializer;
 import it.auties.leap.tls.name.TlsNameType;
 import it.auties.leap.tls.version.TlsVersion;
 
@@ -23,7 +25,16 @@ public record SNIConfigurableExtension(
     }
 
     @Override
-    public Optional<? super TlsExtension.Configured.Agnostic> configure(TlsContext context, int messageLength) {
+    public Optional<? extends TlsExtension.Configured.Client> configureClient(TlsContext context, int messageLength) {
+        return configure(context);
+    }
+
+    @Override
+    public Optional<? extends TlsExtension.Configured.Server> configureServer(TlsContext context, int messageLength) {
+        return configure(context);
+    }
+
+    private Optional<? extends TlsExtension.Configured.Agnostic> configure(TlsContext context) {
         return switch (nameType) {
             case HOST_NAME -> {
                 var hostname = context.address()

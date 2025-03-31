@@ -55,7 +55,16 @@ public final class KeyShareExtension implements TlsExtension.Configurable {
     }
 
     @Override
-    public <T extends TlsExtension.Configured.Agnostic> Optional<? super T> configure(TlsContext context, int messageLength) {
+    public Optional<? extends TlsExtension.Configured.Client> configureClient(TlsContext context, int messageLength) {
+        return configure(context, messageLength);
+    }
+
+    @Override
+    public Optional<? extends TlsExtension.Configured.Server> configureServer(TlsContext context, int messageLength) {
+        return configure(context, messageLength);
+    }
+
+    private Optional<? extends TlsExtension.Configured.Agnostic> configure(TlsContext context, int messageLength) {
         var entries = new ArrayList<KeyShareEntry>();
         var entriesLength = 0;
         var supportedGroups = context.getNegotiableValue(TlsProperty.supportedGroups())

@@ -11,7 +11,8 @@ import static it.auties.leap.tls.util.BufferUtils.writeBigEndianInt16;
 
 public sealed interface TlsExtensionState extends TlsExtensionMetadataProvider {
     sealed interface Configurable extends TlsExtensionState permits TlsExtension.Configurable {
-        <T extends TlsExtension.Configured.Agnostic> Optional<? super T> configure(TlsContext context, int messageLength);
+        Optional<? extends TlsExtension.Configured.Client> configureClient(TlsContext context, int messageLength);
+        Optional<? extends TlsExtension.Configured.Server> configureServer(TlsContext context, int messageLength);
     }
 
     sealed interface Configured extends TlsExtensionState permits TlsExtension.Configured {

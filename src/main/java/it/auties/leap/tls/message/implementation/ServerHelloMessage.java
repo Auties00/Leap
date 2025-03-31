@@ -46,10 +46,10 @@ public record ServerHelloMessage(
 
         var compressionId = readBigEndianInt8(buffer);
 
-        var extensionTypeToDecoder = context.getNegotiatedValue(TlsProperty.serverExtensions())
-                .orElseThrow(() -> TlsAlert.noNegotiableProperty(TlsProperty.serverExtensions()))
+        var extensionTypeToDecoder = context.getNegotiatedValue(TlsProperty.clientExtensions())
+                .orElseThrow(() -> TlsAlert.noNegotiableProperty(TlsProperty.clientExtensions()))
                 .stream()
-                .collect(Collectors.toUnmodifiableMap(TlsExtension::extensionType, TlsExtension.Configured.Server::serverDeserializer));
+                .collect(Collectors.toUnmodifiableMap(TlsExtension::extensionType, TlsExtension.Configured.Client::responseDeserializer));
         var extensions = new ArrayList<TlsExtension.Configured.Server>();
         var extensionsLength = buffer.remaining() >= INT16_LENGTH ? readBigEndianInt16(buffer) : 0;
         try (var _ = scopedRead(buffer, extensionsLength)) {
