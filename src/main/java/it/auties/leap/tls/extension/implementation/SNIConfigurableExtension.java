@@ -1,14 +1,17 @@
 package it.auties.leap.tls.extension.implementation;
 
+import it.auties.leap.tls.alert.TlsAlert;
 import it.auties.leap.tls.context.TlsContext;
 import it.auties.leap.tls.context.TlsSource;
 import it.auties.leap.tls.extension.TlsExtension;
 import it.auties.leap.tls.extension.TlsExtensionDependencies;
 import it.auties.leap.tls.extension.TlsExtensionDeserializer;
 import it.auties.leap.tls.name.TlsNameType;
+import it.auties.leap.tls.property.TlsProperty;
 import it.auties.leap.tls.version.TlsVersion;
 
 import java.net.InetSocketAddress;
+import java.nio.BufferUnderflowException;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
@@ -64,7 +67,19 @@ public record SNIConfigurableExtension(
             byte[] name,
             TlsNameType nameType
     ) implements TlsExtension.Configured.Agnostic {
-        private static final TlsExtensionDeserializer<TlsExtension.Configured.Agnostic> DESERIALIZER = (_, _, buffer) -> {
+        private static final TlsExtensionDeserializer<TlsExtension.Configured.Agnostic> DESERIALIZER = (context, _, buffer) -> {
+            if(!buffer.hasRemaining()) {
+                return switch (context.selectedMode()) {
+                    case CLIENT -> context.getNegotiatedValue(TlsProperty.clientExtensions())
+                            .orElseThrow(() -> TlsAlert.noNegotiatedProperty(TlsProperty.clientExtensions()))
+                            .stream()
+                            .filter(entry -> entry instanceof SNIConfigurableExtension.Configured)
+                            .map(entry -> (SNIConfigurableExtension.Configured) entry)
+                            .findFirst();
+                    case SERVER -> throw new BufferUnderflowException();
+                };
+            }
+
             var listLength = readBigEndianInt16(buffer);
             if(listLength == 0) {
                 return Optional.empty();

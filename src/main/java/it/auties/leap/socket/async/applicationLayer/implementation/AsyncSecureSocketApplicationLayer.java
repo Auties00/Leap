@@ -148,6 +148,7 @@ public class AsyncSecureSocketApplicationLayer extends AsyncSocketApplicationLay
                             var configured = configurable.configureClient(tlsContext, length);
                             if(configured.isPresent()) {
                                 results.add(configured.get());
+                                configured.get().apply(tlsContext, TlsSource.LOCAL);
                                 length += configured.get().length();
                             }
                         }
@@ -165,6 +166,7 @@ public class AsyncSecureSocketApplicationLayer extends AsyncSocketApplicationLay
                                 var configured = configurable.configureClient(tlsContext, length);
                                 if(configured.isPresent()) {
                                     results.add(configured.get());
+                                    configured.get().apply(tlsContext, TlsSource.LOCAL);
                                     length += configured.get().length();
                                 }
                             }
@@ -177,6 +179,7 @@ public class AsyncSecureSocketApplicationLayer extends AsyncSocketApplicationLay
                         case TlsExtensionDependencies.All _ -> deferred.add(configured);
                         case TlsExtensionDependencies.None _ -> {
                             results.add(configured);
+                            configured.apply(tlsContext, TlsSource.LOCAL);
                             length += configured.length();
                         }
                         case TlsExtensionDependencies.Some some -> {
@@ -191,6 +194,7 @@ public class AsyncSecureSocketApplicationLayer extends AsyncSocketApplicationLay
                                 dependenciesTree.putLast(entry.getKey(), entry.getValue());
                             } else {
                                 results.add(configured);
+                                configured.apply(tlsContext, TlsSource.LOCAL);
                                 length += configured.length();
                             }
                         }
@@ -205,16 +209,20 @@ public class AsyncSecureSocketApplicationLayer extends AsyncSocketApplicationLay
                     var configured = configurable.configureClient(tlsContext, length);
                     if(configured.isPresent()) {
                         results.add(configured.get());
+                        configured.get().apply(tlsContext, TlsSource.LOCAL);
                         length += configured.get().length();
                     }
                 }
 
                 case TlsExtension.Configured.Client configured -> {
                     results.add(configured);
+                    configured.apply(tlsContext, TlsSource.LOCAL);
                     length += configured.length();
                 }
             }
         }
+
+        tlsContext.addNegotiatedProperty(TlsProperty.clientExtensions(), results);
 
         var helloMessage = new ClientHelloMessage(
                 legacyVersion,
@@ -419,14 +427,20 @@ public class AsyncSecureSocketApplicationLayer extends AsyncSocketApplicationLay
     private CompletableFuture<Void> readAndHandleMessage() {
         var buffer = readBuffer(TlsMessageMetadata.structureLength());
         return transportLayer.read(buffer)
-                .thenApply(_ -> TlsMessageMetadata.of(buffer, TlsSource.REMOTE))
+                .thenApply(_ -> {
+                    System.err.print(HexFormat.of().formatHex(buffer.array(), buffer.position(), buffer.limit()));
+                    return TlsMessageMetadata.of(buffer, TlsSource.REMOTE);
+                })
                 .thenCompose(this::decodeMessage);
     }
 
     private CompletableFuture<Void> decodeMessage(TlsMessageMetadata metadata) {
         var buffer = readBuffer(metadata.length());
         return transportLayer.readFully(buffer)
-                .thenCompose(_ -> decodeMessage(metadata, buffer));
+                .thenCompose(_ -> {
+                    System.err.println(HexFormat.of().formatHex(buffer.array(), buffer.position(), buffer.limit()));
+                    return decodeMessage(metadata, buffer);
+                });
     }
 
     private CompletableFuture<Void> decodeMessage(TlsMessageMetadata metadata, ByteBuffer buffer) {

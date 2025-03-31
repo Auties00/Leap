@@ -47,7 +47,7 @@ public record ServerHelloMessage(
         var compressionId = readBigEndianInt8(buffer);
 
         var extensionTypeToDecoder = context.getNegotiatedValue(TlsProperty.clientExtensions())
-                .orElseThrow(() -> TlsAlert.noNegotiableProperty(TlsProperty.clientExtensions()))
+                .orElseThrow(() -> TlsAlert.noNegotiatedProperty(TlsProperty.clientExtensions()))
                 .stream()
                 .collect(Collectors.toUnmodifiableMap(TlsExtension::extensionType, TlsExtension.Configured.Client::responseDeserializer));
         var extensions = new ArrayList<TlsExtension.Configured.Server>();
@@ -55,22 +55,21 @@ public record ServerHelloMessage(
         try (var _ = scopedRead(buffer, extensionsLength)) {
             while (buffer.hasRemaining()) {
                 var extensionType = readBigEndianInt16(buffer);
-                var extensionLength = readBigEndianInt16(buffer);
-                if (extensionLength == 0) {
-                    continue;
-                }
-
+                System.err.println("Extension type: " + extensionType);
                 var extensionDecoder = extensionTypeToDecoder.get(extensionType);
                 if (extensionDecoder == null) {
                     throw new TlsAlert("Unknown extension");
                 }
 
+                var extensionLength = readBigEndianInt16(buffer);
+                System.err.println("Extension length: " + extensionLength);
                 try (var _ = scopedRead(buffer, extensionLength)) {
                     extensionDecoder.deserialize(context, extensionType, buffer)
                             .ifPresent(extensions::add);
                 }
             }
         }
+        System.err.println("Done");
         return new ServerHelloMessage(tlsVersion, metadata.source(), serverRandom, sessionId, cipherId, compressionId, extensions, extensionsLength);
     }
 

@@ -13,7 +13,7 @@ import java.util.Optional;
 import static it.auties.leap.tls.util.BufferUtils.readBigEndianInt8;
 
 public record PaddingExtension(
-        int length
+        int padLength
 ) implements TlsExtension.Configured.Agnostic {
     private static final TlsExtensionDeserializer<TlsExtension.Configured.Agnostic> DESERIALIZER = (_, _, buffer) -> {
         var padding = readBigEndianInt8(buffer);
@@ -22,21 +22,21 @@ public record PaddingExtension(
     };
 
     public PaddingExtension {
-        if(length < 0) {
+        if(padLength < 0) {
             throw new TlsAlert("Invalid negative padding length");
         }
     }
 
     @Override
     public void serializePayload(ByteBuffer buffer) {
-        for (var j = 0; j < length; j++) {
+        for (var j = 0; j < padLength; j++) {
             buffer.put((byte) 0);
         }
     }
 
     @Override
     public int payloadLength() {
-        return length;
+        return padLength;
     }
 
     @Override
