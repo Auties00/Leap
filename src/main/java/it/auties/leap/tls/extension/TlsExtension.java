@@ -10,7 +10,7 @@ import it.auties.leap.tls.version.TlsVersion;
 
 import java.util.List;
 
-public sealed interface TlsExtension {
+public sealed interface TlsExtension extends TlsExtensionMetadataProvider {
     List<TlsVersion> TLS_UNTIL_12 = List.of(TlsVersion.TLS10, TlsVersion.TLS11, TlsVersion.TLS12);
     List<TlsVersion> TLS_UNTIL_13 = List.of(TlsVersion.TLS10, TlsVersion.TLS11, TlsVersion.TLS12, TlsVersion.TLS13);
     List<TlsVersion> DTLS_UNTIL_12 = List.of(TlsVersion.TLS10, TlsVersion.TLS11, TlsVersion.TLS12, TlsVersion.DTLS10, TlsVersion.DTLS12);
@@ -225,28 +225,22 @@ public sealed interface TlsExtension {
         return new GREASEExtension(type, null);
     }
 
-    int extensionType();
-    List<TlsVersion> versions();
-    TlsExtensionDependencies dependencies();
-
     sealed interface Configured extends TlsExtension, TlsExtensionState.Configured {
-        TlsExtensionDeserializer<? extends TlsExtension.Configured.Client> clientDeserializer();
-        TlsExtensionDeserializer<? extends TlsExtension.Configured.Server> serverDeserializer();
-
         non-sealed interface Client extends TlsExtension.Configured, TlsExtensionOwner.Client {
-
+            TlsExtensionDeserializer<? extends TlsExtension.Configured.Server> responseDeserializer();
         }
 
         non-sealed interface Server extends TlsExtension.Configured, TlsExtensionOwner.Server {
-
+            TlsExtensionDeserializer<? extends TlsExtension.Configured.Client> responseDeserializer();
         }
 
-        non-sealed interface Agnostic extends TlsExtension.Configured, TlsExtensionOwner.Agnostic  {
-
+        non-sealed interface Agnostic extends Client, Server, TlsExtension.Configured  {
+            TlsExtensionDeserializer<? extends TlsExtension.Configured.Agnostic> responseDeserializer();
         }
     }
 
-    non-sealed interface Configurable extends TlsExtension, TlsExtensionOwner.Agnostic, TlsExtensionState.Configurable {
+    // Configurable is intrinsically agnostic
+    non-sealed interface Configurable extends TlsExtension, TlsExtensionOwner.Client, TlsExtensionOwner.Server, TlsExtensionState.Configurable {
 
     }
 }

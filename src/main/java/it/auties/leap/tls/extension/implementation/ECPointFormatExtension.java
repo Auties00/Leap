@@ -81,12 +81,7 @@ public record ECPointFormatExtension(
     }
 
     @Override
-    public TlsExtensionDeserializer<? extends TlsExtension.Configured.Client> clientDeserializer() {
-        return DESERIALIZER;
-    }
-
-    @Override
-    public TlsExtensionDeserializer<? extends TlsExtension.Configured.Server> serverDeserializer() {
+    public TlsExtensionDeserializer<? extends Agnostic> responseDeserializer() {
         return DESERIALIZER;
     }
 

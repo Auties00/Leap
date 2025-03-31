@@ -27,6 +27,7 @@ import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
+import java.util.stream.Collectors;
 
 import static it.auties.leap.tls.util.BufferUtils.*;
 
@@ -98,79 +99,122 @@ public class AsyncSecureSocketApplicationLayer extends AsyncSocketApplicationLay
         var availableCompressionsIds = availableCompressions.stream()
                 .map(TlsCompression::id)
                 .toList();
+
         var extensions = tlsContext.getNegotiableValue(TlsProperty.clientExtensions())
                 .orElseThrow(() -> TlsAlert.noNegotiableProperty(TlsProperty.clientExtensions()));
         var supportedVersions = tlsContext.getNegotiableValue(TlsProperty.version())
                 .map(HashSet::new)
                 .orElseThrow(() -> TlsAlert.noNegotiableProperty(TlsProperty.version()));
 
-        var dependenciesTree = new LinkedHashMap<Integer, TlsExtension>();
+        var dependenciesTree = new LinkedHashMap<Integer, TlsExtensionOwner.Client>();
         for (var extension : extensions) {
-            if (supportedVersions.stream().anyMatch(version -> extension.versions().contains(version))) {
-                var conflict = dependenciesTree.put(extension.extensionType(), extension);
-                if (conflict != null) {
-                    throw new IllegalArgumentException("Extension with type %s defined by <%s> conflicts with an extension processed previously with type %s defined by <%s>".formatted(
-                            extension.extensionType(),
-                            extension.getClass().getName(),
-                            extension.extensionType(),
-                            conflict.getClass().getName()
-                    ));
-                }
+            if (supportedVersions.stream().noneMatch(version -> extension.versions().contains(version))) {
+                continue;
             }
+
+            var conflict = dependenciesTree.put(extension.extensionType(), extension);
+            if (conflict != null) {
+                throw new IllegalArgumentException(extensionConflictError(extension, conflict));
+            }
+
+            if (!(extension.dependencies() instanceof TlsExtensionDependencies.Some someExtensionDependencies)) {
+                continue;
+            }
+
+            var cyclicLinks = someExtensionDependencies.includedTypes()
+                    .stream()
+                    .map(dependenciesTree::get)
+                    .filter(linked -> hasDependency(extension, linked))
+                    .toList();
+            if (cyclicLinks.isEmpty()) {
+                continue;
+            }
+
+            var message = cyclicLinks.stream()
+                    .map(cyclicLink -> extensionCyclicDependencyError(extension, cyclicLink))
+                    .collect(Collectors.joining("\n"));
+            throw new IllegalArgumentException(message);
         }
 
-        var results = new ArrayList<TlsExtensionState.TlsConfiguredClientExtension>(dependenciesTree.size());
+        var results = new ArrayList<TlsExtension.Configured.Client>(dependenciesTree.size());
         var length = 0;
-        var deferred = new ArrayList<TlsExtensionState.Configurable>();
+        var deferred = new ArrayList<TlsExtensionOwner.Client>();
         while (!dependenciesTree.isEmpty()) {
             var entry = dependenciesTree.pollFirstEntry();
             var extension = entry.getValue();
             switch (extension) {
-                case TlsExtensionState.TlsConfiguredClientExtension concrete -> results.add(concrete);
-                case TlsConfigurableClientExtension configurableExtension -> {
-                    switch (configurableExtension.dependencies()) {
+                case TlsExtension.Configurable configurable -> {
+                    switch (configurable.dependencies()) {
+                        case TlsExtensionDependencies.All _ -> deferred.add(configurable);
                         case TlsExtensionDependencies.None _ -> {
-                            var result = configurableExtension.configure(tlsContext, length)
-                                    .orElse(null);
-                            if(result instanceof TlsExtensionState.TlsConfiguredClientExtension clientExtension) {
-                                results.add(clientExtension);
-                                length += clientExtension.length();
+                            var configured = configurable.configureClient(tlsContext, length);
+                            if(configured.isPresent()) {
+                                results.add(configured.get());
+                                length += configured.get().length();
                             }
                         }
-
                         case TlsExtensionDependencies.Some some -> {
                             var conflict = false;
-                            for(var dependency : some.includedTypes()) {
-                                if(dependenciesTree.containsKey(dependency)) {
+                            for (var dependency : some.includedTypes()) {
+                                if (dependenciesTree.containsKey(dependency)) {
                                     conflict = true;
                                     break;
                                 }
                             }
-                            if(conflict) {
+                            if (conflict) {
                                 dependenciesTree.putLast(entry.getKey(), entry.getValue());
-                            }else {
-                                var result = configurableExtension.configure(tlsContext, length)
-                                        .orElse(null);
-                                if(result instanceof TlsExtensionState.TlsConfiguredClientExtension clientExtension) {
-                                    results.add(clientExtension);
-                                    length += clientExtension.length();
+                            } else {
+                                var configured = configurable.configureClient(tlsContext, length);
+                                if(configured.isPresent()) {
+                                    results.add(configured.get());
+                                    length += configured.get().length();
                                 }
                             }
                         }
-
-                        case TlsExtensionDependencies.All _ -> deferred.add(configurableExtension);
                     }
                 }
-                case TlsExtension.Server _ -> {}
+
+                case TlsExtension.Configured.Client configured -> {
+                    switch (configured.dependencies()) {
+                        case TlsExtensionDependencies.All _ -> deferred.add(configured);
+                        case TlsExtensionDependencies.None _ -> {
+                            results.add(configured);
+                            length += configured.length();
+                        }
+                        case TlsExtensionDependencies.Some some -> {
+                            var conflict = false;
+                            for (var dependency : some.includedTypes()) {
+                                if (dependenciesTree.containsKey(dependency)) {
+                                    conflict = true;
+                                    break;
+                                }
+                            }
+                            if (conflict) {
+                                dependenciesTree.putLast(entry.getKey(), entry.getValue());
+                            } else {
+                                results.add(configured);
+                                length += configured.length();
+                            }
+                        }
+                    }
+                }
             }
         }
 
-        for(var configurableExtension : deferred) {
-            var result = configurableExtension.configure(tlsContext, length)
-                    .orElse(null);
-            if(result instanceof TlsExtensionState.TlsConfiguredClientExtension clientExtension) {
-                results.add(clientExtension);
-                length += clientExtension.length();
+        for(var extension : deferred) {
+            switch (extension) {
+                case TlsExtension.Configurable configurable -> {
+                    var configured = configurable.configureClient(tlsContext, length);
+                    if(configured.isPresent()) {
+                        results.add(configured.get());
+                        length += configured.get().length();
+                    }
+                }
+
+                case TlsExtension.Configured.Client configured -> {
+                    results.add(configured);
+                    length += configured.length();
+                }
             }
         }
 
@@ -190,6 +234,30 @@ public class AsyncSecureSocketApplicationLayer extends AsyncSocketApplicationLay
         updateHandshakeHash(helloBuffer, TlsMessage.recordLength());
         return write(handshakeBuffer)
                 .thenAccept(_ -> helloMessage.apply(tlsContext));
+    }
+
+    private static String extensionCyclicDependencyError(TlsExtensionOwner.Client extension, TlsExtensionOwner.Client cyclicLink) {
+        return "Extension with type %s defined by <%s> depends cyclically on an extension with type %s defined by <%s>".formatted(
+                extension.extensionType(),
+                extension.getClass().getName(),
+                extension.extensionType(),
+                cyclicLink.getClass().getName()
+        );
+    }
+
+    private static String extensionConflictError(TlsExtensionOwner.Client extension, TlsExtensionOwner.Client conflict) {
+        return "Extension with type %s defined by <%s> conflicts with an extension processed previously with type %s defined by <%s>".formatted(
+                extension.extensionType(),
+                extension.getClass().getName(),
+                extension.extensionType(),
+                conflict.getClass().getName()
+        );
+    }
+
+    private boolean hasDependency(TlsExtensionOwner.Client extension, TlsExtensionOwner.Client linked) {
+        return linked != null
+                && linked.dependencies() instanceof TlsExtensionDependencies.Some nestedSome
+                && nestedSome.includedTypes().contains(extension.extensionType());
     }
 
     private CompletableFuture<Void> sendClientCertificate() {

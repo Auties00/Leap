@@ -75,16 +75,10 @@ public record PSKExchangeModesExtension(
         return PSK_KEY_EXCHANGE_MODES_VERSIONS;
     }
 
-   @Override
-    public TlsExtensionDeserializer<? extends TlsExtension.Configured.Client> clientDeserializer() {
-        return DESERIALIZER;
-    }
-
     @Override
-    public TlsExtensionDeserializer<? extends TlsExtension.Configured.Server> serverDeserializer() {
+    public TlsExtensionDeserializer<? extends Agnostic> responseDeserializer() {
         return DESERIALIZER;
     }
-
 
     @Override
     public TlsExtensionDependencies dependencies() {

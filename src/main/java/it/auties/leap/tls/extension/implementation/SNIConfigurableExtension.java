@@ -23,7 +23,7 @@ public record SNIConfigurableExtension(
     }
 
     @Override
-    public Optional<? extends TlsExtension.Configured.Agnostic> configure(TlsContext context, int messageLength) {
+    public Optional<? super TlsExtension.Configured.Agnostic> configure(TlsContext context, int messageLength) {
         return switch (nameType) {
             case HOST_NAME -> {
                 var hostname = context.address()
@@ -102,7 +102,7 @@ public record SNIConfigurableExtension(
         }
 
         @Override
-        public TlsExtensionDeserializer<TlsExtension.Configured.Agnostic> deserializer() {
+        public TlsExtensionDeserializer<TlsExtension.Configured.Agnostic> responseDeserializer() {
             return DESERIALIZER;
         }
 

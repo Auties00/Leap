@@ -54,16 +54,10 @@ public record PaddingExtension(
         return PADDING_VERSIONS;
     }
 
-   @Override
-    public TlsExtensionDeserializer<? extends TlsExtension.Configured.Client> clientDeserializer() {
-        return DESERIALIZER;
-    }
-
     @Override
-    public TlsExtensionDeserializer<? extends TlsExtension.Configured.Server> serverDeserializer() {
+    public TlsExtensionDeserializer<? extends Agnostic> responseDeserializer() {
         return DESERIALIZER;
     }
-
 
     @Override
     public TlsExtensionDependencies dependencies() {

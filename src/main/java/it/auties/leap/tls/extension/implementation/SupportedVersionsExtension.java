@@ -40,7 +40,7 @@ public final class SupportedVersionsExtension implements TlsExtension.Configurab
     }
 
     @Override
-    public Optional<? extends TlsExtensionState.Configured> configure(TlsContext context, int messageLength) {
+    public Optional<? super TlsExtensionState.Configured> configure(TlsContext context, int messageLength) {
         var mode = context.selectedMode();
         return switch (mode) {
             case CLIENT -> {
@@ -127,7 +127,7 @@ public final class SupportedVersionsExtension implements TlsExtension.Configurab
         }
 
         @Override
-        public TlsExtensionDeserializer<TlsExtension.Configured.Server> deserializer() {
+        public TlsExtensionDeserializer<TlsExtension.Configured.Server> responseDeserializer() {
             return DESERIALIZER;
         }
 
@@ -178,7 +178,7 @@ public final class SupportedVersionsExtension implements TlsExtension.Configurab
         }
 
         @Override
-        public TlsExtensionDeserializer<TlsExtension.Configured.Client> deserializer() {
+        public TlsExtensionDeserializer<TlsExtension.Configured.Client> responseDeserializer() {
             return DESERIALIZER;
         }
 

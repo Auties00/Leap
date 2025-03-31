@@ -3,7 +3,9 @@ package it.auties.leap.tls.extension.implementation;
 import it.auties.leap.tls.alert.TlsAlert;
 import it.auties.leap.tls.context.TlsContext;
 import it.auties.leap.tls.context.TlsSource;
-import it.auties.leap.tls.extension.*;
+import it.auties.leap.tls.extension.TlsExtension;
+import it.auties.leap.tls.extension.TlsExtensionDependencies;
+import it.auties.leap.tls.extension.TlsExtensionDeserializer;
 import it.auties.leap.tls.property.TlsProperty;
 import it.auties.leap.tls.version.TlsVersion;
 
@@ -53,7 +55,7 @@ public final class KeyShareExtension implements TlsExtension.Configurable {
     }
 
     @Override
-    public Optional<? extends TlsExtension.Configured> configure(TlsContext context, int messageLength) {
+    public <T extends TlsExtension.Configured.Agnostic> Optional<? super T> configure(TlsContext context, int messageLength) {
         var entries = new ArrayList<KeyShareEntry>();
         var entriesLength = 0;
         var supportedGroups = context.getNegotiableValue(TlsProperty.supportedGroups())
@@ -119,7 +121,7 @@ public final class KeyShareExtension implements TlsExtension.Configurable {
         }
 
         @Override
-        public TlsExtensionDeserializer<TlsExtension.Configured.Agnostic> deserializer() {
+        public TlsExtensionDeserializer<TlsExtension.Configured.Agnostic> responseDeserializer() {
             return DESERIALIZER;
         }
 

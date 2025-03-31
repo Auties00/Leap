@@ -54,7 +54,7 @@ public record NPNServerExtension(
     }
 
     @Override
-    public TlsExtensionDeserializer<TlsExtension.Configured.Client> deserializer() {
+    public TlsExtensionDeserializer<? extends TlsExtension.Configured.Client> responseDeserializer() {
         return DESERIALIZER;
     }
 

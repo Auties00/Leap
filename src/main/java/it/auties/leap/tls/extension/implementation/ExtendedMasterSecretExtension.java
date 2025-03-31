@@ -3,7 +3,9 @@ package it.auties.leap.tls.extension.implementation;
 import it.auties.leap.tls.alert.TlsAlert;
 import it.auties.leap.tls.context.TlsContext;
 import it.auties.leap.tls.context.TlsSource;
-import it.auties.leap.tls.extension.*;
+import it.auties.leap.tls.extension.TlsExtension;
+import it.auties.leap.tls.extension.TlsExtensionDependencies;
+import it.auties.leap.tls.extension.TlsExtensionDeserializer;
 import it.auties.leap.tls.property.TlsProperty;
 import it.auties.leap.tls.version.TlsVersion;
 
@@ -56,13 +58,8 @@ public record ExtendedMasterSecretExtension(
         return EXTENDED_MASTER_SECRET_VERSIONS;
     }
 
-   @Override
-    public TlsExtensionDeserializer<? extends TlsExtension.Configured.Client> clientDeserializer() {
-        return DESERIALIZER;
-    }
-
     @Override
-    public TlsExtensionDeserializer<? extends TlsExtension.Configured.Server> serverDeserializer() {
+    public TlsExtensionDeserializer<? extends Agnostic> responseDeserializer() {
         return DESERIALIZER;
     }
 

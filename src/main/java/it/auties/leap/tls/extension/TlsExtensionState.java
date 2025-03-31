@@ -9,10 +9,14 @@ import java.util.Optional;
 import static it.auties.leap.tls.util.BufferUtils.INT16_LENGTH;
 import static it.auties.leap.tls.util.BufferUtils.writeBigEndianInt16;
 
-public sealed interface TlsExtensionState {
-    int extensionType();
+public sealed interface TlsExtensionState extends TlsExtensionMetadataProvider {
+    sealed interface Configurable extends TlsExtensionState permits TlsExtension.Configurable {
+        <T extends TlsExtension.Configured.Agnostic> Optional<? super T> configure(TlsContext context, int messageLength);
+    }
 
     sealed interface Configured extends TlsExtensionState permits TlsExtension.Configured {
+        TlsExtensionDeserializer<? extends TlsExtension.Configured> responseDeserializer();
+
         default void serialize(ByteBuffer buffer) {
             writeBigEndianInt16(buffer, extensionType());
             writeBigEndianInt16(buffer, payloadLength());
@@ -30,9 +34,5 @@ public sealed interface TlsExtensionState {
         void serializePayload(ByteBuffer buffer);
         int payloadLength();
         void apply(TlsContext context, TlsSource source);
-    }
-
-    sealed interface Configurable extends TlsExtensionState permits TlsExtension.Configurable {
-        Optional<? extends Configured> configure(TlsContext context, int messageLength);
     }
 }
