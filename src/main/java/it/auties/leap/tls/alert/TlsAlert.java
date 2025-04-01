@@ -81,4 +81,12 @@ public class TlsAlert extends RuntimeException {
     public static TlsAlert certificateError(Throwable cause) {
         return new TlsAlert("Cannot encode certificate", cause);
     }
+
+    public static TlsAlert noLocalCipher() {
+        return new TlsAlert("No local cipher");
+    }
+
+    public static TlsAlert noRemoteCipher() {
+        return new TlsAlert("No remote cipher");
+    }
 }

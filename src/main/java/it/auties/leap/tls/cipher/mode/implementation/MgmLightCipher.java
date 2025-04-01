@@ -3,8 +3,9 @@ package it.auties.leap.tls.cipher.mode.implementation;
 import it.auties.leap.tls.cipher.engine.TlsCipherEngine;
 import it.auties.leap.tls.cipher.engine.implementation.KuznyechikEngine;
 import it.auties.leap.tls.cipher.engine.implementation.MagmaEngine;
-import it.auties.leap.tls.cipher.mode.TlsCipherMode;
-import it.auties.leap.tls.cipher.mode.TlsCipherModeFactory;
+import it.auties.leap.tls.cipher.mode.TlsCipher;
+import it.auties.leap.tls.cipher.mode.TlsCipherFactory;
+import it.auties.leap.tls.cipher.mode.TlsCipherWithEngineFactory;
 import it.auties.leap.tls.context.TlsContext;
 import it.auties.leap.tls.alert.TlsAlert;
 import it.auties.leap.tls.cipher.exchange.TlsExchangeMac;
@@ -13,42 +14,39 @@ import it.auties.leap.tls.message.TlsMessageMetadata;
 
 import java.nio.ByteBuffer;
 
-public final class MGMLightMode extends TlsCipherMode.Block {
-    private static final TlsCipherModeFactory.Block FACTORY = new TlsCipherModeFactory.Block() {
+public final class MgmLightCipher extends TlsCipher.Block {
+    private static final TlsCipherFactory FACTORY = (factory) -> new TlsCipherWithEngineFactory() {
         @Override
-        public TlsCipherMode newCipherMode(TlsCipherEngine.Block engine, byte[] fixedIv, TlsExchangeMac authenticator) {
-            return new CTRMode(engine, fixedIv, authenticator);
+        public TlsCipher newCipher(boolean forEncryption, byte[] key, byte[] fixedIv, TlsExchangeMac authenticator) {
+            var engine = factory.newCipherEngine(true, key);
+            return new MgmLightCipher(engine, fixedIv, authenticator);
         }
 
         @Override
-        public int ivLength(TlsCipherEngine.Block engine) {
-            return 4;
+        public int ivLength() {
+            return 12;
         }
 
         @Override
-        public int fixedIvLength(TlsCipherEngine.Block engine) {
-            return engine.blockLength() - fixedIv.length;
+        public int fixedIvLength() {
+            return 8;
         }
 
         @Override
-        public int tagLength(TlsCipherEngine.Block engine) {
-            return engine.blockLength();
+        public int tagLength() {
+            return factory.blockLength();
         }
     };
-    private MGMLightMode(TlsCipherEngine engine) {
+
+    private MgmLightCipher(TlsCipherEngine engine, byte[] fixedIv, TlsExchangeMac authenticator) {
         if(!(engine instanceof KuznyechikEngine) && !(engine instanceof MagmaEngine)) {
             throw new TlsAlert("MGM_L mode is supported only by Kuznyechik and Magma engines");
         }
-        super(engine);
+        super(engine, fixedIv, authenticator);
     }
 
-    public static TlsCipherModeFactory factory() {
+    public static TlsCipherFactory factory() {
         return FACTORY;
-    }
-
-    @Override
-    public void init(boolean forEncryption, byte[] key, byte[] fixedIv, TlsExchangeMac authenticator) {
-        super.init(forEncryption, key, fixedIv, authenticator);
     }
 
     @Override
@@ -68,7 +66,7 @@ public final class MGMLightMode extends TlsCipherMode.Block {
 
     @Override
     public int fixedIvLength() {
-        return engine().blockLength() - fixedIv.length;
+        return 8;
     }
 
     @Override

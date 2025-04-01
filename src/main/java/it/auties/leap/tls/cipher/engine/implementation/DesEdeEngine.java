@@ -5,17 +5,26 @@ import it.auties.leap.tls.cipher.engine.TlsCipherEngineFactory;
 
 import java.nio.ByteBuffer;
 
-public final class DESEdeEngine extends DESBaseEngine {
+public final class DesEdeEngine extends DesBaseEngine {
     private static final int BLOCK_SIZE = 8;
-    private static final TlsCipherEngineFactory FACTORY = new TlsCipherEngineFactory.Stream() {
+    private static final TlsCipherEngineFactory FACTORY = new TlsCipherEngineFactory() {
         @Override
         public TlsCipherEngine newCipherEngine(boolean forEncryption, byte[] key) {
-            return new DESEdeEngine(forEncryption, key);
+            if (key == null || key.length != keyLength()) {
+                throw new IllegalArgumentException("Invalid key length");
+            }
+
+            return new DesEdeEngine(forEncryption, key);
         }
 
         @Override
         public int keyLength() {
             return 24;
+        }
+
+        @Override
+        public int blockLength() {
+            return BLOCK_SIZE;
         }
     };
 
@@ -23,8 +32,8 @@ public final class DESEdeEngine extends DESBaseEngine {
     private final int[] workingKey2;
     private final int[] workingKey3;
 
-    private DESEdeEngine(boolean forEncryption, byte[] key) {
-        super(forEncryption, key);
+    private DesEdeEngine(boolean forEncryption, byte[] key) {
+        super(forEncryption);
         var key1 = new byte[8];
         System.arraycopy(key, 0, key1, 0, key1.length);
         this.workingKey1 = generateWorkingKey(forEncryption, key1);

@@ -5,23 +5,32 @@ import it.auties.leap.tls.cipher.engine.TlsCipherEngineFactory;
 
 import java.nio.ByteBuffer;
 
-public class DESEngine extends DESBaseEngine {
-    private static final TlsCipherEngineFactory FACTORY = new TlsCipherEngineFactory.Stream() {
+public class DesEngine extends DesBaseEngine {
+    private static final TlsCipherEngineFactory FACTORY = new TlsCipherEngineFactory() {
         @Override
         public TlsCipherEngine newCipherEngine(boolean forEncryption, byte[] key) {
-            return new DESEngine(forEncryption, key);
+            if (key == null || key.length != keyLength()) {
+                throw new IllegalArgumentException("Invalid key length");
+            }
+
+            return new DesEngine(forEncryption, key);
         }
 
         @Override
         public int keyLength() {
             return 8;
         }
+
+        @Override
+        public int blockLength() {
+            return BLOCK_SIZE;
+        }
     };
 
     private final int[] workingKey;
 
-    private DESEngine(boolean forEncryption, byte[] key) {
-        super(forEncryption, key);
+    private DesEngine(boolean forEncryption, byte[] key) {
+        super(forEncryption);
         this.workingKey = generateWorkingKey(forEncryption, key);
     }
 

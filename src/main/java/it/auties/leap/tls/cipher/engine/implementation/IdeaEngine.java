@@ -7,30 +7,34 @@ import java.nio.ByteBuffer;
 
 import static it.auties.leap.tls.util.BufferUtils.*;
 
-public final class IDEAEngine extends TlsCipherEngine.Block {
+public final class IdeaEngine extends TlsCipherEngine.Block {
     private static final int BLOCK_SIZE = 8;
     private static final int MASK = 0xffff;
     private static final int BASE = 0x10001;
-    private static final TlsCipherEngineFactory FACTORY = new TlsCipherEngineFactory.Block() {
-        @Override
-        public int blockLength() {
-            return BLOCK_SIZE;
-        }
-
+    private static final TlsCipherEngineFactory FACTORY = new TlsCipherEngineFactory() {
         @Override
         public TlsCipherEngine newCipherEngine(boolean forEncryption, byte[] key) {
-            return new IDEAEngine(forEncryption, key);
+            if (key == null || key.length != keyLength()) {
+                throw new IllegalArgumentException("Invalid key length");
+            }
+
+            return new IdeaEngine(forEncryption, key);
         }
 
         @Override
         public int keyLength() {
             return 16;
         }
+
+        @Override
+        public int blockLength() {
+            return BLOCK_SIZE;
+        }
     };
 
     private final int[] workingKey;
 
-    private IDEAEngine(boolean forEncryption, byte[] key) {
+    private IdeaEngine(boolean forEncryption, byte[] key) {
         super(forEncryption);
         this.workingKey = forEncryption ? expandKey(key) : invertKey(expandKey(key));
     }

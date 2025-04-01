@@ -2,11 +2,11 @@ package it.auties.leap.tls.cipher.mode.implementation;
 
 import it.auties.leap.tls.cipher.engine.TlsCipherEngine;
 import it.auties.leap.tls.cipher.engine.implementation.ChaCha20Engine;
-import it.auties.leap.tls.cipher.mode.TlsCipherMode;
-import it.auties.leap.tls.cipher.mode.TlsCipherModeFactory;
-import it.auties.leap.tls.context.TlsContext;
-import it.auties.leap.tls.alert.TlsAlert;
 import it.auties.leap.tls.cipher.exchange.TlsExchangeMac;
+import it.auties.leap.tls.cipher.mode.TlsCipher;
+import it.auties.leap.tls.cipher.mode.TlsCipherFactory;
+import it.auties.leap.tls.cipher.mode.TlsCipherWithEngineFactory;
+import it.auties.leap.tls.context.TlsContext;
 import it.auties.leap.tls.message.TlsMessage;
 import it.auties.leap.tls.message.TlsMessageMetadata;
 import it.auties.leap.tls.util.BufferUtils;
@@ -17,10 +17,31 @@ import org.bouncycastle.util.Pack;
 
 import java.nio.ByteBuffer;
 
-public class Poly1305Mode extends TlsCipherMode.Stream {
-    private static final TlsCipherModeFactory FACTORY = Poly1305Mode::new;
+public class Poly1305Cipher extends TlsCipher.Stream {
+    private static final TlsCipherFactory FACTORY = (factory) -> new TlsCipherWithEngineFactory() {
+        @Override
+        public TlsCipher newCipher(boolean forEncryption, byte[] key, byte[] fixedIv, TlsExchangeMac authenticator) {
+            var engine = factory.newCipherEngine(true, key);
+            return new Poly1305Cipher(engine, fixedIv, authenticator);
+        }
 
-    public static TlsCipherModeFactory factory() {
+        @Override
+        public int ivLength() {
+            return 12;
+        }
+
+        @Override
+        public int fixedIvLength() {
+            return 12;
+        }
+
+        @Override
+        public int tagLength() {
+            return 16;
+        }
+    };
+
+    public static TlsCipherFactory factory() {
         return FACTORY;
     }
 
@@ -53,18 +74,9 @@ public class Poly1305Mode extends TlsCipherMode.Stream {
     private int state = State.UNINITIALIZED;
     private int bufPos;
 
-    private Poly1305Mode(TlsCipherEngine engine) {
-        if(!(engine instanceof ChaCha20Engine)) {
-            throw new TlsAlert("POLY1305 mode is supported only by ChaCha20 engines");
-        }
-        super(engine);
+    private Poly1305Cipher(TlsCipherEngine engine, byte[] fixedIv, TlsExchangeMac authenticator) {
+        super(engine, fixedIv, authenticator);
         this.poly1305 = new Mac();
-    }
-
-    @Override
-    public void init(boolean forEncryption, byte[] key, byte[] fixedIv, TlsExchangeMac authenticator) {
-        super.init(forEncryption, key, fixedIv, authenticator);
-        engine.init(forEncryption, key);
     }
 
     @Override
@@ -73,31 +85,32 @@ public class Poly1305Mode extends TlsCipherMode.Stream {
         message.serialize(input);
         var initialPosition = output.position();
         this.state = engine.forEncryption() ? State.ENC_INIT : State.DEC_INIT;
-            byte[] sn = authenticator.sequenceNumber();
-            byte[] nonce = new byte[fixedIv.length];
-            System.arraycopy(sn, 0, nonce, nonce.length - sn.length, sn.length);
-            for (int i = 0; i < nonce.length; i++) {
-                nonce[i] ^= fixedIv[i];
-            }
+        byte[] sn = authenticator.sequenceNumber();
+        byte[] nonce = new byte[ivLength()];
+        System.arraycopy(sn, 0, nonce, nonce.length - sn.length, sn.length);
+        for (int i = 0; i < nonce.length; i++) {
+            nonce[i] ^= fixedIv[i];
+        }
 
-            ((ChaCha20Engine) engine).initIV(nonce);
-            reset(true);
+        ((ChaCha20Engine) engine).initIV(nonce);
+        reset(true);
 
-            byte[] aad = authenticator.createAuthenticationBlock(
-                    message.contentType().id(), input.remaining(), null);
-            processAADBytes(aad, 0, aad.length);
-            System.out.println("IV: " + java.util.Arrays.toString(nonce));
-            System.out.println("AAD: " + java.util.Arrays.toString(aad));
-            var result  = processBytes(input.array(), input.position(), input.remaining(), output.array(), output.position());
-            result += doFinal(output.array(), output.position() + result);
-            output.position(output.position() + result);
+        byte[] aad = authenticator.createAuthenticationBlock(
+                message.contentType().id(), input.remaining(), null);
+        processAADBytes(aad, 0, aad.length);
+        System.out.println("IV: " + java.util.Arrays.toString(nonce));
+        System.out.println("AAD: " + java.util.Arrays.toString(aad));
+        var result  = processBytes(input.array(), input.position(), input.remaining(), output.array(), output.position());
+        result += doFinal(output.array(), output.position() + result);
+        output.position(output.position() + result);
         output.limit(output.position());
         output.position(initialPosition);
     }
 
     @Override
     public ByteBuffer decrypt(TlsContext context, TlsMessageMetadata metadata, ByteBuffer input) {
-        var output = input.duplicate();
+        var output = input.duplicate()
+                .limit(input.capacity());
         var initialPosition = output.position();
         this.state = engine.forEncryption() ? State.ENC_INIT : State.DEC_INIT;
 
@@ -105,7 +118,7 @@ public class Poly1305Mode extends TlsCipherMode.Stream {
         if (sn == null) {
             sn = authenticator.sequenceNumber();
         }
-        byte[] nonce = new byte[fixedIv.length];
+        byte[] nonce = new byte[ivLength()];
         System.arraycopy(sn, 0, nonce, nonce.length - sn.length, sn.length);
         for (int i = 0; i < nonce.length; i++) {
             nonce[i] ^= fixedIv[i];
@@ -134,7 +147,7 @@ public class Poly1305Mode extends TlsCipherMode.Stream {
 
     @Override
     public int fixedIvLength() {
-        return 0;
+        return 12;
     }
 
     @Override

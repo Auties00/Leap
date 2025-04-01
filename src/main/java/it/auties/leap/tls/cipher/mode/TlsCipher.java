@@ -11,15 +11,21 @@ import it.auties.leap.tls.message.TlsMessageMetadata;
 import java.nio.ByteBuffer;
 import java.util.Arrays;
 
-public sealed abstract class TlsCipherMode {
+public sealed abstract class TlsCipher {
     protected final TlsCipherEngine engine;
-    protected TlsExchangeMac authenticator;
-    protected byte[] fixedIv;
+    protected final TlsExchangeMac authenticator;
+    protected final byte[] fixedIv;
+    protected boolean enabled;
 
-    protected TlsCipherMode(TlsCipherEngine engine, byte[] fixedIv, TlsExchangeMac authenticator) {
+    protected TlsCipher(TlsCipherEngine engine, byte[] fixedIv, TlsExchangeMac authenticator) {
+        if(fixedIv == null || fixedIv.length != fixedIvLength()) {
+            throw new TlsAlert("Unexpected IV length");
+        }
+
         this.engine = engine;
         this.authenticator = authenticator;
         this.fixedIv = fixedIv;
+        this.enabled = false;
     }
 
     public abstract void encrypt(TlsContext context, TlsMessage message, ByteBuffer output);
@@ -40,6 +46,14 @@ public sealed abstract class TlsCipherMode {
 
     public boolean aead() {
         return tagLength() != 0;
+    }
+
+    public boolean enabled() {
+        return enabled;
+    }
+
+    public void setEnabled(boolean enabled) {
+        this.enabled = enabled;
     }
 
     protected void addMac(ByteBuffer destination, byte contentId) {
@@ -138,7 +152,7 @@ public sealed abstract class TlsCipherMode {
                 Math.ceil(usedLen / (1.0d * blockLen))) * blockLen;
     }
 
-    public abstract non-sealed static class Block extends TlsCipherMode {
+    public abstract non-sealed static class Block extends TlsCipher {
         protected Block(TlsCipherEngine engine, byte[] fixedIv, TlsExchangeMac authenticator) {
             if(engine != null && !(engine instanceof TlsCipherEngine.Block)) {
                 throw new TlsAlert("Expected block engine");
@@ -153,7 +167,7 @@ public sealed abstract class TlsCipherMode {
         }
     }
 
-    public abstract non-sealed static class Stream extends TlsCipherMode {
+    public abstract non-sealed static class Stream extends TlsCipher {
         protected Stream(TlsCipherEngine engine, byte[] fixedIv, TlsExchangeMac authenticator) {
             if(engine != null && !(engine instanceof TlsCipherEngine.Stream)) {
                 throw new TlsAlert("Expected stream engine");

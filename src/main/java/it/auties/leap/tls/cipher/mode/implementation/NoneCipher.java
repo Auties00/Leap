@@ -1,22 +1,43 @@
 package it.auties.leap.tls.cipher.mode.implementation;
 
-import it.auties.leap.tls.cipher.mode.TlsCipherMode;
-import it.auties.leap.tls.cipher.mode.TlsCipherModeFactory;
+import it.auties.leap.tls.cipher.exchange.TlsExchangeMac;
+import it.auties.leap.tls.cipher.mode.TlsCipher;
+import it.auties.leap.tls.cipher.mode.TlsCipherFactory;
+import it.auties.leap.tls.cipher.mode.TlsCipherWithEngineFactory;
 import it.auties.leap.tls.context.TlsContext;
 import it.auties.leap.tls.message.TlsMessage;
 import it.auties.leap.tls.message.TlsMessageMetadata;
 
 import java.nio.ByteBuffer;
 
-public final class NoneMode extends TlsCipherMode.Block {
-    private static final NoneMode INSTANCE = new NoneMode();
-    private static final TlsCipherModeFactory FACTORY = (_) -> INSTANCE;
+public final class NoneCipher extends TlsCipher.Block {
+    private static final TlsCipherFactory FACTORY = _ -> new TlsCipherWithEngineFactory() {
+        @Override
+        public TlsCipher newCipher(boolean forEncryption, byte[] key, byte[] fixedIv, TlsExchangeMac authenticator) {
+            return new NoneCipher(authenticator);
+        }
 
-    private NoneMode() {
-        super(null);
+        @Override
+        public int ivLength() {
+            return 0;
+        }
+
+        @Override
+        public int fixedIvLength() {
+            return 0;
+        }
+
+        @Override
+        public int tagLength() {
+            return 0;
+        }
+    };
+
+    private NoneCipher(TlsExchangeMac authenticator) {
+        super(null, null, authenticator);
     }
 
-    public static TlsCipherModeFactory factory() {
+    public static TlsCipherFactory factory() {
         return FACTORY;
     }
 

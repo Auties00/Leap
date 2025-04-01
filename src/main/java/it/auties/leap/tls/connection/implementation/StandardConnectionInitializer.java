@@ -1,13 +1,12 @@
 package it.auties.leap.tls.connection.implementation;
 
-import it.auties.leap.tls.context.TlsContext;
 import it.auties.leap.tls.alert.TlsAlert;
-import it.auties.leap.tls.cipher.mode.TlsCipherMode;
+import it.auties.leap.tls.cipher.exchange.TlsExchangeMac;
 import it.auties.leap.tls.connection.TlsConnectionInitializer;
+import it.auties.leap.tls.context.TlsContext;
 import it.auties.leap.tls.hash.TlsHash;
 import it.auties.leap.tls.hash.TlsHashFactory;
 import it.auties.leap.tls.hash.TlsPRF;
-import it.auties.leap.tls.cipher.exchange.TlsExchangeMac;
 import it.auties.leap.tls.property.TlsProperty;
 import it.auties.leap.tls.version.TlsVersion;
 
@@ -16,7 +15,6 @@ import java.util.Arrays;
 
 import static it.auties.leap.tls.util.BufferUtils.readBytes;
 import static it.auties.leap.tls.util.TlsKeyUtils.*;
-import static it.auties.leap.tls.util.TlsKeyUtils.LABEL_KEY_EXPANSION;
 
 public final class StandardConnectionInitializer implements TlsConnectionInitializer {
     private static final StandardConnectionInitializer INSTANCE = new StandardConnectionInitializer();
@@ -52,42 +50,20 @@ public final class StandardConnectionInitializer implements TlsConnectionInitial
 
         var masterSecret = context.masterSecretGenerator()
                 .generateMasterSecret(context);
+        context.setMasterSecretKey(masterSecret);
 
         System.out.println("Master secret: " + Arrays.toString(masterSecret.data()));
 
-        var localCipherEngine = negotiatedCipher.engineFactory()
-                .newCipherEngine();
-        var localCipher = negotiatedCipher.modeFactory()
-                .newCipherMode(localCipherEngine);
+        var cipherFactory = negotiatedCipher.cipherFactory()
+                .with(negotiatedCipher.cipherEngineFactory());
 
-        var remoteCipherEngine = negotiatedCipher.engineFactory()
-                .newCipherEngine();
-        var remoteCipher = negotiatedCipher.modeFactory()
-                .newCipherMode(remoteCipherEngine);
+        var macLength = cipherFactory.aead() ? 0 : negotiatedCipher.hashFactory().length();
+        var expandedKeyLength = negotiatedCipher.cipherEngineFactory()
+                .exportedKeyLength();
+        var keyLength = negotiatedCipher.cipherEngineFactory()
+                .keyLength();
 
-        localConnectionState.setCipher(localCipher);
-        remoteConnectionState.setCipher(remoteCipher);
-
-        // If I understand correctly the MAC isn't used for AEAD ciphers as the cipher concatenates the tag to the message
-
-        var macLength = localCipher.aead() ? 0 : negotiatedCipher.hashFactory().length();
-        var expandedKeyLength = localCipherEngine.exportedKeyLength();
-        var keyLength = localCipherEngine.keyLength();
-
-        var ivLength = switch (localCipher) {
-            case TlsCipherMode.Block block -> {
-                if (block.aead()) {
-                    yield localCipher.ivLength();
-                }
-
-                if(negotiatedVersion.id().value() >= TlsVersion.TLS11.id().value()) {
-                    yield 0;
-                }
-
-                yield localCipher.ivLength();
-            }
-            case TlsCipherMode.Stream _ -> localCipher.ivLength();
-        };
+        var ivLength = cipherFactory.aead() || negotiatedVersion.id().value() < TlsVersion.TLS11.id().value() ? cipherFactory.fixedIvLength() : 0;
 
         var keyBlockLen = (macLength + keyLength + (expandedKeyLength.isPresent() ? 0 : ivLength)) * 2;
         var keyBlock = generateBlock(negotiatedVersion, negotiatedCipher.hashFactory(), masterSecret.data(), clientRandom, serverRandom, keyBlockLen);
@@ -116,14 +92,13 @@ public final class StandardConnectionInitializer implements TlsConnectionInitial
         );
 
         if (keyLength == 0) {
-            localCipher.init(true, null, null, null);
-            remoteCipher.init(false, null, null, null);
-            return;
-        }
-
-        var clientKey = readBytes(keyBlock, keyLength);
-        var serverKey = readBytes(keyBlock, keyLength);
-        if (expandedKeyLength.isEmpty()) {
+            var localCipher = cipherFactory.newCipher(true, null, new byte[0], localAuthenticator);
+            localConnectionState.setCipher(localCipher);
+            var remoteCipher = cipherFactory.newCipher(false, null, new byte[0], remoteAuthenticator);
+            remoteConnectionState.setCipher(remoteCipher);
+        }else if (expandedKeyLength.isEmpty()) {
+            var clientKey = readBytes(keyBlock, keyLength);
+            var serverKey = readBytes(keyBlock, keyLength);
             var localKey = switch (mode) {
                 case CLIENT -> clientKey;
                 case SERVER -> serverKey;
@@ -133,8 +108,8 @@ public final class StandardConnectionInitializer implements TlsConnectionInitial
                 case SERVER -> clientKey;
             };
 
-            var clientIv = ivLength == 0 ? null : readBytes(keyBlock, ivLength);
-            var serverIv = ivLength == 0 ? null : readBytes(keyBlock, ivLength);
+            var clientIv = ivLength == 0 ? new byte[0] : readBytes(keyBlock, ivLength);
+            var serverIv = ivLength == 0 ? new byte[0] : readBytes(keyBlock, ivLength);
             var localIv = switch (mode) {
                 case CLIENT -> clientIv;
                 case SERVER -> serverIv;
@@ -161,95 +136,105 @@ public final class StandardConnectionInitializer implements TlsConnectionInitial
                     Arrays.toString(clientKey),
                     Arrays.toString(serverKey)
             );
-            localCipher.init(true, localKey, localIv, localAuthenticator);
-            remoteCipher.init(false, remoteKey, remoteIv, remoteAuthenticator);
-            return;
-        }
-
-        switch (negotiatedVersion) {
-            case SSL30 -> {
-                var md5 = TlsHash.md5();
-                md5.update(clientKey);
-                md5.update(clientRandom);
-                md5.update(serverRandom);
-                var expandedClientKey = md5.digest(true, 0, expandedKeyLength.getAsInt());
-
-                md5.update(serverKey);
-                md5.update(serverRandom);
-                md5.update(clientRandom);
-                var expandedServerKey = md5.digest(true, 0, expandedKeyLength.getAsInt());
-
-                var localKey = switch (mode) {
-                    case CLIENT -> expandedClientKey;
-                    case SERVER -> expandedServerKey;
-                };
-                var remoteKey = switch (mode) {
-                    case CLIENT -> expandedServerKey;
-                    case SERVER -> expandedClientKey;
-                };
-
-                if (ivLength == 0) {
-                    localCipher.init(true, localKey, new byte[0], localAuthenticator);
-                    remoteCipher.init(false, remoteKey, new byte[0], remoteAuthenticator);
-                }else {
+            var localCipher = cipherFactory.newCipher(true, localKey, localIv, localAuthenticator);
+            localConnectionState.setCipher(localCipher);
+            var remoteCipher = cipherFactory.newCipher(false, remoteKey, remoteIv, remoteAuthenticator);
+            remoteConnectionState.setCipher(remoteCipher);
+        }else {
+            var clientKey = readBytes(keyBlock, keyLength);
+            var serverKey = readBytes(keyBlock, keyLength);
+            switch (negotiatedVersion) {
+                case SSL30 -> {
+                    var md5 = TlsHash.md5();
+                    md5.update(clientKey);
                     md5.update(clientRandom);
                     md5.update(serverRandom);
-                    var clientIv = md5.digest(true, 0, ivLength);
+                    var expandedClientKey = md5.digest(true, 0, expandedKeyLength.getAsInt());
 
+                    md5.update(serverKey);
                     md5.update(serverRandom);
                     md5.update(clientRandom);
-                    var serverIv = md5.digest(true, 0, ivLength);
+                    var expandedServerKey = md5.digest(true, 0, expandedKeyLength.getAsInt());
 
-                    var localIv = switch (mode) {
-                        case CLIENT -> clientIv;
-                        case SERVER -> serverIv;
+                    var localKey = switch (mode) {
+                        case CLIENT -> expandedClientKey;
+                        case SERVER -> expandedServerKey;
                     };
-                    var remoteIv = switch (mode) {
-                        case CLIENT -> serverIv;
-                        case SERVER -> clientIv;
+                    var remoteKey = switch (mode) {
+                        case CLIENT -> expandedServerKey;
+                        case SERVER -> expandedClientKey;
                     };
-                    localCipher.init(true, localKey, localIv, localAuthenticator);
-                    remoteCipher.init(false, remoteKey, remoteIv, remoteAuthenticator);
+
+                    if (ivLength == 0) {
+                        var localCipher = cipherFactory.newCipher(true, localKey, new byte[0], localAuthenticator);
+                        localConnectionState.setCipher(localCipher);
+                        var remoteCipher = cipherFactory.newCipher(false, remoteKey, new byte[0], remoteAuthenticator);
+                        remoteConnectionState.setCipher(remoteCipher);
+                    }else {
+                        md5.update(clientRandom);
+                        md5.update(serverRandom);
+                        var clientIv = md5.digest(true, 0, ivLength);
+
+                        md5.update(serverRandom);
+                        md5.update(clientRandom);
+                        var serverIv = md5.digest(true, 0, ivLength);
+
+                        var localIv = switch (mode) {
+                            case CLIENT -> clientIv;
+                            case SERVER -> serverIv;
+                        };
+                        var remoteIv = switch (mode) {
+                            case CLIENT -> serverIv;
+                            case SERVER -> clientIv;
+                        };
+                        var localCipher = cipherFactory.newCipher(true, localKey, localIv, localAuthenticator);
+                        localConnectionState.setCipher(localCipher);
+                        var remoteCipher = cipherFactory.newCipher(false, remoteKey, remoteIv, remoteAuthenticator);
+                        remoteConnectionState.setCipher(remoteCipher);
+                    }
                 }
-            }
 
-            case TLS10 -> {
-                var seed = TlsPRF.seed(clientRandom, serverRandom);
-                var expandedClientKey = TlsPRF.tls10Prf(clientKey, LABEL_CLIENT_WRITE_KEY, seed, expandedKeyLength.getAsInt());
-                var expandedServerKey = TlsPRF.tls10Prf(serverKey, LABEL_SERVER_WRITE_KEY, seed, expandedKeyLength.getAsInt());
+                case TLS10 -> {
+                    var seed = TlsPRF.seed(clientRandom, serverRandom);
+                    var expandedClientKey = TlsPRF.tls10Prf(clientKey, LABEL_CLIENT_WRITE_KEY, seed, expandedKeyLength.getAsInt());
+                    var expandedServerKey = TlsPRF.tls10Prf(serverKey, LABEL_SERVER_WRITE_KEY, seed, expandedKeyLength.getAsInt());
 
-                var localKey = switch (mode) {
-                    case CLIENT -> expandedClientKey;
-                    case SERVER -> expandedServerKey;
-                };
-                var remoteKey = switch (mode) {
-                    case CLIENT -> expandedServerKey;
-                    case SERVER -> expandedClientKey;
-                };
-
-                if (ivLength == 0) {
-                    localCipher.init(true, localKey, new byte[0], localAuthenticator);
-                    remoteCipher.init(false, remoteKey, new byte[0], remoteAuthenticator);
-                }else {
-                    var block = TlsPRF.tls10Prf(null, LABEL_IV_BLOCK, seed, ivLength << 1);
-                    var clientIv = Arrays.copyOf(block, ivLength);
-                    var serverIv = Arrays.copyOfRange(block, ivLength, ivLength << 2);
-
-                    var localIv = switch (mode) {
-                        case CLIENT -> clientIv;
-                        case SERVER -> serverIv;
+                    var localKey = switch (mode) {
+                        case CLIENT -> expandedClientKey;
+                        case SERVER -> expandedServerKey;
                     };
-                    var remoteIv = switch (mode) {
-                        case CLIENT -> serverIv;
-                        case SERVER -> clientIv;
+                    var remoteKey = switch (mode) {
+                        case CLIENT -> expandedServerKey;
+                        case SERVER -> expandedClientKey;
                     };
 
-                    localCipher.init(true, localKey, localIv, localAuthenticator);
-                    remoteCipher.init(false, remoteKey, remoteIv, remoteAuthenticator);
+                    if (ivLength == 0) {
+                        var localCipher = cipherFactory.newCipher(true, localKey, new byte[0], localAuthenticator);
+                        localConnectionState.setCipher(localCipher);
+                        var remoteCipher = cipherFactory.newCipher(false, remoteKey, new byte[0], remoteAuthenticator);
+                        remoteConnectionState.setCipher(remoteCipher);
+                    }else {
+                        var block = TlsPRF.tls10Prf(null, LABEL_IV_BLOCK, seed, ivLength << 1);
+                        var clientIv = Arrays.copyOf(block, ivLength);
+                        var serverIv = Arrays.copyOfRange(block, ivLength, ivLength << 2);
+
+                        var localIv = switch (mode) {
+                            case CLIENT -> clientIv;
+                            case SERVER -> serverIv;
+                        };
+                        var remoteIv = switch (mode) {
+                            case CLIENT -> serverIv;
+                            case SERVER -> clientIv;
+                        };
+                        var localCipher = cipherFactory.newCipher(true, localKey, localIv, localAuthenticator);
+                        localConnectionState.setCipher(localCipher);
+                        var remoteCipher = cipherFactory.newCipher(false, remoteKey, remoteIv, remoteAuthenticator);
+                        remoteConnectionState.setCipher(remoteCipher);
+                    }
                 }
-            }
 
-            default -> throw new TlsAlert("TLS 1.1+ should not be negotiating exportable ciphersuites");
+                default -> throw new TlsAlert("TLS 1.1+ should not be negotiating exportable ciphersuites");
+            }
         }
     }
 

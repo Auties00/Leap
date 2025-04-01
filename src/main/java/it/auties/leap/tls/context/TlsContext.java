@@ -3,7 +3,7 @@ package it.auties.leap.tls.context;
 import it.auties.leap.tls.alert.TlsAlert;
 import it.auties.leap.tls.certificate.TlsCertificatesConsumer;
 import it.auties.leap.tls.certificate.TlsCertificatesSupplier;
-import it.auties.leap.tls.cipher.TlsCipher;
+import it.auties.leap.tls.cipher.TlsCipherSuite;
 import it.auties.leap.tls.compression.TlsCompression;
 import it.auties.leap.tls.connection.TlsConnection;
 import it.auties.leap.tls.connection.TlsConnectionInitializer;
@@ -35,6 +35,7 @@ public class TlsContext {
     private volatile InetSocketAddress address;
     private final TlsContextMode mode;
     private volatile TlsConnection remoteConnectionState;
+    private volatile TlsSecret masterSecretKey;
 
     TlsContext(
             TlsContextMode mode,
@@ -62,7 +63,7 @@ public class TlsContext {
     static TlsContext ofClient(
             List<TlsVersion> versions,
             List<? extends TlsExtensionOwner.Client> extensions,
-            List<TlsCipher> ciphers,
+            List<TlsCipherSuite> ciphers,
             List<TlsCompression> compressions,
             TlsConnection localConnectionState,
             TlsCertificatesSupplier certificatesProvider,
@@ -82,7 +83,7 @@ public class TlsContext {
     static TlsContext ofServer(
             List<TlsVersion> versions,
             List<? extends TlsExtensionOwner.Server> extensions,
-            List<TlsCipher> ciphers,
+            List<TlsCipherSuite> ciphers,
             List<TlsCompression> compressions,
             TlsConnection localConnectionState,
             TlsCertificatesSupplier certificatesProvider,
@@ -209,7 +210,12 @@ public class TlsContext {
     }
 
     public Optional<TlsSecret> masterSecretKey() {
-        return Optional.empty();
+        return Optional.ofNullable(masterSecretKey);
+    }
+
+    public TlsContext setMasterSecretKey(TlsSecret masterSecretKey) {
+        this.masterSecretKey = masterSecretKey;
+        return this;
     }
 
     public TlsConnectionIntegrity connectionIntegrity() {

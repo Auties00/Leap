@@ -1,6 +1,6 @@
 package it.auties.leap.tls.property;
 
-import it.auties.leap.tls.cipher.TlsCipher;
+import it.auties.leap.tls.cipher.TlsCipherSuite;
 import it.auties.leap.tls.compression.TlsCompression;
 import it.auties.leap.tls.ec.TlsECPointFormat;
 import it.auties.leap.tls.extension.*;
@@ -17,7 +17,7 @@ public final class TlsProperty<I, O> implements TlsIdentifiableProperty<String> 
     private static final TlsProperty<List<TlsVersion>, TlsVersion> VERSION = new TlsProperty<>("version");
     private static final TlsProperty<List<? extends TlsExtensionOwner.Client>, List<? extends TlsExtension.Configured.Client>> CLIENT_EXTENSIONS = new TlsProperty<>("clientExtensions");
     private static final TlsProperty<List<? extends TlsExtensionOwner.Server>, List<? extends TlsExtension.Configured.Server>> SERVER_EXTENSIONS = new TlsProperty<>("serverExtensions");
-    private static final TlsProperty<List<TlsCipher>, TlsCipher> CIPHER = new TlsProperty<>("cipher");
+    private static final TlsProperty<List<TlsCipherSuite>, TlsCipherSuite> CIPHER = new TlsProperty<>("cipher");
     private static final TlsProperty<List<TlsCompression>, TlsCompression> COMPRESSION = new TlsProperty<>("compression");
     private static final TlsProperty<List<TlsSupportedGroup>, List<TlsSupportedGroup>> SUPPORTED_GROUPS = new TlsProperty<>("supportedGroups");
     private static final TlsProperty<List<TlsECPointFormat>, List<TlsECPointFormat>> EC_POINTS_FORMATS = new TlsProperty<>("ecPointsFormat");
@@ -44,7 +44,7 @@ public final class TlsProperty<I, O> implements TlsIdentifiableProperty<String> 
         return SERVER_EXTENSIONS;
     }
 
-    public static TlsProperty<List<TlsCipher>, TlsCipher> cipher() {
+    public static TlsProperty<List<TlsCipherSuite>, TlsCipherSuite> cipher() {
         return CIPHER;
     }
 

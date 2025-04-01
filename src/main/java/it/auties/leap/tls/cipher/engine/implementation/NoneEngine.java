@@ -8,12 +8,7 @@ import java.nio.ByteBuffer;
 public final class NoneEngine extends TlsCipherEngine.Block {
     private static final NoneEngine INSTANCE_CIPHER = new NoneEngine(false);
     private static final NoneEngine INSTANCE_DECIPHER = new NoneEngine(true);
-    private static final TlsCipherEngineFactory FACTORY = new TlsCipherEngineFactory.Block() {
-        @Override
-        public int blockLength() {
-            return 0;
-        }
-
+    private static final TlsCipherEngineFactory FACTORY = new TlsCipherEngineFactory() {
         @Override
         public TlsCipherEngine newCipherEngine(boolean forEncryption, byte[] key) {
             return forEncryption ? INSTANCE_CIPHER : INSTANCE_DECIPHER;
@@ -21,6 +16,11 @@ public final class NoneEngine extends TlsCipherEngine.Block {
 
         @Override
         public int keyLength() {
+            return 0;
+        }
+
+        @Override
+        public int blockLength() {
             return 0;
         }
     };

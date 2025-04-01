@@ -3,12 +3,12 @@ package it.auties.leap.tls.message.implementation;
 import it.auties.leap.tls.alert.TlsAlert;
 import it.auties.leap.tls.context.TlsContext;
 import it.auties.leap.tls.context.TlsSource;
-import it.auties.leap.tls.message.*;
+import it.auties.leap.tls.message.TlsHandshakeMessage;
+import it.auties.leap.tls.message.TlsMessageContentType;
+import it.auties.leap.tls.message.TlsMessageMetadata;
 import it.auties.leap.tls.version.TlsVersion;
 
 import java.nio.ByteBuffer;
-
-import static it.auties.leap.tls.util.BufferUtils.*;
 
 public record ChangeCipherSpecMessage(
         TlsVersion version,
@@ -36,16 +36,26 @@ public record ChangeCipherSpecMessage(
 
     @Override
     public void serializeHandshakePayload(ByteBuffer buffer) {
-        writeBigEndianInt8(buffer, id());
+
     }
 
     @Override
     public int handshakePayloadLength() {
-        return INT8_LENGTH;
+        return 0;
     }
 
     @Override
     public void apply(TlsContext context) {
-
+        switch (source) {
+            case LOCAL -> context.localConnectionState()
+                    .cipher()
+                    .orElseThrow(TlsAlert::noLocalCipher)
+                    .setEnabled(true);
+            case REMOTE -> context.remoteConnectionState()
+                    .orElseThrow(TlsAlert::noRemoteConnectionState)
+                    .cipher()
+                    .orElseThrow(TlsAlert::noRemoteCipher)
+                    .setEnabled(true);
+        }
     }
 }

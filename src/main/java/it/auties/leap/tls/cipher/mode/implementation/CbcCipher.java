@@ -1,11 +1,12 @@
 package it.auties.leap.tls.cipher.mode.implementation;
 
-import it.auties.leap.tls.cipher.engine.TlsCipherEngine;
-import it.auties.leap.tls.cipher.mode.TlsCipherMode;
-import it.auties.leap.tls.cipher.mode.TlsCipherModeFactory;
-import it.auties.leap.tls.context.TlsContext;
 import it.auties.leap.tls.alert.TlsAlert;
+import it.auties.leap.tls.cipher.engine.TlsCipherEngine;
 import it.auties.leap.tls.cipher.exchange.TlsExchangeMac;
+import it.auties.leap.tls.cipher.mode.TlsCipher;
+import it.auties.leap.tls.cipher.mode.TlsCipherFactory;
+import it.auties.leap.tls.cipher.mode.TlsCipherWithEngineFactory;
+import it.auties.leap.tls.context.TlsContext;
 import it.auties.leap.tls.message.TlsMessage;
 import it.auties.leap.tls.message.TlsMessageMetadata;
 import it.auties.leap.tls.util.BufferUtils;
@@ -16,20 +17,21 @@ import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
 import java.util.Arrays;
 
-public final class CBCMode extends TlsCipherMode.Block {
-    private static final TlsCipherModeFactory.Block FACTORY = new TlsCipherModeFactory.Block() {
+public final class CbcCipher extends TlsCipher.Block {
+    private static final TlsCipherFactory FACTORY = (factory) -> new TlsCipherWithEngineFactory() {
         @Override
-        public TlsCipherMode newCipherMode(TlsCipherEngine.Block engine, byte[] fixedIv, TlsExchangeMac authenticator) {
-            return new CBCMode(engine, fixedIv, authenticator);
+        public TlsCipher newCipher(boolean forEncryption, byte[] key, byte[] fixedIv, TlsExchangeMac authenticator) {
+            var engine = factory.newCipherEngine(forEncryption, key);
+            return new CbcCipher(engine, fixedIv, authenticator);
         }
 
         @Override
-        public int ivLength(TlsCipherEngine.Block engine) {
-            return engine.blockLength();
+        public int ivLength() {
+            return factory.blockLength();
         }
 
         @Override
-        public int fixedIvLength(TlsCipherEngine.Block engine) {
+        public int fixedIvLength() {
             return 0;
         }
 
@@ -42,7 +44,7 @@ public final class CBCMode extends TlsCipherMode.Block {
     private ByteBuffer cbcV;
     private ByteBuffer cbcNextV;
 
-    private CBCMode(TlsCipherEngine engine, byte[] fixedIv, TlsExchangeMac authenticator) {
+    private CbcCipher(TlsCipherEngine engine, byte[] fixedIv, TlsExchangeMac authenticator) {
         super(engine, fixedIv, authenticator);
         this.cbcV = ByteBuffer.allocate(engine().blockLength());
         if(fixedIv != null) {
@@ -51,7 +53,7 @@ public final class CBCMode extends TlsCipherMode.Block {
         this.cbcNextV = ByteBuffer.allocate(engine().blockLength());
     }
 
-    public static TlsCipherModeFactory factory() {
+    public static TlsCipherFactory factory() {
         return FACTORY;
     }
 

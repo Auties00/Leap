@@ -1,8 +1,9 @@
 package it.auties.leap.tls.cipher.mode.implementation;
 
 import it.auties.leap.tls.cipher.engine.TlsCipherEngine;
-import it.auties.leap.tls.cipher.mode.TlsCipherMode;
-import it.auties.leap.tls.cipher.mode.TlsCipherModeFactory;
+import it.auties.leap.tls.cipher.mode.TlsCipher;
+import it.auties.leap.tls.cipher.mode.TlsCipherFactory;
+import it.auties.leap.tls.cipher.mode.TlsCipherWithEngineFactory;
 import it.auties.leap.tls.context.TlsContext;
 import it.auties.leap.tls.cipher.exchange.TlsExchangeMac;
 import it.auties.leap.tls.message.TlsMessage;
@@ -16,25 +17,40 @@ import java.nio.ByteBuffer;
 import java.security.GeneralSecurityException;
 import java.security.Security;
 
-public final class CCMMode extends TlsCipherMode.Block {
+public final class CcmCipher extends TlsCipher.Block {
     static {
         Security.addProvider(new BouncyCastleProvider());
     }
 
-    private static final TlsCipherModeFactory FACTORY = CCMMode::new;
+    private static final TlsCipherFactory FACTORY = (factory) -> new TlsCipherWithEngineFactory() {
+        @Override
+        public TlsCipher newCipher(boolean forEncryption, byte[] key, byte[] fixedIv, TlsExchangeMac authenticator) {
+            var engine = factory.newCipherEngine(forEncryption, key);
+            return new CcmCipher(engine, fixedIv, authenticator);
+        }
 
-    private CCMMode(TlsCipherEngine engine) {
-        super(engine);
+        @Override
+        public int ivLength() {
+            return 12;
+        }
+
+        @Override
+        public int fixedIvLength() {
+            return 8;
+        }
+
+        @Override
+        public int tagLength() {
+            return factory.blockLength();
+        }
+    };
+
+    private CcmCipher(TlsCipherEngine engine, byte[] fixedIv, TlsExchangeMac authenticator) {
+        super(engine, fixedIv, authenticator);
     }
 
-    public static TlsCipherModeFactory factory() {
+    public static TlsCipherFactory factory() {
         return FACTORY;
-    }
-
-    @Override
-    public void init(boolean forEncryption, byte[] key, byte[] fixedIv, TlsExchangeMac authenticator) {
-        super.init(forEncryption, key, fixedIv, authenticator);
-        engine.init(forEncryption, key);
     }
 
     @Override
@@ -52,7 +68,7 @@ public final class CCMMode extends TlsCipherMode.Block {
         var outputPosition = output.position();
         try {
             var temp = Cipher.getInstance("AES/CCM/NoPadding", "BC");
-            temp.init(engine.forEncryption() ? Cipher.ENCRYPT_MODE : Cipher.DECRYPT_MODE, new SecretKeySpec(engine.key(), "AES"), new AEADParameterSpec(iv, 16 * 8));
+            temp.init(engine.forEncryption() ? Cipher.ENCRYPT_MODE : Cipher.DECRYPT_MODE, new SecretKeySpec(engineToKey(), "AES"), new AEADParameterSpec(iv, 16 * 8));
             var aad = authenticator.createAuthenticationBlock(message.contentType().id(), input.remaining() - (engine.forEncryption() ? 0 : tagLength()), null);
             temp.updateAAD(aad, 0, aad.length);
             temp.doFinal(input, output);
@@ -76,7 +92,7 @@ public final class CCMMode extends TlsCipherMode.Block {
         var outputPosition = output.position();
         try {
             var temp = Cipher.getInstance("AES/CCM/NoPadding", "BC");
-            temp.init(engine.forEncryption() ? Cipher.ENCRYPT_MODE : Cipher.DECRYPT_MODE, new SecretKeySpec(engine.key(), "AES"), new AEADParameterSpec(iv, 16 * 8));
+            temp.init(engine.forEncryption() ? Cipher.ENCRYPT_MODE : Cipher.DECRYPT_MODE, new SecretKeySpec(engineToKey(), "AES"), new AEADParameterSpec(iv, 16 * 8));
             var aad = authenticator.createAuthenticationBlock(metadata.contentType().id(), input.remaining() - (engine.forEncryption() ? 0 : tagLength()), null);
             temp.updateAAD(aad, 0, aad.length);
             temp.doFinal(input, output);
@@ -88,6 +104,11 @@ public final class CCMMode extends TlsCipherMode.Block {
         output.position(outputPosition - offset);
 
         return output;
+    }
+
+    private byte[] engineToKey() {
+        // return engine.key();
+        return null;
     }
 
     @Override

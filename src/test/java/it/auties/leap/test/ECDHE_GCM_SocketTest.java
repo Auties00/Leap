@@ -4,7 +4,7 @@ package it.auties.leap.test;
 import it.auties.leap.socket.SocketClient;
 import it.auties.leap.socket.SocketProtocol;
 import it.auties.leap.tls.certificate.TlsCertificatesConsumer;
-import it.auties.leap.tls.cipher.TlsCipher;
+import it.auties.leap.tls.cipher.TlsCipherSuite;
 import it.auties.leap.tls.compression.TlsCompression;
 import it.auties.leap.tls.context.TlsContext;
 import it.auties.leap.tls.extension.TlsExtension;
@@ -22,7 +22,7 @@ public class ECDHE_GCM_SocketTest {
     public static void main(String[] args) throws IOException {
         // TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA384
         var ciphers = List.of(
-                TlsCipher.ecdheRsaWithAes128GcmSha256()
+                TlsCipherSuite.ecdheRsaWithAes128GcmSha256()
         );
         var extensions = List.of(
                 TlsExtension.serverNameIndication(TlsNameType.HOST_NAME),

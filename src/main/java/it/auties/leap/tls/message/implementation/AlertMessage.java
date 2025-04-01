@@ -70,6 +70,6 @@ public record AlertMessage(
             throw SocketException.closed();
         }
 
-        throw new TlsAlert("Received alert: " + context);
+        throw new TlsAlert("Received alert: " + alertType);
     }
 }

@@ -4,21 +4,21 @@ import it.auties.leap.tls.cipher.engine.implementation.*;
 
 import java.util.OptionalInt;
 
-public sealed interface TlsCipherEngineFactory {
+public interface TlsCipherEngineFactory {
     static TlsCipherEngineFactory aes128() {
-        return AESEngine.factory128();
+        return AesEngine.factory128();
     }
 
     static TlsCipherEngineFactory aes256() {
-        return AESEngine.factory256();
+        return AesEngine.factory256();
     }
 
     static TlsCipherEngineFactory aria128() {
-        return ARIAEngine.factory128();
+        return AriaEngine.factory128();
     }
 
     static TlsCipherEngineFactory aria256() {
-        return ARIAEngine.factory256();
+        return AriaEngine.factory256();
     }
 
     static TlsCipherEngineFactory camellia128() {
@@ -30,15 +30,15 @@ public sealed interface TlsCipherEngineFactory {
     }
 
     static TlsCipherEngineFactory des40() {
-        return DESEngine.factory();
+        return DesEngine.factory();
     }
 
     static TlsCipherEngineFactory desEde() {
-        return DESEdeEngine.factory();
+        return DesEdeEngine.factory();
     }
 
     static TlsCipherEngineFactory idea() {
-        return IDEAEngine.factory();
+        return IdeaEngine.factory();
     }
 
     static TlsCipherEngineFactory kuznyechik() {
@@ -50,27 +50,27 @@ public sealed interface TlsCipherEngineFactory {
     }
 
     static TlsCipherEngineFactory rc2_40() {
-        return RC2Engine.factory40();
+        return Rc2Engine.factory40();
     }
 
     static TlsCipherEngineFactory rc2_128() {
-        return RC2Engine.factory128();
+        return Rc2Engine.factory128();
     }
 
     static TlsCipherEngineFactory rc4_40() {
-        return RC4Engine.factory40();
+        return Rc4Engine.factory40();
     }
 
     static TlsCipherEngineFactory rc4_128() {
-        return RC4Engine.factory128();
+        return Rc4Engine.factory128();
     }
 
     static TlsCipherEngineFactory seed() {
-        return SEEDEngine.factory();
+        return SeedEngine.factory();
     }
 
     static TlsCipherEngineFactory sm4() {
-        return SM4Engine.factory();
+        return Sm4Engine.factory();
     }
 
     static TlsCipherEngineFactory none() {
@@ -83,15 +83,9 @@ public sealed interface TlsCipherEngineFactory {
 
     TlsCipherEngine newCipherEngine(boolean forEncryption, byte[] key);
     int keyLength();
+    int blockLength();
+    // TODO: Find the correct values for this field
     default OptionalInt exportedKeyLength() {
         return OptionalInt.empty();
-    }
-
-    non-sealed interface Block extends TlsCipherEngineFactory {
-        int blockLength();
-    }
-
-    non-sealed interface Stream extends TlsCipherEngineFactory {
-
     }
 }

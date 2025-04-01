@@ -3,7 +3,7 @@ package it.auties.leap.tls.context;
 import it.auties.leap.tls.alert.TlsAlert;
 import it.auties.leap.tls.certificate.TlsCertificatesConsumer;
 import it.auties.leap.tls.certificate.TlsCertificatesSupplier;
-import it.auties.leap.tls.cipher.TlsCipher;
+import it.auties.leap.tls.cipher.TlsCipherSuite;
 import it.auties.leap.tls.compression.TlsCompression;
 import it.auties.leap.tls.connection.TlsConnectionInitializer;
 import it.auties.leap.tls.message.TlsMessageDeserializer;
@@ -17,7 +17,7 @@ import java.util.List;
 abstract sealed class TlsContextBuilder<S extends TlsContextBuilder<S>> permits TlsClientContextBuilder, TlsServerContextBuilder {
     final TlsContextMode mode;
     List<TlsVersion> versions;
-    List<TlsCipher> ciphers;
+    List<TlsCipherSuite> ciphers;
     List<TlsCompression> compressions;
     TlsCertificatesSupplier certificatesProvider;
     TlsCertificatesConsumer certificatesHandler;
@@ -46,7 +46,7 @@ abstract sealed class TlsContextBuilder<S extends TlsContextBuilder<S>> permits 
         return (S) this;
     }
 
-    public S ciphers(List<TlsCipher> ciphers) {
+    public S ciphers(List<TlsCipherSuite> ciphers) {
         this.ciphers = ciphers;
         return (S) this;
     }

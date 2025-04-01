@@ -7,7 +7,8 @@ import it.auties.leap.socket.async.transportLayer.AsyncSocketTransportLayer;
 import it.auties.leap.tls.alert.TlsAlert;
 import it.auties.leap.tls.alert.TlsAlertLevel;
 import it.auties.leap.tls.alert.TlsAlertType;
-import it.auties.leap.tls.cipher.TlsCipher;
+import it.auties.leap.tls.cipher.TlsCipherSuite;
+import it.auties.leap.tls.cipher.mode.TlsCipher;
 import it.auties.leap.tls.compression.TlsCompression;
 import it.auties.leap.tls.connection.TlsConnection;
 import it.auties.leap.tls.context.TlsContext;
@@ -90,7 +91,7 @@ public class AsyncSecureSocketApplicationLayer extends AsyncSocketApplicationLay
                 .filter(cipher -> cipher.versions().stream().anyMatch(versionsSet::contains))
                 .toList();
         var availableCiphersIds = availableCiphers.stream()
-                .map(TlsCipher::id)
+                .map(TlsCipherSuite::id)
                 .toList();
         var availableCompressions = tlsContext.getNegotiableValue(TlsProperty.compression())
                 .orElseThrow(() -> TlsAlert.noNegotiableProperty(TlsProperty.compression()));
@@ -435,6 +436,7 @@ public class AsyncSecureSocketApplicationLayer extends AsyncSocketApplicationLay
     }
 
     private CompletableFuture<Void> decodeMessage(TlsMessageMetadata metadata) {
+        System.err.println("Message length: " + metadata.length());
         var buffer = readBuffer(metadata.length());
         return transportLayer.readFully(buffer)
                 .thenCompose(_ -> {
@@ -446,6 +448,7 @@ public class AsyncSecureSocketApplicationLayer extends AsyncSocketApplicationLay
     private CompletableFuture<Void> decodeMessage(TlsMessageMetadata metadata, ByteBuffer buffer) {
         return tlsContext.remoteConnectionState()
                 .flatMap(TlsConnection::cipher)
+                .filter(TlsCipher::enabled)
                 .map(cipher -> {
                     var plaintext = cipher.decrypt(tlsContext, metadata, buffer);
                     var message = tlsContext.messageDeserializer()
@@ -508,6 +511,7 @@ public class AsyncSecureSocketApplicationLayer extends AsyncSocketApplicationLay
     }
 
     private CompletableFuture<Void> write(TlsMessage message){
+        System.err.println("Sending " + message.getClass().getName());
         var leftPadding = tlsContext.localConnectionState()
                 .cipher()
                 .orElseThrow(() -> new InternalError("Missing negotiated cipher"))
@@ -571,12 +575,14 @@ public class AsyncSecureSocketApplicationLayer extends AsyncSocketApplicationLay
     private boolean isLocalCipherEnabled() {
         return tlsContext.localConnectionState()
                 .cipher()
+                .filter(TlsCipher::enabled)
                 .isPresent();
     }
 
     private boolean isRemoteCipherEnabled() {
         return tlsContext.remoteConnectionState()
                 .flatMap(TlsConnection::cipher)
+                .filter(TlsCipher::enabled)
                 .isPresent();
     }
 

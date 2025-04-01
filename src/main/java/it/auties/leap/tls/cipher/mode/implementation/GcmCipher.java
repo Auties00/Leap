@@ -1,8 +1,9 @@
 package it.auties.leap.tls.cipher.mode.implementation;
 
 import it.auties.leap.tls.cipher.engine.TlsCipherEngine;
-import it.auties.leap.tls.cipher.mode.TlsCipherMode;
-import it.auties.leap.tls.cipher.mode.TlsCipherModeFactory;
+import it.auties.leap.tls.cipher.mode.TlsCipher;
+import it.auties.leap.tls.cipher.mode.TlsCipherFactory;
+import it.auties.leap.tls.cipher.mode.TlsCipherWithEngineFactory;
 import it.auties.leap.tls.context.TlsContext;
 import it.auties.leap.tls.cipher.exchange.TlsExchangeMac;
 import it.auties.leap.tls.message.TlsMessage;
@@ -15,16 +16,37 @@ import org.bouncycastle.util.Longs;
 import java.nio.ByteBuffer;
 
 
-public final class GCMMode extends TlsCipherMode.Block {
-    private static final TlsCipherModeFactory FACTORY = GCMMode::new;
+public final class GcmCipher extends TlsCipher.Block {
+    private static final TlsCipherFactory FACTORY = (factory) -> new TlsCipherWithEngineFactory() {
+        @Override
+        public TlsCipher newCipher(boolean forEncryption, byte[] key, byte[] fixedIv, TlsExchangeMac authenticator) {
+            var engine = factory.newCipherEngine(true, key);
+            return new GcmCipher(engine, forEncryption, fixedIv, authenticator);
+        }
+
+        @Override
+        public int ivLength() {
+            return 12;
+        }
+
+        @Override
+        public int fixedIvLength() {
+            return 8;
+        }
+
+        @Override
+        public int tagLength() {
+            return factory.blockLength();
+        }
+    };
 
     private final Tables4kGCMMultiplier multiplier;
     private BasicGCMExponentiator exp;
 
-    private byte[] H;
+    private final byte[] H;
     private byte[] J0;
 
-    private byte[] bufBlock;
+    private final byte[] bufBlock;
     private byte[] macBlock;
     private byte[] S, S_at, S_atPre;
     private byte[] counter;
@@ -37,12 +59,13 @@ public final class GCMMode extends TlsCipherMode.Block {
     private long atLengthPre;
 
     // Can't rely on the engine's value as that is always set on encryption mode
-    private boolean forEncryption;
+    private final boolean forEncryption;
 
-    private GCMMode(TlsCipherEngine engine, byte[] fixedIv, TlsExchangeMac authenticator) {
+    private GcmCipher(TlsCipherEngine engine, boolean forEncryption, byte[] fixedIv, TlsExchangeMac authenticator) {
         super(engine, fixedIv, authenticator);
+        this.forEncryption = forEncryption;
         this.multiplier = new Tables4kGCMMultiplier();
-        var bufLength = forEncryption ? engine().blockLength() : (engine().blockLength() + tagLength());
+        var bufLength = this.forEncryption ? engine().blockLength() : (engine().blockLength() + tagLength());
         this.bufBlock = new byte[bufLength];
         this.H = new byte[engine().blockLength()];
         engine.cipher(ByteBuffer.wrap(H), ByteBuffer.wrap(H));
@@ -60,7 +83,7 @@ public final class GCMMode extends TlsCipherMode.Block {
     }
 
 
-    public static TlsCipherModeFactory factory() {
+    public static TlsCipherFactory factory() {
         return FACTORY;
     }
 
@@ -443,7 +466,7 @@ public final class GCMMode extends TlsCipherMode.Block {
 
     @Override
     public int ivLength() {
-        return 4 + 8;
+        return 12;
     }
 
     @Override

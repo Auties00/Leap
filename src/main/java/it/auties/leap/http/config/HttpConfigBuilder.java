@@ -1,9 +1,8 @@
 package it.auties.leap.http.config;
 
 import it.auties.leap.http.HttpVersion;
-import it.auties.leap.socket.SocketProtocol;
 import it.auties.leap.tls.context.TlsContext;
-import it.auties.leap.tls.cipher.TlsCipher;
+import it.auties.leap.tls.cipher.TlsCipherSuite;
 import it.auties.leap.tls.compression.TlsCompression;
 import it.auties.leap.tls.extension.TlsExtension;
 import it.auties.leap.tls.name.TlsNameType;
@@ -23,36 +22,36 @@ public final class HttpConfigBuilder {
 
     static {
         var ciphers = List.of(
-                TlsCipher.aes256GcmSha384(),
-                TlsCipher.chacha20Poly1305Sha256(),
-                TlsCipher.aes128GcmSha256(),
-                TlsCipher.ecdheEcdsaWithAes256GcmSha384(),
-                TlsCipher.ecdheRsaWithAes256GcmSha384(),
-                TlsCipher.dheRsaWithAes256GcmSha384(),
-                TlsCipher.ecdheEcdsaWithChacha20Poly1305Sha256(),
-                TlsCipher.ecdheRsaWithChacha20Poly1305Sha256(),
-                TlsCipher.dheRsaWithChacha20Poly1305Sha256(),
-                TlsCipher.ecdheEcdsaWithAes128GcmSha256(),
-                TlsCipher.ecdheRsaWithAes128GcmSha256(),
-                TlsCipher.dheRsaWithAes128GcmSha256(),
-                TlsCipher.ecdheEcdsaWithAes256CbcSha384(),
-                TlsCipher.ecdheRsaWithAes256CbcSha384(),
-                TlsCipher.dheRsaWithAes256CbcSha256(),
-                TlsCipher.ecdheEcdsaWithAes128CbcSha256(),
-                TlsCipher.ecdheRsaWithAes128CbcSha256(),
-                TlsCipher.dheRsaWithAes128CbcSha256(),
-                TlsCipher.ecdheEcdsaWithAes256CbcSha(),
-                TlsCipher.ecdheRsaWithAes256CbcSha(),
-                TlsCipher.dheRsaWithAes256CbcSha(),
-                TlsCipher.ecdheEcdsaWithAes128CbcSha(),
-                TlsCipher.ecdheRsaWithAes128CbcSha(),
-                TlsCipher.dheRsaWithAes128CbcSha(),
-                TlsCipher.rsaWithAes256GcmSha384(),
-                TlsCipher.rsaWithAes128GcmSha256(),
-                TlsCipher.rsaWithAes256CbcSha256(),
-                TlsCipher.rsaWithAes128CbcSha256(),
-                TlsCipher.rsaWithAes256CbcSha(),
-                TlsCipher.rsaWithAes128CbcSha()
+                TlsCipherSuite.aes256GcmSha384(),
+                TlsCipherSuite.chacha20Poly1305Sha256(),
+                TlsCipherSuite.aes128GcmSha256(),
+                TlsCipherSuite.ecdheEcdsaWithAes256GcmSha384(),
+                TlsCipherSuite.ecdheRsaWithAes256GcmSha384(),
+                TlsCipherSuite.dheRsaWithAes256GcmSha384(),
+                TlsCipherSuite.ecdheEcdsaWithChacha20Poly1305Sha256(),
+                TlsCipherSuite.ecdheRsaWithChacha20Poly1305Sha256(),
+                TlsCipherSuite.dheRsaWithChacha20Poly1305Sha256(),
+                TlsCipherSuite.ecdheEcdsaWithAes128GcmSha256(),
+                TlsCipherSuite.ecdheRsaWithAes128GcmSha256(),
+                TlsCipherSuite.dheRsaWithAes128GcmSha256(),
+                TlsCipherSuite.ecdheEcdsaWithAes256CbcSha384(),
+                TlsCipherSuite.ecdheRsaWithAes256CbcSha384(),
+                TlsCipherSuite.dheRsaWithAes256CbcSha256(),
+                TlsCipherSuite.ecdheEcdsaWithAes128CbcSha256(),
+                TlsCipherSuite.ecdheRsaWithAes128CbcSha256(),
+                TlsCipherSuite.dheRsaWithAes128CbcSha256(),
+                TlsCipherSuite.ecdheEcdsaWithAes256CbcSha(),
+                TlsCipherSuite.ecdheRsaWithAes256CbcSha(),
+                TlsCipherSuite.dheRsaWithAes256CbcSha(),
+                TlsCipherSuite.ecdheEcdsaWithAes128CbcSha(),
+                TlsCipherSuite.ecdheRsaWithAes128CbcSha(),
+                TlsCipherSuite.dheRsaWithAes128CbcSha(),
+                TlsCipherSuite.rsaWithAes256GcmSha384(),
+                TlsCipherSuite.rsaWithAes128GcmSha256(),
+                TlsCipherSuite.rsaWithAes256CbcSha256(),
+                TlsCipherSuite.rsaWithAes128CbcSha256(),
+                TlsCipherSuite.rsaWithAes256CbcSha(),
+                TlsCipherSuite.rsaWithAes128CbcSha()
         );
         var extensions = List.of(
                 TlsExtension.serverNameIndication(TlsNameType.HOST_NAME),

@@ -13,15 +13,24 @@ public class ChaCha20Engine extends TlsCipherEngine.Stream {
     private final static int[] TAU_SIGMA = {1634760805, 824206446, 2036477238, 1797285236, 1634760805, 857760878, 2036477234, 1797285236};
     private static final int ROUNDS = 20;
 
-    private static final TlsCipherEngineFactory FACTORY = new TlsCipherEngineFactory.Stream() {
+    private static final TlsCipherEngineFactory FACTORY = new TlsCipherEngineFactory() {
         @Override
         public TlsCipherEngine newCipherEngine(boolean forEncryption, byte[] key) {
+            if (key == null || key.length != keyLength()) {
+                throw new IllegalArgumentException("Invalid key length");
+            }
+
             return new ChaCha20Engine(forEncryption, key);
         }
 
         @Override
         public int keyLength() {
             return 32;
+        }
+
+        @Override
+        public int blockLength() {
+            return 0;
         }
     };
 

@@ -2,7 +2,7 @@ package it.auties.leap.tls.context;
 
 import it.auties.leap.socket.SocketProtocol;
 import it.auties.leap.tls.certificate.TlsCertificatesConsumer;
-import it.auties.leap.tls.cipher.TlsCipher;
+import it.auties.leap.tls.cipher.TlsCipherSuite;
 import it.auties.leap.tls.compression.TlsCompression;
 import it.auties.leap.tls.connection.TlsConnection;
 import it.auties.leap.tls.connection.TlsConnectionInitializer;
@@ -43,7 +43,7 @@ public final class TlsClientContextBuilder extends TlsContextBuilder<TlsClientCo
 
             return List.of(TlsExtension.supportedVersions(), TlsExtension.keyShare(), TlsExtension.signatureAlgorithms());
         });
-        var ciphers = Objects.requireNonNullElse(this.ciphers, TlsCipher.recommended());
+        var ciphers = Objects.requireNonNullElse(this.ciphers, TlsCipherSuite.recommended());
         var compressions = Objects.requireNonNullElse(this.compressions, TlsCompression.recommended());
         var certificatesHandler = Objects.requireNonNullElse(this.certificatesHandler, TlsCertificatesConsumer.validate());
         var trustedKeyStore = Objects.requireNonNullElse(this.trustedKeyStore, CertificateUtils.defaultKeyStore());

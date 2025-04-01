@@ -1,32 +1,32 @@
 package it.auties.leap.tls.cipher.mode.implementation;
 
-import it.auties.leap.tls.alert.TlsAlert;
 import it.auties.leap.tls.cipher.engine.TlsCipherEngine;
-import it.auties.leap.tls.cipher.engine.implementation.MagmaEngine;
 import it.auties.leap.tls.cipher.exchange.TlsExchangeMac;
-import it.auties.leap.tls.cipher.mode.TlsCipherMode;
-import it.auties.leap.tls.cipher.mode.TlsCipherModeFactory;
+import it.auties.leap.tls.cipher.mode.TlsCipher;
+import it.auties.leap.tls.cipher.mode.TlsCipherFactory;
+import it.auties.leap.tls.cipher.mode.TlsCipherWithEngineFactory;
 import it.auties.leap.tls.context.TlsContext;
 import it.auties.leap.tls.message.TlsMessage;
 import it.auties.leap.tls.message.TlsMessageMetadata;
 
 import java.nio.ByteBuffer;
 
-public final class CTRMode extends TlsCipherMode.Block {
-    private static final TlsCipherModeFactory.Block FACTORY = new TlsCipherModeFactory.Block() {
+public final class CtrOmacCipher extends TlsCipher.Block {
+    private static final TlsCipherFactory FACTORY = (factory) -> new TlsCipherWithEngineFactory() {
         @Override
-        public TlsCipherMode newCipherMode(TlsCipherEngine.Block engine, byte[] fixedIv, TlsExchangeMac authenticator) {
-            return new CTRMode(engine, fixedIv, authenticator);
+        public TlsCipher newCipher(boolean forEncryption, byte[] key, byte[] fixedIv, TlsExchangeMac authenticator) {
+            var engine = factory.newCipherEngine(forEncryption, key);
+            return new CtrOmacCipher(engine, fixedIv, authenticator);
         }
 
         @Override
-        public int ivLength(TlsCipherEngine.Block engine) {
-            return 4;
+        public int ivLength() {
+            return factory.blockLength() / 2;
         }
 
         @Override
-        public int fixedIvLength(TlsCipherEngine.Block engine) {
-            return 8;
+        public int fixedIvLength() {
+            return factory.blockLength() / 2;
         }
 
         @Override
@@ -35,14 +35,11 @@ public final class CTRMode extends TlsCipherMode.Block {
         }
     };
 
-    private CTRMode(TlsCipherEngine engine, byte[] fixedIv, TlsExchangeMac authenticator) {
-        if(!(engine instanceof MagmaEngine)) {
-            throw new TlsAlert("CTR mode is supported only by Magma engines");
-        }
+    private CtrOmacCipher(TlsCipherEngine engine, byte[] fixedIv, TlsExchangeMac authenticator) {
         super(engine, fixedIv, authenticator);
     }
 
-    public static TlsCipherModeFactory factory() {
+    public static TlsCipherFactory factory() {
         return FACTORY;
     }
 
@@ -58,12 +55,12 @@ public final class CTRMode extends TlsCipherMode.Block {
 
     @Override
     public int ivLength() {
-        return 8;
+        return engine().blockLength() / 2;
     }
 
     @Override
     public int fixedIvLength() {
-        return 4;
+        return engine().blockLength() / 2;
     }
 
     @Override

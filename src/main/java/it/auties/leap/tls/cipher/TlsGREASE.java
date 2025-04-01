@@ -2,9 +2,10 @@ package it.auties.leap.tls.cipher;
 
 import it.auties.leap.tls.alert.TlsAlert;
 import it.auties.leap.tls.cipher.auth.TlsAuthFactory;
+import it.auties.leap.tls.cipher.engine.TlsCipherEngine;
 import it.auties.leap.tls.cipher.engine.TlsCipherEngineFactory;
 import it.auties.leap.tls.cipher.exchange.TlsKeyExchangeFactory;
-import it.auties.leap.tls.cipher.mode.TlsCipherModeFactory;
+import it.auties.leap.tls.cipher.mode.TlsCipherFactory;
 import it.auties.leap.tls.hash.TlsHashFactory;
 import it.auties.leap.tls.version.TlsVersion;
 import it.auties.leap.tls.version.TlsVersionId;
@@ -15,8 +16,25 @@ import java.util.List;
 import java.util.Objects;
 
 public final class TlsGREASE {
-    private static final TlsCipherEngineFactory ENGINE_FACTORY = () -> { throw new TlsAlert("GREASE cipher should not be selected"); };
-    private static final TlsCipherModeFactory MODE_FACTORY = _ -> { throw new TlsAlert("GREASE cipher should not be selected"); };
+    private static final TlsCipherEngineFactory ENGINE_FACTORY = new TlsCipherEngineFactory() {
+        @Override
+        public TlsCipherEngine newCipherEngine(boolean forEncryption, byte[] key) {
+            throw new TlsAlert("GREASE cipher should not be selected");
+        }
+
+        @Override
+        public int keyLength() {
+            throw new TlsAlert("GREASE cipher should not be selected");
+        }
+
+        @Override
+        public int blockLength() {
+            throw new TlsAlert("GREASE cipher should not be selected");
+        }
+    };
+    private static final TlsCipherFactory MODE_FACTORY = _ -> {
+        throw new TlsAlert("GREASE cipher should not be selected");
+    };
 
     private static final TlsGREASE GREASE_0A = new TlsGREASE(TlsVersionId.of(0x0A0A), createGREASECipher(0x0A0A));
     private static final TlsGREASE GREASE_1A = new TlsGREASE(TlsVersionId.of(0x1A1A), createGREASECipher(0x1A1A));
@@ -36,8 +54,8 @@ public final class TlsGREASE {
     private static final TlsGREASE GREASE_FA = new TlsGREASE(TlsVersionId.of(0xFAFA), createGREASECipher(0xFAFA));
     private static final List<TlsGREASE> VALUES = List.of(GREASE_0A, GREASE_1A, GREASE_2A, GREASE_3A, GREASE_4A, GREASE_5A, GREASE_6A, GREASE_7A, GREASE_8A, GREASE_9A, GREASE_AA, GREASE_BA, GREASE_CA, GREASE_DA, GREASE_EA, GREASE_FA);
 
-    private static TlsCipher createGREASECipher(int id) {
-        return new TlsCipher(
+    private static TlsCipherSuite createGREASECipher(int id) {
+        return new TlsCipherSuite(
                 id,
                 ENGINE_FACTORY,
                 MODE_FACTORY,
@@ -134,9 +152,9 @@ public final class TlsGREASE {
     }
 
     private final TlsVersionId versionId;
-    private final TlsCipher cipher;
+    private final TlsCipherSuite cipher;
 
-    private TlsGREASE(TlsVersionId versionId, TlsCipher cipher) {
+    private TlsGREASE(TlsVersionId versionId, TlsCipherSuite cipher) {
         this.versionId = versionId;
         this.cipher = cipher;
     }
@@ -145,17 +163,15 @@ public final class TlsGREASE {
         return versionId;
     }
 
-    public TlsCipher cipher() {
+    public TlsCipherSuite cipher() {
         return cipher;
     }
-    
+
     @Override
-    public boolean equals(Object obj) {
-        if (obj == this) return true;
-        if (obj == null || obj.getClass() != this.getClass()) return false;
-        var that = (TlsGREASE) obj;
-        return Objects.equals(this.versionId, that.versionId) &&
-                Objects.equals(this.cipher, that.cipher);
+    public boolean equals(Object o) {
+        return o instanceof TlsGREASE that
+                && Objects.equals(versionId, that.versionId)
+                && Objects.equals(cipher, that.cipher);
     }
 
     @Override
@@ -166,7 +182,6 @@ public final class TlsGREASE {
     @Override
     public String toString() {
         return "TlsGrease[" +
-                "versionId=" + versionId + ", " +
-                "cipher=" + cipher + ']';
+                "id=" + versionId + ']';
     }
 }

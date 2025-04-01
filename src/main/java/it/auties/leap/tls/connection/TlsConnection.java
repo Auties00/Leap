@@ -1,7 +1,7 @@
 package it.auties.leap.tls.connection;
 
 import it.auties.leap.tls.cipher.exchange.TlsKeyExchange;
-import it.auties.leap.tls.cipher.mode.TlsCipherMode;
+import it.auties.leap.tls.cipher.mode.TlsCipher;
 
 import java.security.PrivateKey;
 import java.security.PublicKey;
@@ -21,7 +21,7 @@ public final class TlsConnection {
     private volatile PublicKey publicKey;
     private volatile PrivateKey privateKey;
     private volatile List<X509Certificate> certificates;
-    private volatile TlsCipherMode cipher;
+    private volatile TlsCipher cipher;
     private TlsConnection(byte[] randomData, byte[] sessionId, byte[] dtlsCookie) {
         this.randomData = randomData;
         this.sessionId = sessionId;
@@ -56,7 +56,7 @@ public final class TlsConnection {
         return Optional.ofNullable(keyExchange);
     }
 
-    public Optional<TlsCipherMode> cipher() {
+    public Optional<TlsCipher> cipher() {
         return Optional.ofNullable(cipher);
     }
 
@@ -80,7 +80,7 @@ public final class TlsConnection {
         return this;
     }
 
-    public TlsConnection setCipher(TlsCipherMode cipher) {
+    public TlsConnection setCipher(TlsCipher cipher) {
         this.cipher = cipher;
         return this;
     }

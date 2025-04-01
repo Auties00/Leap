@@ -5,28 +5,44 @@ import it.auties.leap.tls.cipher.engine.TlsCipherEngineFactory;
 
 import java.nio.ByteBuffer;
 
-public final class RC4Engine extends TlsCipherEngine.Stream {
+public final class Rc4Engine extends TlsCipherEngine.Stream {
     private final static int STATE_LENGTH = 256;
-    private static final TlsCipherEngineFactory FACTORY_40 = new TlsCipherEngineFactory.Stream() {
+    private static final TlsCipherEngineFactory FACTORY_40 = new TlsCipherEngineFactory() {
         @Override
         public TlsCipherEngine newCipherEngine(boolean forEncryption, byte[] key) {
-            return new RC4Engine(forEncryption, key);
+            if (key == null || key.length != keyLength()) {
+                throw new IllegalArgumentException("Invalid key length");
+            }
+            return new Rc4Engine(forEncryption, key);
         }
 
         @Override
         public int keyLength() {
             return 5;
         }
+
+        @Override
+        public int blockLength() {
+            return 0;
+        }
     };
-    private static final TlsCipherEngineFactory FACTORY_128 = new TlsCipherEngineFactory.Stream() {
+    private static final TlsCipherEngineFactory FACTORY_128 = new TlsCipherEngineFactory() {
         @Override
         public TlsCipherEngine newCipherEngine(boolean forEncryption, byte[] key) {
-            return new RC4Engine(forEncryption, key);
+            if (key == null || key.length != keyLength()) {
+                throw new IllegalArgumentException("Invalid key length");
+            }
+            return new Rc4Engine(forEncryption, key);
         }
 
         @Override
         public int keyLength() {
             return 16;
+        }
+
+        @Override
+        public int blockLength() {
+            return 0;
         }
     };
 
@@ -34,7 +50,7 @@ public final class RC4Engine extends TlsCipherEngine.Stream {
     private int x;
     private int y;
 
-    private RC4Engine(boolean forEncryption, byte[] key) {
+    private Rc4Engine(boolean forEncryption, byte[] key) {
         super(forEncryption);
         this.engineState = new byte[STATE_LENGTH];
         for (int i = 0; i < STATE_LENGTH; i++) {
