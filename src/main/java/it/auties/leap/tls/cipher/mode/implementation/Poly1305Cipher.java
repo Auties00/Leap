@@ -109,8 +109,7 @@ public class Poly1305Cipher extends TlsCipher.Stream {
 
     @Override
     public ByteBuffer decrypt(TlsContext context, TlsMessageMetadata metadata, ByteBuffer input) {
-        var output = input.duplicate()
-                .limit(input.capacity());
+        var output = input.duplicate();
         var initialPosition = output.position();
         this.state = engine.forEncryption() ? State.ENC_INIT : State.DEC_INIT;
 

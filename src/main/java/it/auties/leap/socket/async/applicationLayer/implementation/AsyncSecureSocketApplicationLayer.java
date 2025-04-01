@@ -236,10 +236,7 @@ public class AsyncSecureSocketApplicationLayer extends AsyncSocketApplicationLay
                 results,
                 length
         );
-        var helloBuffer = writeBuffer();
-        helloMessage.serializeWithRecord(helloBuffer);
-        updateHandshakeHash(helloBuffer, TlsMessage.recordLength());
-        return write(handshakeBuffer)
+        return write(helloMessage)
                 .thenAccept(_ -> helloMessage.apply(tlsContext));
     }
 
@@ -286,10 +283,7 @@ public class AsyncSecureSocketApplicationLayer extends AsyncSocketApplicationLay
                 TlsSource.LOCAL,
                 certificatesProvider.get(tlsContext)
         );
-        var certificatesBuffer = writeBuffer();
-        certificatesMessage.serializeWithRecord(certificatesBuffer);
-        updateHandshakeHash(certificatesBuffer, TlsMessage.recordLength());
-        return write(certificatesBuffer)
+        return write(certificatesMessage)
                 .thenCompose(_ -> handleOrClose(certificatesMessage));
     }
 
@@ -304,10 +298,7 @@ public class AsyncSecureSocketApplicationLayer extends AsyncSocketApplicationLay
                 TlsSource.LOCAL,
                 parameters
         );
-        var keyExchangeBuffer = writeBuffer();
-        keyExchangeMessage.serializeWithRecord(keyExchangeBuffer);
-        updateHandshakeHash(keyExchangeBuffer, TlsMessage.recordLength());
-        return write(keyExchangeBuffer)
+        return write(keyExchangeMessage)
                 .thenCompose(_ -> handleOrClose(keyExchangeMessage));
     }
 
@@ -322,10 +313,7 @@ public class AsyncSecureSocketApplicationLayer extends AsyncSocketApplicationLay
                 version,
                 TlsSource.LOCAL
         );
-        var clientVerifyBuffer = writeBuffer();
-        clientVerifyCertificate.serializeWithRecord(clientVerifyBuffer);
-        updateHandshakeHash(clientVerifyBuffer, TlsMessage.recordLength());
-        return write(clientVerifyBuffer)
+        return write(clientVerifyCertificate)
                 .thenCompose(_ -> handleOrClose(clientVerifyCertificate));
     }
 
@@ -336,9 +324,7 @@ public class AsyncSecureSocketApplicationLayer extends AsyncSocketApplicationLay
                 version,
                 TlsSource.LOCAL
         );
-        var changeCipherSpecBuffer = writeBuffer();
-        changeCipherSpec.serializeWithRecord(changeCipherSpecBuffer);
-        return write(changeCipherSpecBuffer).thenCompose(_ -> {
+        return write(changeCipherSpec).thenCompose(_ -> {
             var handshakeHash = getHandshakeVerificationData(TlsSource.LOCAL);
             var finishedMessage = new FinishedMessage(
                     version,
@@ -511,40 +497,46 @@ public class AsyncSecureSocketApplicationLayer extends AsyncSocketApplicationLay
     }
 
     private CompletableFuture<Void> write(TlsMessage message){
-        System.err.println("Sending " + message.getClass().getName());
-        var leftPadding = tlsContext.localConnectionState()
+        return tlsContext.localConnectionState()
                 .cipher()
-                .orElseThrow(() -> new InternalError("Missing negotiated cipher"))
-                .ivLength();
-        var recordLength = TlsMessage.recordLength();
-        var reservedSpace = recordLength + leftPadding;
-        var messagePayloadBuffer = writeBuffer()
-                .position(reservedSpace);
-        messagePayloadBuffer.limit(messagePayloadBuffer.position())
-                .position(reservedSpace);
+                .filter(TlsCipher::enabled)
+                .map(cipher -> {
+                    System.err.println("Sending " + message.getClass().getName());
+                    var recordLength = TlsMessage.recordLength();
+                    var reservedSpace = recordLength + cipher.ivLength();
+                    var messagePayloadBuffer = writeBuffer()
+                            .position(reservedSpace);
+                    messagePayloadBuffer.limit(messagePayloadBuffer.position())
+                            .position(reservedSpace);
 
-        var encryptedMessagePayloadBuffer = messagePayloadBuffer.duplicate()
-                .limit(messagePayloadBuffer.capacity())
-                .position(reservedSpace);
-        tlsContext.localConnectionState()
-                .cipher()
-                .orElseThrow(() -> new TlsAlert("Cannot encrypt a message before enabling the local cipher"))
-                .encrypt(tlsContext, message, encryptedMessagePayloadBuffer);
+                    var encryptedMessagePayloadBuffer = messagePayloadBuffer.duplicate()
+                            .limit(messagePayloadBuffer.capacity())
+                            .position(reservedSpace);
+                    cipher.encrypt(tlsContext, message, encryptedMessagePayloadBuffer);
 
-        var messageLength = encryptedMessagePayloadBuffer.remaining();
-        if(encryptedMessagePayloadBuffer.position() < recordLength) {
-            throw new BufferUnderflowException();
-        }
+                    var messageLength = encryptedMessagePayloadBuffer.remaining();
+                    if(encryptedMessagePayloadBuffer.position() < recordLength) {
+                        throw new BufferUnderflowException();
+                    }
 
-        var newReadPosition = encryptedMessagePayloadBuffer.position() - recordLength;
-        encryptedMessagePayloadBuffer.position(newReadPosition);
-        writeBigEndianInt8(encryptedMessagePayloadBuffer, message.id());
-        writeBigEndianInt8(encryptedMessagePayloadBuffer, message.version().id().major());
-        writeBigEndianInt8(encryptedMessagePayloadBuffer, message.version().id().minor());
-        writeBigEndianInt16(encryptedMessagePayloadBuffer, messageLength);
-        encryptedMessagePayloadBuffer.position(newReadPosition);
+                    var newReadPosition = encryptedMessagePayloadBuffer.position() - recordLength;
+                    encryptedMessagePayloadBuffer.position(newReadPosition);
+                    writeBigEndianInt8(encryptedMessagePayloadBuffer, message.id());
+                    writeBigEndianInt8(encryptedMessagePayloadBuffer, message.version().id().major());
+                    writeBigEndianInt8(encryptedMessagePayloadBuffer, message.version().id().minor());
+                    writeBigEndianInt16(encryptedMessagePayloadBuffer, messageLength);
+                    encryptedMessagePayloadBuffer.position(newReadPosition);
 
-        return write(encryptedMessagePayloadBuffer);
+                    return write(encryptedMessagePayloadBuffer);
+                })
+                .orElseGet(() -> {
+                    var buffer = writeBuffer();
+                    message.serializeWithRecord(buffer);
+                    if(!(message instanceof ChangeCipherSpecMessage)) {
+                        updateHandshakeHash(buffer, TlsMessage.recordLength());
+                    }
+                    return write(buffer);
+                });
     }
 
     @Override
