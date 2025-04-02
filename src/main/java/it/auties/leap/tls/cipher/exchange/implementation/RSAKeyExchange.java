@@ -18,7 +18,7 @@ public sealed abstract class RSAKeyExchange implements TlsKeyExchange {
     private static final TlsKeyExchangeFactory STATIC_FACTORY = new TlsKeyExchangeFactory() {
         @Override
         public TlsKeyExchange newLocalKeyExchange(TlsContext context) {
-            var mode = context.selectedMode()
+            var mode = context.mode()
                     ;
             if (mode == TlsContextMode.SERVER) {
                 throw new TlsAlert("Unsupported RSA key exchange");
@@ -31,7 +31,7 @@ public sealed abstract class RSAKeyExchange implements TlsKeyExchange {
 
         @Override
         public TlsKeyExchange decodeRemoteKeyExchange(TlsContext context, ByteBuffer buffer) {
-            var mode = context.selectedMode()
+            var mode = context.mode()
                     ;
             if (mode == TlsContextMode.SERVER) {
                 throw new TlsAlert("Unsupported RSA key exchange");

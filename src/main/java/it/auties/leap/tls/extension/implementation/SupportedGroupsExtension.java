@@ -70,7 +70,7 @@ public record SupportedGroupsExtension(
                 .orElseThrow(() -> TlsAlert.noNegotiableProperty(TlsProperty.ecPointsFormats()))
                 .stream()
                 .collect(Collectors.toUnmodifiableMap(TlsIdentifiableProperty::id, Function.identity()));
-        var mode = context.selectedMode();
+        var mode = context.mode();
         for (var i = 0; i < groupsSize; i++) {
             var groupId = readBigEndianInt16(buffer);
             var group = knownGroups.get(groupId);

@@ -24,24 +24,14 @@ public interface TlsMessage {
     TlsVersion version();
     TlsSource source();
     TlsMessageContentType contentType();
-    void serializePayload(ByteBuffer buffer);
+    void serialize(ByteBuffer buffer);
     int payloadLength();
     void apply(TlsContext context);
 
-    default void serializeWithRecord(ByteBuffer payload) {
-        var payloadLength = payloadLength();
-        try(var _ = scopedWrite(payload, recordLength() + payloadLength, true)) {
-            writeBigEndianInt8(payload, contentType().id());
-            version().serialize(payload);
-            writeBigEndianInt16(payload, payloadLength);
-            serializePayload(payload);
-        }
-    }
-
-    default void serialize(ByteBuffer payload) {
-        try(var _ = scopedWrite(payload, payloadLength(), true)) {
-            serializePayload(payload);
-        }
+    default void serializeRecord(ByteBuffer buffer, int length) {
+        writeBigEndianInt8(buffer, contentType().id());
+        version().serialize(buffer);
+        writeBigEndianInt16(buffer, length);
     }
 
     default int length() {

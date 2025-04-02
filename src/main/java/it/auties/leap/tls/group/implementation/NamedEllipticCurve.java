@@ -297,7 +297,7 @@ public final class NamedEllipticCurve implements TlsSupportedEllipticCurve {
     }
 
     private PublicKey parseRemotePublicKey(TlsContext context) {
-        var mode = context.selectedMode();
+        var mode = context.mode();
         var remoteKeyExchange = context.remoteConnectionState()
                 .orElseThrow(TlsAlert::noRemoteConnectionState)
                 .keyExchange()

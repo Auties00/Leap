@@ -30,7 +30,7 @@ public final class StandardMasterSecretGenerator implements TlsMasterSecretGener
         var preMasterSecret = localKeyExchange
                 .preMasterSecret()
                 .orElseGet(() -> localKeyExchange.preMasterSecretGenerator().generatePreMasterSecret(context));
-        var mode = context.selectedMode();
+        var mode = context.mode();
         var version = context.getNegotiatedValue(TlsProperty.version())
                 .orElseThrow(() -> TlsAlert.noNegotiatedProperty(TlsProperty.version()));
         var extendedMasterSecretSessionHash = context.getNegotiatedValue(TlsProperty.extendedMasterSecret())

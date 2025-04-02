@@ -60,7 +60,7 @@ public record ALPNExtension(
         var negotiableProtocols = context.getNegotiableValue(TlsProperty.applicationProtocols())
                 .orElseThrow(() -> TlsAlert.noNegotiableProperty(TlsProperty.applicationProtocols()));
         var negotiableProtocolsSet = new HashSet<>(negotiableProtocols);
-        var mode = context.selectedMode();
+        var mode = context.mode();
         try(var _ = scopedRead(buffer, supportedProtocolsSize)) {
             while (buffer.hasRemaining()) {
                 var supportedProtocol = new String(readBytesBigEndian8(buffer), StandardCharsets.US_ASCII);

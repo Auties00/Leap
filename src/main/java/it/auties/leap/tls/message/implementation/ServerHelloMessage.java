@@ -123,7 +123,7 @@ public record ServerHelloMessage(
             return this.version;
         });
 
-        if(context.selectedMode() == TlsContextMode.CLIENT && version.id().value() <= TlsVersion.DTLS12.id().value()) {
+        if(context.mode() == TlsContextMode.CLIENT && version.id().value() <= TlsVersion.DTLS12.id().value()) {
             context.getNegotiatedValue(TlsProperty.clientExtensions())
                     .orElseThrow(() -> TlsAlert.noNegotiatedProperty(TlsProperty.clientExtensions()))
                     .stream()

@@ -13,7 +13,9 @@ import it.auties.leap.tls.compression.TlsCompression;
 import it.auties.leap.tls.connection.TlsConnection;
 import it.auties.leap.tls.context.TlsContext;
 import it.auties.leap.tls.context.TlsSource;
-import it.auties.leap.tls.extension.*;
+import it.auties.leap.tls.extension.TlsExtension;
+import it.auties.leap.tls.extension.TlsExtensionDependencies;
+import it.auties.leap.tls.extension.TlsExtensionOwner;
 import it.auties.leap.tls.message.TlsMessage;
 import it.auties.leap.tls.message.TlsMessageMetadata;
 import it.auties.leap.tls.message.implementation.*;
@@ -21,9 +23,11 @@ import it.auties.leap.tls.property.TlsProperty;
 import it.auties.leap.tls.version.TlsVersion;
 
 import java.io.IOException;
-import java.nio.BufferUnderflowException;
 import java.nio.ByteBuffer;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.HexFormat;
+import java.util.LinkedHashMap;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.stream.Collectors;
@@ -67,7 +71,8 @@ public class AsyncSecureSocketApplicationLayer extends AsyncSocketApplicationLay
                     .thenCompose(_ -> sendClientCertificate())
                     .thenCompose(_ -> sendClientKeyExchange())
                     .thenCompose(_ -> sendClientCertificateVerify())
-                    .thenCompose(_ -> sendClientChangeCipherAndFinish())
+                    .thenCompose(_ -> sendClientChangeCipher())
+                    .thenCompose(_ -> sendClientFinish())
                     .thenCompose(_ -> readUntilHandshakeCompleted());
 
             case TLS13 -> readUntilHandshakeCompleted();
@@ -77,7 +82,6 @@ public class AsyncSecureSocketApplicationLayer extends AsyncSocketApplicationLay
     }
 
     private CompletableFuture<Void> sendClientHello() {
-        var handshakeBuffer = writeBuffer();
         var versions1 = tlsContext.getNegotiableValue(TlsProperty.version())
                 .orElseThrow(() -> TlsAlert.noNegotiableProperty(TlsProperty.version()));
         var versionsSet = new HashSet<>(versions1);
@@ -317,23 +321,28 @@ public class AsyncSecureSocketApplicationLayer extends AsyncSocketApplicationLay
                 .thenCompose(_ -> handleOrClose(clientVerifyCertificate));
     }
 
-    private CompletableFuture<Void> sendClientChangeCipherAndFinish() {
+    private CompletableFuture<Void> sendClientChangeCipher() {
         var version = tlsContext.getNegotiatedValue(TlsProperty.version())
                 .orElseThrow(() -> TlsAlert.noNegotiatedProperty(TlsProperty.version()));
         var changeCipherSpec = new ChangeCipherSpecMessage(
                 version,
                 TlsSource.LOCAL
         );
-        return write(changeCipherSpec).thenCompose(_ -> {
-            var handshakeHash = getHandshakeVerificationData(TlsSource.LOCAL);
-            var finishedMessage = new FinishedMessage(
-                    version,
-                    TlsSource.LOCAL,
-                    handshakeHash
-            );
-            return write(finishedMessage)
-                    .thenCompose(_ -> handleOrClose(changeCipherSpec, finishedMessage));
-        });
+        return write(changeCipherSpec)
+                .thenCompose(_ -> handleOrClose(changeCipherSpec));
+    }
+
+    private CompletableFuture<Void> sendClientFinish() {
+        var version = tlsContext.getNegotiatedValue(TlsProperty.version())
+                .orElseThrow(() -> TlsAlert.noNegotiatedProperty(TlsProperty.version()));
+        var handshakeHash = getHandshakeVerificationData(TlsSource.LOCAL);
+        var finishedMessage = new FinishedMessage(
+                version,
+                TlsSource.LOCAL,
+                handshakeHash
+        );
+        return write(finishedMessage)
+                .thenCompose(_ -> handleOrClose(finishedMessage));
     }
 
     private CompletableFuture<TlsVersion> readUntilServerHello() {
@@ -345,12 +354,10 @@ public class AsyncSecureSocketApplicationLayer extends AsyncSocketApplicationLay
 
 
     private CompletableFuture<Void> readUntilServerDone() {
-        if (tlsContext.remoteConnectionState().flatMap(TlsConnection::keyExchange).isPresent()) {
-            return CompletableFuture.completedFuture(null);
-        }
-
-        return readAndHandleMessage()
-                .thenCompose(_ -> readUntilServerDone());
+        return tlsContext.remoteConnectionState()
+                .filter(TlsConnection::helloDone)
+                .map(_ -> CompletableFuture.<Void>completedFuture(null))
+                .orElseGet(() -> readAndHandleMessage().thenCompose(_ -> readUntilServerDone()));
     }
 
     private CompletableFuture<Void> readUntilHandshakeCompleted() {
@@ -443,25 +450,23 @@ public class AsyncSecureSocketApplicationLayer extends AsyncSocketApplicationLay
                     return handleOrClose(message);
                 })
                 .orElseGet(() -> {
-                    updateHandshakeHash(buffer, 0); // The header isn't included at this point
+                    var position = buffer.position();
                     var message = tlsContext.messageDeserializer()
                             .deserialize(tlsContext, buffer, metadata)
                             .orElseThrow(() -> new TlsAlert("Cannot deserialize message: unknown type"));
+                    System.err.println("Feeding " + message.getClass().getName());
+                    updateHandshakeHash(buffer.position(position));
                     return handleOrClose(message);
                 });
     }
 
-    private CompletableFuture<Void> handleOrClose(TlsMessage... messages) {
+    private CompletableFuture<Void> handleOrClose(TlsMessage message) {
         try {
-            for(var message : messages) {
-                System.out.println("Processing: " + message.getClass().getName());
-                message.apply(tlsContext);
-            }
-
+            message.apply(tlsContext);
             return CompletableFuture.completedFuture(null);
         }catch (TlsAlert throwable) {
             closeSilently();
-            throw throwable;
+            return CompletableFuture.failedFuture(throwable);
         }catch (Throwable throwable) {
             return CompletableFuture.failedFuture(throwable);
         }
@@ -499,43 +504,52 @@ public class AsyncSecureSocketApplicationLayer extends AsyncSocketApplicationLay
     private CompletableFuture<Void> write(TlsMessage message){
         return tlsContext.localConnectionState()
                 .cipher()
-                .filter(TlsCipher::enabled)
+                .filter(state -> !(message instanceof FinishedMessage) && state.enabled())
                 .map(cipher -> {
                     System.err.println("Sending " + message.getClass().getName());
+
+                    // Calculate space requirements
                     var recordLength = TlsMessage.recordLength();
                     var reservedSpace = recordLength + cipher.ivLength();
-                    var messagePayloadBuffer = writeBuffer()
+
+                    // Allocate buffers
+                    var buffer = writeBuffer()
                             .position(reservedSpace);
-                    messagePayloadBuffer.limit(messagePayloadBuffer.position())
-                            .position(reservedSpace);
+                    var encryptedBuffer = buffer.duplicate();
 
-                    var encryptedMessagePayloadBuffer = messagePayloadBuffer.duplicate()
-                            .limit(messagePayloadBuffer.capacity())
-                            .position(reservedSpace);
-                    cipher.encrypt(tlsContext, message, encryptedMessagePayloadBuffer);
+                    // Serialize message
+                    message.serialize(buffer);
 
-                    var messageLength = encryptedMessagePayloadBuffer.remaining();
-                    if(encryptedMessagePayloadBuffer.position() < recordLength) {
-                        throw new BufferUnderflowException();
-                    }
+                    // Encrypt message in-place
+                    cipher.encrypt(tlsContext, message, encryptedBuffer);
 
-                    var newReadPosition = encryptedMessagePayloadBuffer.position() - recordLength;
-                    encryptedMessagePayloadBuffer.position(newReadPosition);
-                    writeBigEndianInt8(encryptedMessagePayloadBuffer, message.id());
-                    writeBigEndianInt8(encryptedMessagePayloadBuffer, message.version().id().major());
-                    writeBigEndianInt8(encryptedMessagePayloadBuffer, message.version().id().minor());
-                    writeBigEndianInt16(encryptedMessagePayloadBuffer, messageLength);
-                    encryptedMessagePayloadBuffer.position(newReadPosition);
+                    // Add record header
+                    var messageLength = encryptedBuffer.remaining();
+                    var newReadPosition = encryptedBuffer.position() - recordLength;
+                    encryptedBuffer.position(newReadPosition);
+                    message.serializeRecord(buffer, messageLength);
+                    encryptedBuffer.position(newReadPosition);
 
-                    return write(encryptedMessagePayloadBuffer);
+                    // Send the message
+                    return transportLayer.write(encryptedBuffer);
                 })
                 .orElseGet(() -> {
                     var buffer = writeBuffer();
-                    message.serializeWithRecord(buffer);
-                    if(!(message instanceof ChangeCipherSpecMessage)) {
-                        updateHandshakeHash(buffer, TlsMessage.recordLength());
+                    var length = message.length();
+                    try(var _ = scopedWrite(buffer, length, true)) {
+                        message.serializeRecord(buffer, length);
+                        message.serialize(buffer);
                     }
-                    return write(buffer);
+
+                    if(!(message instanceof ChangeCipherSpecMessage)) {
+                        System.err.println("Feeding " + message.getClass().getName());
+                        var position = buffer.position();
+                        System.err.println("Position: " + position);
+                        updateHandshakeHash(buffer.position(position + TlsMessage.recordLength()));
+                        buffer.position(position);
+                    }
+
+                    return transportLayer.write(buffer);
                 });
     }
 
@@ -583,11 +597,9 @@ public class AsyncSecureSocketApplicationLayer extends AsyncSocketApplicationLay
                 .finish(tlsContext, source);
     }
 
-    public void updateHandshakeHash(ByteBuffer buffer, int offset) {
-        var position = buffer.position();
+    public void updateHandshakeHash(ByteBuffer buffer) {
         tlsContext.connectionIntegrity()
-                .update(buffer.position(position + offset));
-        buffer.position(position);
+                .update(buffer);
     }
 
     private ByteBuffer writeBuffer() {

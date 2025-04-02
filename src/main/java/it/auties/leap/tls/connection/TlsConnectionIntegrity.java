@@ -24,6 +24,9 @@ public final class TlsConnectionIntegrity {
         }
 
         this.delegate = ConnectionIntegrityDelegate.of(version, factory);
+        var buffered = buffer.toByteArray();
+        buffer.reset();
+        delegate.update(buffered, 0, buffered.length);
     }
 
     public void update(ByteBuffer input) {
@@ -33,14 +36,6 @@ public final class TlsConnectionIntegrity {
             while (input.hasRemaining()) {
                 buffer.write(input.get());
             }
-        }
-    }
-
-    public void update(byte[] input, int offset, int length) {
-        if(delegate != null) {
-            delegate.update(input, offset, length);
-        }else {
-            buffer.write(input, offset, length);
         }
     }
 

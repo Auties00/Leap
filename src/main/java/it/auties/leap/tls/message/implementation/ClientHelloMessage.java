@@ -3,6 +3,7 @@ package it.auties.leap.tls.message.implementation;
 import it.auties.leap.socket.SocketProtocol;
 import it.auties.leap.tls.alert.TlsAlert;
 import it.auties.leap.tls.context.TlsContext;
+import it.auties.leap.tls.context.TlsContextMode;
 import it.auties.leap.tls.context.TlsSource;
 import it.auties.leap.tls.extension.TlsExtension;
 import it.auties.leap.tls.message.TlsHandshakeMessage;
@@ -170,7 +171,10 @@ public record ClientHelloMessage(
     }
 
     @Override
-    public void apply(TlsContext tlsContext) {
-
+    public void apply(TlsContext context) {
+        if (context.mode() == TlsContextMode.CLIENT) {
+            context.localConnectionState()
+                    .setHelloDone(true);
+        }
     }
 }

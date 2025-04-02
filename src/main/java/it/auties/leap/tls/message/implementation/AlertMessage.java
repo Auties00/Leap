@@ -54,7 +54,7 @@ public record AlertMessage(
     }
 
     @Override
-    public void serializePayload(ByteBuffer buffer) {
+    public void serialize(ByteBuffer buffer) {
         writeBigEndianInt8(buffer, alertLevel.id());
         writeBigEndianInt8(buffer, alertType.id());
     }

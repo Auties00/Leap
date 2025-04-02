@@ -135,7 +135,7 @@ public sealed abstract class ECDHKeyExchange implements TlsKeyExchange {
     private record ECDHKeyExchangeFactory(TlsKeyExchangeType type) implements TlsKeyExchangeFactory {
         @Override
         public TlsKeyExchange newLocalKeyExchange(TlsContext context) {
-            return switch (context.selectedMode()) {
+            return switch (context.mode()) {
                 case CLIENT -> newClientKeyExchange(context);
                 case SERVER -> newServerKeyExchange(context);
             };
@@ -143,7 +143,7 @@ public sealed abstract class ECDHKeyExchange implements TlsKeyExchange {
 
         @Override
         public TlsKeyExchange decodeRemoteKeyExchange(TlsContext context, ByteBuffer buffer) {
-            return switch (context.selectedMode()) {
+            return switch (context.mode()) {
                 case SERVER -> new Client(type, buffer);
                 case CLIENT -> {
                     var supportedGroups = context.getNegotiatedValue(TlsProperty.supportedGroups())

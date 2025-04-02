@@ -47,6 +47,12 @@ public record ServerHelloDoneMessage(
 
     @Override
     public void apply(TlsContext context) {
-
+        switch (context.mode()) {
+            case CLIENT -> context.remoteConnectionState()
+                    .orElseThrow(TlsAlert::noRemoteConnectionState)
+                    .setHelloDone(true);
+            case SERVER -> context.localConnectionState()
+                    .setHelloDone(true);
+        }
     }
 }

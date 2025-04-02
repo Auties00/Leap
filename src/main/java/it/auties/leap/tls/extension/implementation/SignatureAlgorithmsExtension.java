@@ -83,7 +83,7 @@ public record SignatureAlgorithmsExtension(
                 .orElseThrow(() -> TlsAlert.noNegotiableProperty(TlsProperty.signatureAlgorithms()))
                 .stream()
                 .collect(Collectors.toUnmodifiableMap(TlsIdentifiableProperty::id, Function.identity()));
-        var mode = context.selectedMode();
+        var mode = context.mode();
         for (var i = 0; i < algorithmsSize; i++) {
             var algorithmId = readBigEndianInt16(buffer);
             var algorithm = knownAlgorithms.get(algorithmId);

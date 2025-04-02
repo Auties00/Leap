@@ -112,7 +112,7 @@ public class TlsContext {
         return trustedKeyStore;
     }
 
-    public TlsContextMode selectedMode() {
+    public TlsContextMode mode() {
         return mode;
     }
 

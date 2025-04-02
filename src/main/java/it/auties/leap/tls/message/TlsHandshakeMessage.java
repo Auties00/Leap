@@ -9,7 +9,7 @@ public interface TlsHandshakeMessage extends TlsMessage {
     void serializeHandshakePayload(ByteBuffer buffer);
 
     @Override
-    default void serializePayload(ByteBuffer buffer) {
+    default void serialize(ByteBuffer buffer) {
         writeBigEndianInt8(buffer, id());
         var handshakePayloadLength = handshakePayloadLength();
         if (handshakePayloadLength > 0) {

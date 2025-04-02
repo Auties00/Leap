@@ -34,7 +34,7 @@ public record ApplicationDataMessage(
     }
 
     @Override
-    public void serializePayload(ByteBuffer buffer) {
+    public void serialize(ByteBuffer buffer) {
         assertNotEquals(buffer, message);
         writeBuffer(buffer, message);
     }

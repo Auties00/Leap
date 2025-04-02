@@ -58,7 +58,7 @@ public record ECPointFormatExtension(
                 .orElseThrow(() -> TlsAlert.noNegotiableProperty(TlsProperty.ecPointsFormats()))
                 .stream()
                 .collect(Collectors.toUnmodifiableMap(TlsIdentifiableProperty::id, Function.identity()));
-        var mode = context.selectedMode();
+        var mode = context.mode();
         for(var i = 0; i < ecPointFormatsLength; i++) {
             var ecPointFormatId = readBigEndianInt8(buffer);
             var ecPointFormat = knownFormats.get(ecPointFormatId);

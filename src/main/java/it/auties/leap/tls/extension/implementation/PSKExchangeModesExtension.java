@@ -52,7 +52,7 @@ public record PSKExchangeModesExtension(
                 .orElseThrow(() -> TlsAlert.noNegotiableProperty(TlsProperty.pskExchangeModes()))
                 .stream()
                 .collect(Collectors.toUnmodifiableMap(TlsIdentifiableProperty::id, Function.identity()));
-        var mode = context.selectedMode();
+        var mode = context.mode();
         for(var i = 0; i < modesSize; i++) {
             var pskModeId = readBigEndianInt8(buffer);
             var pskMode = knownModes.get(pskModeId);
