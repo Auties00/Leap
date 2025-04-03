@@ -11,6 +11,7 @@ import it.auties.leap.tls.cipher.TlsCipherSuite;
 import it.auties.leap.tls.cipher.mode.TlsCipher;
 import it.auties.leap.tls.compression.TlsCompression;
 import it.auties.leap.tls.connection.TlsConnection;
+import it.auties.leap.tls.connection.TlsHandshakeStatus;
 import it.auties.leap.tls.context.TlsContext;
 import it.auties.leap.tls.context.TlsSource;
 import it.auties.leap.tls.extension.TlsExtension;
@@ -355,18 +356,16 @@ public class AsyncSecureSocketApplicationLayer extends AsyncSocketApplicationLay
 
     private CompletableFuture<Void> readUntilServerDone() {
         return tlsContext.remoteConnectionState()
-                .filter(TlsConnection::helloDone)
+                .filter(state -> state.handshakeStatus() == TlsHandshakeStatus.HANDSHAKING)
                 .map(_ -> CompletableFuture.<Void>completedFuture(null))
                 .orElseGet(() -> readAndHandleMessage().thenCompose(_ -> readUntilServerDone()));
     }
 
     private CompletableFuture<Void> readUntilHandshakeCompleted() {
-        if (false) {
-            return CompletableFuture.completedFuture(null);
-        }
-
-        return readAndHandleMessage()
-                .thenCompose(_ -> readUntilHandshakeCompleted());
+        return tlsContext.remoteConnectionState()
+                .filter(state -> state.handshakeStatus() == TlsHandshakeStatus.HANDSHAKE_FINISHED)
+                .map(_ -> CompletableFuture.<Void>completedFuture(null))
+                .orElseGet(() -> readAndHandleMessage().thenCompose(_ -> readUntilHandshakeCompleted()));
     }
 
     @Override
@@ -462,6 +461,7 @@ public class AsyncSecureSocketApplicationLayer extends AsyncSocketApplicationLay
 
     private CompletableFuture<Void> handleOrClose(TlsMessage message) {
         try {
+            System.err.println("Read " + message.getClass().getName());
             message.apply(tlsContext);
             return CompletableFuture.completedFuture(null);
         }catch (TlsAlert throwable) {
@@ -504,22 +504,16 @@ public class AsyncSecureSocketApplicationLayer extends AsyncSocketApplicationLay
     private CompletableFuture<Void> write(TlsMessage message){
         return tlsContext.localConnectionState()
                 .cipher()
-                .filter(state -> !(message instanceof FinishedMessage) && state.enabled())
+                .filter(TlsCipher::enabled)
                 .map(cipher -> {
                     System.err.println("Sending " + message.getClass().getName());
 
                     // Calculate space requirements
-                    var recordLength = TlsMessage.recordLength();
-                    var reservedSpace = recordLength + cipher.ivLength();
+                    var recordLength = recordLength();
 
                     // Allocate buffers
-                    var buffer = writeBuffer()
-                            .position(reservedSpace);
-                    var encryptedBuffer = buffer.duplicate();
-
-                    // Serialize message
-                    message.serialize(buffer);
-
+                    var encryptedBuffer = writeBuffer()
+                            .position(recordLength + cipher.ivLength());
                     // Encrypt message in-place
                     cipher.encrypt(tlsContext, message, encryptedBuffer);
 
@@ -527,7 +521,7 @@ public class AsyncSecureSocketApplicationLayer extends AsyncSocketApplicationLay
                     var messageLength = encryptedBuffer.remaining();
                     var newReadPosition = encryptedBuffer.position() - recordLength;
                     encryptedBuffer.position(newReadPosition);
-                    message.serializeRecord(buffer, messageLength);
+                    serializeRecord(message, encryptedBuffer, messageLength);
                     encryptedBuffer.position(newReadPosition);
 
                     // Send the message
@@ -536,22 +530,41 @@ public class AsyncSecureSocketApplicationLayer extends AsyncSocketApplicationLay
                 .orElseGet(() -> {
                     var buffer = writeBuffer();
                     var length = message.length();
-                    try(var _ = scopedWrite(buffer, length, true)) {
-                        message.serializeRecord(buffer, length);
+                    try(var _ = scopedWrite(buffer, recordLength() + length, true)) {
+                        System.err.println("Position: " + buffer.position() + " Limit " + buffer.limit());
+                        serializeRecord(message, buffer, length);
+                        System.err.println("Position: " + buffer.position() + " Limit " + buffer.limit());
                         message.serialize(buffer);
                     }
-
+                    System.err.println("Position: " + buffer.position() + " Limit " + buffer.limit());
+                    System.err.println(length);
                     if(!(message instanceof ChangeCipherSpecMessage)) {
+                        System.err.println(HexFormat.of().formatHex(buffer.array(), buffer.position(), buffer.limit()));
                         System.err.println("Feeding " + message.getClass().getName());
                         var position = buffer.position();
                         System.err.println("Position: " + position);
-                        updateHandshakeHash(buffer.position(position + TlsMessage.recordLength()));
+                        updateHandshakeHash(buffer.position(position + recordLength()));
                         buffer.position(position);
                     }
 
                     return transportLayer.write(buffer);
                 });
     }
+
+    // TODO: This needs fragmentation
+    // -----------------------------
+    private void serializeRecord(TlsMessage message, ByteBuffer buffer, int length) {
+        writeBigEndianInt8(buffer, message.contentType().id());
+        message.version().serialize(buffer);
+        writeBigEndianInt16(buffer, length);
+    }
+
+    private int recordLength() {
+        return INT8_LENGTH      // contentType
+                + INT16_LENGTH  // version
+                + INT16_LENGTH; // payloadLength
+    }
+    // -----------------------------
 
     @Override
     public void close(boolean error) throws IOException {

@@ -15,6 +15,8 @@ import org.bouncycastle.util.Longs;
 
 import java.nio.ByteBuffer;
 
+import static it.auties.leap.tls.util.BufferUtils.scopedWrite;
+
 
 public final class GcmCipher extends TlsCipher.Block {
     private static final TlsCipherFactory FACTORY = (factory) -> new TlsCipherWithEngineFactory() {
@@ -31,7 +33,7 @@ public final class GcmCipher extends TlsCipher.Block {
 
         @Override
         public int fixedIvLength() {
-            return 8;
+            return 4;
         }
 
         @Override
@@ -122,7 +124,9 @@ public final class GcmCipher extends TlsCipher.Block {
     @Override
     public void encrypt(TlsContext context, TlsMessage message, ByteBuffer output) {
         var input = output.duplicate();
-        message.serialize(input);
+        try(var _ = scopedWrite(input, message.length(), true)) {
+            message.serialize(input);
+        }
 
         var iv = new byte[ivLength()];
         System.arraycopy(fixedIv, 0, iv, 0, fixedIv.length);
@@ -140,7 +144,6 @@ public final class GcmCipher extends TlsCipher.Block {
 
         var resultLen = processBytes(input.array(), input.position(), input.remaining(), output.array(), output.position());
         resultLen += doFinal(output.array(), output.position() + resultLen);
-
         output.position(output.position() - (forEncryption ? dynamicIvLength(): 0));
         output.limit(output.position() + (forEncryption ? dynamicIvLength(): 0) + resultLen);
     }
@@ -471,7 +474,7 @@ public final class GcmCipher extends TlsCipher.Block {
 
     @Override
     public int fixedIvLength() {
-        return 8;
+        return 4;
     }
 
     @Override

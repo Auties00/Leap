@@ -5,22 +5,26 @@ import java.nio.ByteBuffer;
 import static it.auties.leap.tls.util.BufferUtils.*;
 
 public interface TlsHandshakeMessage extends TlsMessage {
-    int handshakePayloadLength();
-    void serializeHandshakePayload(ByteBuffer buffer);
+    int payloadLength();
+    void serializePayload(ByteBuffer buffer);
 
     @Override
     default void serialize(ByteBuffer buffer) {
         writeBigEndianInt8(buffer, id());
-        var handshakePayloadLength = handshakePayloadLength();
+        var handshakePayloadLength = payloadLength();
         if (handshakePayloadLength > 0) {
             writeBigEndianInt24(buffer, handshakePayloadLength);
-            serializeHandshakePayload(buffer);
+            serializePayload(buffer);
         }
     }
 
     @Override
-    default int payloadLength() {
-        var handshakePayloadLength = handshakePayloadLength();
-        return INT8_LENGTH + (handshakePayloadLength > 0 ? INT24_LENGTH + handshakePayloadLength : 0);
+    default int length() {
+        var handshakePayloadLength = payloadLength();
+        if (handshakePayloadLength > 0) {
+            return INT8_LENGTH + INT24_LENGTH + handshakePayloadLength;
+        }else {
+            return INT8_LENGTH;
+        }
     }
 }

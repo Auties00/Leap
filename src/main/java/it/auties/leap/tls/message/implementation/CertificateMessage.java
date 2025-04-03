@@ -55,7 +55,7 @@ public record CertificateMessage(
     }
 
     @Override
-    public void serializeHandshakePayload(ByteBuffer buffer) {
+    public void serializePayload(ByteBuffer buffer) {
         writeBigEndianInt24(buffer, getCertificatesLength());
         for(var certificate : certificates) {
             writeBytesBigEndian24(buffer, encodeCertificate(certificate));
@@ -93,7 +93,7 @@ public record CertificateMessage(
     }
 
     @Override
-    public int handshakePayloadLength() {
+    public int payloadLength() {
         var certificatesLength = getCertificatesLength();
         return INT24_LENGTH + certificatesLength;
     }

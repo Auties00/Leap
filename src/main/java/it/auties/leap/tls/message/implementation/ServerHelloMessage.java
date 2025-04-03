@@ -87,7 +87,7 @@ public record ServerHelloMessage(
     }
 
     @Override
-    public void serializeHandshakePayload(ByteBuffer buffer) {
+    public void serializePayload(ByteBuffer buffer) {
 
     }
 
@@ -136,7 +136,7 @@ public record ServerHelloMessage(
     }
 
     @Override
-    public int handshakePayloadLength() {
+    public int payloadLength() {
         return 0;
     }
 }

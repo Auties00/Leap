@@ -45,12 +45,12 @@ public record ClientKeyExchangeMessage(
     }
 
     @Override
-    public void serializeHandshakePayload(ByteBuffer buffer) {
+    public void serializePayload(ByteBuffer buffer) {
         parameters.serialize(buffer);
     }
 
     @Override
-    public int handshakePayloadLength() {
+    public int payloadLength() {
         return parameters.length();
     }
 

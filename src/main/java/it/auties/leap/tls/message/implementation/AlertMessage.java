@@ -60,7 +60,7 @@ public record AlertMessage(
     }
 
     @Override
-    public int payloadLength() {
+    public int length() {
         return INT8_LENGTH + INT8_LENGTH;
     }
 

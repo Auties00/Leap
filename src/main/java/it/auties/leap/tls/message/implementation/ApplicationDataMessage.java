@@ -47,7 +47,7 @@ public record ApplicationDataMessage(
     }
 
     @Override
-    public int payloadLength() {
+    public int length() {
         return message.remaining();
     }
 }

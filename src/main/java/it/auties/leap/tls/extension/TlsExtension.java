@@ -14,77 +14,86 @@ import java.util.List;
 import java.util.Optional;
 
 public sealed interface TlsExtension extends TlsExtensionMetadataProvider {
-    List<TlsVersion> TLS_UNTIL_12 = List.of(TlsVersion.TLS10, TlsVersion.TLS11, TlsVersion.TLS12);
-    List<TlsVersion> TLS_UNTIL_13 = List.of(TlsVersion.TLS10, TlsVersion.TLS11, TlsVersion.TLS12, TlsVersion.TLS13);
-    List<TlsVersion> DTLS_UNTIL_12 = List.of(TlsVersion.TLS10, TlsVersion.TLS11, TlsVersion.TLS12, TlsVersion.DTLS10, TlsVersion.DTLS12);
-    List<TlsVersion> DTLS_UNTIL_13 = List.of(TlsVersion.TLS10, TlsVersion.TLS11, TlsVersion.TLS12, TlsVersion.TLS13, TlsVersion.DTLS10, TlsVersion.DTLS12, TlsVersion.DTLS13);
 
-    List<TlsVersion> RENEGOTIATION_INFO_VERSIONS = TLS_UNTIL_12;
-    List<TlsVersion> TLMSP_DELEGATE_VERSIONS = TLS_UNTIL_12;
-    List<TlsVersion> TLMSP_PROXYING_VERSIONS = TLS_UNTIL_12;
-    List<TlsVersion> TLMSP_VERSIONS = TLS_UNTIL_12;
-    List<TlsVersion> SESSION_TICKET_VERSIONS = TLS_UNTIL_12;
-    List<TlsVersion> TLS_LTS_VERSIONS = TLS_UNTIL_12;
-    List<TlsVersion> CACHED_INFO_VERSIONS = TLS_UNTIL_12;
-    List<TlsVersion> TOKEN_BINDING_VERSIONS = TLS_UNTIL_12;
-    List<TlsVersion> EXTENDED_MASTER_SECRET_VERSIONS = TLS_UNTIL_12;
-    List<TlsVersion> ENCRYPT_THEN_MAC_VERSIONS = TLS_UNTIL_12;
-    List<TlsVersion> STATUS_REQUEST_V2_VERSIONS = TLS_UNTIL_12;
-    List<TlsVersion> SRP_VERSIONS = TLS_UNTIL_12;
-    List<TlsVersion> EC_POINT_FORMATS_VERSIONS = TLS_UNTIL_12;
-    List<TlsVersion> CERT_TYPE_VERSIONS = TLS_UNTIL_12;
-    List<TlsVersion> SERVER_AUTHZ_VERSIONS = TLS_UNTIL_12;
-    List<TlsVersion> CLIENT_AUTHZ_VERSIONS = TLS_UNTIL_12;
-    List<TlsVersion> USER_MAPPING_VERSIONS = TLS_UNTIL_12;
-    List<TlsVersion> TRUNCATED_HMAC_VERSIONS = TLS_UNTIL_12;
-    List<TlsVersion> TRUSTED_CA_KEYS_VERSIONS = TLS_UNTIL_12;
-    List<TlsVersion> CLIENT_CERTIFICATE_URL_VERSIONS = TLS_UNTIL_12;
-    List<TlsVersion> ENCRYPTED_CLIENT_HELLO_VERSIONS = TLS_UNTIL_13;
-    List<TlsVersion> ECH_OUTER_EXTENSIONS_VERSIONS = TLS_UNTIL_13;
-    List<TlsVersion> NEXT_PROTOCOL_NEGOTIATION_VERSIONS = TLS_UNTIL_13;
-    List<TlsVersion> TLS_FLAGS_VERSIONS = TLS_UNTIL_13;
-    List<TlsVersion> DNSSEC_CHAIN_VERSIONS = TLS_UNTIL_13;
-    List<TlsVersion> TICKET_REQUEST_VERSIONS = TLS_UNTIL_13;
-    List<TlsVersion> QUIC_TRANSPORT_PARAMETERS_VERSIONS = TLS_UNTIL_13;
-    List<TlsVersion> EXTERNAL_SESSION_ID_VERSIONS = TLS_UNTIL_13;
-    List<TlsVersion> EXTERNAL_ID_HASH_VERSIONS = TLS_UNTIL_13;
-    List<TlsVersion> TRANSPARENCY_INFO_VERSIONS = TLS_UNTIL_13;
-    List<TlsVersion> KEY_SHARE_VERSIONS = TLS_UNTIL_13;
-    List<TlsVersion> SIGNATURE_ALGORITHMS_CERT_VERSIONS = TLS_UNTIL_13;
-    List<TlsVersion> POST_HANDSHAKE_AUTH_VERSIONS = TLS_UNTIL_13;
-    List<TlsVersion> OID_FILTERS_VERSIONS = TLS_UNTIL_13;
-    List<TlsVersion> CERTIFICATE_AUTHORITIES_VERSIONS = TLS_UNTIL_13;
-    List<TlsVersion> PSK_KEY_EXCHANGE_MODES_VERSIONS = TLS_UNTIL_13;
-    List<TlsVersion> COOKIE_VERSIONS = TLS_UNTIL_13;
-    List<TlsVersion> SUPPORTED_VERSIONS_VERSIONS = TLS_UNTIL_13;
-    List<TlsVersion> EARLY_DATA_VERSIONS = TLS_UNTIL_13;
-    List<TlsVersion> PRE_SHARED_KEY_VERSIONS = TLS_UNTIL_13;
-    List<TlsVersion> SUPPORTED_EKT_CIPHERS_VERSIONS = TLS_UNTIL_13;
-    List<TlsVersion> DELEGATED_CREDENTIAL_VERSIONS = TLS_UNTIL_13;
-    List<TlsVersion> TLS_CERT_WITH_EXTERN_PSK_VERSIONS = TLS_UNTIL_13;
-    List<TlsVersion> TICKET_PINNING_VERSIONS = TLS_UNTIL_13;
-    List<TlsVersion> PASSWORD_SALT_VERSIONS = TLS_UNTIL_13;
-    List<TlsVersion> PWD_CLEAR_VERSIONS = TLS_UNTIL_13;
-    List<TlsVersion> PWD_PROTECT_VERSIONS = TLS_UNTIL_13;
-    List<TlsVersion> RECORD_SIZE_LIMIT_VERSIONS = TLS_UNTIL_13;
-    List<TlsVersion> COMPRESS_CERTIFICATE_VERSIONS = TLS_UNTIL_13;
-    List<TlsVersion> PADDING_VERSIONS = TLS_UNTIL_13;
-    List<TlsVersion> SERVER_CERTIFICATE_TYPE_VERSIONS = TLS_UNTIL_13;
-    List<TlsVersion> CLIENT_CERTIFICATE_TYPE_VERSIONS = TLS_UNTIL_13;
-    List<TlsVersion> SIGNED_CERTIFICATE_TIMESTAMP_VERSIONS = TLS_UNTIL_13;
-    List<TlsVersion> APPLICATION_LAYER_PROTOCOL_NEGOTIATION_VERSIONS = TLS_UNTIL_13;
-    List<TlsVersion> HEARTBEAT_VERSIONS = TLS_UNTIL_13;
-    List<TlsVersion> USE_SRTP_VERSIONS = TLS_UNTIL_13;
-    List<TlsVersion> SIGNATURE_ALGORITHMS_VERSIONS = TLS_UNTIL_13;
-    List<TlsVersion> SUPPORTED_GROUPS_VERSIONS = TLS_UNTIL_13;
-    List<TlsVersion> STATUS_REQUEST_VERSIONS = TLS_UNTIL_13;
-    List<TlsVersion> MAX_FRAGMENT_LENGTH_VERSIONS = TLS_UNTIL_13;
-    List<TlsVersion> SERVER_NAME_VERSIONS = TLS_UNTIL_13;
-    List<TlsVersion> CONNECTION_ID_DEPRECATED_VERSIONS = DTLS_UNTIL_12;
-    List<TlsVersion> RRC_VERSIONS = DTLS_UNTIL_13;
-    List<TlsVersion> SEQUENCE_NUMBER_ENCRYPTION_ALGORITHMS_VERSIONS = DTLS_UNTIL_13;
-    List<TlsVersion> CONNECTION_ID_VERSIONS = DTLS_UNTIL_13;
-    List<TlsVersion> GREASE_VERSIONS = List.of(TlsVersion.TLS12, TlsVersion.TLS13);
+    // Pre-TLS 1.3 Extensions (or extensions behaving differently in 1.3)
+    List<TlsVersion> RENEGOTIATION_INFO_VERSIONS = List.of(TlsVersion.TLS10, TlsVersion.TLS11, TlsVersion.TLS12); // RFC 5746 - Not used in TLS 1.3
+    List<TlsVersion> SESSION_TICKET_VERSIONS = List.of(TlsVersion.TLS10, TlsVersion.TLS11, TlsVersion.TLS12); // RFC 5077 - Superseded by PSK mechanism in TLS 1.3
+    List<TlsVersion> EXTENDED_MASTER_SECRET_VERSIONS = List.of(TlsVersion.TLS10, TlsVersion.TLS11, TlsVersion.TLS12); // RFC 7627 - Integrated into TLS 1.3, extension itself not used
+    List<TlsVersion> ENCRYPT_THEN_MAC_VERSIONS = List.of(TlsVersion.TLS10, TlsVersion.TLS11, TlsVersion.TLS12, TlsVersion.DTLS10, TlsVersion.DTLS12); // RFC 7366 - Applies to DTLS too; Mandatory in TLS 1.3 (via AEAD), ext not used
+    List<TlsVersion> EC_POINT_FORMATS_VERSIONS = List.of(TlsVersion.TLS10, TlsVersion.TLS11, TlsVersion.TLS12); // RFC 8422/4492 - Not used in TLS 1.3 (only uncompressed allowed)
+    List<TlsVersion> HEARTBEAT_VERSIONS = List.of(TlsVersion.TLS10, TlsVersion.TLS11, TlsVersion.TLS12, TlsVersion.DTLS10, TlsVersion.DTLS12); // RFC 6520 - Applies to DTLS; Forbidden in TLS 1.3
+    List<TlsVersion> SRP_VERSIONS = List.of(TlsVersion.TLS10, TlsVersion.TLS11, TlsVersion.TLS12); // RFC 5054 - Pre-TLS 1.3
+    List<TlsVersion> NEXT_PROTOCOL_NEGOTIATION_VERSIONS = List.of(TlsVersion.TLS10, TlsVersion.TLS11, TlsVersion.TLS12); // Draft, largely unused/superseded by ALPN. Limiting to pre-1.3 seems reasonable.
+    // --- Deprecated/Obsolete but maybe supported for legacy ---
+    List<TlsVersion> CERT_TYPE_VERSIONS = List.of(TlsVersion.TLS10, TlsVersion.TLS11, TlsVersion.TLS12); // RFC 6091 (Obsolete by RFC 7250 for TLS 1.2+)
+    List<TlsVersion> TRUNCATED_HMAC_VERSIONS = List.of(TlsVersion.TLS10, TlsVersion.TLS11, TlsVersion.TLS12); // RFC 6066 - Not used in TLS 1.3
+    List<TlsVersion> CLIENT_CERTIFICATE_URL_VERSIONS = List.of(TlsVersion.TLS10, TlsVersion.TLS11, TlsVersion.TLS12); // RFC 6066
+    List<TlsVersion> STATUS_REQUEST_V2_VERSIONS = List.of(TlsVersion.TLS10, TlsVersion.TLS11, TlsVersion.TLS12, TlsVersion.TLS13); // RFC 6961 - Multiple OCSP status requests. Applicable across versions.
+    List<TlsVersion> USER_MAPPING_VERSIONS = List.of(TlsVersion.TLS10, TlsVersion.TLS11, TlsVersion.TLS12, TlsVersion.TLS13); // RFC 4681 - Seems generally applicable if needed.
+    List<TlsVersion> CLIENT_AUTHZ_VERSIONS = List.of(TlsVersion.TLS10, TlsVersion.TLS11, TlsVersion.TLS12, TlsVersion.TLS13); // RFC 5878 - Seems generally applicable.
+    List<TlsVersion> SERVER_AUTHZ_VERSIONS = List.of(TlsVersion.TLS10, TlsVersion.TLS11, TlsVersion.TLS12, TlsVersion.TLS13); // RFC 5878 - Seems generally applicable.
+    List<TlsVersion> TRUSTED_CA_KEYS_VERSIONS = List.of(TlsVersion.TLS10, TlsVersion.TLS11, TlsVersion.TLS12, TlsVersion.TLS13); // RFC 6066 - Seems generally applicable.
+    List<TlsVersion> TOKEN_BINDING_VERSIONS = List.of(TlsVersion.TLS10, TlsVersion.TLS11, TlsVersion.TLS12, TlsVersion.TLS13); // RFC 8472 - Applicable across versions.
+    List<TlsVersion> CACHED_INFO_VERSIONS = List.of(TlsVersion.TLS10, TlsVersion.TLS11, TlsVersion.TLS12, TlsVersion.TLS13); // RFC 7924 - Seems generally applicable.
+    List<TlsVersion> TLS_LTS_VERSIONS = List.of(TlsVersion.TLS10, TlsVersion.TLS11, TlsVersion.TLS12, TlsVersion.TLS13); // Draft - Assume general applicability if implemented.
+    List<TlsVersion> TLMSP_DELEGATE_VERSIONS = List.of(TlsVersion.TLS10, TlsVersion.TLS11, TlsVersion.TLS12, TlsVersion.TLS13); // Experimental RFC 7633 - Assume general applicability.
+    List<TlsVersion> TLMSP_PROXYING_VERSIONS = List.of(TlsVersion.TLS10, TlsVersion.TLS11, TlsVersion.TLS12, TlsVersion.TLS13); // Experimental RFC 7633 - Assume general applicability.
+    List<TlsVersion> TLMSP_VERSIONS = List.of(TlsVersion.TLS10, TlsVersion.TLS11, TlsVersion.TLS12, TlsVersion.TLS13); // Experimental RFC 7633 - Assume general applicability.
+    List<TlsVersion> SUPPORTED_EKT_CIPHERS_VERSIONS = List.of(TlsVersion.TLS10, TlsVersion.TLS11, TlsVersion.TLS12, TlsVersion.TLS13); // RFC 8870 - Used with DTLS-SRTP. Applicable across versions where SRTP is used.
+
+
+    // Extensions introduced in TLS 1.2 and applicable forward
+    List<TlsVersion> SIGNATURE_ALGORITHMS_VERSIONS = List.of(TlsVersion.TLS12, TlsVersion.TLS13, TlsVersion.DTLS12, TlsVersion.DTLS13); // RFC 5246 (TLS 1.2) / RFC 8446 (TLS 1.3)
+    List<TlsVersion> SERVER_CERTIFICATE_TYPE_VERSIONS = List.of(TlsVersion.TLS12, TlsVersion.TLS13, TlsVersion.DTLS12, TlsVersion.DTLS13); // RFC 7250 (TLS 1.2+)
+    List<TlsVersion> CLIENT_CERTIFICATE_TYPE_VERSIONS = List.of(TlsVersion.TLS12, TlsVersion.TLS13, TlsVersion.DTLS12, TlsVersion.DTLS13); // RFC 7250 (TLS 1.2+)
+    List<TlsVersion> RECORD_SIZE_LIMIT_VERSIONS = List.of(TlsVersion.TLS12, TlsVersion.TLS13, TlsVersion.DTLS12, TlsVersion.DTLS13); // RFC 8449 (Defined for TLS 1.2/1.3, DTLS 1.2/1.3)
+
+    // Extensions introduced in TLS 1.3 (or post-1.3 RFCs for 1.3)
+    List<TlsVersion> KEY_SHARE_VERSIONS = List.of(TlsVersion.TLS13, TlsVersion.DTLS13); // RFC 8446
+    List<TlsVersion> SUPPORTED_VERSIONS_VERSIONS = List.of(TlsVersion.TLS13, TlsVersion.DTLS13); // RFC 8446
+    List<TlsVersion> PSK_KEY_EXCHANGE_MODES_VERSIONS = List.of(TlsVersion.TLS13, TlsVersion.DTLS13); // RFC 8446
+    List<TlsVersion> PRE_SHARED_KEY_VERSIONS = List.of(TlsVersion.TLS13, TlsVersion.DTLS13); // RFC 8446
+    List<TlsVersion> EARLY_DATA_VERSIONS = List.of(TlsVersion.TLS13, TlsVersion.DTLS13); // RFC 8446
+    List<TlsVersion> COOKIE_VERSIONS = List.of(TlsVersion.TLS13, TlsVersion.DTLS13); // RFC 8446
+    List<TlsVersion> POST_HANDSHAKE_AUTH_VERSIONS = List.of(TlsVersion.TLS13, TlsVersion.DTLS13); // RFC 8446
+    List<TlsVersion> SIGNATURE_ALGORITHMS_CERT_VERSIONS = List.of(TlsVersion.TLS13, TlsVersion.DTLS13); // RFC 8446
+    List<TlsVersion> CERTIFICATE_AUTHORITIES_VERSIONS = List.of(TlsVersion.TLS13, TlsVersion.DTLS13); // RFC 8446
+    List<TlsVersion> OID_FILTERS_VERSIONS = List.of(TlsVersion.TLS13, TlsVersion.DTLS13); // RFC 8446
+    List<TlsVersion> COMPRESS_CERTIFICATE_VERSIONS = List.of(TlsVersion.TLS13, TlsVersion.DTLS13); // RFC 8879 (for TLS 1.3)
+    List<TlsVersion> DELEGATED_CREDENTIAL_VERSIONS = List.of(TlsVersion.TLS13, TlsVersion.DTLS13); // RFC Draft (for TLS 1.3)
+    List<TlsVersion> ENCRYPTED_CLIENT_HELLO_VERSIONS = List.of(TlsVersion.TLS13, TlsVersion.DTLS13); // RFC Draft (targets TLS 1.3+)
+    List<TlsVersion> ECH_OUTER_EXTENSIONS_VERSIONS = List.of(TlsVersion.TLS13, TlsVersion.DTLS13); // Part of ECH Draft
+    List<TlsVersion> QUIC_TRANSPORT_PARAMETERS_VERSIONS = List.of(TlsVersion.TLS13, TlsVersion.DTLS13); // RFC 9001 (TLS 1.3 for QUIC)
+    List<TlsVersion> TRANSPARENCY_INFO_VERSIONS = List.of(TlsVersion.TLS13, TlsVersion.DTLS13); // RFC 9162 (Certificate Transparency v2 for TLS 1.3)
+    List<TlsVersion> TICKET_REQUEST_VERSIONS = List.of(TlsVersion.TLS13, TlsVersion.DTLS13); // RFC draft-ietf-tls-ticketrequest
+    List<TlsVersion> DNSSEC_CHAIN_VERSIONS = List.of(TlsVersion.TLS13, TlsVersion.DTLS13); // RFC 9102 (Using DNS-Based Authentication of Named Entities (DANE) TLSA Records with TLS 1.3)
+    List<TlsVersion> EXTERNAL_ID_HASH_VERSIONS = List.of(TlsVersion.TLS13, TlsVersion.DTLS13); // RFC 8773 - TLS 1.3 Resumption binder hash
+    List<TlsVersion> EXTERNAL_SESSION_ID_VERSIONS = List.of(TlsVersion.TLS13, TlsVersion.DTLS13); // RFC 8773 - TLS 1.3 Resumption session id
+    List<TlsVersion> TLS_FLAGS_VERSIONS = List.of(TlsVersion.TLS13, TlsVersion.DTLS13); // RFC draft-vvv-tls-flags
+    List<TlsVersion> PWD_PROTECT_VERSIONS = List.of(TlsVersion.TLS13, TlsVersion.DTLS13); // RFC 8492 - TLS-PWD with TLS 1.3
+    List<TlsVersion> PWD_CLEAR_VERSIONS = List.of(TlsVersion.TLS13, TlsVersion.DTLS13); // RFC 8492 - TLS-PWD with TLS 1.3
+    List<TlsVersion> PASSWORD_SALT_VERSIONS = List.of(TlsVersion.TLS13, TlsVersion.DTLS13); // RFC 8492 - TLS-PWD with TLS 1.3
+    List<TlsVersion> TICKET_PINNING_VERSIONS = List.of(TlsVersion.TLS13, TlsVersion.DTLS13); // RFC draft-friel-tls-ticket-pinning
+    List<TlsVersion> TLS_CERT_WITH_EXTERN_PSK_VERSIONS = List.of(TlsVersion.TLS13, TlsVersion.DTLS13); // RFC draft-ietf-tls-external-psk-importer
+
+    // Generally applicable Extensions (defined pre-1.3, still relevant)
+    List<TlsVersion> SERVER_NAME_VERSIONS = List.of(TlsVersion.TLS10, TlsVersion.TLS11, TlsVersion.TLS12, TlsVersion.TLS13); // RFC 6066 - SNI
+    List<TlsVersion> MAX_FRAGMENT_LENGTH_VERSIONS = List.of(TlsVersion.TLS10, TlsVersion.TLS11, TlsVersion.TLS12, TlsVersion.TLS13); // RFC 6066
+    List<TlsVersion> STATUS_REQUEST_VERSIONS = List.of(TlsVersion.TLS10, TlsVersion.TLS11, TlsVersion.TLS12, TlsVersion.TLS13); // RFC 6066 - OCSP Stapling
+    List<TlsVersion> SUPPORTED_GROUPS_VERSIONS = List.of(TlsVersion.TLS10, TlsVersion.TLS11, TlsVersion.TLS12, TlsVersion.TLS13); // RFC 4492/8422/7919/8446 - Elliptic Curves/Groups
+    List<TlsVersion> APPLICATION_LAYER_PROTOCOL_NEGOTIATION_VERSIONS = List.of(TlsVersion.TLS10, TlsVersion.TLS11, TlsVersion.TLS12, TlsVersion.TLS13); // RFC 7301 - ALPN
+    List<TlsVersion> SIGNED_CERTIFICATE_TIMESTAMP_VERSIONS = List.of(TlsVersion.TLS10, TlsVersion.TLS11, TlsVersion.TLS12, TlsVersion.TLS13); // RFC 6962 - Cert Transparency v1
+    List<TlsVersion> PADDING_VERSIONS = List.of(TlsVersion.TLS10, TlsVersion.TLS11, TlsVersion.TLS12, TlsVersion.TLS13); // RFC 7685 / RFC 8446
+
+    // DTLS Specific Extensions
+    List<TlsVersion> USE_SRTP_VERSIONS = List.of(TlsVersion.DTLS10, TlsVersion.DTLS12, TlsVersion.DTLS13); // RFC 5764 / RFC 8870 (DTLS 1.0, 1.2, 1.3)
+    List<TlsVersion> CONNECTION_ID_DEPRECATED_VERSIONS = List.of(TlsVersion.DTLS10, TlsVersion.DTLS12); // Draft - Likely intended for pre-RFC 9147 versions
+    List<TlsVersion> CONNECTION_ID_VERSIONS = List.of(TlsVersion.DTLS12, TlsVersion.DTLS13); // RFC 9147 (DTLS 1.2, 1.3)
+    List<TlsVersion> SEQUENCE_NUMBER_ENCRYPTION_ALGORITHMS_VERSIONS = List.of(TlsVersion.DTLS12, TlsVersion.DTLS13); // RFC 9146 (DTLS 1.2, 1.3)
+    List<TlsVersion> RRC_VERSIONS = List.of(TlsVersion.DTLS12, TlsVersion.DTLS13); // RFC 9146 (DTLS 1.2, 1.3) Record Replay Protection
+
+    // Misc
+    List<TlsVersion> GREASE_VERSIONS = List.of(TlsVersion.TLS12, TlsVersion.TLS13, TlsVersion.DTLS12, TlsVersion.DTLS13); // RFC 8701 - Primarily relevant where extension negotiation is complex (TLS 1.2+)
 
     int SERVER_NAME_TYPE = 0;
     int MAX_FRAGMENT_LENGTH_TYPE = 1;

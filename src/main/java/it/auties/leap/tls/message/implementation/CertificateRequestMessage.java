@@ -63,7 +63,7 @@ public record CertificateRequestMessage(
     }
 
     @Override
-    public void serializeHandshakePayload(ByteBuffer buffer) {
+    public void serializePayload(ByteBuffer buffer) {
 
     }
 
@@ -73,7 +73,7 @@ public record CertificateRequestMessage(
     }
 
     @Override
-    public int handshakePayloadLength() {
+    public int payloadLength() {
         return 0;
     }
 }

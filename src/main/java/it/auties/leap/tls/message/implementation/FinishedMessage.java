@@ -1,6 +1,7 @@
 package it.auties.leap.tls.message.implementation;
 
 import it.auties.leap.tls.alert.TlsAlert;
+import it.auties.leap.tls.connection.TlsHandshakeStatus;
 import it.auties.leap.tls.context.TlsContext;
 import it.auties.leap.tls.context.TlsSource;
 import it.auties.leap.tls.message.*;
@@ -41,17 +42,24 @@ public record FinishedMessage(
     }
 
     @Override
-    public void serializeHandshakePayload(ByteBuffer buffer) {
+    public void serializePayload(ByteBuffer buffer) {
         writeBytes(buffer, hash);
     }
 
     @Override
-    public int handshakePayloadLength() {
+    public int payloadLength() {
         return hash.length;
     }
 
     @Override
     public void apply(TlsContext context) {
         // TODO: Validate
+        switch (context.mode()) {
+            case CLIENT -> context.remoteConnectionState()
+                    .orElseThrow(TlsAlert::noRemoteConnectionState)
+                    .setHandshakeStatus(TlsHandshakeStatus.HANDSHAKE_FINISHED);
+            case SERVER -> context.localConnectionState()
+                    .setHandshakeStatus(TlsHandshakeStatus.HANDSHAKE_FINISHED);
+        }
     }
 }

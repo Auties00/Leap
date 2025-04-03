@@ -1,6 +1,7 @@
 package it.auties.leap.tls.message.implementation;
 
 import it.auties.leap.tls.alert.TlsAlert;
+import it.auties.leap.tls.connection.TlsHandshakeStatus;
 import it.auties.leap.tls.context.TlsContext;
 import it.auties.leap.tls.context.TlsSource;
 import it.auties.leap.tls.message.TlsHandshakeMessage;
@@ -36,12 +37,12 @@ public record ServerHelloDoneMessage(
     }
 
     @Override
-    public void serializeHandshakePayload(ByteBuffer buffer) {
+    public void serializePayload(ByteBuffer buffer) {
 
     }
 
     @Override
-    public int handshakePayloadLength() {
+    public int payloadLength() {
         return 0;
     }
 
@@ -50,9 +51,9 @@ public record ServerHelloDoneMessage(
         switch (context.mode()) {
             case CLIENT -> context.remoteConnectionState()
                     .orElseThrow(TlsAlert::noRemoteConnectionState)
-                    .setHelloDone(true);
+                    .setHandshakeStatus(TlsHandshakeStatus.HANDSHAKING);
             case SERVER -> context.localConnectionState()
-                    .setHelloDone(true);
+                    .setHandshakeStatus(TlsHandshakeStatus.HANDSHAKING);
         }
     }
 }

@@ -45,14 +45,14 @@ public record ServerKeyExchangeMessage(
     }
 
     @Override
-    public void serializeHandshakePayload(ByteBuffer buffer) {
+    public void serializePayload(ByteBuffer buffer) {
         parameters.serialize(buffer);
         writeBigEndianInt16(buffer, signatureAlgorithm);
         writeBytesBigEndian16(buffer, signature);
     }
 
     @Override
-    public int handshakePayloadLength() {
+    public int payloadLength() {
         return parameters.length()
                 + INT16_LENGTH
                 + INT16_LENGTH

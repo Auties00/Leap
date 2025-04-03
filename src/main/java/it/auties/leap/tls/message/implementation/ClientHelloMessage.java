@@ -2,8 +2,8 @@ package it.auties.leap.tls.message.implementation;
 
 import it.auties.leap.socket.SocketProtocol;
 import it.auties.leap.tls.alert.TlsAlert;
+import it.auties.leap.tls.connection.TlsHandshakeStatus;
 import it.auties.leap.tls.context.TlsContext;
-import it.auties.leap.tls.context.TlsContextMode;
 import it.auties.leap.tls.context.TlsSource;
 import it.auties.leap.tls.extension.TlsExtension;
 import it.auties.leap.tls.message.TlsHandshakeMessage;
@@ -128,7 +128,7 @@ public record ClientHelloMessage(
     }
 
     @Override
-    public void serializeHandshakePayload(ByteBuffer payload) {
+    public void serializePayload(ByteBuffer payload) {
         writeBigEndianInt16(payload, version.id().value());
 
         writeBytes(payload, randomData);
@@ -160,7 +160,7 @@ public record ClientHelloMessage(
     }
 
     @Override
-    public int handshakePayloadLength() {
+    public int payloadLength() {
         return INT16_LENGTH
                 + CLIENT_RANDOM_LENGTH
                 + INT8_LENGTH + SESSION_ID_LENGTH
@@ -172,9 +172,12 @@ public record ClientHelloMessage(
 
     @Override
     public void apply(TlsContext context) {
-        if (context.mode() == TlsContextMode.CLIENT) {
-            context.localConnectionState()
-                    .setHelloDone(true);
+        switch (context.mode()) {
+            case CLIENT -> context.localConnectionState()
+                    .setHandshakeStatus(TlsHandshakeStatus.HANDSHAKING);
+            case SERVER -> context.remoteConnectionState()
+                    .orElseThrow(TlsAlert::noRemoteConnectionState)
+                    .setHandshakeStatus(TlsHandshakeStatus.HANDSHAKE_FINISHED);
         }
     }
 }

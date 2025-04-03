@@ -22,7 +22,7 @@ public final class TlsConnection {
     private volatile PrivateKey privateKey;
     private volatile List<X509Certificate> certificates;
     private volatile TlsCipher cipher;
-    private volatile boolean helloDone;
+    private volatile TlsHandshakeStatus handshakeStatus;
     private TlsConnection(byte[] randomData, byte[] sessionId, byte[] dtlsCookie) {
         this.randomData = randomData;
         this.sessionId = sessionId;
@@ -86,12 +86,12 @@ public final class TlsConnection {
         return this;
     }
 
-    public boolean helloDone() {
-        return helloDone;
+    public TlsHandshakeStatus handshakeStatus() {
+        return handshakeStatus;
     }
 
-    public TlsConnection setHelloDone(boolean helloDone) {
-        this.helloDone = helloDone;
+    public TlsConnection setHandshakeStatus(TlsHandshakeStatus handshakeStatus) {
+        this.handshakeStatus = handshakeStatus;
         return this;
     }
 }

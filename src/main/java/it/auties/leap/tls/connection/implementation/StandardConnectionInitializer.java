@@ -129,10 +129,11 @@ public final class StandardConnectionInitializer implements TlsConnectionInitial
                             Client Key: %s
                             Server Key: %s
                             ______________________________
-                            %n""", clientMacKey == null ? "none" : Arrays.toString(clientMacKey),
+                            %n""",
+                    clientMacKey == null ? "none" : Arrays.toString(clientMacKey),
                     serverMacKey == null ? "none" : Arrays.toString(serverMacKey),
-                    clientIv == null ? "none" : Arrays.toString(clientIv),
-                    serverIv == null ? "none" : Arrays.toString(serverIv),
+                    Arrays.toString(clientIv),
+                    Arrays.toString(serverIv),
                     Arrays.toString(clientKey),
                     Arrays.toString(serverKey)
             );

@@ -35,12 +35,12 @@ public record CertificateVerifyMessage(
     }
 
     @Override
-    public void serializeHandshakePayload(ByteBuffer buffer) {
+    public void serializePayload(ByteBuffer buffer) {
 
     }
 
     @Override
-    public int handshakePayloadLength() {
+    public int payloadLength() {
         return 0;
     }
 
