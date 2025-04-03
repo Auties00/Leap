@@ -298,16 +298,10 @@ public final class AsyncLinuxTransportSocketLayer extends AsyncNativeTransportSo
         }
 
         private void close() {
-            if (ringTask != null) {
-                ringTask.interrupt();
-                this.ringTask = null;
-            }
-
             if (ringHandle != null) {
                 var ringHandle = this.ringHandle;
                 this.ringHandle = null;
                 LinuxKernel.close(ringHandle);
-                unmapMemory();
                 if (ringTask != null) {
                     ringTask.interrupt();
                     this.ringTask = null;
@@ -396,7 +390,7 @@ public final class AsyncLinuxTransportSocketLayer extends AsyncNativeTransportSo
         @Override
         public void run() {
             while (!Thread.interrupted()) {
-                var result = enterRing(0, 1, LinuxKernel.IORING_ENTER_GETEVENTS());
+                var result = enterRing(1, 1, LinuxKernel.IORING_ENTER_GETEVENTS());
                 if (!result) {
                     break;
                 }
@@ -421,6 +415,7 @@ public final class AsyncLinuxTransportSocketLayer extends AsyncNativeTransportSo
                     break;
                 }
             }
+            unmapMemory();
         }
 
         private boolean enterRing(int in, int out, int flags) {

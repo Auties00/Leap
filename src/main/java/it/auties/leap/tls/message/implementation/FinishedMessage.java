@@ -54,11 +54,11 @@ public record FinishedMessage(
     @Override
     public void apply(TlsContext context) {
         // TODO: Validate
-        switch (context.mode()) {
-            case CLIENT -> context.remoteConnectionState()
-                    .orElseThrow(TlsAlert::noRemoteConnectionState)
+        switch (source) {
+            case LOCAL -> context.localConnectionState()
                     .setHandshakeStatus(TlsHandshakeStatus.HANDSHAKE_FINISHED);
-            case SERVER -> context.localConnectionState()
+            case REMOTE -> context.remoteConnectionState()
+                    .orElseThrow(TlsAlert::noRemoteConnectionState)
                     .setHandshakeStatus(TlsHandshakeStatus.HANDSHAKE_FINISHED);
         }
     }

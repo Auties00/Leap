@@ -17,6 +17,8 @@ import java.nio.ByteBuffer;
 import java.security.GeneralSecurityException;
 import java.security.Security;
 
+import static it.auties.leap.tls.util.BufferUtils.scopedWrite;
+
 public final class CcmCipher extends TlsCipher.Block {
     static {
         Security.addProvider(new BouncyCastleProvider());
@@ -56,7 +58,9 @@ public final class CcmCipher extends TlsCipher.Block {
     @Override
     public void encrypt(TlsContext context, TlsMessage message, ByteBuffer output) {
         var input = output.duplicate();
-        message.serialize(input);
+        try(var _ = scopedWrite(input, message.length(), true)) {
+            message.serialize(input);
+        }
 
         var iv = new byte[ivLength()];
         System.arraycopy(fixedIv, 0, iv, 0, fixedIv.length);
@@ -82,7 +86,8 @@ public final class CcmCipher extends TlsCipher.Block {
 
     @Override
     public ByteBuffer decrypt(TlsContext context, TlsMessageMetadata metadata, ByteBuffer input) {
-        var output = input.duplicate();
+        var output = input.duplicate()
+                .limit(input.capacity());
         var iv = new byte[ivLength()];
         var offset = 0;
         System.arraycopy(fixedIv, 0, iv, 0, fixedIv.length);

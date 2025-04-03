@@ -8,7 +8,6 @@ import java.nio.ByteBuffer;
 import java.util.Optional;
 
 import static it.auties.leap.tls.util.BufferUtils.*;
-import static it.auties.leap.tls.util.BufferUtils.scopedRead;
 
 @FunctionalInterface
 public interface TlsMessageDeserializer {

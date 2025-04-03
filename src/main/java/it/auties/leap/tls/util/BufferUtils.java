@@ -454,7 +454,7 @@ public final class BufferUtils {
             return;
         }
 
-        throw new InternalError("Invalid payload length");
+        throw new InternalError("Unexpected payload length, remaining: " + (m.remaining() - expectedLength));
     }
 
     public static ScopedWrite scopedWrite(ByteBuffer buffer, int messageLength, boolean readable) {

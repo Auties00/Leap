@@ -177,7 +177,7 @@ public record ClientHelloMessage(
                     .setHandshakeStatus(TlsHandshakeStatus.HANDSHAKING);
             case SERVER -> context.remoteConnectionState()
                     .orElseThrow(TlsAlert::noRemoteConnectionState)
-                    .setHandshakeStatus(TlsHandshakeStatus.HANDSHAKE_FINISHED);
+                    .setHandshakeStatus(TlsHandshakeStatus.HANDSHAKING);
         }
     }
 }

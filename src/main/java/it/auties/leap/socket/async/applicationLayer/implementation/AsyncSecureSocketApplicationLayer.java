@@ -420,21 +420,14 @@ public class AsyncSecureSocketApplicationLayer extends AsyncSocketApplicationLay
     private CompletableFuture<Void> readAndHandleMessage() {
         var buffer = readBuffer(TlsMessageMetadata.structureLength());
         return transportLayer.read(buffer)
-                .thenApply(_ -> {
-                    System.err.print(HexFormat.of().formatHex(buffer.array(), buffer.position(), buffer.limit()));
-                    return TlsMessageMetadata.of(buffer, TlsSource.REMOTE);
-                })
+                .thenApply(_ -> TlsMessageMetadata.of(buffer, TlsSource.REMOTE))
                 .thenCompose(this::decodeMessage);
     }
 
     private CompletableFuture<Void> decodeMessage(TlsMessageMetadata metadata) {
-        System.err.println("Message length: " + metadata.length());
         var buffer = readBuffer(metadata.length());
         return transportLayer.readFully(buffer)
-                .thenCompose(_ -> {
-                    System.err.println(HexFormat.of().formatHex(buffer.array(), buffer.position(), buffer.limit()));
-                    return decodeMessage(metadata, buffer);
-                });
+                .thenCompose(_ -> decodeMessage(metadata, buffer));
     }
 
     private CompletableFuture<Void> decodeMessage(TlsMessageMetadata metadata, ByteBuffer buffer) {
@@ -446,6 +439,7 @@ public class AsyncSecureSocketApplicationLayer extends AsyncSocketApplicationLay
                     var message = tlsContext.messageDeserializer()
                             .deserialize(tlsContext, plaintext, metadata.withLength(plaintext.remaining()))
                             .orElseThrow(() -> new TlsAlert("Cannot deserialize message: unknown type"));
+                    System.err.println("Decrypted " + message.getClass().getName());
                     return handleOrClose(message);
                 })
                 .orElseGet(() -> {
@@ -453,7 +447,7 @@ public class AsyncSecureSocketApplicationLayer extends AsyncSocketApplicationLay
                     var message = tlsContext.messageDeserializer()
                             .deserialize(tlsContext, buffer, metadata)
                             .orElseThrow(() -> new TlsAlert("Cannot deserialize message: unknown type"));
-                    System.err.println("Feeding " + message.getClass().getName());
+                    System.err.println("Read " + message.getClass().getName());
                     updateHandshakeHash(buffer.position(position));
                     return handleOrClose(message);
                 });
@@ -461,7 +455,6 @@ public class AsyncSecureSocketApplicationLayer extends AsyncSocketApplicationLay
 
     private CompletableFuture<Void> handleOrClose(TlsMessage message) {
         try {
-            System.err.println("Read " + message.getClass().getName());
             message.apply(tlsContext);
             return CompletableFuture.completedFuture(null);
         }catch (TlsAlert throwable) {

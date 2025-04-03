@@ -150,7 +150,8 @@ public final class GcmCipher extends TlsCipher.Block {
 
     @Override
     public ByteBuffer decrypt(TlsContext context, TlsMessageMetadata metadata, ByteBuffer input) {
-        var output = input.duplicate();
+        var output = input.duplicate()
+                .limit(input.capacity());
 
         var iv = new byte[ivLength()];
         System.arraycopy(fixedIv, 0, iv, 0, fixedIv.length);

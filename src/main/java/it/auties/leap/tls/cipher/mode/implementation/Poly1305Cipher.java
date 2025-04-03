@@ -17,6 +17,8 @@ import org.bouncycastle.util.Pack;
 
 import java.nio.ByteBuffer;
 
+import static it.auties.leap.tls.util.BufferUtils.scopedWrite;
+
 public class Poly1305Cipher extends TlsCipher.Stream {
     private static final TlsCipherFactory FACTORY = (factory) -> new TlsCipherWithEngineFactory() {
         @Override
@@ -82,7 +84,10 @@ public class Poly1305Cipher extends TlsCipher.Stream {
     @Override
     public void encrypt(TlsContext context, TlsMessage message, ByteBuffer output) {
         var input = output.duplicate();
-        message.serialize(input);
+        try(var _ = scopedWrite(input, message.length(), true)) {
+            message.serialize(input);
+        }
+
         var initialPosition = output.position();
         this.state = engine.forEncryption() ? State.ENC_INIT : State.DEC_INIT;
         byte[] sn = authenticator.sequenceNumber();
@@ -109,7 +114,8 @@ public class Poly1305Cipher extends TlsCipher.Stream {
 
     @Override
     public ByteBuffer decrypt(TlsContext context, TlsMessageMetadata metadata, ByteBuffer input) {
-        var output = input.duplicate();
+        var output = input.duplicate()
+                .limit(input.capacity());
         var initialPosition = output.position();
         this.state = engine.forEncryption() ? State.ENC_INIT : State.DEC_INIT;
 
@@ -132,8 +138,7 @@ public class Poly1305Cipher extends TlsCipher.Stream {
 
         var result  = processBytes(input.array(), input.position(), input.remaining(), output.array(), output.position());
         result += doFinal(output.array(), output.position() + result);
-        output.position(output.position() + result);
-        output.limit(output.position());
+        output.limit(initialPosition + result);
         output.position(initialPosition);
 
         return output;

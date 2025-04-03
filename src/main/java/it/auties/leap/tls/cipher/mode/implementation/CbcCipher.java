@@ -17,6 +17,8 @@ import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
 import java.util.Arrays;
 
+import static it.auties.leap.tls.util.BufferUtils.scopedWrite;
+
 public final class CbcCipher extends TlsCipher.Block {
     private static final TlsCipherFactory FACTORY = (factory) -> new TlsCipherWithEngineFactory() {
         @Override
@@ -68,7 +70,10 @@ public final class CbcCipher extends TlsCipher.Block {
 
     private void tls11Encrypt(TlsMessage message, ByteBuffer output) {
         var input = output.duplicate();
-        message.serialize(input);
+        try(var _ = scopedWrite(input, message.length(), true)) {
+            message.serialize(input);
+        }
+
         addMac(input, message.contentType().id());
         var nonce = new byte[engine().blockLength()];
         try {
@@ -100,7 +105,8 @@ public final class CbcCipher extends TlsCipher.Block {
     }
 
     private ByteBuffer tls11Decrypt(TlsMessageMetadata metadata, ByteBuffer input) {
-        var output = input.duplicate();
+        var output = input.duplicate()
+                .limit(input.capacity());
         var cipheredLength = input.remaining();
         if(cipheredLength != decryptBlock(input, output)) {
             throw new TlsAlert("Unexpected number of ciphered bytes");
