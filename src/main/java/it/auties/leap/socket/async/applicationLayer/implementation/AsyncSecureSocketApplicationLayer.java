@@ -17,6 +17,7 @@ import it.auties.leap.tls.context.TlsSource;
 import it.auties.leap.tls.extension.TlsExtension;
 import it.auties.leap.tls.extension.TlsExtensionDependencies;
 import it.auties.leap.tls.extension.TlsExtensionOwner;
+import it.auties.leap.tls.message.TlsHandshakeMessage;
 import it.auties.leap.tls.message.TlsMessage;
 import it.auties.leap.tls.message.TlsMessageMetadata;
 import it.auties.leap.tls.message.implementation.*;
@@ -25,10 +26,7 @@ import it.auties.leap.tls.version.TlsVersion;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.HexFormat;
-import java.util.LinkedHashMap;
+import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.stream.Collectors;
@@ -336,7 +334,8 @@ public class AsyncSecureSocketApplicationLayer extends AsyncSocketApplicationLay
     private CompletableFuture<Void> sendClientFinish() {
         var version = tlsContext.getNegotiatedValue(TlsProperty.version())
                 .orElseThrow(() -> TlsAlert.noNegotiatedProperty(TlsProperty.version()));
-        var handshakeHash = getHandshakeVerificationData(TlsSource.LOCAL);
+        var handshakeHash = tlsContext.connectionIntegrity()
+                .finish(tlsContext, TlsSource.LOCAL);
         var finishedMessage = new FinishedMessage(
                 version,
                 TlsSource.LOCAL,
@@ -435,12 +434,18 @@ public class AsyncSecureSocketApplicationLayer extends AsyncSocketApplicationLay
                 .flatMap(TlsConnection::cipher)
                 .filter(TlsCipher::enabled)
                 .map(cipher -> {
+                    var position = buffer.position();
                     var plaintext = cipher.decrypt(tlsContext, metadata, buffer);
                     var message = tlsContext.messageDeserializer()
                             .deserialize(tlsContext, plaintext, metadata.withLength(plaintext.remaining()))
                             .orElseThrow(() -> new TlsAlert("Cannot deserialize message: unknown type"));
                     System.err.println("Decrypted " + message.getClass().getName());
-                    return handleOrClose(message);
+                    var result = handleOrClose(message);
+                    if(message instanceof TlsHandshakeMessage) {
+                        System.err.println("Feeding " + message.getClass().getName());
+                        updateHandshakeHash(buffer.position(position));
+                    }
+                    return result;
                 })
                 .orElseGet(() -> {
                     var position = buffer.position();
@@ -448,8 +453,12 @@ public class AsyncSecureSocketApplicationLayer extends AsyncSocketApplicationLay
                             .deserialize(tlsContext, buffer, metadata)
                             .orElseThrow(() -> new TlsAlert("Cannot deserialize message: unknown type"));
                     System.err.println("Read " + message.getClass().getName());
-                    updateHandshakeHash(buffer.position(position));
-                    return handleOrClose(message);
+                    var result = handleOrClose(message);
+                    if(message instanceof TlsHandshakeMessage) {
+                        System.err.println("Feeding " + message.getClass().getName());
+                        updateHandshakeHash(buffer.position(position));
+                    }
+                    return result;
                 });
     }
 
@@ -505,20 +514,31 @@ public class AsyncSecureSocketApplicationLayer extends AsyncSocketApplicationLay
                     var recordLength = recordLength();
 
                     // Allocate buffers
-                    var encryptedBuffer = writeBuffer()
+                    var plaintext = writeBuffer()
                             .position(recordLength + cipher.ivLength());
+                    try(var _ = scopedWrite(plaintext, message.length(), true)) {
+                        message.serialize(plaintext);
+                    }
+                    if(message instanceof TlsHandshakeMessage) {
+                        System.err.println(HexFormat.of().formatHex(plaintext.array(), plaintext.position(), plaintext.limit()));
+                        System.err.println("Feeding " + message.getClass().getName());
+                        var position = plaintext.position();
+                        updateHandshakeHash(plaintext.position(position + recordLength()));
+                        plaintext.position(position);
+                    }
+                    var ciphertext = plaintext.duplicate();
                     // Encrypt message in-place
-                    cipher.encrypt(tlsContext, message, encryptedBuffer);
+                    cipher.encrypt(message.contentType().id(), ciphertext, plaintext);
 
                     // Add record header
-                    var messageLength = encryptedBuffer.remaining();
-                    var newReadPosition = encryptedBuffer.position() - recordLength;
-                    encryptedBuffer.position(newReadPosition);
-                    serializeRecord(message, encryptedBuffer, messageLength);
-                    encryptedBuffer.position(newReadPosition);
+                    var messageLength = ciphertext.remaining();
+                    var newReadPosition = ciphertext.position() - recordLength;
+                    ciphertext.position(newReadPosition);
+                    serializeRecord(message, ciphertext, messageLength);
+                    ciphertext.position(newReadPosition);
 
                     // Send the message
-                    return transportLayer.write(encryptedBuffer);
+                    return transportLayer.write(ciphertext);
                 })
                 .orElseGet(() -> {
                     var buffer = writeBuffer();
@@ -531,11 +551,9 @@ public class AsyncSecureSocketApplicationLayer extends AsyncSocketApplicationLay
                     }
                     System.err.println("Position: " + buffer.position() + " Limit " + buffer.limit());
                     System.err.println(length);
-                    if(!(message instanceof ChangeCipherSpecMessage)) {
-                        System.err.println(HexFormat.of().formatHex(buffer.array(), buffer.position(), buffer.limit()));
+                    if(message instanceof TlsHandshakeMessage) {
                         System.err.println("Feeding " + message.getClass().getName());
                         var position = buffer.position();
-                        System.err.println("Position: " + position);
                         updateHandshakeHash(buffer.position(position + recordLength()));
                         buffer.position(position);
                     }
@@ -598,14 +616,14 @@ public class AsyncSecureSocketApplicationLayer extends AsyncSocketApplicationLay
                 .isPresent();
     }
 
-    public byte[] getHandshakeVerificationData(TlsSource source) {
-        return tlsContext.connectionIntegrity()
-                .finish(tlsContext, source);
-    }
-
     public void updateHandshakeHash(ByteBuffer buffer) {
         tlsContext.connectionIntegrity()
                 .update(buffer);
+        try {
+            System.out.println("CURRENT: " + Arrays.toString(tlsContext.connectionIntegrity().finish(tlsContext, TlsSource.REMOTE)));
+        }catch (Throwable _) {
+
+        }
     }
 
     private ByteBuffer writeBuffer() {

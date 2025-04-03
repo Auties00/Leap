@@ -9,7 +9,6 @@ import it.auties.leap.tls.cipher.mode.TlsCipherWithEngineFactory;
 import it.auties.leap.tls.context.TlsContext;
 import it.auties.leap.tls.alert.TlsAlert;
 import it.auties.leap.tls.cipher.exchange.TlsExchangeMac;
-import it.auties.leap.tls.message.TlsMessage;
 import it.auties.leap.tls.message.TlsMessageMetadata;
 
 import java.nio.ByteBuffer;
@@ -50,7 +49,7 @@ public final class CntImitCipher extends TlsCipher.Block {
     }
 
     @Override
-    public void encrypt(TlsContext context, TlsMessage message, ByteBuffer output) {
+    public void encrypt(byte contentType, ByteBuffer output, ByteBuffer input) {
         throw new UnsupportedOperationException();
     }
 

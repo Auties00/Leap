@@ -1,6 +1,5 @@
 package it.auties.leap.tls.message;
 
-import it.auties.leap.tls.alert.TlsAlert;
 import it.auties.leap.tls.context.TlsContext;
 import it.auties.leap.tls.message.implementation.*;
 
@@ -55,14 +54,7 @@ public interface TlsMessageDeserializer {
                             };
                         }
                     }
-                    case CHANGE_CIPHER_SPEC -> {
-                        var id = readBigEndianInt8(buffer);
-                        if(id != ChangeCipherSpecMessage.ID) {
-                            throw new TlsAlert("Invalid cipher spec");
-                        }
-
-                        yield ChangeCipherSpecMessage.of(buffer, metadata);
-                    }
+                    case CHANGE_CIPHER_SPEC -> ChangeCipherSpecMessage.of(buffer, metadata);
                     case ALERT ->
                             AlertMessage.of(buffer, metadata);
                     case APPLICATION_DATA ->

@@ -5,12 +5,9 @@ import it.auties.leap.tls.cipher.mode.TlsCipher;
 import it.auties.leap.tls.cipher.mode.TlsCipherFactory;
 import it.auties.leap.tls.cipher.mode.TlsCipherWithEngineFactory;
 import it.auties.leap.tls.context.TlsContext;
-import it.auties.leap.tls.message.TlsMessage;
 import it.auties.leap.tls.message.TlsMessageMetadata;
 
 import java.nio.ByteBuffer;
-
-import static it.auties.leap.tls.util.BufferUtils.scopedWrite;
 
 public final class NoneCipher extends TlsCipher.Block {
     private static final TlsCipherFactory FACTORY = _ -> new TlsCipherWithEngineFactory() {
@@ -44,13 +41,10 @@ public final class NoneCipher extends TlsCipher.Block {
     }
 
     @Override
-    public void encrypt(TlsContext context, TlsMessage message, ByteBuffer output) {
-        var input = output.duplicate();
-        try(var _ = scopedWrite(input, message.length(), true)) {
-            message.serialize(input);
-        }
+    public void encrypt(byte contentType, ByteBuffer output, ByteBuffer input) {
 
-        addMac(input, message.contentType().id());
+
+        addMac(input, contentType);
         move(input, output);
     }
 

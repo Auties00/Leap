@@ -3,22 +3,25 @@ package it.auties.leap.tls.message.implementation;
 import it.auties.leap.tls.alert.TlsAlert;
 import it.auties.leap.tls.context.TlsContext;
 import it.auties.leap.tls.context.TlsSource;
-import it.auties.leap.tls.message.TlsHandshakeMessage;
+import it.auties.leap.tls.message.TlsMessage;
 import it.auties.leap.tls.message.TlsMessageContentType;
 import it.auties.leap.tls.message.TlsMessageMetadata;
 import it.auties.leap.tls.version.TlsVersion;
 
 import java.nio.ByteBuffer;
 
+import static it.auties.leap.tls.util.BufferUtils.*;
+
 public record ChangeCipherSpecMessage(
         TlsVersion version,
         TlsSource source
-) implements TlsHandshakeMessage {
+) implements TlsMessage {
     public static final int ID = 0x01;
 
     public static ChangeCipherSpecMessage of(ByteBuffer buffer, TlsMessageMetadata metadata) {
-        if(buffer.hasRemaining()) {
-            throw new TlsAlert("Expected change cipher spec message to have an empty payload");
+        var id = readBigEndianInt8(buffer);
+        if(id != ChangeCipherSpecMessage.ID) {
+            throw new TlsAlert("Invalid cipher spec");
         }
 
         return new ChangeCipherSpecMessage(metadata.version(), metadata.source());
@@ -35,13 +38,13 @@ public record ChangeCipherSpecMessage(
     }
 
     @Override
-    public void serializePayload(ByteBuffer buffer) {
-
+    public void serialize(ByteBuffer buffer) {
+        writeBigEndianInt8(buffer, ID);
     }
 
     @Override
-    public int payloadLength() {
-        return 0;
+    public int length() {
+        return INT8_LENGTH;
     }
 
     @Override

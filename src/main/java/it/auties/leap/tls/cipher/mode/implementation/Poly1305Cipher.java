@@ -7,7 +7,6 @@ import it.auties.leap.tls.cipher.mode.TlsCipher;
 import it.auties.leap.tls.cipher.mode.TlsCipherFactory;
 import it.auties.leap.tls.cipher.mode.TlsCipherWithEngineFactory;
 import it.auties.leap.tls.context.TlsContext;
-import it.auties.leap.tls.message.TlsMessage;
 import it.auties.leap.tls.message.TlsMessageMetadata;
 import it.auties.leap.tls.util.BufferUtils;
 import org.bouncycastle.crypto.DataLengthException;
@@ -16,8 +15,6 @@ import org.bouncycastle.util.Arrays;
 import org.bouncycastle.util.Pack;
 
 import java.nio.ByteBuffer;
-
-import static it.auties.leap.tls.util.BufferUtils.scopedWrite;
 
 public class Poly1305Cipher extends TlsCipher.Stream {
     private static final TlsCipherFactory FACTORY = (factory) -> new TlsCipherWithEngineFactory() {
@@ -82,12 +79,7 @@ public class Poly1305Cipher extends TlsCipher.Stream {
     }
 
     @Override
-    public void encrypt(TlsContext context, TlsMessage message, ByteBuffer output) {
-        var input = output.duplicate();
-        try(var _ = scopedWrite(input, message.length(), true)) {
-            message.serialize(input);
-        }
-
+    public void encrypt(byte contentType, ByteBuffer output, ByteBuffer input) {
         var initialPosition = output.position();
         this.state = engine.forEncryption() ? State.ENC_INIT : State.DEC_INIT;
         byte[] sn = authenticator.sequenceNumber();
@@ -101,7 +93,7 @@ public class Poly1305Cipher extends TlsCipher.Stream {
         reset(true);
 
         byte[] aad = authenticator.createAuthenticationBlock(
-                message.contentType().id(), input.remaining(), null);
+                contentType, input.remaining(), null);
         processAADBytes(aad, 0, aad.length);
         System.out.println("IV: " + java.util.Arrays.toString(nonce));
         System.out.println("AAD: " + java.util.Arrays.toString(aad));

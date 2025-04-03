@@ -5,7 +5,6 @@ import it.auties.leap.tls.context.TlsContext;
 import it.auties.leap.tls.alert.TlsAlert;
 import it.auties.leap.tls.cipher.exchange.TlsExchangeMac;
 import it.auties.leap.tls.hash.TlsHmac;
-import it.auties.leap.tls.message.TlsMessage;
 import it.auties.leap.tls.message.TlsMessageMetadata;
 
 import java.nio.ByteBuffer;
@@ -28,7 +27,7 @@ public sealed abstract class TlsCipher {
         this.enabled = false;
     }
 
-    public abstract void encrypt(TlsContext context, TlsMessage message, ByteBuffer output);
+    public abstract void encrypt(byte contentType, ByteBuffer output, ByteBuffer input);
 
     public abstract ByteBuffer decrypt(TlsContext context, TlsMessageMetadata metadata, ByteBuffer input);
 

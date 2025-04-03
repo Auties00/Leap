@@ -1,7 +1,5 @@
 package it.auties.leap.tls.secret;
 
-import it.auties.leap.tls.alert.TlsAlert;
-
 import java.util.Arrays;
 
 public final class TlsSecret {
@@ -17,17 +15,13 @@ public final class TlsSecret {
     }
 
     public byte[] data() {
-        if(destroyed) {
-            throw TlsAlert.destroyedSecret();
-        }
+
 
         return data;
     }
 
     public int length() {
-        if(destroyed) {
-            throw TlsAlert.destroyedSecret();
-        }
+
 
         return data.length;
     }

@@ -1,12 +1,11 @@
 package it.auties.leap.tls.cipher.mode.implementation;
 
 import it.auties.leap.tls.cipher.engine.TlsCipherEngine;
+import it.auties.leap.tls.cipher.exchange.TlsExchangeMac;
 import it.auties.leap.tls.cipher.mode.TlsCipher;
 import it.auties.leap.tls.cipher.mode.TlsCipherFactory;
 import it.auties.leap.tls.cipher.mode.TlsCipherWithEngineFactory;
 import it.auties.leap.tls.context.TlsContext;
-import it.auties.leap.tls.cipher.exchange.TlsExchangeMac;
-import it.auties.leap.tls.message.TlsMessage;
 import it.auties.leap.tls.message.TlsMessageMetadata;
 import org.bouncycastle.jcajce.spec.AEADParameterSpec;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
@@ -16,8 +15,6 @@ import javax.crypto.spec.SecretKeySpec;
 import java.nio.ByteBuffer;
 import java.security.GeneralSecurityException;
 import java.security.Security;
-
-import static it.auties.leap.tls.util.BufferUtils.scopedWrite;
 
 public final class CcmCipher extends TlsCipher.Block {
     static {
@@ -56,12 +53,7 @@ public final class CcmCipher extends TlsCipher.Block {
     }
 
     @Override
-    public void encrypt(TlsContext context, TlsMessage message, ByteBuffer output) {
-        var input = output.duplicate();
-        try(var _ = scopedWrite(input, message.length(), true)) {
-            message.serialize(input);
-        }
-
+    public void encrypt(byte contentType, ByteBuffer output, ByteBuffer input) {
         var iv = new byte[ivLength()];
         System.arraycopy(fixedIv, 0, iv, 0, fixedIv.length);
         var nonce = authenticator.sequenceNumber();
@@ -73,7 +65,7 @@ public final class CcmCipher extends TlsCipher.Block {
         try {
             var temp = Cipher.getInstance("AES/CCM/NoPadding", "BC");
             temp.init(engine.forEncryption() ? Cipher.ENCRYPT_MODE : Cipher.DECRYPT_MODE, new SecretKeySpec(engineToKey(), "AES"), new AEADParameterSpec(iv, 16 * 8));
-            var aad = authenticator.createAuthenticationBlock(message.contentType().id(), input.remaining() - (engine.forEncryption() ? 0 : tagLength()), null);
+            var aad = authenticator.createAuthenticationBlock(contentType, input.remaining() - (engine.forEncryption() ? 0 : tagLength()), null);
             temp.updateAAD(aad, 0, aad.length);
             temp.doFinal(input, output);
         }catch (GeneralSecurityException exception) {

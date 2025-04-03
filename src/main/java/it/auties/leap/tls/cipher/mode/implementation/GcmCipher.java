@@ -6,7 +6,6 @@ import it.auties.leap.tls.cipher.mode.TlsCipherFactory;
 import it.auties.leap.tls.cipher.mode.TlsCipherWithEngineFactory;
 import it.auties.leap.tls.context.TlsContext;
 import it.auties.leap.tls.cipher.exchange.TlsExchangeMac;
-import it.auties.leap.tls.message.TlsMessage;
 import it.auties.leap.tls.message.TlsMessageMetadata;
 import it.auties.leap.tls.util.BufferUtils;
 import org.bouncycastle.math.raw.Interleave;
@@ -14,8 +13,6 @@ import org.bouncycastle.util.Arrays;
 import org.bouncycastle.util.Longs;
 
 import java.nio.ByteBuffer;
-
-import static it.auties.leap.tls.util.BufferUtils.scopedWrite;
 
 
 public final class GcmCipher extends TlsCipher.Block {
@@ -122,12 +119,7 @@ public final class GcmCipher extends TlsCipher.Block {
     }
 
     @Override
-    public void encrypt(TlsContext context, TlsMessage message, ByteBuffer output) {
-        var input = output.duplicate();
-        try(var _ = scopedWrite(input, message.length(), true)) {
-            message.serialize(input);
-        }
-
+    public void encrypt(byte contentType, ByteBuffer output, ByteBuffer input) {
         var iv = new byte[ivLength()];
         System.arraycopy(fixedIv, 0, iv, 0, fixedIv.length);
         var nonce = authenticator.sequenceNumber();
@@ -139,7 +131,7 @@ public final class GcmCipher extends TlsCipher.Block {
         this.J0[J0.length - 1] = 0x01;
         this.counter = Arrays.clone(J0);
 
-        var aad = authenticator.createAuthenticationBlock(message.contentType().id(), input.remaining() - (forEncryption ? 0 : tagLength()), null);
+        var aad = authenticator.createAuthenticationBlock(contentType, input.remaining() - (forEncryption ? 0 : tagLength()), null);
         processAADBytes(aad, 0, aad.length);
 
         var resultLen = processBytes(input.array(), input.position(), input.remaining(), output.array(), output.position());

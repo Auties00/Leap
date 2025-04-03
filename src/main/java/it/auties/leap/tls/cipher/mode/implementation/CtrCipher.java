@@ -8,7 +8,6 @@ import it.auties.leap.tls.cipher.mode.TlsCipher;
 import it.auties.leap.tls.cipher.mode.TlsCipherFactory;
 import it.auties.leap.tls.cipher.mode.TlsCipherWithEngineFactory;
 import it.auties.leap.tls.context.TlsContext;
-import it.auties.leap.tls.message.TlsMessage;
 import it.auties.leap.tls.message.TlsMessageMetadata;
 
 import java.nio.ByteBuffer;
@@ -50,7 +49,7 @@ public final class CtrCipher extends TlsCipher.Block {
     }
 
     @Override
-    public void encrypt(TlsContext context, TlsMessage message, ByteBuffer output) {
+    public void encrypt(byte contentType, ByteBuffer output, ByteBuffer input) {
         throw new UnsupportedOperationException();
     }
 

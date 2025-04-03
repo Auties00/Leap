@@ -7,7 +7,6 @@ import it.auties.leap.tls.cipher.mode.TlsCipher;
 import it.auties.leap.tls.cipher.mode.TlsCipherFactory;
 import it.auties.leap.tls.cipher.mode.TlsCipherWithEngineFactory;
 import it.auties.leap.tls.context.TlsContext;
-import it.auties.leap.tls.message.TlsMessage;
 import it.auties.leap.tls.message.TlsMessageMetadata;
 import it.auties.leap.tls.util.BufferUtils;
 import it.auties.leap.tls.version.TlsVersion;
@@ -16,8 +15,6 @@ import java.nio.ByteBuffer;
 import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
 import java.util.Arrays;
-
-import static it.auties.leap.tls.util.BufferUtils.scopedWrite;
 
 public final class CbcCipher extends TlsCipher.Block {
     private static final TlsCipherFactory FACTORY = (factory) -> new TlsCipherWithEngineFactory() {
@@ -60,21 +57,16 @@ public final class CbcCipher extends TlsCipher.Block {
     }
 
     @Override
-    public void encrypt(TlsContext context, TlsMessage message, ByteBuffer output) {
+    public void encrypt(byte contentType, ByteBuffer output, ByteBuffer input) {
         switch (authenticator.version()) {
             case TLS10, DTLS10, SSL30 -> throw new UnsupportedOperationException();
-            case TLS11, TLS12, DTLS12 -> tls11Encrypt(message, output);
+            case TLS11, TLS12, DTLS12 -> tls11Encrypt(contentType, input, output);
             case TLS13, DTLS13 -> throw new TlsAlert("CBC ciphers are not allowed in (D)TLSv1.3");
         };
     }
 
-    private void tls11Encrypt(TlsMessage message, ByteBuffer output) {
-        var input = output.duplicate();
-        try(var _ = scopedWrite(input, message.length(), true)) {
-            message.serialize(input);
-        }
-
-        addMac(input, message.contentType().id());
+    private void tls11Encrypt(byte contentType, ByteBuffer input, ByteBuffer output) {
+        addMac(input, contentType);
         var nonce = new byte[engine().blockLength()];
         try {
             SecureRandom.getInstanceStrong()

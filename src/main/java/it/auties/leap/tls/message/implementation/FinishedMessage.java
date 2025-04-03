@@ -4,10 +4,13 @@ import it.auties.leap.tls.alert.TlsAlert;
 import it.auties.leap.tls.connection.TlsHandshakeStatus;
 import it.auties.leap.tls.context.TlsContext;
 import it.auties.leap.tls.context.TlsSource;
-import it.auties.leap.tls.message.*;
+import it.auties.leap.tls.message.TlsHandshakeMessage;
+import it.auties.leap.tls.message.TlsMessageContentType;
+import it.auties.leap.tls.message.TlsMessageMetadata;
 import it.auties.leap.tls.version.TlsVersion;
 
 import java.nio.ByteBuffer;
+import java.util.Arrays;
 
 import static it.auties.leap.tls.util.BufferUtils.readBytes;
 import static it.auties.leap.tls.util.BufferUtils.writeBytes;
@@ -53,7 +56,7 @@ public record FinishedMessage(
 
     @Override
     public void apply(TlsContext context) {
-        // TODO: Validate
+        System.out.println("Hash from " + source + " " + Arrays.toString(hash));
         switch (source) {
             case LOCAL -> context.localConnectionState()
                     .setHandshakeStatus(TlsHandshakeStatus.HANDSHAKE_FINISHED);
