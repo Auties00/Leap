@@ -11,6 +11,7 @@ import java.lang.foreign.MemorySegment;
 import java.lang.foreign.ValueLayout;
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
@@ -58,7 +59,7 @@ public final class AsyncLinuxTransportSocketLayer extends AsyncNativeTransportSo
         this.ioUring = IOUring.shared();
         ioUring.registerHandle(handle);
 
-        return ioUring.prepareAsyncOperation(handle, true, sqe -> {
+        return ioUring.insert(handle, true, sqe -> {
             io_uring_sqe.opcode(sqe, (byte) LinuxKernel.IORING_OP_CONNECT());
             io_uring_sqe.fd(sqe, handle);
             io_uring_sqe.addr(sqe, remoteAddress.get().address());
@@ -91,7 +92,7 @@ public final class AsyncLinuxTransportSocketLayer extends AsyncNativeTransportSo
 
     @Override
     protected CompletableFuture<Void> writeNative(ByteBuffer data) {
-        return ioUring.prepareAsyncOperation(handle, true, sqe -> {
+        return ioUring.insert(handle, true, sqe -> {
             var length = Math.min(data.remaining(), writeBufferSize);
             writeToIOBuffer(data, length);
             io_uring_sqe.fd(sqe, handle);
@@ -115,7 +116,7 @@ public final class AsyncLinuxTransportSocketLayer extends AsyncNativeTransportSo
 
     @Override
     protected CompletableFuture<Void> readNative(ByteBuffer data, boolean lastRead) {
-        return ioUring.prepareAsyncOperation(handle, true, sqe -> {
+        return ioUring.insert(handle, true, sqe -> {
             var length = Math.min(data.remaining(), readBufferSize);
             io_uring_sqe.opcode(sqe, (byte) LinuxKernel.IORING_OP_READ());
             io_uring_sqe.fd(sqe, handle);
@@ -165,9 +166,11 @@ public final class AsyncLinuxTransportSocketLayer extends AsyncNativeTransportSo
                 ValueLayout.ADDRESS.withTargetLayout(io_uring_params.layout()),
                 ValueLayout.JAVA_INT
         );
-        private static final int QUEUE_SIZE = 20_000;
+        private static final int QUEUE_SIZE = 256;
 
         private static final StableValue<IOUring> INSTANCE = StableValue.of();
+        private static final Consumer<MemorySegment> DUMMY_CONFIGURATOR = _ -> {};
+
         public static IOUring shared() {
             return INSTANCE.orElseSet(IOUring::new);
         }
@@ -177,6 +180,8 @@ public final class AsyncLinuxTransportSocketLayer extends AsyncNativeTransportSo
         private final Set<Integer> registeredHandles;
 
         private volatile Integer ringHandle;
+        private volatile Thread ringTask;
+
         private MemorySegment ringSq;
         private MemorySegment ringSqEntries;
         private MemorySegment ringCq;
@@ -184,18 +189,17 @@ public final class AsyncLinuxTransportSocketLayer extends AsyncNativeTransportSo
         private MemorySegment ringParams;
         private Long ringSqSize;
         private Long ringCqSize;
-        private Thread ringTask;
 
         private IOUring() {
-            this.arena = Arena.ofAuto();
+            this.arena = Arena.ofShared();
             this.futures = new ConcurrentHashMap<>();
             this.registeredHandles = new CopyOnWriteArraySet<>();
         }
 
         public void registerHandle(int handle) {
-            if (ringHandle == null) {
+            if (ringTask == null) {
                 synchronized (this) {
-                    if (ringHandle == null) {
+                    if (ringTask == null) {
                         setupRing();
                         mapRing();
                         startTask();
@@ -220,8 +224,8 @@ public final class AsyncLinuxTransportSocketLayer extends AsyncNativeTransportSo
             this.ringHandle = result;
         }
 
-
         private void mapRing() {
+            var ringHandle = this.ringHandle;
             this.ringSqSize = io_sqring_offsets.array(io_uring_params.sq_off(ringParams)) + io_uring_params.sq_entries(ringParams) * ValueLayout.JAVA_INT.byteSize();
             this.ringCqSize = io_cqring_offsets.cqes(io_uring_params.cq_off(ringParams)) + io_uring_params.cq_entries(ringParams) * io_uring_cqe.sizeof();
             var singleMap = (io_uring_params.features(ringParams) & LinuxKernel.IORING_FEAT_SINGLE_MMAP()) == 0;
@@ -270,7 +274,7 @@ public final class AsyncLinuxTransportSocketLayer extends AsyncNativeTransportSo
                     LinuxKernel.IORING_OFF_SQES()
             );
             if (ringSqEntries == LinuxKernel.MAP_FAILED()) {
-                unmapMemory();
+                unmapMemory(ringHandle);
                 throw new RuntimeException("Invalid ringSqEntries mmap result");
             }
 
@@ -282,14 +286,20 @@ public final class AsyncLinuxTransportSocketLayer extends AsyncNativeTransportSo
         }
 
         private void startTask() {
-            this.ringTask = Thread.ofPlatform().start(this);
+            this.ringTask = Thread.ofPlatform()
+                    .name("IO_URING")
+                    .start(this);
         }
 
         public void unregisterHandle(int handle) {
             registeredHandles.remove(handle);
             futures.remove(handle);
             if (registeredHandles.isEmpty()) {
-                close();
+                if (ringTask != null) {
+                    ringTask.interrupt();
+                    insert(handle, false, DUMMY_CONFIGURATOR);
+                    this.ringTask = null;
+                }
             }
         }
 
@@ -297,70 +307,77 @@ public final class AsyncLinuxTransportSocketLayer extends AsyncNativeTransportSo
             return registeredHandles.contains(handle);
         }
 
-        private void close() {
-            if (ringHandle != null) {
+        private void unmapMemory(Integer expectedRingHandle) {
+            if(Objects.equals(ringHandle, expectedRingHandle)) {
+                synchronized (this) {
+                    if(Objects.equals(ringHandle, expectedRingHandle)) {
+                        if(ringSq != null) {
+                            LinuxKernel.munmap(ringSq, ringSqSize);
+                        }
+                        if(ringCq != null && ringSq != ringCq) {
+                            LinuxKernel.munmap(ringCq, ringCqSize);
+                        }
+                        ringSq = null;
+                        ringSqEntries = null;
+                        ringCq = null;
+                        ringCqEntries = null;
+                        ringParams = null;
+                        ringSqSize = null;
+                        ringCqSize = null;
+                    }
+                }
+            }
+        }
+
+        public CompletableFuture<Integer> insert(int handle, boolean allowResize, Consumer<MemorySegment> configurator) {
+            if(ringTask == null) {
+                return CompletableFuture.failedFuture(new IllegalStateException("Invalid ring handle"));
+            }
+
+            try {
                 var ringHandle = this.ringHandle;
-                this.ringHandle = null;
-                LinuxKernel.close(ringHandle);
-                if (ringTask != null) {
-                    ringTask.interrupt();
-                    this.ringTask = null;
+                if(ringHandle == null) {
+                    return CompletableFuture.failedFuture(new IllegalStateException("Io_uring queue is closed"));
                 }
-            }
-        }
 
-        private void unmapMemory() {
-            if(ringSq != null) {
-                LinuxKernel.munmap(ringSq, ringSqSize);
-            }
-            if(ringCq != null && ringSq != ringCq) {
-                LinuxKernel.munmap(ringCq, ringCqSize);
-            }
-            ringSq = null;
-            ringSqEntries = null;
-            ringCq = null;
-            ringCqEntries = null;
-            ringParams = null;
-            ringSqSize = null;
-            ringCqSize = null;
-        }
-
-        public CompletableFuture<Integer> prepareAsyncOperation(int handle, boolean allowResize, Consumer<MemorySegment> configurator) {
-            var sqOffset = io_uring_params.sq_off(ringParams);
-            var tail = atomicRead(ringSq, io_sqring_offsets.tail(sqOffset));
-            var size = atomicRead(ringSq, io_sqring_offsets.ring_entries(sqOffset));
-            if (tail + 1 > size) {
-                System.err.println("Resize");
-                if(!allowResize) {
-                    return CompletableFuture.failedFuture(new IllegalStateException("Io_uring queue is full"));
+                var sqOffset = io_uring_params.sq_off(ringParams);
+                var tail = atomicRead(ringSq, io_sqring_offsets.tail(sqOffset));
+                var size = atomicRead(ringSq, io_sqring_offsets.ring_entries(sqOffset));
+                if (tail + 1 > size) {
+                    System.err.println("Resize");
+                    if(!allowResize) {
+                        return CompletableFuture.failedFuture(new IllegalStateException("Io_uring queue is full"));
+                    }
+                    resizeRing(ringHandle, sqOffset);
+                    return insert(handle, false, configurator);
                 }
-                resizeRing(sqOffset);
-                return prepareAsyncOperation(handle, false, configurator);
+
+                var mask = atomicRead(ringSq, io_sqring_offsets.ring_mask(sqOffset));
+                var index = tail & mask;
+                var entry = io_uring_sqe.asSlice(ringSqEntries, index);
+                configurator.accept(entry);
+                atomicWrite(
+                        ringSq,
+                        io_sqring_offsets.array(sqOffset) + (index * ValueLayout.JAVA_INT.byteSize()),
+                        index
+                );
+
+                atomicWrite(
+                        ringSq,
+                        io_sqring_offsets.tail(sqOffset),
+                        tail + 1
+                );
+                var future = new CompletableFuture<Integer>();
+                futures.put(handle, future);
+                enterRing(ringHandle, 1, 0, 0);
+                return future;
+            }catch (Throwable throwable) {
+                return CompletableFuture.failedFuture(throwable);
             }
-
-            var mask = atomicRead(ringSq, io_sqring_offsets.ring_mask(sqOffset));
-            var index = tail & mask;
-            var entry = io_uring_sqe.asSlice(ringSqEntries, index);
-            configurator.accept(entry);
-            atomicWrite(
-                    ringSq,
-                    io_sqring_offsets.array(sqOffset) + (index * ValueLayout.JAVA_INT.byteSize()),
-                    index
-            );
-
-            atomicWrite(
-                    ringSq,
-                    io_sqring_offsets.tail(sqOffset),
-                    tail + 1
-            );
-            var future = new CompletableFuture<Integer>();
-            futures.put(handle, future);
-            enterRing(1, 0, 0);
-            return future;
         }
 
         // https://git.kernel.dk/cgit/liburing/tree/src/register.c#n458
-        private void resizeRing(MemorySegment sqOffset) {
+        private void resizeRing(int ringHandle, MemorySegment sqOffset) {
             io_uring_params.sq_off(ringParams)
                     .fill((byte) 0);
             io_uring_params.cq_off(ringParams)
@@ -379,7 +396,7 @@ public final class AsyncLinuxTransportSocketLayer extends AsyncNativeTransportSo
 
             var sq_head = atomicRead(ringSq, io_sqring_offsets.head(sqOffset));
             var sq_tail = atomicRead(ringSq, io_sqring_offsets.tail(sqOffset));
-            unmapMemory();
+            unmapMemory(ringHandle);
             ringSq.fill((byte) 0);
             ringCq.fill((byte) 0);
             mapRing();
@@ -389,8 +406,9 @@ public final class AsyncLinuxTransportSocketLayer extends AsyncNativeTransportSo
 
         @Override
         public void run() {
+            var ringHandle = this.ringHandle;
             while (!Thread.interrupted()) {
-                var result = enterRing(1, 1, LinuxKernel.IORING_ENTER_GETEVENTS());
+                var result = enterRing(ringHandle, 0, 1, LinuxKernel.IORING_ENTER_GETEVENTS());
                 if (!result) {
                     break;
                 }
@@ -411,14 +429,13 @@ public final class AsyncLinuxTransportSocketLayer extends AsyncNativeTransportSo
                     head++;
                 }
 
-                if(!atomicWrite(ringCq, io_cqring_offsets.head(cqOffset), head)) {
-                    break;
-                }
+                atomicWrite(ringCq, io_cqring_offsets.head(cqOffset), head);
             }
-            unmapMemory();
+            LinuxKernel.close(ringHandle);
+            unmapMemory(ringHandle);
         }
 
-        private boolean enterRing(int in, int out, int flags) {
+        private boolean enterRing(Integer ringHandle, int in, int out, int flags) {
             try {
                 var result = ENTER_SYS_CALL.apply(
                         LinuxKernel.__NR_io_uring_enter(),
@@ -436,22 +453,13 @@ public final class AsyncLinuxTransportSocketLayer extends AsyncNativeTransportSo
         }
 
         private int atomicRead(MemorySegment segment, int offset) {
-            if(ringHandle == null) {
-                return -1;
-            }
-
             return (int) ValueLayout.JAVA_INT.varHandle()
                     .getVolatile(segment, offset);
         }
 
-        private boolean atomicWrite(MemorySegment segment, long offset, int value) {
-            if(ringHandle == null) {
-                return false;
-            }
-
+        private void atomicWrite(MemorySegment segment, long offset, int value) {
             ValueLayout.JAVA_INT.varHandle()
                     .setVolatile(segment, offset, value);
-            return true;
         }
     }
 }

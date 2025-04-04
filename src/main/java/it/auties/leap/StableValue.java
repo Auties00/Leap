@@ -16,13 +16,16 @@ public final class StableValue<T> {
     }
 
     public T orElseSet(Supplier<T> newValue) {
-        var value = this.value.getAcquire();
-        if(value == null) {
-            var result = newValue.get();
-            this.value.set(result);
-            return result;
-        }else {
-            return value;
+        var current = value.getAcquire();
+        if (current != null) {
+            return current;
         }
+
+        var update = newValue.get();
+        if (value.compareAndSet(null, update)) {
+            return update;
+        }
+
+        return value.get();
     }
 }
