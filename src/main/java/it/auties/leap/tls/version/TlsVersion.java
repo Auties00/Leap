@@ -17,7 +17,6 @@ public enum TlsVersion implements TlsIdentifiableProperty<TlsVersionId> {
     TLS12(0x0303, "TLS1.2", SocketProtocol.TCP),
     TLS11(0x0302, "TLS1.1", SocketProtocol.TCP),
     TLS10(0x0301, "TLS1.0", SocketProtocol.TCP),
-    SSL30(0x0300, "SSLv3", SocketProtocol.TCP),
     DTLS13(0xFEFC, "DTLS1.3", SocketProtocol.UDP),
     DTLS12(0xFEFD, "DTLS1.2", SocketProtocol.UDP),
     // "There is no DTLS 1.1 because this version-number was skipped in order to harmonize version numbers with TLS"

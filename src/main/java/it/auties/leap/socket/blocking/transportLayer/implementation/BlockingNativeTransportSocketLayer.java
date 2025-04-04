@@ -17,6 +17,8 @@ import java.util.OptionalInt;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.locks.ReentrantLock;
 
+// TODO: Merge on demand read/write buffer into a single length variable buffer
+//       Make merged buffer allocation on demand
 abstract class BlockingNativeTransportSocketLayer<HANDLE extends Number> extends BlockingSocketTransportLayer {
     protected final Arena arena;
     protected final HANDLE handle;

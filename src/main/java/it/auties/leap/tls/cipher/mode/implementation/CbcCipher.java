@@ -9,7 +9,6 @@ import it.auties.leap.tls.cipher.mode.TlsCipherWithEngineFactory;
 import it.auties.leap.tls.context.TlsContext;
 import it.auties.leap.tls.message.TlsMessageMetadata;
 import it.auties.leap.tls.util.BufferUtils;
-import it.auties.leap.tls.version.TlsVersion;
 
 import java.nio.ByteBuffer;
 import java.security.NoSuchAlgorithmException;
@@ -59,7 +58,7 @@ public final class CbcCipher extends TlsCipher.Block {
     @Override
     public void encrypt(byte contentType, ByteBuffer output, ByteBuffer input) {
         switch (authenticator.version()) {
-            case TLS10, DTLS10, SSL30 -> throw new UnsupportedOperationException();
+            case TLS10, DTLS10 -> throw new UnsupportedOperationException();
             case TLS11, TLS12, DTLS12 -> tls11Encrypt(contentType, input, output);
             case TLS13, DTLS13 -> throw new TlsAlert("CBC ciphers are not allowed in (D)TLSv1.3");
         };
@@ -90,7 +89,7 @@ public final class CbcCipher extends TlsCipher.Block {
     @Override
     public ByteBuffer decrypt(TlsContext context, TlsMessageMetadata metadata, ByteBuffer input) {
         return switch (authenticator.version()) {
-            case TLS10, DTLS10, SSL30 -> throw new UnsupportedOperationException();
+            case TLS10, DTLS10 -> throw new UnsupportedOperationException();
             case TLS11, TLS12, DTLS12 -> tls11Decrypt(metadata, input);
             case TLS13, DTLS13 -> throw new TlsAlert("CBC ciphers are not allowed in (D)TLSv1.3");
         };
@@ -144,15 +143,9 @@ public final class CbcCipher extends TlsCipher.Block {
             throw new TlsAlert("Padding length should be positive");
         }
 
-        if (authenticator.version() == TlsVersion.SSL30) {
-            if (padValue > engine().blockLength()) {
-                throw new TlsAlert("Padding length (" + padValue + ") of SSLv3 message should not be bigger than the block size (" + engine().blockLength() + ")");
-            }
-        }else {
-            while (toCheck.hasRemaining()) {
-                if (toCheck.get() != padValue) {
-                    throw new TlsAlert("Invalid TLS padding data");
-                }
+        while (toCheck.hasRemaining()) {
+            if (toCheck.get() != padValue) {
+                throw new TlsAlert("Invalid TLS padding data");
             }
         }
 

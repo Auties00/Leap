@@ -54,7 +54,8 @@ public interface TlsMessageDeserializer {
                             };
                         }
                     }
-                    case CHANGE_CIPHER_SPEC -> ChangeCipherSpecMessage.of(buffer, metadata);
+                    case CHANGE_CIPHER_SPEC ->
+                            ChangeCipherSpecMessage.of(buffer, metadata);
                     case ALERT ->
                             AlertMessage.of(buffer, metadata);
                     case APPLICATION_DATA ->

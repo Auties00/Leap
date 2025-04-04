@@ -17,7 +17,6 @@ public abstract sealed class TlsExchangeMac {
         return switch (version) {
             case TLS13 -> new TLS13();
             case TLS12, TLS11, TLS10 -> new TLS10(version, hashFactory == null ? null : TlsHmac.of(hashFactory.newHash()), macKey);
-            case SSL30 -> new SSL30(hashFactory == null ? null : TlsHmac.of(hashFactory.newHash()), macKey);
             case DTLS13 -> new DTLS13();
             case DTLS12, DTLS10 -> new DTLS10(version, hashFactory == null ? null : TlsHmac.of(hashFactory.newHash()), macKey);
         };
@@ -99,27 +98,6 @@ public abstract sealed class TlsExchangeMac {
         var k = 7;
         while ((k >= 0) && (++block[k] == 0)) {
             k--;
-        }
-    }
-
-    private static final class SSL30 extends TlsExchangeMac {
-        private static final int BLOCK_SIZE = 11;
-
-        private SSL30(TlsHmac hmac, byte[] hmacKey) {
-            super(TlsVersion.SSL30, hmac, hmacKey, new byte[BLOCK_SIZE], false);
-        }
-
-        @Override
-        public byte[] createAuthenticationBlock(byte type, int length, byte[] sequence) {
-            var ad = block.clone();
-
-            increaseSequenceNumber();
-
-            ad[8] = type;
-            ad[9] = (byte) (length >> 8);
-            ad[10] = (byte) (length);
-
-            return ad;
         }
     }
 

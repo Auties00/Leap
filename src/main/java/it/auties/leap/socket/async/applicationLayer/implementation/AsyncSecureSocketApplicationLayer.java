@@ -442,7 +442,6 @@ public class AsyncSecureSocketApplicationLayer extends AsyncSocketApplicationLay
         System.err.println("Read " + message.getClass().getName());
         var result = handleOrClose(message);
         if(message instanceof TlsHandshakeMessage) {
-            System.err.println("Feeding " + message.getClass().getName());
             updateHandshakeHash(plaintext.position(position));
         }
         return result;
@@ -452,19 +451,13 @@ public class AsyncSecureSocketApplicationLayer extends AsyncSocketApplicationLay
         try {
             message.apply(tlsContext);
             return CompletableFuture.completedFuture(null);
-        }catch (TlsAlert throwable) {
-            closeSilently();
-            return CompletableFuture.failedFuture(throwable);
         }catch (Throwable throwable) {
+            try {
+                close(true);
+            }catch (Throwable closeException) {
+                throwable.addSuppressed(closeException);
+            }
             return CompletableFuture.failedFuture(throwable);
-        }
-    }
-
-    private void closeSilently() {
-        try {
-            close(true);
-        }catch (IOException _) {
-
         }
     }
 
@@ -506,8 +499,6 @@ public class AsyncSecureSocketApplicationLayer extends AsyncSocketApplicationLay
                         message.serialize(plaintext);
                     }
                     if(message instanceof TlsHandshakeMessage) {
-                        System.err.println(HexFormat.of().formatHex(plaintext.array(), plaintext.position(), plaintext.limit()));
-                        System.err.println("Feeding " + message.getClass().getName());
                         var position = plaintext.position();
                         updateHandshakeHash(plaintext.position(position + recordLength()));
                         plaintext.position(position);
@@ -530,15 +521,10 @@ public class AsyncSecureSocketApplicationLayer extends AsyncSocketApplicationLay
                     var buffer = writeBuffer();
                     var length = message.length();
                     try(var _ = scopedWrite(buffer, recordLength() + length, true)) {
-                        System.err.println("Position: " + buffer.position() + " Limit " + buffer.limit());
                         serializeRecord(message, buffer, length);
-                        System.err.println("Position: " + buffer.position() + " Limit " + buffer.limit());
                         message.serialize(buffer);
                     }
-                    System.err.println("Position: " + buffer.position() + " Limit " + buffer.limit());
-                    System.err.println(length);
                     if(message instanceof TlsHandshakeMessage) {
-                        System.err.println("Feeding " + message.getClass().getName());
                         var position = buffer.position();
                         updateHandshakeHash(buffer.position(position + recordLength()));
                         buffer.position(position);

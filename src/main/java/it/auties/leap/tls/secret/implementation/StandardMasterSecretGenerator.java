@@ -2,13 +2,13 @@ package it.auties.leap.tls.secret.implementation;
 
 import it.auties.leap.tls.alert.TlsAlert;
 import it.auties.leap.tls.context.TlsContext;
-import it.auties.leap.tls.hash.TlsHash;
 import it.auties.leap.tls.hash.TlsPRF;
 import it.auties.leap.tls.property.TlsProperty;
 import it.auties.leap.tls.secret.TlsMasterSecretGenerator;
 import it.auties.leap.tls.secret.TlsSecret;
 
-import static it.auties.leap.tls.util.TlsKeyUtils.*;
+import static it.auties.leap.tls.util.TlsKeyUtils.LABEL_EXTENDED_MASTER_SECRET;
+import static it.auties.leap.tls.util.TlsKeyUtils.LABEL_MASTER_SECRET;
 
 public final class StandardMasterSecretGenerator implements TlsMasterSecretGenerator {
     private static final StandardMasterSecretGenerator INSTANCE = new StandardMasterSecretGenerator();
@@ -48,23 +48,6 @@ public final class StandardMasterSecretGenerator implements TlsMasterSecretGener
                     .randomData();
         };
         var masterSecret = switch (version) {
-            case SSL30 -> {
-                var result = new byte[LENGTH];
-                var md5 = TlsHash.md5();
-                var sha = TlsHash.sha1();
-                var tmp = new byte[20];
-                for (var i = 0; i < 3; i++) {
-                    sha.update(SSL3_CONSTANT[i]);
-                    sha.update(preMasterSecret.data());
-                    sha.update(clientRandom);
-                    sha.update(serverRandom);
-                    sha.digest(tmp, 0, 20, true);
-                    md5.update(preMasterSecret.data());
-                    md5.update(tmp);
-                    md5.digest(result, i << 4, 16, true);
-                }
-                yield result;
-            }
             case TLS10, TLS11, DTLS10 -> {
                 var label = extendedMasterSecret ? LABEL_EXTENDED_MASTER_SECRET : LABEL_MASTER_SECRET;
                 var seed = extendedMasterSecret ? context.connectionIntegrity().digest() : TlsPRF.seed(clientRandom, serverRandom);

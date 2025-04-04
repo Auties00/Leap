@@ -116,7 +116,6 @@ public final class AsyncLinuxTransportSocketLayer extends AsyncNativeTransportSo
 
     @Override
     protected CompletableFuture<Void> readNative(ByteBuffer data, boolean lastRead) {
-        System.err.println("Asked to read available " + data.remaining() + " bytes, lastRead " + lastRead);
         return ioUring.insert(handle, true, sqe -> {
             var length = Math.min(data.remaining(), readBufferSize);
             io_uring_sqe.opcode(sqe, (byte) LinuxKernel.IORING_OP_READ());
@@ -130,8 +129,6 @@ public final class AsyncLinuxTransportSocketLayer extends AsyncNativeTransportSo
                 close();
                 return CompletableFuture.failedFuture(new SocketException("Cannot receive message from socket (socket closed)"));
             }
-
-            System.err.println("Read " + readLength + " bytes");
             readFromIOBuffer(data, readLength, lastRead);
             return NO_RESULT;
         });

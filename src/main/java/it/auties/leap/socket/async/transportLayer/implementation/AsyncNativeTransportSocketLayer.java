@@ -18,6 +18,8 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.locks.ReentrantLock;
 
+// TODO: Merge on demand read/write buffer into a single length variable buffer
+//       Make merged buffer allocation on demand
 abstract class AsyncNativeTransportSocketLayer<HANDLE extends Number> extends AsyncSocketTransportLayer {
     static final CompletableFuture<Void> NO_RESULT = CompletableFuture.completedFuture(null);
 
