@@ -116,6 +116,7 @@ public final class AsyncLinuxTransportSocketLayer extends AsyncNativeTransportSo
 
     @Override
     protected CompletableFuture<Void> readNative(ByteBuffer data, boolean lastRead) {
+        System.err.println("Asked to read available " + data.remaining() + " bytes, lastRead " + lastRead);
         return ioUring.insert(handle, true, sqe -> {
             var length = Math.min(data.remaining(), readBufferSize);
             io_uring_sqe.opcode(sqe, (byte) LinuxKernel.IORING_OP_READ());
@@ -130,6 +131,7 @@ public final class AsyncLinuxTransportSocketLayer extends AsyncNativeTransportSo
                 return CompletableFuture.failedFuture(new SocketException("Cannot receive message from socket (socket closed)"));
             }
 
+            System.err.println("Read " + readLength + " bytes");
             readFromIOBuffer(data, readLength, lastRead);
             return NO_RESULT;
         });
@@ -344,12 +346,11 @@ public final class AsyncLinuxTransportSocketLayer extends AsyncNativeTransportSo
                 var tail = atomicRead(ringSq, io_sqring_offsets.tail(sqOffset));
                 var size = atomicRead(ringSq, io_sqring_offsets.ring_entries(sqOffset));
                 if (tail + 1 > size) {
-                    System.err.println("Resize");
                     if(!allowResize) {
                         return CompletableFuture.failedFuture(new IllegalStateException("Io_uring queue is full"));
                     }
-                    resizeRing(ringHandle, sqOffset);
-                    return insert(handle, false, configurator);
+                    resizeRing(ringHandle, sqOffset, size * 2);
+                    return insert(handle, true, configurator);
                 }
 
                 var mask = atomicRead(ringSq, io_sqring_offsets.ring_mask(sqOffset));
@@ -376,8 +377,10 @@ public final class AsyncLinuxTransportSocketLayer extends AsyncNativeTransportSo
             }
         }
 
-        // https://git.kernel.dk/cgit/liburing/tree/src/register.c#n458
-        private void resizeRing(int ringHandle, MemorySegment sqOffset) {
+        private void resizeRing(int ringHandle, MemorySegment sqOffset, int newSize) {
+            io_uring_params.sq_entries(ringParams, newSize);
+            io_uring_params.cq_entries(ringParams, newSize);
+
             io_uring_params.sq_off(ringParams)
                     .fill((byte) 0);
             io_uring_params.cq_off(ringParams)
@@ -391,17 +394,17 @@ public final class AsyncLinuxTransportSocketLayer extends AsyncNativeTransportSo
                     1
             );
             if(result < 0) {
-                throw new RuntimeException();
+                throw new RuntimeException("Ring resizing is available since kernel 6.13, current version: " + System.getProperty("os.version", "unknown"));
             }
 
-            var sq_head = atomicRead(ringSq, io_sqring_offsets.head(sqOffset));
-            var sq_tail = atomicRead(ringSq, io_sqring_offsets.tail(sqOffset));
+            var sqHead = atomicRead(ringSq, io_sqring_offsets.head(sqOffset));
+            var sqTail = atomicRead(ringSq, io_sqring_offsets.tail(sqOffset));
             unmapMemory(ringHandle);
             ringSq.fill((byte) 0);
             ringCq.fill((byte) 0);
             mapRing();
-            atomicWrite(ringSq, io_sqring_offsets.head(sqOffset), sq_head);
-            atomicWrite(ringSq, io_sqring_offsets.head(sqOffset), sq_tail);
+            atomicWrite(ringSq, io_sqring_offsets.head(sqOffset), sqHead);
+            atomicWrite(ringSq, io_sqring_offsets.tail(sqOffset), sqTail);
         }
 
         @Override

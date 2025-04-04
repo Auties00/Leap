@@ -47,6 +47,10 @@ public record TlsMessageMetadata(
     }
 
     public TlsMessageMetadata withLength(int length) {
+        if(this.length == length) {
+            return this;
+        }
+
         return new TlsMessageMetadata(contentType, version, length, source);
     }
 }

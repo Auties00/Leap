@@ -430,36 +430,22 @@ public class AsyncSecureSocketApplicationLayer extends AsyncSocketApplicationLay
     }
 
     private CompletableFuture<Void> decodeMessage(TlsMessageMetadata metadata, ByteBuffer buffer) {
-        return tlsContext.remoteConnectionState()
+        var position = buffer.position();
+        var plaintext = tlsContext.remoteConnectionState()
                 .flatMap(TlsConnection::cipher)
                 .filter(TlsCipher::enabled)
-                .map(cipher -> {
-                    var position = buffer.position();
-                    var plaintext = cipher.decrypt(tlsContext, metadata, buffer);
-                    var message = tlsContext.messageDeserializer()
-                            .deserialize(tlsContext, plaintext, metadata.withLength(plaintext.remaining()))
-                            .orElseThrow(() -> new TlsAlert("Cannot deserialize message: unknown type"));
-                    System.err.println("Decrypted " + message.getClass().getName());
-                    var result = handleOrClose(message);
-                    if(message instanceof TlsHandshakeMessage) {
-                        System.err.println("Feeding " + message.getClass().getName());
-                        updateHandshakeHash(buffer.position(position));
-                    }
-                    return result;
-                })
-                .orElseGet(() -> {
-                    var position = buffer.position();
-                    var message = tlsContext.messageDeserializer()
-                            .deserialize(tlsContext, buffer, metadata)
-                            .orElseThrow(() -> new TlsAlert("Cannot deserialize message: unknown type"));
-                    System.err.println("Read " + message.getClass().getName());
-                    var result = handleOrClose(message);
-                    if(message instanceof TlsHandshakeMessage) {
-                        System.err.println("Feeding " + message.getClass().getName());
-                        updateHandshakeHash(buffer.position(position));
-                    }
-                    return result;
-                });
+                .map(cipher -> cipher.decrypt(tlsContext, metadata, buffer))
+                .orElse(buffer);
+        var message = tlsContext.messageDeserializer()
+                .deserialize(tlsContext, plaintext,  metadata.withLength(plaintext.remaining()))
+                .orElseThrow(() -> new TlsAlert("Cannot deserialize message: unknown type"));
+        System.err.println("Read " + message.getClass().getName());
+        var result = handleOrClose(message);
+        if(message instanceof TlsHandshakeMessage) {
+            System.err.println("Feeding " + message.getClass().getName());
+            updateHandshakeHash(plaintext.position(position));
+        }
+        return result;
     }
 
     private CompletableFuture<Void> handleOrClose(TlsMessage message) {

@@ -98,7 +98,8 @@ public final class SupportedVersionsExtension implements TlsExtension.Configurab
             var major = readBigEndianInt8(buffer);
             var minor = readBigEndianInt8(buffer);
             var versionId = TlsVersionId.of(major, minor);
-            var supportedVersions = context.getNegotiatedValue(TlsProperty.version())
+            var supportedVersions = context.getNegotiableValue(TlsProperty.version())
+                    .orElseThrow(() -> TlsAlert.noNegotiableProperty(TlsProperty.version()))
                     .stream()
                     .collect(Collectors.toUnmodifiableMap(TlsVersion::id, Function.identity()));
             var supportedVersion = supportedVersions.get(versionId);

@@ -49,16 +49,20 @@ public record ChangeCipherSpecMessage(
 
     @Override
     public void apply(TlsContext context) {
-        switch (source) {
-            case LOCAL -> context.localConnectionState()
-                    .cipher()
-                    .orElseThrow(TlsAlert::noLocalCipher)
-                    .setEnabled(true);
-            case REMOTE -> context.remoteConnectionState()
-                    .orElseThrow(TlsAlert::noRemoteConnectionState)
-                    .cipher()
-                    .orElseThrow(TlsAlert::noRemoteCipher)
-                    .setEnabled(true);
+        try {
+            switch (source) {
+                case LOCAL -> context.localConnectionState()
+                        .cipher()
+                        .orElseThrow(TlsAlert::noLocalCipher)
+                        .setEnabled(true);
+                case REMOTE -> context.remoteConnectionState()
+                        .orElseThrow(TlsAlert::noRemoteConnectionState)
+                        .cipher()
+                        .orElseThrow(TlsAlert::noRemoteCipher)
+                        .setEnabled(true);
+            }
+        }catch (Exception e) {
+            e.printStackTrace();
         }
     }
 }

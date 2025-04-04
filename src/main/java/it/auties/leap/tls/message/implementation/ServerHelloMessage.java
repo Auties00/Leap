@@ -58,21 +58,19 @@ public record ServerHelloMessage(
         try (var _ = scopedRead(buffer, extensionsLength)) {
             while (buffer.hasRemaining()) {
                 var extensionType = readBigEndianInt16(buffer);
-                System.err.println("Extension type: " + extensionType);
                 var extensionDecoder = extensionTypeToDecoder.get(extensionType);
                 if (extensionDecoder == null) {
                     throw new TlsAlert("Unknown extension");
                 }
 
                 var extensionLength = readBigEndianInt16(buffer);
-                System.err.println("Extension length: " + extensionLength);
                 try (var _ = scopedRead(buffer, extensionLength)) {
                     extensionDecoder.deserialize(context, extensionType, buffer)
                             .ifPresent(extensions::add);
                 }
             }
         }
-        System.err.println("Done");
+
         return new ServerHelloMessage(tlsVersion, metadata.source(), serverRandom, sessionId, cipherId, compressionId, extensions, extensionsLength);
     }
 
