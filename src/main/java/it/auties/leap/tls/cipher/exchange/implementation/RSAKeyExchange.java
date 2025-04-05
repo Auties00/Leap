@@ -4,7 +4,7 @@ import it.auties.leap.tls.cipher.exchange.TlsKeyExchange;
 import it.auties.leap.tls.cipher.exchange.TlsKeyExchangeFactory;
 import it.auties.leap.tls.cipher.exchange.TlsKeyExchangeType;
 import it.auties.leap.tls.context.TlsContext;
-import it.auties.leap.tls.context.TlsContextMode;
+import it.auties.leap.tls.connection.TlsConnectionType;
 import it.auties.leap.tls.alert.TlsAlert;
 import it.auties.leap.tls.secret.TlsPreMasterSecretGenerator;
 import it.auties.leap.tls.secret.TlsSecret;
@@ -18,9 +18,9 @@ public sealed abstract class RSAKeyExchange implements TlsKeyExchange {
     private static final TlsKeyExchangeFactory STATIC_FACTORY = new TlsKeyExchangeFactory() {
         @Override
         public TlsKeyExchange newLocalKeyExchange(TlsContext context) {
-            var mode = context.mode()
+            var mode = context.localConnectionState().type()
                     ;
-            if (mode == TlsContextMode.SERVER) {
+            if (mode == TlsConnectionType.SERVER) {
                 throw new TlsAlert("Unsupported RSA key exchange");
             }
 
@@ -30,14 +30,14 @@ public sealed abstract class RSAKeyExchange implements TlsKeyExchange {
         }
 
         @Override
-        public TlsKeyExchange decodeRemoteKeyExchange(TlsContext context, ByteBuffer buffer) {
-            var mode = context.mode()
+        public TlsKeyExchange newRemoteKeyExchange(TlsContext context, ByteBuffer ephemeralKeyExchangeSource) {
+            var mode = context.localConnectionState().type()
                     ;
-            if (mode == TlsContextMode.SERVER) {
+            if (mode == TlsConnectionType.SERVER) {
                 throw new TlsAlert("Unsupported RSA key exchange");
             }
 
-            return new RSAKeyExchange.Client(buffer);
+            return new RSAKeyExchange.Client(ephemeralKeyExchangeSource);
         }
 
         @Override

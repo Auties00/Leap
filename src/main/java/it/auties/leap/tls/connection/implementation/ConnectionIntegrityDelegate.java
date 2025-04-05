@@ -2,7 +2,7 @@ package it.auties.leap.tls.connection.implementation;
 
 import it.auties.leap.tls.alert.TlsAlert;
 import it.auties.leap.tls.context.TlsContext;
-import it.auties.leap.tls.context.TlsContextMode;
+import it.auties.leap.tls.connection.TlsConnectionType;
 import it.auties.leap.tls.context.TlsSource;
 import it.auties.leap.tls.hash.TlsHash;
 import it.auties.leap.tls.hash.TlsHashFactory;
@@ -28,9 +28,9 @@ public sealed abstract class ConnectionIntegrityDelegate {
 
     public abstract byte[] finish(TlsContext context, TlsSource source);
 
-    boolean useClientLabel(TlsSource source, TlsContextMode mode) {
-        return (mode == TlsContextMode.CLIENT && source == TlsSource.LOCAL)
-                || (mode == TlsContextMode.SERVER && source == TlsSource.REMOTE);
+    boolean useClientLabel(TlsSource source, TlsConnectionType mode) {
+        return (mode == TlsConnectionType.CLIENT && source == TlsSource.LOCAL)
+                || (mode == TlsConnectionType.SERVER && source == TlsSource.REMOTE);
     }
 
     private static final class TLS10 extends ConnectionIntegrityDelegate {
@@ -66,7 +66,7 @@ public sealed abstract class ConnectionIntegrityDelegate {
 
         @Override
         public byte[] finish(TlsContext context, TlsSource source) {
-            var mode = context.mode()
+            var mode = context.localConnectionState().type()
                     ;
             var masterSecret = context.masterSecretKey()
                     .orElseThrow(() -> new TlsAlert("Master secret key is not available yet"));
@@ -114,7 +114,7 @@ public sealed abstract class ConnectionIntegrityDelegate {
 
         @Override
         public byte[] finish(TlsContext context, TlsSource source) {
-            var mode = context.mode();
+            var mode = context.localConnectionState().type();
             var masterSecret = context.masterSecretKey()
                     .orElseThrow(() -> new TlsAlert("Master secret key is not available yet"));
             var useClientLabel = useClientLabel(source, mode);

@@ -28,7 +28,7 @@ public record ServerKeyExchangeMessage(
         var remoteParameters = context.getNegotiatedValue(TlsProperty.cipher())
                 .orElseThrow(() -> TlsAlert.noNegotiatedProperty(TlsProperty.cipher()))
                 .keyExchangeFactory()
-                .decodeRemoteKeyExchange(context, buffer);
+                .newRemoteKeyExchange(context, buffer);
         var signatureAlgorithmId = readBigEndianInt16(buffer);
         var signature = readBytesBigEndian16(buffer);
         return new ServerKeyExchangeMessage(metadata.version(), metadata.source(), remoteParameters, signatureAlgorithmId, signature);

@@ -29,7 +29,7 @@ public record ClientKeyExchangeMessage(
             var remoteParameters = context.getNegotiatedValue(TlsProperty.cipher())
                     .orElseThrow(() -> TlsAlert.noNegotiatedProperty(TlsProperty.cipher()))
                     .keyExchangeFactory()
-                    .decodeRemoteKeyExchange(context, buffer);
+                    .newRemoteKeyExchange(context, buffer);
             return new ClientKeyExchangeMessage(metadata.version(), metadata.source(), remoteParameters);
         }
     }

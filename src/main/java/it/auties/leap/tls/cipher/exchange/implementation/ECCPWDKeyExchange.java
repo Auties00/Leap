@@ -20,7 +20,7 @@ public sealed abstract class ECCPWDKeyExchange implements TlsKeyExchange {
         }
 
         @Override
-        public TlsKeyExchange decodeRemoteKeyExchange(TlsContext context, ByteBuffer buffer) {
+        public TlsKeyExchange newRemoteKeyExchange(TlsContext context, ByteBuffer ephemeralKeyExchangeSource) {
             throw new UnsupportedOperationException();
         }
 

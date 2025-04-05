@@ -8,6 +8,18 @@ import java.util.Objects;
 
 public final class TlsSignatureAlgorithm implements TlsSignature {
     public static TlsSignature of(TlsSignatureAlgorithm.Signature signature, TlsSignatureAlgorithm.Hash hash) {
+        if(signature == null) {
+            throw new NullPointerException("signature");
+        }
+
+        if(hash == null) {
+            throw new NullPointerException("hash");
+        }
+
+        if(signature.intrinsicHash() != hash.equals(Hash.intrinsic())) {
+            throw new IllegalArgumentException("Hash does not match intrinsic");
+        }
+
         return new TlsSignatureAlgorithm(signature, hash);
     }
 
@@ -50,7 +62,6 @@ public final class TlsSignatureAlgorithm implements TlsSignature {
         private static final Signature RSA_PSS_PSS_SHA512 = new Signature((byte) 11, true);
         private static final Signature GOSTR34102012_256 = new Signature((byte) 64, false);
         private static final Signature GOSTR34102012_512 = new Signature((byte) 65, false);
-
 
         public static Signature anonymous() {
             return ANONYMOUS;
@@ -108,7 +119,7 @@ public final class TlsSignatureAlgorithm implements TlsSignature {
             return GOSTR34102012_512;
         }
 
-        public static Hash reservedForPrivateUse(byte id) {
+        public static Signature reservedForPrivateUse(byte id, boolean intrinsicHash) {
             if (id != -32 && id != -31) {
                 throw new TlsAlert(
                         "Only values from 224-255 (decimal) inclusive are reserved for Private Use",
@@ -117,7 +128,7 @@ public final class TlsSignatureAlgorithm implements TlsSignature {
                 );
             }
 
-            return new Hash(id);
+            return new Signature(id, intrinsicHash);
         }
 
         private final byte id;

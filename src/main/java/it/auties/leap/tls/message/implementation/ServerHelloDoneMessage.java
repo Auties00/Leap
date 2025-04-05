@@ -48,12 +48,12 @@ public record ServerHelloDoneMessage(
 
     @Override
     public void apply(TlsContext context) {
-        switch (context.mode()) {
+        switch (context.localConnectionState().type()) {
             case CLIENT -> context.remoteConnectionState()
                     .orElseThrow(TlsAlert::noRemoteConnectionState)
-                    .setHandshakeStatus(TlsHandshakeStatus.HANDSHAKING);
+                    .setHandshakeStatus(TlsHandshakeStatus.HANDSHAKE_STARTED);
             case SERVER -> context.localConnectionState()
-                    .setHandshakeStatus(TlsHandshakeStatus.HANDSHAKING);
+                    .setHandshakeStatus(TlsHandshakeStatus.HANDSHAKE_STARTED);
         }
     }
 }

@@ -6,13 +6,14 @@ import it.auties.leap.tls.cipher.exchange.TlsKeyExchangeFactory;
 import it.auties.leap.tls.cipher.exchange.TlsKeyExchangeType;
 import it.auties.leap.tls.context.TlsContext;
 import it.auties.leap.tls.ec.TlsECParameters;
+import it.auties.leap.tls.group.TlsKeyPair;
 import it.auties.leap.tls.group.TlsSupportedEllipticCurve;
-import it.auties.leap.tls.group.TlsSupportedGroup;
+import it.auties.leap.tls.group.TlsSupportedFiniteField;
 import it.auties.leap.tls.property.TlsProperty;
 import it.auties.leap.tls.secret.TlsPreMasterSecretGenerator;
 
+import javax.crypto.interfaces.DHPublicKey;
 import java.nio.ByteBuffer;
-import java.util.List;
 import java.util.Optional;
 
 import static it.auties.leap.tls.util.BufferUtils.*;
@@ -44,7 +45,6 @@ public sealed abstract class ECDHKeyExchange implements TlsKeyExchange {
         return TlsPreMasterSecretGenerator.ecdh();
     }
 
-    public abstract byte[] publicKey();
 
     public abstract Optional<TlsECParameters> parameters();
 
@@ -56,11 +56,6 @@ public sealed abstract class ECDHKeyExchange implements TlsKeyExchange {
             this.publicKey = publicKey;
         }
 
-        private Client(TlsKeyExchangeType type, ByteBuffer buffer) {
-            super(type);
-            this.publicKey = readBytesBigEndian8(buffer);
-        }
-
         @Override
         public void serialize(ByteBuffer buffer) {
             writeBytesBigEndian8(buffer, publicKey);
@@ -69,11 +64,6 @@ public sealed abstract class ECDHKeyExchange implements TlsKeyExchange {
         @Override
         public int length() {
             return INT8_LENGTH + publicKey.length;
-        }
-
-        @Override
-        public byte[] publicKey() {
-            return publicKey;
         }
 
         @Override
@@ -92,24 +82,6 @@ public sealed abstract class ECDHKeyExchange implements TlsKeyExchange {
             this.publicKey = publicKey;
         }
 
-        private Server(TlsKeyExchangeType type, ByteBuffer buffer, List<TlsSupportedGroup> supportedGroups) {
-            super(type);
-            var ecType = readBigEndianInt8(buffer);
-            this.parameters = supportedGroups.stream()
-                    .filter(group -> isCompatible(group, ecType))
-                    .findFirst()
-                    .map(group -> (TlsSupportedEllipticCurve) group)
-                    .orElseThrow(TlsAlert::noSupportedEllipticCurve)
-                    .parametersDeserializer()
-                    .deserialize(buffer);
-            this.publicKey = readBytesBigEndian8(buffer);
-        }
-
-        private boolean isCompatible(TlsSupportedGroup group, byte ecType) {
-            return group instanceof TlsSupportedEllipticCurve supportedEllipticCurve
-                    && supportedEllipticCurve.parametersDeserializer().accepts(ecType);
-        }
-
         @Override
         public void serialize(ByteBuffer buffer) {
             writeBytesBigEndian8(buffer, publicKey);
@@ -122,11 +94,6 @@ public sealed abstract class ECDHKeyExchange implements TlsKeyExchange {
         }
 
         @Override
-        public byte[] publicKey() {
-            return publicKey;
-        }
-
-        @Override
         public Optional<TlsECParameters> parameters() {
             return Optional.ofNullable(parameters);
         }
@@ -135,58 +102,107 @@ public sealed abstract class ECDHKeyExchange implements TlsKeyExchange {
     private record ECDHKeyExchangeFactory(TlsKeyExchangeType type) implements TlsKeyExchangeFactory {
         @Override
         public TlsKeyExchange newLocalKeyExchange(TlsContext context) {
-            return switch (context.mode()) {
-                case CLIENT -> newClientKeyExchange(context);
+            var localConnectionState = context.localConnectionState();
+            return switch (type) {
+                case STATIC -> {
+                    var certificate = localConnectionState.staticCertificate()
+                            .orElseThrow(() -> new TlsAlert("No local static certificate"))
+                            .getPublicKey();
+                    yield newKeyExchange(localConnectionState, certificate);
+                }
+
+                case EPHEMERAL -> {
+                    var remoteKeyExchange = context.remoteConnectionState()
+                            .orElseThrow(TlsAlert::noRemoteConnectionState)
+                            .keyExchange()
+                            .orElseThrow(TlsAlert::noRemoteKeyExchange);
+                    var group = context.getNegotiatedValue(TlsProperty.supportedGroups())
+                            .orElseThrow(() -> TlsAlert.noNegotiatedProperty(TlsProperty.supportedGroups()))
+                            .stream()
+                            .filter(entry -> entry instanceof TlsSupportedFiniteField supportedFiniteField
+                                    && supportedFiniteField.accepts(remoteKeyExchange))
+                            .findFirst()
+                            .orElseThrow(TlsAlert::noSupportedFiniteField);
+                    var keyPair = group.generateKeyPair(context);
+                    var publicKey = (DHPublicKey) keyPair.getPublic();
+                    localConnectionState.addEphemeralKeyPair(TlsKeyPair.of(group, keyPair))
+                            .chooseEphemeralKeyPair(group);
+                    var p = publicKey.getParams()
+                            .getP();
+                    var g = publicKey.getParams()
+                            .getG();
+                    var y = publicKey.getY()
+                            .toByteArray();
+                    yield switch (localConnectionState.type()) {
+                        case CLIENT -> new DHKeyExchange.Client(type, p, g, y);
+                        case SERVER -> new DHKeyExchange.Server(type, p, g, y);
+                    };
+                }
+            };
+
+            return switch (context.localConnectionState().type()) {
+                case CLIENT -> {
+                    var remoteKeyExchange = context.remoteConnectionState()
+                            .orElseThrow(TlsAlert::noRemoteConnectionState)
+                            .keyExchange()
+                            .orElseThrow(TlsAlert::noRemoteKeyExchange);
+                    if(!(remoteKeyExchange instanceof Server remoteEcdhKeyExchange)) {
+                        throw TlsAlert.keyExchangeTypeMismatch("ECDH");
+                    }
+
+                    var group = remoteEcdhKeyExchange.parameters()
+                            .orElseThrow(() -> new TlsAlert("Missing remote ECDH key parameters"))
+                            .toGroup(context);
+                    var keyPair = group.generateKeyPair(context);
+                    context.localConnectionState()
+                            .addEphemeralKeyPair(TlsKeyPair.of(group, keyPair))
+                            .chooseEphemeralKeyPair(group);
+                    var publicKey = group.dumpPublicKey(keyPair.getPublic());
+                    yield  new Client(type, publicKey);
+                }
                 case SERVER -> newServerKeyExchange(context);
             };
         }
 
         @Override
-        public TlsKeyExchange decodeRemoteKeyExchange(TlsContext context, ByteBuffer buffer) {
-            return switch (context.mode()) {
-                case SERVER -> new Client(type, buffer);
+        public TlsKeyExchange newRemoteKeyExchange(TlsContext context, ByteBuffer ephemeralKeyExchangeSource) {
+            return switch (context.localConnectionState().type()) {
+                case SERVER -> {
+                    var publicKey = readBytesBigEndian8(ephemeralKeyExchangeSource);
+                    yield new Client(type, publicKey);
+                }
                 case CLIENT -> {
                     var supportedGroups = context.getNegotiatedValue(TlsProperty.supportedGroups())
                             .orElseThrow(() -> TlsAlert.noNegotiatedProperty(TlsProperty.supportedGroups()));
-                    yield new Server(type, buffer, supportedGroups);
+                    var ecType = readBigEndianInt8(ephemeralKeyExchangeSource);
+                    var parameters = supportedGroups.stream()
+                            .filter(group -> group instanceof TlsSupportedEllipticCurve supportedEllipticCurve
+                                    && supportedEllipticCurve.parametersDeserializer().accepts(ecType))
+                            .findFirst()
+                            .map(group -> (TlsSupportedEllipticCurve) group)
+                            .orElseThrow(TlsAlert::noSupportedEllipticCurve)
+                            .parametersDeserializer()
+                            .deserialize(ephemeralKeyExchangeSource);
+                    var publicKey = readBytesBigEndian8(ephemeralKeyExchangeSource);
+                    yield new Server(type, parameters, publicKey);
                 }
             };
         }
 
-        private TlsKeyExchange newClientKeyExchange(TlsContext context) {
-            var remoteKeyExchange = context.remoteConnectionState()
-                    .orElseThrow(TlsAlert::noRemoteConnectionState)
-                    .keyExchange()
-                    .orElseThrow(TlsAlert::noRemoteKeyExchange);
-            if(!(remoteKeyExchange instanceof Server remoteEcdhKeyExchange)) {
-                throw TlsAlert.remoteKeyExchangeTypeMismatch("ECDH");
-            }
-
-            var group = remoteEcdhKeyExchange.parameters()
-                    .orElseThrow(() -> new TlsAlert("Missing remote ECDH key parameters"))
-                    .toGroup(context);
-            var keyPair = group.generateLocalKeyPair(context);
-            context.localConnectionState()
-                    .setPublicKey(keyPair.getPublic())
-                    .setPrivateKey(keyPair.getPrivate());
-            var publicKey = group.dumpPublicKey(keyPair.getPublic());
-            return new Client(type, publicKey);
-        }
-
         private Server newServerKeyExchange(TlsContext context) {
-            var supportedEllipticCurve = context.getNegotiatedValue(TlsProperty.supportedGroups())
+            var group = context.getNegotiatedValue(TlsProperty.supportedGroups())
                     .orElseThrow(() -> TlsAlert.noNegotiatedProperty(TlsProperty.supportedGroups()))
                     .stream()
                     .filter(supportedGroup -> supportedGroup instanceof TlsSupportedEllipticCurve)
                     .map(supportedGroup -> (TlsSupportedEllipticCurve) supportedGroup)
                     .findFirst()
                     .orElseThrow(TlsAlert::noSupportedEllipticCurve);
-            var keyPair = supportedEllipticCurve.generateLocalKeyPair(context);
+            var keyPair = group.generateKeyPair(context);
             context.localConnectionState()
-                    .setPublicKey(keyPair.getPublic())
-                    .setPrivateKey(keyPair.getPrivate());
-            var parameters = supportedEllipticCurve.toParameters();
-            var publicKey = supportedEllipticCurve.dumpPublicKey(keyPair.getPublic());
+                    .addEphemeralKeyPair(TlsKeyPair.of(group, keyPair))
+                    .chooseEphemeralKeyPair(group);
+            var parameters = group.toParameters();
+            var publicKey = group.dumpPublicKey(keyPair.getPublic());
             return new Server(type, parameters, publicKey);
         }
     }

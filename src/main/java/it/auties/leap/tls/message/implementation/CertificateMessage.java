@@ -2,8 +2,8 @@ package it.auties.leap.tls.message.implementation;
 
 import it.auties.leap.tls.alert.TlsAlert;
 import it.auties.leap.tls.cipher.exchange.TlsKeyExchangeType;
+import it.auties.leap.tls.connection.TlsConnectionType;
 import it.auties.leap.tls.context.TlsContext;
-import it.auties.leap.tls.context.TlsContextMode;
 import it.auties.leap.tls.context.TlsSource;
 import it.auties.leap.tls.message.TlsHandshakeMessage;
 import it.auties.leap.tls.message.TlsMessageContentType;
@@ -64,30 +64,38 @@ public record CertificateMessage(
 
     @Override
     public void apply(TlsContext context) {
-        var mode = context.mode();
-        if((mode == TlsContextMode.CLIENT && source == TlsSource.LOCAL) || (mode == TlsContextMode.SERVER && source == TlsSource.REMOTE)) {
-            switch (mode) {
-                case CLIENT -> context.localConnectionState()
-                        .setCertificates(certificates);
-                case SERVER -> context.remoteConnectionState()
-                        .orElseThrow(TlsAlert::noRemoteConnectionState)
-                        .setCertificates(certificates);
+        var negotiatedCipher = context.getNegotiatedValue(TlsProperty.cipher())
+                .orElseThrow(() -> TlsAlert.noNegotiatedProperty(TlsProperty.cipher()));
+        var certificate = context.certificateStore()
+                .validator()
+                .validate(context, source, certificates);
+        switch (source) {
+            case LOCAL -> {
+                if (negotiatedCipher.keyExchangeFactory().type() == TlsKeyExchangeType.STATIC) {
+                    var keyExchange = negotiatedCipher.keyExchangeFactory()
+                            .newLocalKeyExchange(context);
+                    context.localConnectionState()
+                            .setKeyExchange(keyExchange);
+                    if(context.localConnectionState().type() == TlsConnectionType.SERVER) {
+                        context.connectionInitializer()
+                                .initialize(context);
+                    }
+                }
             }
-        }else {
-            switch (mode) {
-                case CLIENT -> context.remoteConnectionState()
-                        .orElseThrow(TlsAlert::noRemoteConnectionState)
-                        .setCertificates(certificates);
-                case SERVER -> context.localConnectionState()
-                        .setCertificates(certificates);
-            }
-            var negotiatedCipher = context.getNegotiatedValue(TlsProperty.cipher())
-                    .orElseThrow(() -> TlsAlert.noNegotiatedProperty(TlsProperty.cipher()));
-            if(negotiatedCipher.keyExchangeFactory().type() == TlsKeyExchangeType.STATIC) {
-                var keyExchange = negotiatedCipher.keyExchangeFactory()
-                        .newLocalKeyExchange(context);
-                context.localConnectionState()
-                        .setKeyExchange(keyExchange);
+
+            case REMOTE -> {
+                var remoteConnectionState = context.remoteConnectionState()
+                        .orElseThrow(TlsAlert::noRemoteConnectionState);
+                remoteConnectionState.setStaticCertificate(certificate);
+                if (negotiatedCipher.keyExchangeFactory().type() == TlsKeyExchangeType.STATIC) {
+                    var keyExchange = negotiatedCipher.keyExchangeFactory()
+                            .newRemoteKeyExchange(context, null);
+                    remoteConnectionState.setKeyExchange(keyExchange);
+                    if(remoteConnectionState.type() == TlsConnectionType.SERVER) {
+                        context.connectionInitializer()
+                                .initialize(context);
+                    }
+                }
             }
         }
     }

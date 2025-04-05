@@ -1,9 +1,11 @@
 package it.auties.leap.tls.message.implementation;
 
 import it.auties.leap.tls.alert.TlsAlert;
+import it.auties.leap.tls.cipher.exchange.TlsKeyExchangeType;
 import it.auties.leap.tls.connection.TlsConnection;
+import it.auties.leap.tls.connection.TlsConnectionType;
+import it.auties.leap.tls.connection.TlsHandshakeStatus;
 import it.auties.leap.tls.context.TlsContext;
-import it.auties.leap.tls.context.TlsContextMode;
 import it.auties.leap.tls.context.TlsSource;
 import it.auties.leap.tls.extension.TlsExtension;
 import it.auties.leap.tls.message.TlsHandshakeMessage;
@@ -33,8 +35,21 @@ public record ServerHelloMessage(
 ) implements TlsHandshakeMessage {
     private static final int SERVER_RANDOM_LENGTH = 32;
     private static final int SESSION_ID_LENGTH = 32;
-    private static final int RANDOM_COOKIE_LENGTH = 32;
     public static final byte ID = 0x02;
+
+    public ServerHelloMessage {
+        if(randomData == null || randomData.length != SERVER_RANDOM_LENGTH) {
+            throw new TlsAlert("Invalid random data length");
+        }
+
+        if(sessionId == null || sessionId.length != SESSION_ID_LENGTH) {
+            throw new TlsAlert("Invalid session id length");
+        }
+
+        if(extensions == null) {
+            throw new TlsAlert("Invalid extensions");
+        }
+    }
 
     public static ServerHelloMessage of(TlsContext context, ByteBuffer buffer, TlsMessageMetadata metadata) {
         var tlsVersionId = readBigEndianInt16(buffer);
@@ -85,56 +100,100 @@ public record ServerHelloMessage(
     }
 
     @Override
-    public void serializePayload(ByteBuffer buffer) {
+    public void serializePayload(ByteBuffer payload) {
+        version.serialize(payload);
 
-    }
+        writeBytes(payload, randomData);
 
-    @Override
-    public void apply(TlsContext context) {
-        var credentials = TlsConnection.of(randomData, sessionId, null);
-        context.setRemoteConnectionState(credentials);
+        writeBytesBigEndian8(payload, sessionId);
 
-        var negotiatedCipher = context.getNegotiableValue(TlsProperty.cipher())
-                .orElseThrow(() -> TlsAlert.noNegotiableProperty(TlsProperty.cipher()))
-                .stream()
-                .filter(entry -> entry.id() == cipher)
-                .findFirst()
-                .orElseThrow(() -> new TlsAlert("Remote negotiated a cipher that wasn't available"));
-        context.addNegotiatedProperty(TlsProperty.cipher(), negotiatedCipher);
+        writeBigEndianInt16(payload, cipher);
 
-        var negotiatedCompression = context.getNegotiableValue(TlsProperty.compression())
-                .orElseThrow(() -> TlsAlert.noNegotiableProperty(TlsProperty.compression()))
-                .stream()
-                .filter(entry -> entry.id() == compression)
-                .findFirst()
-                .orElseThrow(() -> new TlsAlert("Remote negotiated a compression that wasn't available"));
-        context.addNegotiatedProperty(TlsProperty.compression(), negotiatedCompression);
+        writeBigEndianInt8(payload, compression);
 
-        var seen = new HashSet<Integer>();
-        for (var extension : extensions) {
-            seen.add(extension.type());
-            extension.apply(context, source);
+        if (!extensions.isEmpty()) {
+            writeBigEndianInt16(payload, extensionsLength);
+            for (var extension : extensions) {
+                extension.serialize(payload);
+            }
         }
-
-        var version = context.getNegotiatedValue(TlsProperty.version()).orElseGet(() -> {
-            context.addNegotiatedProperty(TlsProperty.version(), this.version); // supported_versions extension wasn't in the extensions list, default to legacyVersion
-            return this.version;
-        });
-
-        if(context.mode() == TlsContextMode.CLIENT && version.id().value() <= TlsVersion.DTLS12.id().value()) {
-            context.getNegotiatedValue(TlsProperty.clientExtensions())
-                    .orElseThrow(() -> TlsAlert.noNegotiatedProperty(TlsProperty.clientExtensions()))
-                    .stream()
-                    .filter(entry -> !seen.contains(entry.type()))
-                    .forEach(entry -> entry.apply(context, source));
-        }
-
-        context.connectionIntegrity()
-                .init(version, negotiatedCipher.hashFactory());
     }
 
     @Override
     public int payloadLength() {
-        return 0;
+        return version.length()
+                + SERVER_RANDOM_LENGTH
+                + INT8_LENGTH + SESSION_ID_LENGTH
+                + INT16_LENGTH
+                + INT8_LENGTH
+                + (extensions.isEmpty() ? 0 : INT16_LENGTH + extensionsLength);
+    }
+
+    @Override
+    public void apply(TlsContext context) {
+        switch (source) {
+            case LOCAL -> context.localConnectionState()
+                    .setHandshakeStatus(TlsHandshakeStatus.HANDSHAKE_STARTED);
+
+            case REMOTE -> {
+                var credentials = TlsConnection.of(TlsConnectionType.SERVER, randomData, sessionId, null);
+                credentials.setHandshakeStatus(TlsHandshakeStatus.HANDSHAKE_STARTED);
+                context.setRemoteConnectionState(credentials);
+
+                var negotiatedCipher = context.getNegotiableValue(TlsProperty.cipher())
+                        .orElseThrow(() -> TlsAlert.noNegotiableProperty(TlsProperty.cipher()))
+                        .stream()
+                        .filter(entry -> entry.id() == cipher)
+                        .findFirst()
+                        .orElseThrow(() -> new TlsAlert("Remote negotiated a cipher that wasn't available"));
+                context.addNegotiatedProperty(TlsProperty.cipher(), negotiatedCipher);
+
+                var negotiatedCompression = context.getNegotiableValue(TlsProperty.compression())
+                        .orElseThrow(() -> TlsAlert.noNegotiableProperty(TlsProperty.compression()))
+                        .stream()
+                        .filter(entry -> entry.id() == compression)
+                        .findFirst()
+                        .orElseThrow(() -> new TlsAlert("Remote negotiated a compression that wasn't available"));
+                context.addNegotiatedProperty(TlsProperty.compression(), negotiatedCompression);
+
+                var seen = new HashSet<Integer>();
+                for (var extension : extensions) {
+                    seen.add(extension.type());
+                    extension.apply(context, source);
+                }
+
+                var version = context.getNegotiatedValue(TlsProperty.version()).orElseGet(() -> {
+                    context.addNegotiatedProperty(TlsProperty.version(), this.version); // supported_versions extension wasn't in the extensions list, default to legacyVersion
+                    return this.version;
+                });
+
+                if(version == TlsVersion.TLS13 || version == TlsVersion.DTLS13) {
+                    if(negotiatedCipher.keyExchangeFactory().type() == TlsKeyExchangeType.STATIC) {
+                        throw new TlsAlert("Static key exchange not supported");
+                    }
+
+                    var localKeyExchange = negotiatedCipher.keyExchangeFactory()
+                            .newLocalKeyExchange(context);
+                    context.localConnectionState()
+                            .setKeyExchange(localKeyExchange);
+                    var remoteKeyExchange = negotiatedCipher.keyExchangeFactory()
+                            .newRemoteKeyExchange(context, ByteBuffer.allocate(0));
+                    context.remoteConnectionState()
+                            .orElseThrow(TlsAlert::noRemoteConnectionState)
+                            .setKeyExchange(remoteKeyExchange);
+                    context.connectionInitializer()
+                            .initialize(context);
+                }else {
+                    context.getNegotiatedValue(TlsProperty.clientExtensions())
+                            .orElseThrow(() -> TlsAlert.noNegotiatedProperty(TlsProperty.clientExtensions()))
+                            .stream()
+                            .filter(entry -> !seen.contains(entry.type()))
+                            .forEach(entry -> entry.apply(context, source));
+                }
+
+                context.connectionIntegrity()
+                        .init(version, negotiatedCipher.hashFactory());
+            }
+        }
     }
 }

@@ -1,21 +1,20 @@
 package it.auties.leap.tls.cipher.exchange.implementation;
 
-import it.auties.leap.tls.context.TlsContext;
-import it.auties.leap.tls.property.TlsProperty;
+import it.auties.leap.tls.alert.TlsAlert;
 import it.auties.leap.tls.cipher.exchange.TlsKeyExchange;
 import it.auties.leap.tls.cipher.exchange.TlsKeyExchangeFactory;
 import it.auties.leap.tls.cipher.exchange.TlsKeyExchangeType;
-import it.auties.leap.tls.alert.TlsAlert;
+import it.auties.leap.tls.connection.TlsConnection;
+import it.auties.leap.tls.context.TlsContext;
+import it.auties.leap.tls.group.TlsKeyPair;
 import it.auties.leap.tls.group.TlsSupportedFiniteField;
+import it.auties.leap.tls.property.TlsProperty;
 import it.auties.leap.tls.secret.TlsPreMasterSecretGenerator;
 
 import javax.crypto.interfaces.DHPublicKey;
-import javax.crypto.spec.DHPublicKeySpec;
 import java.math.BigInteger;
 import java.nio.ByteBuffer;
-import java.security.GeneralSecurityException;
-import java.security.KeyFactory;
-import java.security.KeyPair;
+import java.security.PublicKey;
 
 import static it.auties.leap.tls.util.BufferUtils.*;
 
@@ -46,24 +45,18 @@ public abstract sealed class DHKeyExchange implements TlsKeyExchange {
         return TlsPreMasterSecretGenerator.dh();
     }
 
-    public abstract DHPublicKey getOrParsePublicKey();
+    public abstract BigInteger p();
+
+    public abstract BigInteger g();
 
     private static final class Client extends DHKeyExchange {
         private final byte[] publicKey;
         private final BigInteger p;
         private final BigInteger g;
-        private DHPublicKey parsedPublicKey;
 
-        private Client(TlsKeyExchangeType type, byte[] publicKey, BigInteger p, BigInteger g) {
+        private Client(TlsKeyExchangeType type, BigInteger p, BigInteger g, byte[] publicKey) {
             super(type);
             this.publicKey = publicKey;
-            this.p = p;
-            this.g = g;
-        }
-
-        private Client(TlsKeyExchangeType type, ByteBuffer buffer, BigInteger p, BigInteger g) {
-            super(type);
-            this.publicKey = readBytesBigEndian16(buffer);
             this.p = p;
             this.g = g;
         }
@@ -79,161 +72,154 @@ public abstract sealed class DHKeyExchange implements TlsKeyExchange {
         }
 
         @Override
-        public DHPublicKey getOrParsePublicKey() {
-            if(parsedPublicKey != null) {
-                return parsedPublicKey;
-            }
+        public BigInteger p() {
+            return p;
+        }
 
-            try {
-                var keyFactory = KeyFactory.getInstance("DH");
-                var dhPubKeySpecs = new DHPublicKeySpec(
-                        new BigInteger(1, publicKey),
-                        p,
-                        g
-                );
-                return parsedPublicKey = (DHPublicKey) keyFactory.generatePublic(dhPubKeySpecs);
-            }catch (GeneralSecurityException exception) {
-                throw new TlsAlert("Cannot parse DH key", exception);
-            }
+        @Override
+        public BigInteger g() {
+            return g;
         }
     }
 
     private static final class Server extends DHKeyExchange {
-        private final byte[] p;
-        private final byte[] g;
+        private final BigInteger p;
+        private final BigInteger g;
         private final byte[] publicKey;
-        private DHPublicKey parsedPublicKey;
-
-        private Server(TlsKeyExchangeType type, byte[] p, byte[] g, byte[] publicKey) {
+ 
+        private Server(TlsKeyExchangeType type, BigInteger p, BigInteger g, byte[] publicKey) {
             super(type);
             this.p = p;
             this.g = g;
             this.publicKey = publicKey;
         }
 
-        private Server(TlsKeyExchangeType type, ByteBuffer buffer) {
-            super(type);
-            this.p = readBytesBigEndian16(buffer);
-            this.g = readBytesBigEndian16(buffer);
-            this.publicKey = readBytesBigEndian16(buffer);
-        }
-
         @Override
         public void serialize(ByteBuffer buffer) {
-            writeBytesBigEndian16(buffer, p);
-            writeBytesBigEndian16(buffer, g);
+            writeBytesBigEndian16(buffer, p.toByteArray());
+            writeBytesBigEndian16(buffer, g.toByteArray());
             writeBytesBigEndian16(buffer, publicKey);
         }
 
         @Override
         public int length() {
-            return INT16_LENGTH + p.length
-                    + INT16_LENGTH + g.length
+            return INT16_LENGTH + (p.bitLength() + 8) / 8
+                    + INT16_LENGTH + (g.bitLength() + 8) / 8
                     + INT16_LENGTH + publicKey.length;
         }
 
         @Override
-        public DHPublicKey getOrParsePublicKey() {
-            if(parsedPublicKey != null) {
-                return parsedPublicKey;
-            }
+        public BigInteger p() {
+            return p;
+        }
 
-            try {
-                var keyFactory = KeyFactory.getInstance("DH");
-                var p = new BigInteger(1, this.p);
-                var g = new BigInteger(1, this.g);
-                var dhPubKeySpecs = new DHPublicKeySpec(
-                        new BigInteger(1, publicKey),
-                        p,
-                        g
-                );
-                return parsedPublicKey = (DHPublicKey) keyFactory.generatePublic(dhPubKeySpecs);
-            }catch (GeneralSecurityException exception) {
-                throw new TlsAlert("Cannot parse DH key", exception);
-            }
+        @Override
+        public BigInteger g() {
+            return g;
         }
     }
 
     private record DHKeyExchangeFactory(TlsKeyExchangeType type) implements TlsKeyExchangeFactory {
         @Override
         public TlsKeyExchange newLocalKeyExchange(TlsContext context) {
-            return switch (context.mode()) {
-                case CLIENT -> newClientKeyExchange(context);
-                case SERVER -> newServerKeyExchange(context);
+            var localConnectionState = context.localConnectionState();
+            return switch (type) {
+                case STATIC -> {
+                    var certificate = localConnectionState.staticCertificate()
+                            .orElseThrow(() -> new TlsAlert("No local static certificate"))
+                            .getPublicKey();
+                    yield newKeyExchange(localConnectionState, certificate);
+                }
+
+                case EPHEMERAL -> {
+                    var remoteKeyExchange = context.remoteConnectionState()
+                            .orElseThrow(TlsAlert::noRemoteConnectionState)
+                            .keyExchange()
+                            .orElseThrow(TlsAlert::noRemoteKeyExchange);
+                    var group = context.getNegotiatedValue(TlsProperty.supportedGroups())
+                            .orElseThrow(() -> TlsAlert.noNegotiatedProperty(TlsProperty.supportedGroups()))
+                            .stream()
+                            .filter(entry -> entry instanceof TlsSupportedFiniteField supportedFiniteField
+                                    && supportedFiniteField.accepts(remoteKeyExchange))
+                            .findFirst()
+                            .orElseThrow(TlsAlert::noSupportedFiniteField);
+                    var keyPair = group.generateKeyPair(context);
+                    var publicKey = (DHPublicKey) keyPair.getPublic();
+                    localConnectionState.addEphemeralKeyPair(TlsKeyPair.of(group, keyPair))
+                            .chooseEphemeralKeyPair(group);
+                    var p = publicKey.getParams()
+                            .getP();
+                    var g = publicKey.getParams()
+                            .getG();
+                    var y = publicKey.getY()
+                            .toByteArray();
+                    yield switch (localConnectionState.type()) {
+                        case CLIENT -> new Client(type, p, g, y);
+                        case SERVER -> new Server(type, p, g, y);
+                    };
+                }
             };
         }
 
-        private TlsKeyExchange newClientKeyExchange(TlsContext context) {
-            var remoteKeyExchange = context.remoteConnectionState()
-                    .orElseThrow(TlsAlert::noRemoteConnectionState)
-                    .keyExchange()
-                    .orElseThrow(TlsAlert::noRemoteKeyExchange);
-            if(!(remoteKeyExchange instanceof Server remoteDhKeyExchange)) {
-                throw TlsAlert.remoteKeyExchangeTypeMismatch("DH");
-            }
-
-            var keyPair = generateKeyPair(context, remoteDhKeyExchange);
-            var publicKey = (DHPublicKey) keyPair.getPublic();
-            context.localConnectionState()
-                    .setPublicKey(publicKey)
-                    .setPrivateKey(keyPair.getPrivate());
-            var p = publicKey.getParams()
-                    .getP();
-            var g = publicKey.getParams()
-                    .getG();
-            var y = publicKey.getY()
-                    .toByteArray();
-            return new Client(type, y, p, g);
-        }
-
-        private TlsKeyExchange newServerKeyExchange(TlsContext context) {
-            var remoteKeyExchange = context.remoteConnectionState()
-                    .orElseThrow(TlsAlert::noRemoteConnectionState)
-                    .keyExchange()
-                    .orElseThrow(TlsAlert::noRemoteKeyExchange);
-            if(!(remoteKeyExchange instanceof Client remoteDhKeyExchange)) {
-                throw TlsAlert.remoteKeyExchangeTypeMismatch("DH");
-            }
-
-            var keyPair = generateKeyPair(context, remoteDhKeyExchange);
-            var publicKey = (DHPublicKey) keyPair.getPublic();
-            context.localConnectionState()
-                    .setPublicKey(publicKey)
-                    .setPrivateKey(keyPair.getPrivate());
-            var p = publicKey.getParams()
-                    .getP()
-                    .toByteArray();
-            var g = publicKey.getParams()
-                    .getG()
-                    .toByteArray();
-            var y = publicKey.getY()
-                    .toByteArray();
-            return new Server(type, p, g, y);
-        }
-
-        private KeyPair generateKeyPair(TlsContext context, TlsKeyExchange remoteDhKeyExchange) {
-            return context.getNegotiatedValue(TlsProperty.supportedGroups())
-                .orElseThrow(() -> TlsAlert.noNegotiatedProperty(TlsProperty.supportedGroups()))
-                    .stream()
-                    .filter(entry -> entry instanceof TlsSupportedFiniteField supportedFiniteField && supportedFiniteField.accepts(remoteDhKeyExchange))
-                    .findFirst()
-                    .orElseThrow(TlsAlert::noSupportedFiniteField)
-                    .generateLocalKeyPair(context);
-        }
-
         @Override
-        public TlsKeyExchange decodeRemoteKeyExchange(TlsContext context, ByteBuffer buffer) {
-            return switch (context.mode()) {
-                case SERVER -> {
-                    var localPublicKey = context.localConnectionState()
-                            .publicKey()
-                            .orElseThrow(() -> new TlsAlert("Missing local key pair"));
-                    if(!(localPublicKey instanceof DHPublicKey dhPublicKey)) {
-                        throw new TlsAlert("Unsupported key type");
+        public TlsKeyExchange newRemoteKeyExchange(TlsContext context, ByteBuffer ephemeralKeyExchangeSource) {
+            var remoteConnectionState = context.remoteConnectionState()
+                    .orElseThrow(TlsAlert::noRemoteConnectionState);
+            return switch (type) {
+                case STATIC -> {
+                    if(ephemeralKeyExchangeSource != null) {
+                        throw new TlsAlert("Static key exchange should not receive an ephemeral key exchange source");
                     }
-                    yield new Client(type, buffer, dhPublicKey.getParams().getP(), dhPublicKey.getParams().getG());
+
+                    var certificate = remoteConnectionState.staticCertificate()
+                            .orElseThrow(() -> new TlsAlert("No remote static certificate"))
+                            .getPublicKey();
+                    yield newKeyExchange(remoteConnectionState, certificate);
                 }
-                case CLIENT -> new Server(type, buffer);
+
+                case EPHEMERAL -> {
+                    if(ephemeralKeyExchangeSource == null) {
+                        throw new TlsAlert("Ephemeral key exchange should receive an ephemeral key exchange source");
+                    }
+
+                    yield switch (remoteConnectionState.type()) {
+                        case CLIENT -> {
+                            var localPublicKey = context.localConnectionState()
+                                    .ephemeralKeyPair()
+                                    .orElseThrow(TlsAlert::noKeyPairSelected)
+                                    .publicKey();
+                            if (!(localPublicKey instanceof DHPublicKey dhPublicKey)) {
+                                throw TlsAlert.keyExchangeTypeMismatch("DH");
+                            }
+
+                            var p = dhPublicKey.getParams().getP();
+                            var g = dhPublicKey.getParams().getG();
+                            var y = readBytesBigEndian16(ephemeralKeyExchangeSource);
+                            yield new Client(type, p, g, y);
+                        }
+
+                        case SERVER -> {
+                            var p = new BigInteger(1, readBytesBigEndian16(ephemeralKeyExchangeSource));
+                            var g = new BigInteger(1, readBytesBigEndian16(ephemeralKeyExchangeSource));
+                            var publicKey = readBytesBigEndian16(ephemeralKeyExchangeSource);
+                            yield new Server(type, p, g, publicKey);
+                        }
+                    };
+                }
+            };
+        }
+
+        private TlsKeyExchange newKeyExchange(TlsConnection connection, PublicKey certificate) {
+            if(!(certificate instanceof DHPublicKey dhPublicKey)) {
+                throw TlsAlert.keyExchangeTypeMismatch("DH");
+            }
+
+            var p = dhPublicKey.getParams().getP();
+            var g = dhPublicKey.getParams().getG();
+            var y = dhPublicKey.getY().toByteArray();
+            return switch (connection.type()) {
+                case CLIENT -> new Client(type, p, g, y);
+                case SERVER -> new Server(type, p, g, y);
             };
         }
     }

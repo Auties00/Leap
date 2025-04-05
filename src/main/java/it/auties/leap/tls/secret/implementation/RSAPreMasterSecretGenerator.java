@@ -3,6 +3,7 @@ package it.auties.leap.tls.secret.implementation;
 import it.auties.leap.tls.context.TlsContext;
 import it.auties.leap.tls.alert.TlsAlert;
 import it.auties.leap.tls.connection.TlsConnection;
+import it.auties.leap.tls.group.TlsKeyPair;
 import it.auties.leap.tls.secret.TlsPreMasterSecretGenerator;
 import it.auties.leap.tls.property.TlsProperty;
 import it.auties.leap.tls.secret.TlsSecret;
@@ -28,7 +29,8 @@ public final class RSAPreMasterSecretGenerator implements TlsPreMasterSecretGene
             var preMasterSecret = getPreMasterSecret(context);
             var cipher = Cipher.getInstance("RSA/ECB/PKCS1Padding");
             var remotePublicKey = context.remoteConnectionState()
-                    .flatMap(TlsConnection::publicKey)
+                    .flatMap(TlsConnection::ephemeralKeyPair)
+                    .map(TlsKeyPair::publicKey)
                     .orElseThrow(TlsAlert::noRemoteConnectionState);
             cipher.init(Cipher.WRAP_MODE, remotePublicKey);
             return TlsSecret.of(cipher.wrap(new SecretKeySpec(preMasterSecret, "raw")));

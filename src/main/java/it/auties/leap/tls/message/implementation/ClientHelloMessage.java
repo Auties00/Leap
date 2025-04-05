@@ -2,6 +2,10 @@ package it.auties.leap.tls.message.implementation;
 
 import it.auties.leap.socket.SocketProtocol;
 import it.auties.leap.tls.alert.TlsAlert;
+import it.auties.leap.tls.cipher.TlsCipherSuite;
+import it.auties.leap.tls.compression.TlsCompression;
+import it.auties.leap.tls.connection.TlsConnection;
+import it.auties.leap.tls.connection.TlsConnectionType;
 import it.auties.leap.tls.connection.TlsHandshakeStatus;
 import it.auties.leap.tls.context.TlsContext;
 import it.auties.leap.tls.context.TlsSource;
@@ -129,7 +133,7 @@ public record ClientHelloMessage(
 
     @Override
     public void serializePayload(ByteBuffer payload) {
-        writeBigEndianInt16(payload, version.id().value());
+        version.serialize(payload);
 
         writeBytes(payload, randomData);
 
@@ -161,23 +165,66 @@ public record ClientHelloMessage(
 
     @Override
     public int payloadLength() {
-        return INT16_LENGTH
+        return version.length()
                 + CLIENT_RANDOM_LENGTH
                 + INT8_LENGTH + SESSION_ID_LENGTH
                 + (cookie != null ? INT8_LENGTH + RANDOM_COOKIE_LENGTH : 0)
                 + INT16_LENGTH + ciphers.size() * INT16_LENGTH
                 + INT8_LENGTH + compressions.size() * INT8_LENGTH
-                + INT16_LENGTH + extensionsLength;
+                + (extensions.isEmpty() ? 0 : INT16_LENGTH + extensionsLength);
     }
 
     @Override
     public void apply(TlsContext context) {
-        switch (context.mode()) {
-            case CLIENT -> context.localConnectionState()
-                    .setHandshakeStatus(TlsHandshakeStatus.HANDSHAKING);
-            case SERVER -> context.remoteConnectionState()
-                    .orElseThrow(TlsAlert::noRemoteConnectionState)
-                    .setHandshakeStatus(TlsHandshakeStatus.HANDSHAKING);
+        switch (source) {
+            case LOCAL -> context.localConnectionState()
+                    .setHandshakeStatus(TlsHandshakeStatus.HANDSHAKE_DONE);
+            case REMOTE -> {
+                var credentials = TlsConnection.of(TlsConnectionType.CLIENT, randomData, sessionId, cookie);
+                credentials.setHandshakeStatus(TlsHandshakeStatus.HANDSHAKE_DONE);
+                context.setRemoteConnectionState(credentials);
+
+                var negotiatedCipher = chooseCipher(context);
+
+                chooseCompression(context);
+
+                for(var extension : extensions) {
+                    extension.apply(context, source);
+                }
+
+                context.connectionIntegrity()
+                        .init(version, negotiatedCipher.hashFactory());
+            }
         }
+    }
+
+    private TlsCipherSuite chooseCipher(TlsContext context) {
+        var negotiableCiphers = context.getNegotiableValue(TlsProperty.cipher())
+                .orElseThrow(() -> TlsAlert.noNegotiableProperty(TlsProperty.cipher()))
+                .stream()
+                .collect(Collectors.toUnmodifiableMap(TlsCipherSuite::id, Function.identity()));
+        for(var advertisedCipherId : ciphers) {
+            var advertisedCipher = negotiableCiphers.get(advertisedCipherId);
+            if(advertisedCipher != null) {
+                context.addNegotiatedProperty(TlsProperty.cipher(), advertisedCipher);
+                return advertisedCipher;
+            }
+        }
+        throw new TlsAlert("None of the advertised ciphers are supported or enabled");
+    }
+
+    private void chooseCompression(TlsContext context) {
+        var negotiableCompressions = context.getNegotiableValue(TlsProperty.compression())
+                .orElseThrow(() -> TlsAlert.noNegotiableProperty(TlsProperty.compression()))
+                .stream()
+                .collect(Collectors.toUnmodifiableMap(TlsCompression::id, Function.identity()));
+        for(var advertisedCompressionId : compressions) {
+            var advertisedCompression = negotiableCompressions.get(advertisedCompressionId);
+            if(advertisedCompression != null) {
+                context.addNegotiatedProperty(TlsProperty.compression(), advertisedCompression);
+                return;
+            }
+        }
+        throw new TlsAlert("None of the advertised compressions are supported or enabled");
     }
 }

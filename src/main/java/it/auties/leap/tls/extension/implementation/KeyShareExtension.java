@@ -1,17 +1,26 @@
 package it.auties.leap.tls.extension.implementation;
 
 import it.auties.leap.tls.alert.TlsAlert;
+import it.auties.leap.tls.connection.TlsConnection;
+import it.auties.leap.tls.connection.TlsConnectionType;
 import it.auties.leap.tls.context.TlsContext;
 import it.auties.leap.tls.context.TlsSource;
 import it.auties.leap.tls.extension.TlsExtension;
 import it.auties.leap.tls.extension.TlsExtensionDependencies;
+import it.auties.leap.tls.group.TlsKeyPair;
+import it.auties.leap.tls.group.TlsSupportedGroup;
+import it.auties.leap.tls.property.TlsIdentifiableProperty;
 import it.auties.leap.tls.property.TlsProperty;
 import it.auties.leap.tls.version.TlsVersion;
 
 import java.nio.ByteBuffer;
+import java.security.PrivateKey;
+import java.security.PublicKey;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 import static it.auties.leap.tls.util.BufferUtils.*;
 
@@ -55,23 +64,22 @@ public final class KeyShareExtension implements TlsExtension.Configurable {
 
     @Override
     public Optional<? extends TlsExtension.Configured.Client> configureClient(TlsContext context, int messageLength) {
-        return configure(context, messageLength);
+        return configure(context);
     }
 
     @Override
     public Optional<? extends TlsExtension.Configured.Server> configureServer(TlsContext context, int messageLength) {
-        return configure(context, messageLength);
+        return configure(context);
     }
 
-    private Optional<? extends TlsExtension.Configured.Agnostic> configure(TlsContext context, int messageLength) {
+    private Optional<? extends TlsExtension.Configured.Agnostic> configure(TlsContext context) {
         var entries = new ArrayList<KeyShareEntry>();
         var entriesLength = 0;
         var supportedGroups = context.getNegotiableValue(TlsProperty.supportedGroups())
                 .orElseThrow(() -> TlsAlert.noNegotiableProperty(TlsProperty.supportedGroups()));
         for(var supportedGroup : supportedGroups) {
-            var keyPair = supportedGroup.generateLocalKeyPair(context);
-            var publicKey = supportedGroup.dumpPublicKey(keyPair.getPublic());
-            var entry = new KeyShareEntry(supportedGroup.id(), publicKey);
+            var keyPair = supportedGroup.generateKeyPair(context);
+            var entry = new KeyShareEntry(supportedGroup, keyPair.getPublic(), keyPair.getPrivate());
             entries.add(entry);
             entriesLength += entry.length();
         }
@@ -97,18 +105,74 @@ public final class KeyShareExtension implements TlsExtension.Configurable {
 
         @Override
         public void apply(TlsContext context, TlsSource source) {
+            switch (source) {
+                case LOCAL -> {
+                    var localState = context.localConnectionState();
+                    for(var entry : entries) {
+                        localState.addEphemeralKeyPair(TlsKeyPair.of(entry.namedGroup(), entry.publicKey(), entry.privateKey()));
+                    }
+                    if(localState.type() == TlsConnectionType.SERVER) {
+                        var selectedGroup = chooseGroup(localState);
+                        localState.chooseEphemeralKeyPair(selectedGroup);
+                        context.remoteConnectionState()
+                                .orElseThrow(TlsAlert::noRemoteConnectionState)
+                                .chooseEphemeralKeyPair(selectedGroup);
+                    }
+                }
 
+                case REMOTE -> {
+                    var remoteState = context.remoteConnectionState()
+                            .orElseThrow(TlsAlert::noRemoteConnectionState);
+                    for(var entry : entries) {
+                        remoteState.addEphemeralKeyPair(TlsKeyPair.of(entry.namedGroup(), entry.publicKey(), entry.privateKey()));
+                    }
+                    if(remoteState.type() == TlsConnectionType.SERVER) {
+                        var selectedGroup = chooseGroup(remoteState);
+                        context.localConnectionState()
+                                .chooseEphemeralKeyPair(selectedGroup);
+                        remoteState.chooseEphemeralKeyPair(selectedGroup);
+                    }
+                }
+            }
+        }
+
+        private TlsSupportedGroup chooseGroup(TlsConnection state) {
+            if(entries.isEmpty()) {
+                // TODO: Needs renegotiation
+                throw new UnsupportedOperationException();
+            }
+
+            for(var entry : entries) {
+                if(state.chooseEphemeralKeyPair(entry.namedGroup())) {
+                    return entry.namedGroup();
+                }
+            }
+
+            throw new TlsAlert("There isn't a proposed key share that matches an advertised supported group");
         }
 
         @Override
         public Optional<KeyShareExtension.Configured> deserialize(TlsContext context, int type, ByteBuffer buffer) {
             var entries = new ArrayList<KeyShareEntry>();
             var entriesSize = buffer.remaining();
+            var supportedGroups = context.getNegotiableValue(TlsProperty.supportedGroups())
+                    .orElseThrow(() -> TlsAlert.noNegotiableProperty(TlsProperty.supportedGroups()))
+                    .stream()
+                    .collect(Collectors.toUnmodifiableMap(TlsIdentifiableProperty::id, Function.identity()));
             while (buffer.hasRemaining()) {
                 var namedGroupId = readBigEndianInt16(buffer);
-                var publicKey = readBytesBigEndian16(buffer);
-                var entry = new KeyShareEntry(namedGroupId, publicKey);
-                entries.add(entry);
+                var namedGroup = supportedGroups.get(namedGroupId);
+                if(namedGroup != null) {
+                    var rawPublicKey = readBytesBigEndian16(buffer);
+                    var publicKey = namedGroup.parsePublicKey(rawPublicKey);
+                    var entry = new KeyShareEntry(namedGroup, publicKey, null, rawPublicKey);
+                    entries.add(entry);
+                }else if (context.localConnectionState().type() == TlsConnectionType.CLIENT) {
+                    throw new TlsAlert("Remote tried to negotiate a key from a named group that wasn't advertised");
+                }
+            }
+            if(context.localConnectionState().type() == TlsConnectionType.CLIENT && entries.size() > 1) {
+                throw new TlsAlert("Remote tried to negotiate too many keys");
             }
             var extension = new KeyShareExtension.Configured(entries, entriesSize);
             return Optional.of(extension);
@@ -136,16 +200,22 @@ public final class KeyShareExtension implements TlsExtension.Configurable {
     }
 
     private record KeyShareEntry(
-            int namedGroup,
-            byte[] publicKey
+            TlsSupportedGroup namedGroup,
+            PublicKey publicKey,
+            PrivateKey privateKey,
+            byte[] rawPublicKey
     ) {
-        public void serialize(ByteBuffer buffer) {
-            writeBigEndianInt16(buffer, namedGroup);
-            writeBytesBigEndian16(buffer, publicKey);
+        private KeyShareEntry(TlsSupportedGroup namedGroup, PublicKey publicKey, PrivateKey privateKey) {
+            this(namedGroup, publicKey, privateKey, namedGroup.dumpPublicKey(publicKey));
         }
 
-        public int length() {
-            return INT16_LENGTH + INT16_LENGTH + publicKey.length;
+        private void serialize(ByteBuffer buffer) {
+            writeBigEndianInt16(buffer, namedGroup.id());
+            writeBytesBigEndian16(buffer, rawPublicKey);
+        }
+
+        private int length() {
+            return INT16_LENGTH + INT16_LENGTH + rawPublicKey.length;
         }
     }
 }

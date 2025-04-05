@@ -2,7 +2,7 @@ package it.auties.leap.tls.extension.implementation;
 
 import it.auties.leap.tls.alert.TlsAlert;
 import it.auties.leap.tls.context.TlsContext;
-import it.auties.leap.tls.context.TlsContextMode;
+import it.auties.leap.tls.connection.TlsConnectionType;
 import it.auties.leap.tls.context.TlsSource;
 import it.auties.leap.tls.extension.TlsExtension;
 import it.auties.leap.tls.extension.TlsExtensionDependencies;
@@ -52,13 +52,13 @@ public record PSKExchangeModesExtension(
                 .orElseThrow(() -> TlsAlert.noNegotiableProperty(TlsProperty.pskExchangeModes()))
                 .stream()
                 .collect(Collectors.toUnmodifiableMap(TlsIdentifiableProperty::id, Function.identity()));
-        var mode = context.mode();
+        var mode = context.localConnectionState().type();
         for(var i = 0; i < modesSize; i++) {
             var pskModeId = readBigEndianInt8(buffer);
             var pskMode = knownModes.get(pskModeId);
             if(pskMode != null) {
                 modes.add(pskMode);
-            }else if(mode == TlsContextMode.CLIENT) {
+            }else if(mode == TlsConnectionType.CLIENT) {
                 throw new TlsAlert("Remote tried to negotiate a psk exchange mode that wasn't advertised");
             }
         }

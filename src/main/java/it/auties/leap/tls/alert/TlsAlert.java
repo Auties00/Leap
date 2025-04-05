@@ -58,8 +58,8 @@ public class TlsAlert extends RuntimeException {
         return new TlsAlert("No supported group is an elliptic curve");
     }
 
-    public static TlsAlert remoteKeyExchangeTypeMismatch(String expected) {
-        return new TlsAlert("Expected remote key exchange to have type " + expected);
+    public static TlsAlert keyExchangeTypeMismatch(String expected) {
+        return new TlsAlert("Expected key exchange to have type " + expected);
     }
 
     public static TlsAlert malformedRemoteKeyExchange() {
@@ -88,5 +88,9 @@ public class TlsAlert extends RuntimeException {
 
     public static TlsAlert noRemoteCipher() {
         return new TlsAlert("No remote cipher");
+    }
+
+    public static TlsAlert noKeyPairSelected() {
+        return new TlsAlert("No key pair selected");
     }
 }

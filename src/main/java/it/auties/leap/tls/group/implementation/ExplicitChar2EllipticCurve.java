@@ -38,7 +38,7 @@ public final class ExplicitChar2EllipticCurve implements TlsSupportedEllipticCur
     }
 
     @Override
-    public KeyPair generateLocalKeyPair(TlsContext context) {
+    public KeyPair generateKeyPair(TlsContext context) {
         throw new UnsupportedOperationException();
     }
 
@@ -50,6 +50,11 @@ public final class ExplicitChar2EllipticCurve implements TlsSupportedEllipticCur
     @Override
     public boolean accepts(int namedGroup) {
         return false;
+    }
+
+    @Override
+    public PublicKey parsePublicKey(byte[] rawPublicKey) {
+        throw new UnsupportedOperationException();
     }
 
     @Override

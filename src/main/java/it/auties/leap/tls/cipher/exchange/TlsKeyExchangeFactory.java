@@ -51,6 +51,6 @@ public interface TlsKeyExchangeFactory {
     }
     
     TlsKeyExchange newLocalKeyExchange(TlsContext context);
-    TlsKeyExchange decodeRemoteKeyExchange(TlsContext context, ByteBuffer buffer);
+    TlsKeyExchange newRemoteKeyExchange(TlsContext context, ByteBuffer ephemeralKeyExchangeSource);
     TlsKeyExchangeType type();
 }

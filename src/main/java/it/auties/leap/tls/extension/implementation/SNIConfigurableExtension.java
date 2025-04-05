@@ -88,7 +88,7 @@ public record SNIConfigurableExtension(
         @Override
         public Optional<? extends Agnostic> deserialize(TlsContext context, int type, ByteBuffer buffer) {
             if(!buffer.hasRemaining()) {
-                return switch (context.mode()) {
+                return switch (context.localConnectionState().type()) {
                     case CLIENT -> context.getNegotiatedValue(TlsProperty.clientExtensions())
                             .orElseThrow(() -> TlsAlert.noNegotiatedProperty(TlsProperty.clientExtensions()))
                             .stream()

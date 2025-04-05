@@ -11,7 +11,8 @@ import java.security.PublicKey;
 // https://www.iana.org/assignments/tls-parameters/tls-parameters-8.csv
 public sealed interface TlsSupportedGroup extends TlsIdentifiableProperty<Integer> permits TlsSupportedEllipticCurve, TlsSupportedFiniteField {
     boolean dtls();
-    KeyPair generateLocalKeyPair(TlsContext context);;
+    KeyPair generateKeyPair(TlsContext context);;
     TlsSecret computeSharedSecret(TlsContext context);
     byte[] dumpPublicKey(PublicKey keyPair);
+    PublicKey parsePublicKey(byte[] rawPublicKey);
 }

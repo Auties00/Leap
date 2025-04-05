@@ -33,14 +33,14 @@ public final class StandardMasterSecretGenerator implements TlsMasterSecretGener
                 .orElseThrow(() -> TlsAlert.noNegotiatedProperty(TlsProperty.version()));
         var extendedMasterSecret = context.getNegotiatedValue(TlsProperty.extendedMasterSecret())
                 .orElse(false);
-        var clientRandom = switch (context.mode()) {
+        var clientRandom = switch (context.localConnectionState().type()) {
             case CLIENT -> context.localConnectionState()
                     .randomData();
             case SERVER -> context.remoteConnectionState()
                     .orElseThrow(TlsAlert::noRemoteConnectionState)
                     .randomData();
         };
-        var serverRandom = switch (context.mode()) {
+        var serverRandom = switch (context.localConnectionState().type()) {
             case CLIENT -> context.remoteConnectionState()
                     .orElseThrow(TlsAlert::noRemoteConnectionState)
                     .randomData();

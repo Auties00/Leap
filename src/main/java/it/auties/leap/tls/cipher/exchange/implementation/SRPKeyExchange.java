@@ -18,7 +18,7 @@ public sealed abstract class SRPKeyExchange implements TlsKeyExchange {
         }
 
         @Override
-        public TlsKeyExchange decodeRemoteKeyExchange(TlsContext context, ByteBuffer buffer) {
+        public TlsKeyExchange newRemoteKeyExchange(TlsContext context, ByteBuffer ephemeralKeyExchangeSource) {
             throw new UnsupportedOperationException();
         }
 

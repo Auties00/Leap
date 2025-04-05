@@ -2,31 +2,40 @@ package it.auties.leap.tls.connection;
 
 import it.auties.leap.tls.cipher.exchange.TlsKeyExchange;
 import it.auties.leap.tls.cipher.mode.TlsCipher;
+import it.auties.leap.tls.group.TlsKeyPair;
+import it.auties.leap.tls.group.TlsSupportedGroup;
 
-import java.security.PrivateKey;
-import java.security.PublicKey;
 import java.security.cert.X509Certificate;
-import java.util.List;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Optional;
 
 public final class TlsConnection {
-    public static TlsConnection of(byte[] randomData, byte[] sessionId, byte[] dtlsCookie) {
-        return new TlsConnection(randomData, sessionId, dtlsCookie);
+    public static TlsConnection of(TlsConnectionType type, byte[] randomData, byte[] sessionId, byte[] dtlsCookie) {
+        return new TlsConnection(type, randomData, sessionId, dtlsCookie);
     }
 
+    private final TlsConnectionType type;
     private final byte[] randomData;
     private final byte[] sessionId;
     private final byte[] dtlsCookie;
+    private final Map<Integer, TlsKeyPair> keys;
     private volatile TlsKeyExchange keyExchange;
-    private volatile PublicKey publicKey;
-    private volatile PrivateKey privateKey;
-    private volatile List<X509Certificate> certificates;
+    private volatile X509Certificate staticCertificate;
     private volatile TlsCipher cipher;
     private volatile TlsHandshakeStatus handshakeStatus;
-    private TlsConnection(byte[] randomData, byte[] sessionId, byte[] dtlsCookie) {
+    private volatile Integer selectedKeyPair;
+    private TlsConnection(TlsConnectionType type, byte[] randomData, byte[] sessionId, byte[] dtlsCookie) {
+        this.type = type;
         this.randomData = randomData;
         this.sessionId = sessionId;
         this.dtlsCookie = dtlsCookie;
+        this.keys = new HashMap<>();
+        this.handshakeStatus = TlsHandshakeStatus.HANDSHAKE_WAIT;
+    }
+
+    public TlsConnectionType type() {
+        return type;
     }
 
     public byte[] randomData() {
@@ -41,16 +50,8 @@ public final class TlsConnection {
         return Optional.ofNullable(dtlsCookie);
     }
 
-    public Optional<PublicKey> publicKey() {
-        return Optional.ofNullable(publicKey);
-    }
-
-    public Optional<PrivateKey> privateKey() {
-        return Optional.ofNullable(privateKey);
-    }
-
-    public List<X509Certificate> certificates() {
-        return certificates;
+    public Optional<X509Certificate> staticCertificate() {
+        return Optional.ofNullable(staticCertificate);
     }
 
     public Optional<TlsKeyExchange> keyExchange() {
@@ -61,18 +62,30 @@ public final class TlsConnection {
         return Optional.ofNullable(cipher);
     }
 
-    public TlsConnection setPublicKey(PublicKey publicKey) {
-        this.publicKey = publicKey;
+    public TlsConnection addEphemeralKeyPair(TlsKeyPair keyPair) {
+        keys.put(keyPair.group().id(), keyPair);
         return this;
     }
 
-    public TlsConnection setPrivateKey(PrivateKey privateKey) {
-        this.privateKey = privateKey;
-        return this;
+    public boolean chooseEphemeralKeyPair(TlsSupportedGroup group) {
+        if(!keys.containsKey(group.id())) {
+            return false;
+        }
+
+        this.selectedKeyPair = group.id();
+        return true;
     }
 
-    public TlsConnection setCertificates(List<X509Certificate> certificates) {
-        this.certificates = certificates;
+    public Optional<TlsKeyPair> ephemeralKeyPair() {
+        if(selectedKeyPair == null) {
+            return Optional.empty();
+        }
+
+        return Optional.ofNullable(keys.get(selectedKeyPair));
+    }
+
+    public TlsConnection setStaticCertificate(X509Certificate staticCertificate) {
+        this.staticCertificate = staticCertificate;
         return this;
     }
 

@@ -1,8 +1,12 @@
 package it.auties.leap.tls.util;
 
-import it.auties.leap.tls.cipher.exchange.TlsKeyExchangeType;
-import it.auties.leap.tls.context.TlsContextMode;
+import it.auties.leap.StableValue;
 import it.auties.leap.tls.alert.TlsAlert;
+import it.auties.leap.tls.certificate.TlsCertificate;
+import it.auties.leap.tls.certificate.TlsCertificateStore;
+import it.auties.leap.tls.certificate.TlsClientCertificateType;
+import it.auties.leap.tls.cipher.exchange.TlsKeyExchangeType;
+import it.auties.leap.tls.connection.TlsConnectionType;
 import it.auties.leap.tls.util.sun.HostnameChecker;
 
 import java.io.File;
@@ -10,11 +14,11 @@ import java.io.FileInputStream;
 import java.net.InetSocketAddress;
 import java.security.GeneralSecurityException;
 import java.security.KeyStore;
-import java.security.KeyStoreException;
 import java.security.cert.*;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 public final class CertificateUtils {
     private static final String CLIENT_AUTH_USE_OID = "1.3.6.1.5.5.7.3.2";
@@ -24,9 +28,9 @@ public final class CertificateUtils {
     private static final int KU_KEY_ENCIPHERMENT = 2;
     private static final int KU_KEY_AGREEMENT = 4;
     private static final String DEFAULT_KEY_STORE_PATH = System.getProperty("java.home") + File.separator + "lib" + File.separator + "security" + File.separator + "cacerts";
-    private static final KeyStore DEFAULT_KEY_STORE = loadDefaultKeyStore();
+    private static final StableValue<Set<TlsCertificate>> DEFAULT_TRUST_ANCHORS = StableValue.of();
 
-    public static X509Certificate validateChain(List<X509Certificate> certificateChain, InetSocketAddress remoteAddress, KeyStore keyStore, String expectedAlgorithm) {
+    public static X509Certificate validateChain(List<X509Certificate> certificateChain, InetSocketAddress remoteAddress, TlsCertificateStore keyStore, TlsClientCertificateType expectedAlgorithm) {
         var leafCert = getLeafCert(certificateChain);
         checkAlgorithm(expectedAlgorithm, leafCert);
         checkRemote(remoteAddress, leafCert);
@@ -34,10 +38,9 @@ public final class CertificateUtils {
         return leafCert;
     }
 
-    private static void checkAlgorithm(String expectedAlgorithm, X509Certificate leafCert) {
-        var sigAlgName = leafCert.getSigAlgName();
-        if (sigAlgName == null || !sigAlgName.toUpperCase().contains(expectedAlgorithm.toUpperCase())) {
-            throw new TlsAlert("Certificate signature algorithm (%s) does not match expected algorithm (%s).".formatted(sigAlgName, expectedAlgorithm));
+    private static void checkAlgorithm(TlsClientCertificateType expectedAlgorithm, X509Certificate leafCert) {
+        if (leafCert.getSigAlgName() == null || !expectedAlgorithm.accepts(leafCert)) {
+            throw new TlsAlert("Certificate signature algorithm (%s) does not match expected algorithm (%s).".formatted(leafCert.getSigAlgName(), expectedAlgorithm));
         }
     }
 
@@ -57,15 +60,14 @@ public final class CertificateUtils {
         }
     }
 
-    private static void validateCertificate(KeyStore trustedKeyStore, List<X509Certificate> certificateChain) {
-        var trustAnchors = getTrustAnchors(trustedKeyStore);
-        if (trustAnchors.isEmpty()) {
-            throw new TlsAlert("Cannot validate certificate: no trust anchors");
-        }
-
+    private static void validateCertificate(TlsCertificateStore trustedKeyStore, List<X509Certificate> certificateChain) {
         try {
             var certFactory = CertificateFactory.getInstance("X.509");
             var certPath = certFactory.generateCertPath(certificateChain);
+            var trustAnchors = trustedKeyStore.trustAnchors()
+                    .stream()
+                    .map(tlsCertificate -> new TrustAnchor(tlsCertificate.value(), null))
+                    .collect(Collectors.toUnmodifiableSet());
             var pkixParams = new PKIXParameters(trustAnchors);
             pkixParams.setRevocationEnabled(false); // Boolean.getBoolean("com.sun.net.ssl.checkRevocation");
             var cpv = CertPathValidator.getInstance("PKIX");
@@ -75,32 +77,8 @@ public final class CertificateUtils {
         }
     }
 
-    private static Set<TrustAnchor> getTrustAnchors(KeyStore trustStore) {
-        try {
-            var trustAnchors = new HashSet<TrustAnchor>();
-            var aliases = trustStore.aliases();
-            while (aliases.hasMoreElements()) {
-                var alias = aliases.nextElement();
-                if (!trustStore.isCertificateEntry(alias)) {
-                    continue;
-                }
-
-                var cert = trustStore.getCertificate(alias);
-                if (!(cert instanceof X509Certificate x509Certificate)) {
-                    continue;
-                }
-
-                var anchor = new TrustAnchor(x509Certificate, null);
-                trustAnchors.add(anchor);
-            }
-            return trustAnchors;
-        } catch (KeyStoreException exception) {
-            throw new TlsAlert("Cannot get trust anchors", exception);
-        }
-    }
-
     @SuppressWarnings("NonStrictComparisonCanBeEquality")
-    public static void validateUsage(X509Certificate certificate, TlsKeyExchangeType type, TlsContextMode mode) {
+    public static void validateUsage(X509Certificate certificate, TlsKeyExchangeType type, TlsConnectionType mode) {
         var keyUsage = certificate.getKeyUsage();
         var extendedKeyUsage = getExtendedKeyUsageIfParsable(certificate);
         switch (mode) {
@@ -153,11 +131,11 @@ public final class CertificateUtils {
         }
     }
 
-    public static KeyStore defaultKeyStore() {
-        return DEFAULT_KEY_STORE;
+    public static Set<TlsCertificate> defaultTrustAnchors() {
+        return DEFAULT_TRUST_ANCHORS.orElseSet(CertificateUtils::loadDefaultTrustAnchors);
     }
 
-    private static KeyStore loadDefaultKeyStore() {
+    private static Set<TlsCertificate> loadDefaultTrustAnchors() {
         var file = new File(CertificateUtils.DEFAULT_KEY_STORE_PATH);
         if (!file.isFile() || !file.canRead()) {
             return null;
@@ -167,7 +145,23 @@ public final class CertificateUtils {
             var keyStore = KeyStore.getInstance(KeyStore.getDefaultType());
             try (var fis = new FileInputStream(file)) {
                 keyStore.load(fis, null);
-                return keyStore;
+                var trustAnchors = new HashSet<TlsCertificate>();
+                var aliases = keyStore.aliases();
+                while (aliases.hasMoreElements()) {
+                    var alias = aliases.nextElement();
+                    if (!keyStore.isCertificateEntry(alias)) {
+                        continue;
+                    }
+
+                    var cert = keyStore.getCertificate(alias);
+                    if (!(cert instanceof X509Certificate x509Certificate)) {
+                        continue;
+                    }
+
+                    var anchor = TlsCertificate.of(x509Certificate);
+                    trustAnchors.add(anchor);
+                }
+                return trustAnchors;
             } catch (Throwable _) {
                 return null;
             }

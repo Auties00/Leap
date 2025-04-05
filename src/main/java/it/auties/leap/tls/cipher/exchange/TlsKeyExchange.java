@@ -21,7 +21,7 @@ public interface TlsKeyExchange {
     }
 
     default void acceptsOrThrow(X509Certificate certificate, TlsContext context) {
-        var mode = context.mode();
+        var mode = context.localConnectionState().type();
         CertificateUtils.validateUsage(certificate, type(), mode);
     }
 }

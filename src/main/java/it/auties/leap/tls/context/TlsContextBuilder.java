@@ -1,27 +1,24 @@
 package it.auties.leap.tls.context;
 
 import it.auties.leap.tls.alert.TlsAlert;
-import it.auties.leap.tls.certificate.TlsCertificatesConsumer;
-import it.auties.leap.tls.certificate.TlsCertificatesSupplier;
+import it.auties.leap.tls.certificate.TlsCertificateStore;
 import it.auties.leap.tls.cipher.TlsCipherSuite;
 import it.auties.leap.tls.compression.TlsCompression;
 import it.auties.leap.tls.connection.TlsConnectionInitializer;
+import it.auties.leap.tls.connection.TlsConnectionType;
 import it.auties.leap.tls.message.TlsMessageDeserializer;
 import it.auties.leap.tls.secret.TlsMasterSecretGenerator;
 import it.auties.leap.tls.version.TlsVersion;
 
-import java.security.KeyStore;
 import java.util.List;
 
 @SuppressWarnings("unchecked")
 abstract sealed class TlsContextBuilder<S extends TlsContextBuilder<S>> permits TlsClientContextBuilder, TlsServerContextBuilder {
-    final TlsContextMode mode;
+    final TlsCertificateStore certificateStore;
+    final TlsConnectionType mode;
     List<TlsVersion> versions;
     List<TlsCipherSuite> ciphers;
     List<TlsCompression> compressions;
-    TlsCertificatesSupplier certificatesProvider;
-    TlsCertificatesConsumer certificatesHandler;
-    KeyStore trustedKeyStore;
     TlsMessageDeserializer messageDeserializer;
     TlsMasterSecretGenerator masterSecretGenerator;
     TlsConnectionInitializer connectionInitializer;
@@ -29,7 +26,8 @@ abstract sealed class TlsContextBuilder<S extends TlsContextBuilder<S>> permits 
     byte[] sessionId;
     byte[] dtlsCookie;
 
-    TlsContextBuilder(TlsContextMode mode) {
+    TlsContextBuilder(TlsCertificateStore certificateStore, TlsConnectionType mode) {
+        this.certificateStore = certificateStore;
         this.mode = mode;
     }
 
@@ -53,21 +51,6 @@ abstract sealed class TlsContextBuilder<S extends TlsContextBuilder<S>> permits 
 
     public S compressions(List<TlsCompression> compressions) {
         this.compressions = compressions;
-        return (S) this;
-    }
-
-    public S certificatesProvider(TlsCertificatesSupplier certificatesProvider) {
-        this.certificatesProvider = certificatesProvider;
-        return (S) this;
-    }
-
-    public S certificatesHandler(TlsCertificatesConsumer certificatesHandler) {
-        this.certificatesHandler = certificatesHandler;
-        return (S) this;
-    }
-
-    public S trustedKeyStore(KeyStore trustedKeyStore) {
-        this.trustedKeyStore = trustedKeyStore;
         return (S) this;
     }
 

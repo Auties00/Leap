@@ -2,7 +2,7 @@ package it.auties.leap.tls.extension.implementation;
 
 import it.auties.leap.tls.alert.TlsAlert;
 import it.auties.leap.tls.context.TlsContext;
-import it.auties.leap.tls.context.TlsContextMode;
+import it.auties.leap.tls.connection.TlsConnectionType;
 import it.auties.leap.tls.context.TlsSource;
 import it.auties.leap.tls.ec.TlsECPointFormat;
 import it.auties.leap.tls.extension.TlsExtension;
@@ -58,13 +58,13 @@ public record ECPointFormatExtension(
                 .orElseThrow(() -> TlsAlert.noNegotiableProperty(TlsProperty.ecPointsFormats()))
                 .stream()
                 .collect(Collectors.toUnmodifiableMap(TlsIdentifiableProperty::id, Function.identity()));
-        var mode = context.mode();
+        var mode = context.localConnectionState().type();
         for(var i = 0; i < ecPointFormatsLength; i++) {
             var ecPointFormatId = readBigEndianInt8(buffer);
             var ecPointFormat = knownFormats.get(ecPointFormatId);
             if(ecPointFormat != null) {
                 ecPointFormats.add(ecPointFormat);
-            }else if(mode == TlsContextMode.CLIENT) {
+            }else if(mode == TlsConnectionType.CLIENT) {
                 throw new TlsAlert("Remote tried to negotiate an ec point that wasn't advertised");
             }
         }

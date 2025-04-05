@@ -7,40 +7,40 @@ import java.util.Objects;
 
 // https://www.iana.org/assignments/tls-parameters/tls-signaturescheme.csv
 public final class TlsSignatureScheme implements TlsSignature {
-    private static final TlsSignature RSA_PKCS1_SHA1 = new TlsSignatureScheme(0x0201, false);
-    private static final TlsSignature ECDSA_SHA1 = new TlsSignatureScheme(0x0203, false);
-    private static final TlsSignature RSA_PKCS1_SHA256 = new TlsSignatureScheme(0x0401, true);
-    private static final TlsSignature ECDSA_SECP256R1_SHA256 = new TlsSignatureScheme(0x0403, true);
-    private static final TlsSignature RSA_PKCS1_SHA256_LEGACY = new TlsSignatureScheme(0x0420, false);
-    private static final TlsSignature RSA_PKCS1_SHA384 = new TlsSignatureScheme(0x0501, true);
-    private static final TlsSignature ECDSA_SECP384R1_SHA384 = new TlsSignatureScheme(0x0503, true);
-    private static final TlsSignature RSA_PKCS1_SHA384_LEGACY = new TlsSignatureScheme(0x0520, false);
-    private static final TlsSignature RSA_PKCS1_SHA512 = new TlsSignatureScheme(0x0601, true);
-    private static final TlsSignature ECDSA_SECP521R1_SHA512 = new TlsSignatureScheme(0x0603, true);
-    private static final TlsSignature RSA_PKCS1_SHA512_LEGACY = new TlsSignatureScheme(0x0620, false);
-    private static final TlsSignature ECCSI_SHA256 = new TlsSignatureScheme(0x0704, false);
-    private static final TlsSignature ISO_IBS1 = new TlsSignatureScheme(0x0705, false);
-    private static final TlsSignature ISO_IBS2 = new TlsSignatureScheme(0x0706, false);
-    private static final TlsSignature ISO_CHINESE_IBS = new TlsSignatureScheme(0x0707, false);
-    private static final TlsSignature SM2SIG_SM3 = new TlsSignatureScheme(0x0708, false);
-    private static final TlsSignature GOSTR34102012_256A = new TlsSignatureScheme(0x0709, false);
-    private static final TlsSignature GOSTR34102012_256B = new TlsSignatureScheme(0x070A, false);
-    private static final TlsSignature GOSTR34102012_256C = new TlsSignatureScheme(0x070B, false);
-    private static final TlsSignature GOSTR34102012_256D = new TlsSignatureScheme(0x070C, false);
-    private static final TlsSignature GOSTR34102012_512A = new TlsSignatureScheme(0x070D, false);
-    private static final TlsSignature GOSTR34102012_512B = new TlsSignatureScheme(0x070E, false);
-    private static final TlsSignature GOSTR34102012_512C = new TlsSignatureScheme(0x070F, false);
-    private static final TlsSignature RSA_PSS_RSAE_SHA256 = new TlsSignatureScheme(0x0804, true);
-    private static final TlsSignature RSA_PSS_RSAE_SHA384 = new TlsSignatureScheme(0x0805, true);
-    private static final TlsSignature RSA_PSS_RSAE_SHA512 = new TlsSignatureScheme(0x0806, true);
-    private static final TlsSignature ED25519 = new TlsSignatureScheme(0x0807, true);
-    private static final TlsSignature ED448 = new TlsSignatureScheme(0x0808, true);
-    private static final TlsSignature RSA_PSS_PSS_SHA256 = new TlsSignatureScheme(0x0809, true);
-    private static final TlsSignature RSA_PSS_PSS_SHA384 = new TlsSignatureScheme(0x080A, true);
-    private static final TlsSignature RSA_PSS_PSS_SHA512 = new TlsSignatureScheme(0x080B, true);
-    private static final TlsSignature ECDSA_BRAINPOOLP256R1TLS13_SHA256 = new TlsSignatureScheme(0x081A, false);
-    private static final TlsSignature ECDSA_BRAINPOOLP384R1TLS13_SHA384 = new TlsSignatureScheme(0x081B, false);
-    private static final TlsSignature ECDSA_BRAINPOOLP512R1TLS13_SHA512 = new TlsSignatureScheme(0x081C, false);
+    private static final TlsSignature RSA_PKCS1_SHA1 = new TlsSignatureScheme(0x0201);
+    private static final TlsSignature ECDSA_SHA1 = new TlsSignatureScheme(0x0203);
+    private static final TlsSignature RSA_PKCS1_SHA256 = new TlsSignatureScheme(0x0401);
+    private static final TlsSignature ECDSA_SECP256R1_SHA256 = new TlsSignatureScheme(0x0403);
+    private static final TlsSignature RSA_PKCS1_SHA256_LEGACY = new TlsSignatureScheme(0x0420);
+    private static final TlsSignature RSA_PKCS1_SHA384 = new TlsSignatureScheme(0x0501);
+    private static final TlsSignature ECDSA_SECP384R1_SHA384 = new TlsSignatureScheme(0x0503);
+    private static final TlsSignature RSA_PKCS1_SHA384_LEGACY = new TlsSignatureScheme(0x0520);
+    private static final TlsSignature RSA_PKCS1_SHA512 = new TlsSignatureScheme(0x0601);
+    private static final TlsSignature ECDSA_SECP521R1_SHA512 = new TlsSignatureScheme(0x0603);
+    private static final TlsSignature RSA_PKCS1_SHA512_LEGACY = new TlsSignatureScheme(0x0620);
+    private static final TlsSignature ECCSI_SHA256 = new TlsSignatureScheme(0x0704);
+    private static final TlsSignature ISO_IBS1 = new TlsSignatureScheme(0x0705);
+    private static final TlsSignature ISO_IBS2 = new TlsSignatureScheme(0x0706);
+    private static final TlsSignature ISO_CHINESE_IBS = new TlsSignatureScheme(0x0707);
+    private static final TlsSignature SM2SIG_SM3 = new TlsSignatureScheme(0x0708);
+    private static final TlsSignature GOSTR34102012_256A = new TlsSignatureScheme(0x0709);
+    private static final TlsSignature GOSTR34102012_256B = new TlsSignatureScheme(0x070A);
+    private static final TlsSignature GOSTR34102012_256C = new TlsSignatureScheme(0x070B);
+    private static final TlsSignature GOSTR34102012_256D = new TlsSignatureScheme(0x070C);
+    private static final TlsSignature GOSTR34102012_512A = new TlsSignatureScheme(0x070D);
+    private static final TlsSignature GOSTR34102012_512B = new TlsSignatureScheme(0x070E);
+    private static final TlsSignature GOSTR34102012_512C = new TlsSignatureScheme(0x070F);
+    private static final TlsSignature RSA_PSS_RSAE_SHA256 = new TlsSignatureScheme(0x0804);
+    private static final TlsSignature RSA_PSS_RSAE_SHA384 = new TlsSignatureScheme(0x0805);
+    private static final TlsSignature RSA_PSS_RSAE_SHA512 = new TlsSignatureScheme(0x0806);
+    private static final TlsSignature ED25519 = new TlsSignatureScheme(0x0807);
+    private static final TlsSignature ED448 = new TlsSignatureScheme(0x0808);
+    private static final TlsSignature RSA_PSS_PSS_SHA256 = new TlsSignatureScheme(0x0809);
+    private static final TlsSignature RSA_PSS_PSS_SHA384 = new TlsSignatureScheme(0x080A);
+    private static final TlsSignature RSA_PSS_PSS_SHA512 = new TlsSignatureScheme(0x080B);
+    private static final TlsSignature ECDSA_BRAINPOOLP256R1TLS13_SHA256 = new TlsSignatureScheme(0x081A);
+    private static final TlsSignature ECDSA_BRAINPOOLP384R1TLS13_SHA384 = new TlsSignatureScheme(0x081B);
+    private static final TlsSignature ECDSA_BRAINPOOLP512R1TLS13_SHA512 = new TlsSignatureScheme(0x081C);
 
     public static TlsSignature rsaPkcs1Sha1() {
         return RSA_PKCS1_SHA1;
@@ -186,25 +186,19 @@ public final class TlsSignatureScheme implements TlsSignature {
             );
         }
 
-        return new TlsSignatureScheme(id, false);
+        return new TlsSignatureScheme(id);
     }
 
     private final int id;
-    private final boolean recommended;
-    private TlsSignatureScheme(int id, boolean recommended) {
+    private TlsSignatureScheme(int id) {
         this.id = id;
-        this.recommended = recommended;
     }
 
     @Override
     public Integer id() {
         return id;
     }
-
-    public boolean recommended() {
-        return recommended;
-    }
-
+    
     @Override
     public boolean equals(Object other) {
         return other == this || other instanceof TlsSignatureScheme that

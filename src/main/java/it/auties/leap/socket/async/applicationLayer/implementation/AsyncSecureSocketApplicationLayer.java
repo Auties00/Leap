@@ -355,7 +355,7 @@ public class AsyncSecureSocketApplicationLayer extends AsyncSocketApplicationLay
 
     private CompletableFuture<Void> readUntilServerDone() {
         return tlsContext.remoteConnectionState()
-                .filter(state -> state.handshakeStatus() == TlsHandshakeStatus.HANDSHAKING)
+                .filter(state -> state.handshakeStatus() == TlsHandshakeStatus.HANDSHAKE_STARTED)
                 .map(_ -> CompletableFuture.<Void>completedFuture(null))
                 .orElseGet(() -> readAndHandleMessage().thenCompose(_ -> readUntilServerDone()));
     }

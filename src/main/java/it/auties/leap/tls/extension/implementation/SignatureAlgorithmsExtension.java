@@ -2,7 +2,7 @@ package it.auties.leap.tls.extension.implementation;
 
 import it.auties.leap.tls.alert.TlsAlert;
 import it.auties.leap.tls.context.TlsContext;
-import it.auties.leap.tls.context.TlsContextMode;
+import it.auties.leap.tls.connection.TlsConnectionType;
 import it.auties.leap.tls.context.TlsSource;
 import it.auties.leap.tls.extension.TlsExtension;
 import it.auties.leap.tls.extension.TlsExtensionDependencies;
@@ -83,13 +83,13 @@ public record SignatureAlgorithmsExtension(
                 .orElseThrow(() -> TlsAlert.noNegotiableProperty(TlsProperty.signatureAlgorithms()))
                 .stream()
                 .collect(Collectors.toUnmodifiableMap(TlsIdentifiableProperty::id, Function.identity()));
-        var mode = context.mode();
+        var mode = context.localConnectionState().type();
         for (var i = 0; i < algorithmsSize; i++) {
             var algorithmId = readBigEndianInt16(buffer);
             var algorithm = knownAlgorithms.get(algorithmId);
             if(algorithm != null) {
                 algorithms.add(algorithm);
-            }else if(mode == TlsContextMode.CLIENT) {
+            }else if(mode == TlsConnectionType.CLIENT) {
                 throw new TlsAlert("Remote tried to negotiate a signature algorithm that wasn't advertised");
             }
         }

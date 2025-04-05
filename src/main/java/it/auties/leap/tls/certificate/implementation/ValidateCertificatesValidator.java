@@ -1,7 +1,7 @@
 package it.auties.leap.tls.certificate.implementation;
 
 import it.auties.leap.tls.alert.TlsAlert;
-import it.auties.leap.tls.certificate.TlsCertificatesConsumer;
+import it.auties.leap.tls.certificate.TlsCertificateChainValidator;
 import it.auties.leap.tls.context.TlsContext;
 import it.auties.leap.tls.context.TlsSource;
 import it.auties.leap.tls.property.TlsProperty;
@@ -9,19 +9,19 @@ import it.auties.leap.tls.property.TlsProperty;
 import java.security.cert.X509Certificate;
 import java.util.List;
 
-public final class ValidateCertificatesConsumer implements TlsCertificatesConsumer {
-    private static final ValidateCertificatesConsumer INSTANCE = new ValidateCertificatesConsumer();
+public final class ValidateCertificatesValidator implements TlsCertificateChainValidator {
+    private static final ValidateCertificatesValidator INSTANCE = new ValidateCertificatesValidator();
 
-    public static ValidateCertificatesConsumer instance() {
+    public static ValidateCertificatesValidator instance() {
         return INSTANCE;
     }
 
-    private ValidateCertificatesConsumer() {
+    private ValidateCertificatesValidator() {
 
     }
 
     @Override
-    public X509Certificate validate(List<X509Certificate> certificates, TlsSource source, TlsContext context) {
+    public X509Certificate validate(TlsContext context, TlsSource source, List<X509Certificate> certificates) {
         if(certificates == null || certificates.isEmpty()) {
             throw new TlsAlert("Cannot validate X509 certificates: no certificates found");
         }

@@ -1,5 +1,6 @@
 package it.auties.leap.tls.cipher.auth.implementation;
 
+import it.auties.leap.tls.certificate.TlsClientCertificateType;
 import it.auties.leap.tls.cipher.auth.TlsAuth;
 import it.auties.leap.tls.cipher.auth.TlsAuthFactory;
 import it.auties.leap.tls.context.TlsContext;
@@ -23,6 +24,6 @@ public final class ECDSAAuth implements TlsAuth {
 
     @Override
     public X509Certificate validate(TlsContext context, TlsSource certificatesSource, List<X509Certificate> certificates) {
-        return CertificateUtils.validateChain(certificates, context.address().orElse(null), context.trustedKeyStore(), "ECDSA");
+        return CertificateUtils.validateChain(certificates, context.address().orElse(null), context.certificateStore(), TlsClientCertificateType.ecdsaSign());
     }
 }

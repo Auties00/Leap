@@ -12,7 +12,7 @@ import java.util.List;
 
 import static it.auties.leap.tls.util.BufferUtils.*;
 
-public record CertificateRequestMessage(
+public record ClientCertificateRequestMessage(
         TlsVersion version,
         TlsSource source,
         List<Byte> types,
@@ -21,7 +21,7 @@ public record CertificateRequestMessage(
 ) implements TlsHandshakeMessage {
     public static final byte ID = 0x0D;
 
-    public static CertificateRequestMessage of(ByteBuffer buffer, TlsMessageMetadata metadata) {
+    public static ClientCertificateRequestMessage of(ByteBuffer buffer, TlsMessageMetadata metadata) {
         var certificatesLength = readBigEndianInt8(buffer);
         var certificateTypes = new ArrayList<Byte>();
         try(var _ = scopedRead(buffer, certificatesLength)) {
@@ -49,7 +49,7 @@ public record CertificateRequestMessage(
             }
         }
 
-        return new CertificateRequestMessage(metadata.version(), metadata.source(), certificateTypes, algorithms, authorities);
+        return new ClientCertificateRequestMessage(metadata.version(), metadata.source(), certificateTypes, algorithms, authorities);
     }
 
     @Override

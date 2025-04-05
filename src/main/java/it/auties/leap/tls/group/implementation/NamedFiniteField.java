@@ -1,22 +1,21 @@
 package it.auties.leap.tls.group.implementation;
 
-import it.auties.leap.tls.context.TlsContext;
-import it.auties.leap.tls.connection.TlsConnection;
 import it.auties.leap.tls.alert.TlsAlert;
-import it.auties.leap.tls.property.TlsProperty;
 import it.auties.leap.tls.cipher.exchange.TlsKeyExchange;
 import it.auties.leap.tls.cipher.exchange.implementation.DHKeyExchange;
+import it.auties.leap.tls.connection.TlsConnection;
+import it.auties.leap.tls.context.TlsContext;
 import it.auties.leap.tls.group.TlsSupportedFiniteField;
+import it.auties.leap.tls.property.TlsProperty;
 import it.auties.leap.tls.secret.TlsSecret;
 
 import javax.crypto.KeyAgreement;
 import javax.crypto.interfaces.DHPublicKey;
 import javax.crypto.spec.DHParameterSpec;
+import javax.crypto.spec.DHPublicKeySpec;
 import java.math.BigInteger;
-import java.security.GeneralSecurityException;
-import java.security.KeyPair;
-import java.security.KeyPairGenerator;
-import java.security.PublicKey;
+import java.security.*;
+import java.security.cert.Certificate;
 import java.util.Arrays;
 
 public final class NamedFiniteField implements TlsSupportedFiniteField {
@@ -72,7 +71,7 @@ public final class NamedFiniteField implements TlsSupportedFiniteField {
         return dtls;
     }
 
-    public KeyPair generateLocalKeyPair(TlsContext context) {
+    public KeyPair generateKeyPair(TlsContext context) {
         try {
             var keyPairGenerator = KeyPairGenerator.getInstance("DH");
             keyPairGenerator.initialize(spec);
@@ -85,6 +84,8 @@ public final class NamedFiniteField implements TlsSupportedFiniteField {
     @Override
     public TlsSecret computeSharedSecret(TlsContext context) {
         var privateKey = context.localConnectionState()
+                .ephemeralKeyPair()
+                .orElseThrow(TlsAlert::noKeyPairSelected)
                 .privateKey()
                 .orElseThrow(() -> new TlsAlert("Missing local key pair"));
         var keyExchangeType = context.getNegotiatedValue(TlsProperty.cipher())
@@ -93,9 +94,14 @@ public final class NamedFiniteField implements TlsSupportedFiniteField {
                 .type();
         var publicKey = switch (keyExchangeType) {
             case STATIC -> context.remoteConnectionState()
-                    .flatMap(TlsConnection::publicKey)
+                    .flatMap(TlsConnection::staticCertificate)
+                    .map(Certificate::getPublicKey)
                     .orElseThrow(() -> new TlsAlert("Missing remote public key for static pre master secret generation"));
-            case EPHEMERAL -> parseRemotePublicKey(context);
+            case EPHEMERAL -> context.remoteConnectionState()
+                    .orElseThrow(TlsAlert::noRemoteConnectionState)
+                    .ephemeralKeyPair()
+                    .orElseThrow(() -> new TlsAlert("Missing remote public key for ephemeral pre master secret generation"))
+                    .publicKey();
         };
         try {
             var keyAgreement = KeyAgreement.getInstance("DH");
@@ -110,15 +116,19 @@ public final class NamedFiniteField implements TlsSupportedFiniteField {
         }
     }
 
-    private PublicKey parseRemotePublicKey(TlsContext context) {
-        var remoteKeyExchange = context.remoteConnectionState()
-                .orElseThrow(TlsAlert::noRemoteConnectionState)
-                .keyExchange()
-                .orElseThrow(TlsAlert::noRemoteKeyExchange);
-        if(!(remoteKeyExchange instanceof DHKeyExchange clientKeyExchange)) {
-            throw TlsAlert.remoteKeyExchangeTypeMismatch("DH");
+    @Override
+    public PublicKey parsePublicKey(byte[] rawPublicKey) {
+        try {
+            var keyFactory = KeyFactory.getInstance("DH");
+            var dhPubKeySpecs = new DHPublicKeySpec(
+                    new BigInteger(1, rawPublicKey),
+                    spec.getP(),
+                    spec.getG()
+            );
+            return keyFactory.generatePublic(dhPubKeySpecs);
+        }catch (GeneralSecurityException exception) {
+            throw new TlsAlert("Cannot parse DH key", exception);
         }
-        return clientKeyExchange.getOrParsePublicKey();
     }
 
     @Override
@@ -127,19 +137,13 @@ public final class NamedFiniteField implements TlsSupportedFiniteField {
             throw new TlsAlert("Unsupported key type");
         }
 
-        return publicKey.getY()
-                .toByteArray();
+        return publicKey.getY().toByteArray();
     }
 
     @Override
     public boolean accepts(TlsKeyExchange exchange) {
-        if(!(exchange instanceof DHKeyExchange keyExchange)) {
-            return false;
-        }
-
-        var params = keyExchange.getOrParsePublicKey()
-                .getParams();
-        return params.getG().equals(spec.getG())
-                && params.getP().equals(spec.getP());
+        return exchange instanceof DHKeyExchange keyExchange
+                && keyExchange.p().equals(spec.getP())
+                && keyExchange.g().equals(spec.getG());
     }
 }

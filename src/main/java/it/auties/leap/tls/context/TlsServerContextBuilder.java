@@ -1,15 +1,15 @@
 package it.auties.leap.tls.context;
 
 import it.auties.leap.socket.SocketProtocol;
-import it.auties.leap.tls.certificate.TlsCertificatesConsumer;
+import it.auties.leap.tls.certificate.TlsCertificateStore;
 import it.auties.leap.tls.cipher.TlsCipherSuite;
 import it.auties.leap.tls.compression.TlsCompression;
 import it.auties.leap.tls.connection.TlsConnection;
 import it.auties.leap.tls.connection.TlsConnectionInitializer;
+import it.auties.leap.tls.connection.TlsConnectionType;
 import it.auties.leap.tls.extension.TlsExtensionOwner;
 import it.auties.leap.tls.message.TlsMessageDeserializer;
 import it.auties.leap.tls.secret.TlsMasterSecretGenerator;
-import it.auties.leap.tls.util.CertificateUtils;
 import it.auties.leap.tls.util.TlsKeyUtils;
 import it.auties.leap.tls.version.TlsVersion;
 
@@ -21,8 +21,8 @@ public final class TlsServerContextBuilder extends TlsContextBuilder<TlsServerCo
 
     private List<? extends TlsExtensionOwner.Server> extensions;
 
-    TlsServerContextBuilder() {
-        super(TlsContextMode.SERVER);
+    TlsServerContextBuilder(TlsCertificateStore certificateStore) {
+        super(certificateStore, TlsConnectionType.SERVER);
     }
 
     public TlsServerContextBuilder extensions(List<? extends TlsExtensionOwner.Server> extensions) {
@@ -36,15 +36,13 @@ public final class TlsServerContextBuilder extends TlsContextBuilder<TlsServerCo
         var versions = this.versions != null && !this.versions.isEmpty() ? this.versions : TlsVersion.recommended(SocketProtocol.TCP);
         var protocol = versions.getFirst().protocol();
         var dtlsCookie = protocol == SocketProtocol.UDP ? Objects.requireNonNullElseGet(this.dtlsCookie, TlsKeyUtils::randomData) : null;
-        var credentials = TlsConnection.of(randomData, sessionId, dtlsCookie);
+        var credentials = TlsConnection.of(TlsConnectionType.SERVER, randomData, sessionId, dtlsCookie);
         var extensions = Objects.requireNonNullElse(this.extensions, DEFAULT_EXTENSIONS);
         var ciphers = Objects.requireNonNullElse(this.ciphers, TlsCipherSuite.recommended());
         var compressions = Objects.requireNonNullElse(this.compressions, TlsCompression.recommended());
-        var certificatesHandler = Objects.requireNonNullElse(this.certificatesHandler, TlsCertificatesConsumer.validate());
-        var trustedKeyStore = Objects.requireNonNullElse(this.trustedKeyStore, CertificateUtils.defaultKeyStore());
         var messageDeserializer = Objects.requireNonNullElse(this.messageDeserializer, TlsMessageDeserializer.builtin());
         var masterSecretGenerator = Objects.requireNonNullElse(this.masterSecretGenerator, TlsMasterSecretGenerator.builtin());
         var connectionInitializer = Objects.requireNonNullElse(this.connectionInitializer, TlsConnectionInitializer.builtin());
-        return TlsContext.ofServer(versions, extensions, ciphers, compressions, credentials, certificatesProvider, certificatesHandler, trustedKeyStore, messageDeserializer, masterSecretGenerator, connectionInitializer);
+        return TlsContext.ofServer(versions, extensions, ciphers, compressions, credentials, certificateStore, messageDeserializer, masterSecretGenerator, connectionInitializer);
     }
 }

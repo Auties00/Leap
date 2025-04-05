@@ -1,41 +1,29 @@
 package it.auties.leap.tls.cipher.exchange.implementation;
 
+import it.auties.leap.tls.alert.TlsAlert;
 import it.auties.leap.tls.cipher.exchange.TlsKeyExchange;
 import it.auties.leap.tls.cipher.exchange.TlsKeyExchangeFactory;
 import it.auties.leap.tls.cipher.exchange.TlsKeyExchangeType;
 import it.auties.leap.tls.context.TlsContext;
-import it.auties.leap.tls.context.TlsContextMode;
-import it.auties.leap.tls.alert.TlsAlert;
 import it.auties.leap.tls.secret.TlsPreMasterSecretGenerator;
 
 import java.nio.ByteBuffer;
 
 // TODO: Implement contextual TLS 1.3 key exchange
-public sealed abstract class ContextualKeyExchange implements TlsKeyExchange {
+public final class ContextualKeyExchange implements TlsKeyExchange {
     private static final TlsKeyExchangeFactory EPHEMERAL_FACTORY = new TlsKeyExchangeFactory() {
         @Override
         public TlsKeyExchange newLocalKeyExchange(TlsContext context) {
-            return switch (getMode(context)) {
-                case CLIENT -> Client.instance();
-                case SERVER -> Server.instance();
-            };
+            return INSTANCE;
         }
 
         @Override
-        public TlsKeyExchange decodeRemoteKeyExchange(TlsContext context, ByteBuffer buffer) {
-            if(buffer.hasRemaining()) {
+        public TlsKeyExchange newRemoteKeyExchange(TlsContext context, ByteBuffer ephemeralKeyExchangeSource) {
+            if(ephemeralKeyExchangeSource.hasRemaining()) {
                 throw new TlsAlert("Expected empty buffer");
             }
 
-            return switch (getMode(context)) {
-                case SERVER -> Server.instance();
-                case CLIENT -> Client.instance();
-            };
-        }
-
-        private TlsContextMode getMode(TlsContext context) {
-            return context.mode()
-                    ;
+            return INSTANCE;
         }
 
         @Override
@@ -48,6 +36,11 @@ public sealed abstract class ContextualKeyExchange implements TlsKeyExchange {
         return EPHEMERAL_FACTORY;
     }
 
+    private static final ContextualKeyExchange INSTANCE = new ContextualKeyExchange();
+    private ContextualKeyExchange() {
+
+    }
+
     @Override
     public TlsKeyExchangeType type() {
         return TlsKeyExchangeType.EPHEMERAL;
@@ -58,47 +51,13 @@ public sealed abstract class ContextualKeyExchange implements TlsKeyExchange {
         return TlsPreMasterSecretGenerator.contextual();
     }
 
-    private static final class Client extends ContextualKeyExchange {
-        private static final Client INSTANCE = new Client();
-
-        private Client() {
-
-        }
-
-        public static Client instance() {
-            return INSTANCE;
-        }
-
-        @Override
-        public void serialize(ByteBuffer buffer) {
-
-        }
-
-        @Override
-        public int length() {
-            return 0;
-        }
+    @Override
+    public void serialize(ByteBuffer buffer) {
+        System.out.println("Should i be called?");
     }
 
-    private static final class Server extends ContextualKeyExchange {
-        private static final Server INSTANCE = new Server();
-
-        private Server() {
-
-        }
-
-        public static Server instance() {
-            return INSTANCE;
-        }
-
-        @Override
-        public void serialize(ByteBuffer buffer) {
-
-        }
-
-        @Override
-        public int length() {
-            return 0;
-        }
+    @Override
+    public int length() {
+        return 0;
     }
 }

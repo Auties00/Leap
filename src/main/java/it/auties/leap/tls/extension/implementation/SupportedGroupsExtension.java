@@ -2,7 +2,7 @@ package it.auties.leap.tls.extension.implementation;
 
 import it.auties.leap.tls.alert.TlsAlert;
 import it.auties.leap.tls.context.TlsContext;
-import it.auties.leap.tls.context.TlsContextMode;
+import it.auties.leap.tls.connection.TlsConnectionType;
 import it.auties.leap.tls.context.TlsSource;
 import it.auties.leap.tls.extension.TlsExtension;
 import it.auties.leap.tls.extension.TlsExtensionDependencies;
@@ -70,13 +70,13 @@ public record SupportedGroupsExtension(
                 .orElseThrow(() -> TlsAlert.noNegotiableProperty(TlsProperty.ecPointsFormats()))
                 .stream()
                 .collect(Collectors.toUnmodifiableMap(TlsIdentifiableProperty::id, Function.identity()));
-        var mode = context.mode();
+        var mode = context.localConnectionState().type();
         for (var i = 0; i < groupsSize; i++) {
             var groupId = readBigEndianInt16(buffer);
             var group = knownGroups.get(groupId);
             if(group != null) {
                 groups.add(group);
-            }else if(mode == TlsContextMode.CLIENT) {
+            }else if(mode == TlsConnectionType.CLIENT) {
                 throw new TlsAlert("Remote tried to negotiate a supported group that wasn't advertised");
             }
         }

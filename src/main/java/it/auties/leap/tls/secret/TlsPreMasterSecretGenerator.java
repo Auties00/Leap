@@ -7,7 +7,7 @@ public interface TlsPreMasterSecretGenerator {
     TlsSecret generatePreMasterSecret(TlsContext context);
 
     static TlsPreMasterSecretGenerator dh() {
-        return DHPreMasterSecretGenerator.instance();
+        return GroupPreMasterSecretGenerator.instance();
     }
 
     static TlsPreMasterSecretGenerator eccpwd() {
@@ -15,7 +15,7 @@ public interface TlsPreMasterSecretGenerator {
     }
 
     static TlsPreMasterSecretGenerator ecdh() {
-        return ECDHPreMasterSecretGenerator.instance();
+        return GroupPreMasterSecretGenerator.instance();
     }
 
     static TlsPreMasterSecretGenerator gostr256() {
@@ -27,7 +27,7 @@ public interface TlsPreMasterSecretGenerator {
     }
 
     static TlsPreMasterSecretGenerator contextual() {
-        return ContextualPreMasterSecretGenerator.instance();
+        return GroupPreMasterSecretGenerator.instance();
     }
 
     static TlsPreMasterSecretGenerator psk() {

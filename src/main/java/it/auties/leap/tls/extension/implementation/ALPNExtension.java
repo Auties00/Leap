@@ -2,7 +2,7 @@ package it.auties.leap.tls.extension.implementation;
 
 import it.auties.leap.tls.alert.TlsAlert;
 import it.auties.leap.tls.context.TlsContext;
-import it.auties.leap.tls.context.TlsContextMode;
+import it.auties.leap.tls.connection.TlsConnectionType;
 import it.auties.leap.tls.context.TlsSource;
 import it.auties.leap.tls.extension.TlsExtension;
 import it.auties.leap.tls.extension.TlsExtensionDependencies;
@@ -60,13 +60,13 @@ public record ALPNExtension(
         var negotiableProtocols = context.getNegotiableValue(TlsProperty.applicationProtocols())
                 .orElseThrow(() -> TlsAlert.noNegotiableProperty(TlsProperty.applicationProtocols()));
         var negotiableProtocolsSet = new HashSet<>(negotiableProtocols);
-        var mode = context.mode();
+        var mode = context.localConnectionState().type();
         try(var _ = scopedRead(buffer, supportedProtocolsSize)) {
             while (buffer.hasRemaining()) {
                 var supportedProtocol = new String(readBytesBigEndian8(buffer), StandardCharsets.US_ASCII);
                 if(negotiableProtocolsSet.contains(supportedProtocol)) {
                     supportedProtocols.add(supportedProtocol);
-                }else if(mode == TlsContextMode.CLIENT) {
+                }else if(mode == TlsConnectionType.CLIENT) {
                     throw new TlsAlert("Remote tried to negotiate an application protocol that wasn't advertised");
                 }
             }
