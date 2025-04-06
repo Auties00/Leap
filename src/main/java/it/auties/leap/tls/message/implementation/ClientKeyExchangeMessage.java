@@ -5,9 +5,7 @@ import it.auties.leap.tls.cipher.exchange.TlsKeyExchange;
 import it.auties.leap.tls.cipher.exchange.TlsKeyExchangeType;
 import it.auties.leap.tls.context.TlsContext;
 import it.auties.leap.tls.context.TlsSource;
-import it.auties.leap.tls.message.TlsHandshakeMessage;
-import it.auties.leap.tls.message.TlsMessageContentType;
-import it.auties.leap.tls.message.TlsMessageMetadata;
+import it.auties.leap.tls.message.*;
 import it.auties.leap.tls.property.TlsProperty;
 import it.auties.leap.tls.version.TlsVersion;
 
@@ -21,17 +19,28 @@ public record ClientKeyExchangeMessage(
         TlsSource source,
         TlsKeyExchange parameters
 ) implements TlsHandshakeMessage {
-    public static final byte ID = 0x10;
-
-    public static ClientKeyExchangeMessage of(TlsContext context, ByteBuffer buffer, TlsMessageMetadata metadata) {
-        var messageLength = readBigEndianInt24(buffer);
-        try (var _ = scopedRead(buffer, messageLength)) {
-            var remoteParameters = context.getNegotiatedValue(TlsProperty.cipher())
-                    .orElseThrow(() -> TlsAlert.noNegotiatedProperty(TlsProperty.cipher()))
-                    .keyExchangeFactory()
-                    .newRemoteKeyExchange(context, buffer);
-            return new ClientKeyExchangeMessage(metadata.version(), metadata.source(), remoteParameters);
+    private static final byte ID = 0x10;
+    private static final TlsMessageDeserializer DESERIALIZER = new TlsMessageDeserializer() {
+        @Override
+        public int id() {
+            return ID;
         }
+
+        @Override
+        public TlsMessage deserialize(TlsContext context, ByteBuffer buffer, TlsMessageMetadata metadata) {
+            var messageLength = readBigEndianInt24(buffer);
+            try (var _ = scopedRead(buffer, messageLength)) {
+                var remoteParameters = context.getNegotiatedValue(TlsProperty.cipher())
+                        .orElseThrow(() -> TlsAlert.noNegotiatedProperty(TlsProperty.cipher()))
+                        .keyExchangeFactory()
+                        .newRemoteKeyExchange(context, buffer);
+                return new ClientKeyExchangeMessage(metadata.version(), metadata.source(), remoteParameters);
+            }
+        }
+    };
+
+    public static TlsMessageDeserializer deserializer() {
+        return DESERIALIZER;
     }
 
     @Override

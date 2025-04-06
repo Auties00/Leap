@@ -17,11 +17,11 @@ public sealed interface TlsPSKExchangeMode extends TlsIdentifiableProperty<Byte>
         return DHEKE.INSTANCE;
     }
 
-    static TlsPSKExchangeMode reservedForPrivateUse(byte id) {
+    static TlsPSKExchangeMode reserved(byte id) {
         return new Reserved(id, null);
     }
 
-    static TlsPSKExchangeMode reservedForPrivateUse(byte id, TlsPSKExchangeModeGenerator generator) {
+    static TlsPSKExchangeMode reserved(byte id, TlsPSKExchangeModeGenerator generator) {
         return new Reserved(id, generator);
     }
 
@@ -60,7 +60,7 @@ public sealed interface TlsPSKExchangeMode extends TlsIdentifiableProperty<Byte>
         private Reserved(byte id, TlsPSKExchangeModeGenerator generator) {
             if(id != -32 && id != -31) {
                 throw new TlsAlert(
-                        "Only values from 224-255 (decimal) inclusive are reserved for Private Use",
+                        "Only values from 224-255 (decimal) inclusive are reserved",
                         URI.create("https://www.rfc-editor.org/rfc/rfc8446.html"),
                         "11"
                 );

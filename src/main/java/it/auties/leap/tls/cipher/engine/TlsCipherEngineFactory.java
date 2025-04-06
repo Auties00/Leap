@@ -9,6 +9,10 @@ public interface TlsCipherEngineFactory {
         return AesEngine.factory128();
     }
 
+    static TlsCipherEngineFactory aes192() {
+        return AesEngine.factory192();
+    }
+
     static TlsCipherEngineFactory aes256() {
         return AesEngine.factory256();
     }

@@ -1,11 +1,10 @@
 package it.auties.leap.tls.cipher.auth.implementation;
 
+import it.auties.leap.tls.certificate.TlsCertificate;
 import it.auties.leap.tls.cipher.auth.TlsAuth;
 import it.auties.leap.tls.cipher.auth.TlsAuthFactory;
 import it.auties.leap.tls.context.TlsContext;
-import it.auties.leap.tls.context.TlsSource;
 
-import java.security.cert.X509Certificate;
 import java.util.List;
 
 public final class ECCPWDAuth implements TlsAuth {
@@ -13,14 +12,24 @@ public final class ECCPWDAuth implements TlsAuth {
     }
 
     private static final TlsAuth INSTANCE = new ECCPWDAuth();
-    private static final TlsAuthFactory FACTORY = () -> INSTANCE;
+    private static final TlsAuthFactory FACTORY = new TlsAuthFactory() {
+        @Override
+        public TlsAuth newAuth() {
+            return INSTANCE;
+        }
+
+        @Override
+        public boolean isAnonymous() {
+            return false;
+        }
+    };
 
     public static TlsAuthFactory factory() {
         return FACTORY;
     }
 
     @Override
-    public X509Certificate validate(TlsContext context, TlsSource certificatesSource, List<X509Certificate> certificates) {
+    public TlsCertificate validate(TlsContext context, List<TlsCertificate> certificates, List<TlsCertificate> trustAnchors) {
         throw new UnsupportedOperationException();
     }
 }

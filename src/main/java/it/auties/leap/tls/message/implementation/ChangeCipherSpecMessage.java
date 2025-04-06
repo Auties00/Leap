@@ -5,6 +5,7 @@ import it.auties.leap.tls.context.TlsContext;
 import it.auties.leap.tls.context.TlsSource;
 import it.auties.leap.tls.message.TlsMessage;
 import it.auties.leap.tls.message.TlsMessageContentType;
+import it.auties.leap.tls.message.TlsMessageDeserializer;
 import it.auties.leap.tls.message.TlsMessageMetadata;
 import it.auties.leap.tls.version.TlsVersion;
 
@@ -16,15 +17,26 @@ public record ChangeCipherSpecMessage(
         TlsVersion version,
         TlsSource source
 ) implements TlsMessage {
-    public static final int ID = 0x01;
-
-    public static ChangeCipherSpecMessage of(ByteBuffer buffer, TlsMessageMetadata metadata) {
-        var id = readBigEndianInt8(buffer);
-        if(id != ChangeCipherSpecMessage.ID) {
-            throw new TlsAlert("Invalid cipher spec");
+    private static final int ID = 0x01;
+    private static final TlsMessageDeserializer DESERIALIZER = new TlsMessageDeserializer() {
+        @Override
+        public int id() {
+            return ID;
         }
 
-        return new ChangeCipherSpecMessage(metadata.version(), metadata.source());
+        @Override
+        public TlsMessage deserialize(TlsContext context, ByteBuffer buffer, TlsMessageMetadata metadata) {
+            var id = readBigEndianInt8(buffer);
+            if(id != ChangeCipherSpecMessage.ID) {
+                throw new TlsAlert("Invalid cipher spec");
+            }
+
+            return new ChangeCipherSpecMessage(metadata.version(), metadata.source());
+        }
+    };
+
+    public static TlsMessageDeserializer deserializer() {
+        return DESERIALIZER;
     }
 
     @Override

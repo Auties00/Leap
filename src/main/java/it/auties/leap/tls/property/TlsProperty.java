@@ -1,5 +1,6 @@
 package it.auties.leap.tls.property;
 
+import it.auties.leap.tls.certificate.TlsCertificateCompressionAlgorithm;
 import it.auties.leap.tls.cipher.TlsCipherSuite;
 import it.auties.leap.tls.compression.TlsCompression;
 import it.auties.leap.tls.ec.TlsECPointFormat;
@@ -28,6 +29,7 @@ public final class TlsProperty<I, O> implements TlsIdentifiableProperty<UUID> {
     private static final TlsProperty<List<String>, List<String>> APPLICATION_PROTOCOLS = new TlsProperty<>();
     private static final TlsProperty<List<TlsPSKExchangeMode>, List<TlsPSKExchangeMode>> PSK_EXCHANGE_MODES = new TlsProperty<>();
     private static final TlsProperty<List<TlsSignature>, List<TlsSignature>> SIGNATURE_ALGORITHMS = new TlsProperty<>();
+    private static final TlsProperty<List<TlsCertificateCompressionAlgorithm>, List<TlsCertificateCompressionAlgorithm>> CERTIFICATE_COMPRESSION_ALGORITHMS = new TlsProperty<>();
 
     private final UUID id;
 
@@ -89,6 +91,10 @@ public final class TlsProperty<I, O> implements TlsIdentifiableProperty<UUID> {
 
     public static TlsProperty<List<TlsSignature>, List<TlsSignature>> signatureAlgorithms() {
         return SIGNATURE_ALGORITHMS;
+    }
+
+    public static TlsProperty<List<TlsCertificateCompressionAlgorithm>, List<TlsCertificateCompressionAlgorithm>> certificateCompressionAlgorithms() {
+        return CERTIFICATE_COMPRESSION_ALGORITHMS;
     }
 
     @Override

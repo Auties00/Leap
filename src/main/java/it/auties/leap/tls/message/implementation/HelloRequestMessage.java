@@ -13,14 +13,25 @@ public record HelloRequestMessage(
         TlsVersion version,
         TlsSource source
 ) implements TlsHandshakeMessage {
-    public static final byte ID = 0x00;
-
-    public static HelloRequestMessage of(ByteBuffer buffer, TlsMessageMetadata metadata) {
-        if(buffer.hasRemaining()) {
-            throw new TlsAlert("Expected server hello request message to have an empty payload", URI.create("https://datatracker.ietf.org/doc/html/rfc5246#section-7.4.9"), "7.4.1.1");
+    private static final byte ID = 0x00;
+    private static final TlsMessageDeserializer DESERIALIZER = new TlsMessageDeserializer() {
+        @Override
+        public int id() {
+            return ID;
         }
 
-        return new HelloRequestMessage(metadata.version(), metadata.source());
+        @Override
+        public TlsMessage deserialize(TlsContext context, ByteBuffer buffer, TlsMessageMetadata metadata) {
+            if(buffer.hasRemaining()) {
+                throw new TlsAlert("Expected server hello request message to have an empty payload", URI.create("https://datatracker.ietf.org/doc/html/rfc5246#section-7.4.9"), "7.4.1.1");
+            }
+
+            return new HelloRequestMessage(metadata.version(), metadata.source());
+        }
+    };
+
+    public static TlsMessageDeserializer deserializer() {
+        return DESERIALIZER;
     }
 
     @Override

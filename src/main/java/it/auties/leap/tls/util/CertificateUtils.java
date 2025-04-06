@@ -3,8 +3,6 @@ package it.auties.leap.tls.util;
 import it.auties.leap.StableValue;
 import it.auties.leap.tls.alert.TlsAlert;
 import it.auties.leap.tls.certificate.TlsCertificate;
-import it.auties.leap.tls.certificate.TlsCertificateStore;
-import it.auties.leap.tls.certificate.TlsClientCertificateType;
 import it.auties.leap.tls.cipher.exchange.TlsKeyExchangeType;
 import it.auties.leap.tls.connection.TlsConnectionType;
 import it.auties.leap.tls.util.sun.HostnameChecker;
@@ -15,10 +13,9 @@ import java.net.InetSocketAddress;
 import java.security.GeneralSecurityException;
 import java.security.KeyStore;
 import java.security.cert.*;
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
-import java.util.stream.Collectors;
 
 public final class CertificateUtils {
     private static final String CLIENT_AUTH_USE_OID = "1.3.6.1.5.5.7.3.2";
@@ -28,23 +25,24 @@ public final class CertificateUtils {
     private static final int KU_KEY_ENCIPHERMENT = 2;
     private static final int KU_KEY_AGREEMENT = 4;
     private static final String DEFAULT_KEY_STORE_PATH = System.getProperty("java.home") + File.separator + "lib" + File.separator + "security" + File.separator + "cacerts";
-    private static final StableValue<Set<TlsCertificate>> DEFAULT_TRUST_ANCHORS = StableValue.of();
+    private static final StableValue<List<TlsCertificate>> DEFAULT_TRUST_ANCHORS = StableValue.of();
 
-    public static X509Certificate validateChain(List<X509Certificate> certificateChain, InetSocketAddress remoteAddress, TlsCertificateStore keyStore, TlsClientCertificateType expectedAlgorithm) {
-        var leafCert = getLeafCert(certificateChain);
+    public static TlsCertificate validateChain(InetSocketAddress remoteAddress, List<TlsCertificate> certificates, List<TlsCertificate> trustAnchors, String expectedAlgorithm) {
+        var leafCert = getLeafCert(certificates);
         checkAlgorithm(expectedAlgorithm, leafCert);
         checkRemote(remoteAddress, leafCert);
-        validateCertificate(keyStore, certificateChain);
+        validateCertificate(trustAnchors, certificates);
         return leafCert;
     }
 
-    private static void checkAlgorithm(TlsClientCertificateType expectedAlgorithm, X509Certificate leafCert) {
-        if (leafCert.getSigAlgName() == null || !expectedAlgorithm.accepts(leafCert)) {
-            throw new TlsAlert("Certificate signature algorithm (%s) does not match expected algorithm (%s).".formatted(leafCert.getSigAlgName(), expectedAlgorithm));
+    private static void checkAlgorithm(String expectedAlgorithm, TlsCertificate leafCert) {
+        var sigAlgName = leafCert.value().getSigAlgName();
+        if (sigAlgName == null || !sigAlgName.toUpperCase().contains(expectedAlgorithm.toUpperCase())) {
+            throw new TlsAlert("Certificate signature algorithm (%s) does not match expected algorithm (%s).".formatted(sigAlgName, expectedAlgorithm));
         }
     }
 
-    private static X509Certificate getLeafCert(List<X509Certificate> certificateChain) {
+    private static TlsCertificate getLeafCert(List<TlsCertificate> certificateChain) {
         if (certificateChain == null || certificateChain.isEmpty()) {
             throw new TlsAlert("Remote certificate chain is empty.");
         }
@@ -52,22 +50,24 @@ public final class CertificateUtils {
         return certificateChain.getFirst();
     }
 
-    private static void checkRemote(InetSocketAddress remoteAddress, X509Certificate leafCert) {
+    private static void checkRemote(InetSocketAddress remoteAddress, TlsCertificate leafCert) {
         try {
-            HostnameChecker.match(remoteAddress.getHostName(), leafCert, false);
+            HostnameChecker.match(remoteAddress.getHostName(), leafCert.value(), false);
         } catch (CertificateException e) {
             throw new TlsAlert("Invalid remote address", e);
         }
     }
 
-    private static void validateCertificate(TlsCertificateStore trustedKeyStore, List<X509Certificate> certificateChain) {
+    private static void validateCertificate(List<TlsCertificate> trusted, List<TlsCertificate> certificateChain) {
         try {
             var certFactory = CertificateFactory.getInstance("X.509");
-            var certPath = certFactory.generateCertPath(certificateChain);
-            var trustAnchors = trustedKeyStore.trustAnchors()
-                    .stream()
-                    .map(tlsCertificate -> new TrustAnchor(tlsCertificate.value(), null))
-                    .collect(Collectors.toUnmodifiableSet());
+            var path = new ArrayList<X509Certificate>();
+            var trustAnchors = new HashSet<TrustAnchor>();
+            for(var trustAnchor : trusted) {
+                path.add(trustAnchor.value());
+                trustAnchors.add(new TrustAnchor(trustAnchor.value(), null));
+            }
+            var certPath = certFactory.generateCertPath(path);
             var pkixParams = new PKIXParameters(trustAnchors);
             pkixParams.setRevocationEnabled(false); // Boolean.getBoolean("com.sun.net.ssl.checkRevocation");
             var cpv = CertPathValidator.getInstance("PKIX");
@@ -131,42 +131,37 @@ public final class CertificateUtils {
         }
     }
 
-    public static Set<TlsCertificate> defaultTrustAnchors() {
-        return DEFAULT_TRUST_ANCHORS.orElseSet(CertificateUtils::loadDefaultTrustAnchors);
-    }
-
-    private static Set<TlsCertificate> loadDefaultTrustAnchors() {
-        var file = new File(CertificateUtils.DEFAULT_KEY_STORE_PATH);
-        if (!file.isFile() || !file.canRead()) {
-            return null;
-        }
-
-        try {
-            var keyStore = KeyStore.getInstance(KeyStore.getDefaultType());
-            try (var fis = new FileInputStream(file)) {
-                keyStore.load(fis, null);
-                var trustAnchors = new HashSet<TlsCertificate>();
-                var aliases = keyStore.aliases();
-                while (aliases.hasMoreElements()) {
-                    var alias = aliases.nextElement();
-                    if (!keyStore.isCertificateEntry(alias)) {
-                        continue;
-                    }
-
-                    var cert = keyStore.getCertificate(alias);
-                    if (!(cert instanceof X509Certificate x509Certificate)) {
-                        continue;
-                    }
-
-                    var anchor = TlsCertificate.of(x509Certificate);
-                    trustAnchors.add(anchor);
-                }
-                return trustAnchors;
-            } catch (Throwable _) {
-                return null;
+    public static List<TlsCertificate> defaultTrustAnchors() {
+        return DEFAULT_TRUST_ANCHORS.orElseSet(() -> {
+            var file = new File(CertificateUtils.DEFAULT_KEY_STORE_PATH);
+            if (!file.isFile() || !file.canRead()) {
+                throw new TlsAlert("Cannot load default trust anchors: " + file + " is not a file or cannot be read");
             }
-        }catch (Throwable _) {
-            return null;
-        }
+
+            try {
+                var keyStore = KeyStore.getInstance(KeyStore.getDefaultType());
+                try (var fis = new FileInputStream(file)) {
+                    keyStore.load(fis, null);
+                    var trustAnchors = new ArrayList<TlsCertificate>();
+                    var aliases = keyStore.aliases();
+                    while (aliases.hasMoreElements()) {
+                        var alias = aliases.nextElement();
+                        if (!keyStore.isCertificateEntry(alias)) {
+                            continue;
+                        }
+
+                        var cert = keyStore.getCertificate(alias);
+                        if (!(cert instanceof X509Certificate x509Certificate)) {
+                            continue;
+                        }
+
+                        trustAnchors.add(TlsCertificate.of(x509Certificate));
+                    }
+                    return trustAnchors;
+                }
+            } catch (Throwable throwable) {
+                throw new TlsAlert("Cannot load default trust anchors", throwable);
+            }
+        });
     }
 }

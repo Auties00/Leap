@@ -8,9 +8,7 @@ import it.auties.leap.tls.connection.TlsHandshakeStatus;
 import it.auties.leap.tls.context.TlsContext;
 import it.auties.leap.tls.context.TlsSource;
 import it.auties.leap.tls.extension.TlsExtension;
-import it.auties.leap.tls.message.TlsHandshakeMessage;
-import it.auties.leap.tls.message.TlsMessageContentType;
-import it.auties.leap.tls.message.TlsMessageMetadata;
+import it.auties.leap.tls.message.*;
 import it.auties.leap.tls.property.TlsProperty;
 import it.auties.leap.tls.version.TlsVersion;
 
@@ -35,7 +33,52 @@ public record ServerHelloMessage(
 ) implements TlsHandshakeMessage {
     private static final int SERVER_RANDOM_LENGTH = 32;
     private static final int SESSION_ID_LENGTH = 32;
-    public static final byte ID = 0x02;
+    private static final byte ID = 0x02;
+    private static final TlsMessageDeserializer DESERIALIZER = new TlsMessageDeserializer() {
+        @Override
+        public int id() {
+            return ID;
+        }
+
+        @Override
+        public TlsMessage deserialize(TlsContext context, ByteBuffer buffer, TlsMessageMetadata metadata) {
+            var tlsVersionId = readBigEndianInt16(buffer);
+            var tlsVersion = TlsVersion.of(tlsVersionId)
+                    .orElseThrow(() -> new IllegalArgumentException("Cannot decode TLS message, unknown protocol version: " + tlsVersionId));
+
+            var serverRandom = readBytes(buffer, SERVER_RANDOM_LENGTH);
+
+            var sessionId = readBytesBigEndian8(buffer);
+
+            var cipherId = readBigEndianInt16(buffer);
+
+            var compressionId = readBigEndianInt8(buffer);
+
+            var extensionTypeToDecoder = context.getNegotiatedValue(TlsProperty.clientExtensions())
+                    .orElseThrow(() -> TlsAlert.noNegotiatedProperty(TlsProperty.clientExtensions()))
+                    .stream()
+                    .collect(Collectors.toUnmodifiableMap(TlsExtension::type, Function.identity()));
+            var extensions = new ArrayList<TlsExtension.Configured.Server>();
+            var extensionsLength = buffer.remaining() >= INT16_LENGTH ? readBigEndianInt16(buffer) : 0;
+            try (var _ = scopedRead(buffer, extensionsLength)) {
+                while (buffer.hasRemaining()) {
+                    var extensionType = readBigEndianInt16(buffer);
+                    var extensionDecoder = extensionTypeToDecoder.get(extensionType);
+                    if (extensionDecoder == null) {
+                        throw new TlsAlert("Unknown extension");
+                    }
+
+                    var extensionLength = readBigEndianInt16(buffer);
+                    try (var _ = scopedRead(buffer, extensionLength)) {
+                        extensionDecoder.deserialize(context, extensionType, buffer)
+                                .ifPresent(extensions::add);
+                    }
+                }
+            }
+
+            return new ServerHelloMessage(tlsVersion, metadata.source(), serverRandom, sessionId, cipherId, compressionId, extensions, extensionsLength);
+        }
+    };
 
     public ServerHelloMessage {
         if(randomData == null || randomData.length != SERVER_RANDOM_LENGTH) {
@@ -51,42 +94,8 @@ public record ServerHelloMessage(
         }
     }
 
-    public static ServerHelloMessage of(TlsContext context, ByteBuffer buffer, TlsMessageMetadata metadata) {
-        var tlsVersionId = readBigEndianInt16(buffer);
-        var tlsVersion = TlsVersion.of(tlsVersionId)
-                .orElseThrow(() -> new IllegalArgumentException("Cannot decode TLS message, unknown protocol version: " + tlsVersionId));
-
-        var serverRandom = readBytes(buffer, SERVER_RANDOM_LENGTH);
-
-        var sessionId = readBytesBigEndian8(buffer);
-
-        var cipherId = readBigEndianInt16(buffer);
-
-        var compressionId = readBigEndianInt8(buffer);
-
-        var extensionTypeToDecoder = context.getNegotiatedValue(TlsProperty.clientExtensions())
-                .orElseThrow(() -> TlsAlert.noNegotiatedProperty(TlsProperty.clientExtensions()))
-                .stream()
-                .collect(Collectors.toUnmodifiableMap(TlsExtension::type, Function.identity()));
-        var extensions = new ArrayList<TlsExtension.Configured.Server>();
-        var extensionsLength = buffer.remaining() >= INT16_LENGTH ? readBigEndianInt16(buffer) : 0;
-        try (var _ = scopedRead(buffer, extensionsLength)) {
-            while (buffer.hasRemaining()) {
-                var extensionType = readBigEndianInt16(buffer);
-                var extensionDecoder = extensionTypeToDecoder.get(extensionType);
-                if (extensionDecoder == null) {
-                    throw new TlsAlert("Unknown extension");
-                }
-
-                var extensionLength = readBigEndianInt16(buffer);
-                try (var _ = scopedRead(buffer, extensionLength)) {
-                    extensionDecoder.deserialize(context, extensionType, buffer)
-                            .ifPresent(extensions::add);
-                }
-            }
-        }
-
-        return new ServerHelloMessage(tlsVersion, metadata.source(), serverRandom, sessionId, cipherId, compressionId, extensions, extensionsLength);
+    public static TlsMessageDeserializer deserializer() {
+        return DESERIALIZER;
     }
 
     @Override
@@ -136,7 +145,7 @@ public record ServerHelloMessage(
                     .setHandshakeStatus(TlsHandshakeStatus.HANDSHAKE_STARTED);
 
             case REMOTE -> {
-                var credentials = TlsConnection.of(TlsConnectionType.SERVER, randomData, sessionId, null);
+                var credentials = TlsConnection.newConnection(TlsConnectionType.SERVER, randomData, sessionId, null);
                 credentials.setHandshakeStatus(TlsHandshakeStatus.HANDSHAKE_STARTED);
                 context.setRemoteConnectionState(credentials);
 

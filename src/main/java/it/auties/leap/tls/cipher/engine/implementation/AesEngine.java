@@ -41,6 +41,27 @@ public sealed abstract class AesEngine extends TlsCipherEngine.Block {
         }
     };
 
+    private static final TlsCipherEngineFactory FACTORY_192 = new TlsCipherEngineFactory() {
+        @Override
+        public TlsCipherEngine newCipherEngine(boolean forEncryption, byte[] key) {
+            if (key == null || key.length != keyLength()) {
+                throw new IllegalArgumentException("Invalid key length");
+            }
+
+            return new Aes192Engine(forEncryption, key);
+        }
+
+        @Override
+        public int keyLength() {
+            return 24;
+        }
+
+        @Override
+        public int blockLength() {
+            return BLOCK_SIZE;
+        }
+    };
+
     private static final TlsCipherEngineFactory FACTORY_256 = new TlsCipherEngineFactory() {
         @Override
         public TlsCipherEngine newCipherEngine(boolean forEncryption, byte[] key) {
@@ -82,6 +103,10 @@ public sealed abstract class AesEngine extends TlsCipherEngine.Block {
 
     public static TlsCipherEngineFactory factory128() {
         return FACTORY_128;
+    }
+
+    public static TlsCipherEngineFactory factory192() {
+        return FACTORY_192;
     }
 
     public static TlsCipherEngineFactory factory256() {
@@ -242,6 +267,17 @@ public sealed abstract class AesEngine extends TlsCipherEngine.Block {
             }
 
             return blocks;
+        }
+    }
+
+    private static final class Aes192Engine extends AesEngine {
+        private Aes192Engine(boolean forEncryption, byte[] key) {
+            super(forEncryption, key);
+        }
+
+        @Override
+        int[][] workingKey(byte[] key) {
+            throw new UnsupportedOperationException();
         }
     }
 

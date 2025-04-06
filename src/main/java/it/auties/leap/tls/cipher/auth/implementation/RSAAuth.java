@@ -1,17 +1,26 @@
 package it.auties.leap.tls.cipher.auth.implementation;
 
+import it.auties.leap.tls.certificate.TlsCertificate;
 import it.auties.leap.tls.cipher.auth.TlsAuth;
 import it.auties.leap.tls.cipher.auth.TlsAuthFactory;
 import it.auties.leap.tls.context.TlsContext;
-import it.auties.leap.tls.context.TlsSource;
 import it.auties.leap.tls.util.CertificateUtils;
 
-import java.security.cert.X509Certificate;
 import java.util.List;
 
 public final class RSAAuth implements TlsAuth {
     private static final TlsAuth INSTANCE = new RSAAuth();
-    private static final TlsAuthFactory FACTORY = () -> INSTANCE;
+    private static final TlsAuthFactory FACTORY = new TlsAuthFactory() {
+        @Override
+        public TlsAuth newAuth() {
+            return INSTANCE;
+        }
+
+        @Override
+        public boolean isAnonymous() {
+            return false;
+        }
+    };
 
     private RSAAuth() {
 
@@ -22,7 +31,9 @@ public final class RSAAuth implements TlsAuth {
     }
 
     @Override
-    public X509Certificate validate(TlsContext context, TlsSource certificatesSource, List<X509Certificate> certificates) {
-        return CertificateUtils.validateChain(certificates, context.address().orElse(null), context.trustedKeyStore(), "RSA");
+    public TlsCertificate validate(TlsContext context, List<TlsCertificate> certificates, List<TlsCertificate> trustAnchors) {
+        var address = context.address()
+                .orElse(null);
+        return CertificateUtils.validateChain(address, certificates, trustAnchors, "RSA");
     }
 }

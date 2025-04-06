@@ -10,6 +10,7 @@ import it.auties.leap.tls.version.TlsVersion;
 import java.io.ByteArrayOutputStream;
 import java.nio.ByteBuffer;
 
+// TODO: Use something more efficient than ByteArrayOutputStream for buffering (toByteArray() copies the result which makes 0 sense)
 public final class TlsConnectionIntegrity {
     private final ByteArrayOutputStream buffer;
     private ConnectionIntegrityDelegate delegate;

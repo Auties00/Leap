@@ -5,9 +5,7 @@ import it.auties.leap.tls.cipher.exchange.TlsKeyExchange;
 import it.auties.leap.tls.cipher.exchange.TlsKeyExchangeType;
 import it.auties.leap.tls.context.TlsContext;
 import it.auties.leap.tls.context.TlsSource;
-import it.auties.leap.tls.message.TlsHandshakeMessage;
-import it.auties.leap.tls.message.TlsMessageContentType;
-import it.auties.leap.tls.message.TlsMessageMetadata;
+import it.auties.leap.tls.message.*;
 import it.auties.leap.tls.property.TlsProperty;
 import it.auties.leap.tls.version.TlsVersion;
 
@@ -22,16 +20,27 @@ public record ServerKeyExchangeMessage(
         int signatureAlgorithm,
         byte[] signature
 ) implements TlsHandshakeMessage {
-    public static final byte ID = 0x0C;
+    private static final byte ID = 0x0C;
+    private static final TlsMessageDeserializer DESERIALIZER = new TlsMessageDeserializer() {
+        @Override
+        public int id() {
+            return ID;
+        }
 
-    public static ServerKeyExchangeMessage of(TlsContext context, ByteBuffer buffer, TlsMessageMetadata metadata) {
-        var remoteParameters = context.getNegotiatedValue(TlsProperty.cipher())
-                .orElseThrow(() -> TlsAlert.noNegotiatedProperty(TlsProperty.cipher()))
-                .keyExchangeFactory()
-                .newRemoteKeyExchange(context, buffer);
-        var signatureAlgorithmId = readBigEndianInt16(buffer);
-        var signature = readBytesBigEndian16(buffer);
-        return new ServerKeyExchangeMessage(metadata.version(), metadata.source(), remoteParameters, signatureAlgorithmId, signature);
+        @Override
+        public TlsMessage deserialize(TlsContext context, ByteBuffer buffer, TlsMessageMetadata metadata) {
+            var remoteParameters = context.getNegotiatedValue(TlsProperty.cipher())
+                    .orElseThrow(() -> TlsAlert.noNegotiatedProperty(TlsProperty.cipher()))
+                    .keyExchangeFactory()
+                    .newRemoteKeyExchange(context, buffer);
+            var signatureAlgorithmId = readBigEndianInt16(buffer);
+            var signature = readBytesBigEndian16(buffer);
+            return new ServerKeyExchangeMessage(metadata.version(), metadata.source(), remoteParameters, signatureAlgorithmId, signature);
+        }
+    };
+
+    public static TlsMessageDeserializer deserializer() {
+        return DESERIALIZER;
     }
 
     @Override

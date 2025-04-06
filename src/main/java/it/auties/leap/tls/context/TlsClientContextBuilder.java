@@ -1,7 +1,7 @@
 package it.auties.leap.tls.context;
 
 import it.auties.leap.socket.SocketProtocol;
-import it.auties.leap.tls.certificate.TlsCertificateStore;
+import it.auties.leap.tls.certificate.TlsCertificateValidator;
 import it.auties.leap.tls.cipher.TlsCipherSuite;
 import it.auties.leap.tls.compression.TlsCompression;
 import it.auties.leap.tls.connection.TlsConnection;
@@ -20,8 +20,8 @@ import java.util.Objects;
 public final class TlsClientContextBuilder extends TlsContextBuilder<TlsClientContextBuilder> {
     private List<? extends TlsExtensionOwner.Client> extensions;
 
-    TlsClientContextBuilder(TlsCertificateStore store) {
-        super(store, TlsConnectionType.SERVER);
+    TlsClientContextBuilder() {
+        super(TlsConnectionType.SERVER);
     }
 
     public TlsClientContextBuilder extensions(List<? extends TlsExtensionOwner.Client> extensions) {
@@ -35,7 +35,7 @@ public final class TlsClientContextBuilder extends TlsContextBuilder<TlsClientCo
         var versions = this.versions != null && !this.versions.isEmpty() ? this.versions : TlsVersion.recommended(SocketProtocol.TCP);
         var protocol = versions.getFirst().protocol();
         var dtlsCookie = protocol == SocketProtocol.UDP ? Objects.requireNonNullElseGet(this.dtlsCookie, TlsKeyUtils::randomData) : null;
-        var credentials = TlsConnection.of(TlsConnectionType.CLIENT, randomData, sessionId, dtlsCookie);
+        var credentials = TlsConnection.newConnection(TlsConnectionType.CLIENT, randomData, sessionId, dtlsCookie, certificates);
         var ciphers = Objects.requireNonNullElse(this.ciphers, TlsCipherSuite.recommended());
         var compressions = Objects.requireNonNullElse(this.compressions, TlsCompression.recommended());
         var messageDeserializer = Objects.requireNonNullElse(this.messageDeserializer, TlsMessageDeserializer.builtin());
@@ -48,6 +48,7 @@ public final class TlsClientContextBuilder extends TlsContextBuilder<TlsClientCo
 
             return List.of(TlsExtension.supportedVersions(), TlsExtension.keyShare(), TlsExtension.signatureAlgorithms());
         });
-        return TlsContext.ofClient(versions, extensions, ciphers, compressions, credentials, certificateStore, messageDeserializer, masterSecretGenerator, connectionInitializer);
+        var certificateValidator = Objects.requireNonNullElseGet(this.certificateValidator, TlsCertificateValidator::validate);
+        return TlsContext.ofClient(versions, extensions, ciphers, compressions, credentials, certificateValidator, messageDeserializer, masterSecretGenerator, connectionInitializer);
     }
 }

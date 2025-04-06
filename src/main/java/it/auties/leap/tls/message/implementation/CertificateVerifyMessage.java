@@ -3,9 +3,7 @@ package it.auties.leap.tls.message.implementation;
 import it.auties.leap.tls.alert.TlsAlert;
 import it.auties.leap.tls.context.TlsContext;
 import it.auties.leap.tls.context.TlsSource;
-import it.auties.leap.tls.message.TlsHandshakeMessage;
-import it.auties.leap.tls.message.TlsMessageContentType;
-import it.auties.leap.tls.message.TlsMessageMetadata;
+import it.auties.leap.tls.message.*;
 import it.auties.leap.tls.version.TlsVersion;
 
 import java.nio.ByteBuffer;
@@ -14,14 +12,25 @@ public record CertificateVerifyMessage(
         TlsVersion version,
         TlsSource source
 ) implements TlsHandshakeMessage {
-    public static final int ID = 0x0F;
-
-    public static ServerHelloDoneMessage of(ByteBuffer buffer, TlsMessageMetadata metadata) {
-        if(buffer.hasRemaining()) {
-            throw new TlsAlert("Expected certificate verify message to have an empty payload");
+    private static final int ID = 0x0F;
+    private static final TlsMessageDeserializer DESERIALIZER = new TlsMessageDeserializer() {
+        @Override
+        public int id() {
+            return ID;
         }
 
-        return new ServerHelloDoneMessage(metadata.version(), metadata.source());
+        @Override
+        public TlsMessage deserialize(TlsContext context, ByteBuffer buffer, TlsMessageMetadata metadata) {
+            if(buffer.hasRemaining()) {
+                throw new TlsAlert("Expected certificate verify message to have an empty payload");
+            }
+
+            return new CertificateVerifyMessage(metadata.version(), metadata.source());
+        }
+    };
+
+    public static TlsMessageDeserializer deserializer() {
+        return DESERIALIZER;
     }
 
     @Override

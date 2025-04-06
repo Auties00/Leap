@@ -7,6 +7,8 @@ public final class BufferUtils {
     public static final int INT8_LENGTH = 1;
     public static final int INT16_LENGTH = 2;
     public static final int INT24_LENGTH = 3;
+    public static final int INT32_LENGTH = 4;
+    public static final int INT64_LENGTH = 8;
 
     public static byte readLittleEndianInt8(ByteBuffer m) {
         return m.get();

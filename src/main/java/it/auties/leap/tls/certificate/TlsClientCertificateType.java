@@ -2,15 +2,8 @@ package it.auties.leap.tls.certificate;
 
 import it.auties.leap.tls.alert.TlsAlert;
 import it.auties.leap.tls.property.TlsIdentifiableProperty;
-import it.auties.leap.tls.signature.TlsSignatureAlgorithm.Signature;
-import org.bouncycastle.jcajce.interfaces.XDHPublicKey;
 
-import javax.crypto.interfaces.DHPublicKey;
 import java.net.URI;
-import java.security.interfaces.XECPublicKey;
-import java.util.Collections;
-import java.util.Set;
-import java.util.function.Function;
 
 // For historical reasons, the names of some client certificate types
 // include the algorithm used to sign the certificate.  For example,
@@ -64,36 +57,24 @@ public sealed interface TlsClientCertificateType extends TlsIdentifiableProperty
         return EcdsaFixedEcdh.INSTANCE;
     }
 
-    static GostSign256 falconSign() {
+    static GostSign256 gostSign256() {
         return GostSign256.INSTANCE;
     }
 
-    static GostSign512 dilithiumSign() {
+    static GostSign512 gostSign512() {
         return GostSign512.INSTANCE;
     }
 
-    Set<Signature> signatures();
-
-    boolean accepts(TlsCertificate certificate);
-
-    static TlsClientCertificateType reservedForPrivateUse(byte id, Set<Signature> signatures) {
-        return reservedForPrivateUse(id, signatures, null);
-    }
-
-      static TlsClientCertificateType reservedForPrivateUse(byte id, Set<Signature> signatures, Function<TlsCertificate, Boolean> validator) {
+    static TlsClientCertificateType reserved(byte id) {
         if(id < -32 || id > -1) {
             throw new TlsAlert(
-                    "Only values from 224-255 (decimal) inclusive are reserved for Private Use",
+                    "Only values from 224-255 (decimal) inclusive are reserved",
                     URI.create("https://www.ietf.org/rfc/rfc3749.txt"),
                     "2"
             );
         }
 
-        if(signatures == null || signatures.isEmpty()) {
-            throw new TlsAlert("Expected a set of signatures");
-        }
-
-        return new Reserved(id, signatures, validator);
+        return new Reserved(id);
     }
 
     final class RsaSign implements TlsClientCertificateType {
@@ -102,16 +83,6 @@ public sealed interface TlsClientCertificateType extends TlsIdentifiableProperty
         @Override
         public Byte id() {
             return 1;
-        }
-
-        @Override
-        public Set<Signature> signatures() {
-            return Set.of(Signature.rsa(), Signature.rsaPssPssSha256(), Signature.rsaPssPssSha384(), Signature.rsaPssPssSha512(), Signature.rsaPssRsaeSha256(), Signature.rsaPssRsaeSha384(), Signature.rsaPssRsaeSha512());
-        }
-
-        @Override
-        public boolean accepts(TlsCertificate certificate) {
-            return true;
         }
     }
 
@@ -122,16 +93,6 @@ public sealed interface TlsClientCertificateType extends TlsIdentifiableProperty
         public Byte id() {
             return 2;
         }
-
-        @Override
-        public Set<Signature> signatures() {
-            return Set.of(Signature.dsa());
-        }
-
-        @Override
-        public boolean accepts(TlsCertificate certificate) {
-            return true;
-        }
     }
 
     final class RsaFixedDh implements TlsClientCertificateType {
@@ -140,16 +101,6 @@ public sealed interface TlsClientCertificateType extends TlsIdentifiableProperty
         @Override
         public Byte id() {
             return 3;
-        }
-
-        @Override
-        public Set<Signature> signatures() {
-            return Set.of(Signature.rsa(), Signature.rsaPssPssSha256(), Signature.rsaPssPssSha384(), Signature.rsaPssPssSha512(), Signature.rsaPssRsaeSha256(), Signature.rsaPssRsaeSha384(), Signature.rsaPssRsaeSha512());
-        }
-
-        @Override
-        public boolean accepts(TlsCertificate certificate) {
-            return certificate.value().getPublicKey() instanceof DHPublicKey;
         }
     }
 
@@ -160,16 +111,6 @@ public sealed interface TlsClientCertificateType extends TlsIdentifiableProperty
         public Byte id() {
             return 4;
         }
-
-        @Override
-        public Set<Signature> signatures() {
-            return Set.of(Signature.dsa());
-        }
-
-        @Override
-        public boolean accepts(TlsCertificate certificate) {
-            return certificate.value().getPublicKey() instanceof DHPublicKey;
-        }
     }
 
     final class RsaEphemeralDh implements TlsClientCertificateType {
@@ -178,16 +119,6 @@ public sealed interface TlsClientCertificateType extends TlsIdentifiableProperty
         @Override
         public Byte id() {
             return 5;
-        }
-
-        @Override
-        public Set<Signature> signatures() {
-            return Set.of(Signature.rsa(), Signature.rsaPssPssSha256(), Signature.rsaPssPssSha384(), Signature.rsaPssPssSha512(), Signature.rsaPssRsaeSha256(), Signature.rsaPssRsaeSha384(), Signature.rsaPssRsaeSha512());
-        }
-
-        @Override
-        public boolean accepts(TlsCertificate certificate) {
-            return certificate.value().getPublicKey() instanceof DHPublicKey;
         }
     }
 
@@ -198,16 +129,6 @@ public sealed interface TlsClientCertificateType extends TlsIdentifiableProperty
         public Byte id() {
             return 6;
         }
-
-        @Override
-        public Set<Signature> signatures() {
-            return Set.of(Signature.dsa());
-        }
-
-        @Override
-        public boolean accepts(TlsCertificate certificate) {
-            return certificate.value().getPublicKey() instanceof DHPublicKey;
-        }
     }
 
     final class FortezzaDms implements TlsClientCertificateType {
@@ -216,16 +137,6 @@ public sealed interface TlsClientCertificateType extends TlsIdentifiableProperty
         @Override
         public Byte id() {
             return 20;
-        }
-
-        @Override
-        public Set<Signature> signatures() {
-            return Set.of(Signature.dsa());
-        }
-
-        @Override
-        public boolean accepts(TlsCertificate certificate) {
-            return true;
         }
     }
 
@@ -236,16 +147,6 @@ public sealed interface TlsClientCertificateType extends TlsIdentifiableProperty
         public Byte id() {
             return 64;
         }
-
-        @Override
-        public Set<Signature> signatures() {
-            return Set.of(Signature.ecdsa());
-        }
-
-        @Override
-        public boolean accepts(TlsCertificate certificate) {
-            return true;
-        }
     }
 
     final class RsaFixedEcdh implements TlsClientCertificateType {
@@ -254,17 +155,6 @@ public sealed interface TlsClientCertificateType extends TlsIdentifiableProperty
         @Override
         public Byte id() {
             return 65;
-        }
-
-        @Override
-        public Set<Signature> signatures() {
-            return Set.of(Signature.rsa(), Signature.rsaPssPssSha256(), Signature.rsaPssPssSha384(), Signature.rsaPssPssSha512(), Signature.rsaPssRsaeSha256(), Signature.rsaPssRsaeSha384(), Signature.rsaPssRsaeSha512());
-        }
-
-        @Override
-        public boolean accepts(TlsCertificate certificate) {
-            var publicKey = certificate.value().getPublicKey();
-            return publicKey instanceof XECPublicKey || publicKey instanceof XDHPublicKey;
         }
     }
 
@@ -275,17 +165,6 @@ public sealed interface TlsClientCertificateType extends TlsIdentifiableProperty
         public Byte id() {
             return 66;
         }
-
-        @Override
-        public Set<Signature> signatures() {
-            return Set.of(Signature.ecdsa());
-        }
-
-        @Override
-        public boolean accepts(TlsCertificate certificate) {
-            var publicKey = certificate.value().getPublicKey();
-            return publicKey instanceof XECPublicKey || publicKey instanceof XDHPublicKey;
-        }
     }
 
     final class GostSign256 implements TlsClientCertificateType {
@@ -294,16 +173,6 @@ public sealed interface TlsClientCertificateType extends TlsIdentifiableProperty
         @Override
         public Byte id() {
             return 67;
-        }
-
-        @Override
-        public Set<Signature> signatures() {
-            return Set.of(Signature.gostr34102012_256());
-        }
-
-        @Override
-        public boolean accepts(TlsCertificate certificate) {
-            return true;
         }
     }
 
@@ -314,42 +183,18 @@ public sealed interface TlsClientCertificateType extends TlsIdentifiableProperty
         public Byte id() {
             return 68;
         }
-
-        @Override
-        public Set<Signature> signatures() {
-            return Set.of(Signature.gostr34102012_512());
-        }
-
-        @Override
-        public boolean accepts(TlsCertificate certificate) {
-            return true;
-        }
     }
 
     final class Reserved implements TlsClientCertificateType {
         private final byte id;
-        private final Set<Signature> signatures;
-        private final Function<TlsCertificate, Boolean> validator;
 
-        private Reserved(byte id, Set<Signature> signatures, Function<TlsCertificate, Boolean> validator) {
+        private Reserved(byte id) {
             this.id = id;
-            this.signatures = signatures;
-            this.validator = validator;
         }
 
         @Override
         public Byte id() {
             return id;
-        }
-
-        @Override
-        public Set<Signature> signatures() {
-            return Collections.unmodifiableSet(signatures);
-        }
-
-        @Override
-        public boolean accepts(TlsCertificate certificate) {
-            return validator == null || validator.apply(certificate);
         }
     }
 }

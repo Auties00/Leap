@@ -1,21 +1,16 @@
 package it.auties.leap.tls.message.implementation;
 
 import it.auties.leap.tls.alert.TlsAlert;
+import it.auties.leap.tls.certificate.TlsCertificate;
 import it.auties.leap.tls.cipher.exchange.TlsKeyExchangeType;
 import it.auties.leap.tls.connection.TlsConnectionType;
 import it.auties.leap.tls.context.TlsContext;
 import it.auties.leap.tls.context.TlsSource;
-import it.auties.leap.tls.message.TlsHandshakeMessage;
-import it.auties.leap.tls.message.TlsMessageContentType;
-import it.auties.leap.tls.message.TlsMessageMetadata;
+import it.auties.leap.tls.message.*;
 import it.auties.leap.tls.property.TlsProperty;
 import it.auties.leap.tls.version.TlsVersion;
 
 import java.nio.ByteBuffer;
-import java.security.cert.CertificateEncodingException;
-import java.security.cert.CertificateException;
-import java.security.cert.CertificateFactory;
-import java.security.cert.X509Certificate;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -24,24 +19,39 @@ import static it.auties.leap.tls.util.BufferUtils.*;
 public record CertificateMessage(
         TlsVersion version,
         TlsSource source,
-        List<X509Certificate> certificates
+        List<TlsCertificate> certificates,
+        int certificatesLength
 ) implements TlsHandshakeMessage {
-    public static final byte ID = 0x0B;
-
-    public static CertificateMessage of(ByteBuffer buffer, TlsMessageMetadata metadata) {
-        var certificatesLength = readBigEndianInt24(buffer);
-        try(var _ = scopedRead(buffer, certificatesLength)) {
-            var factory = CertificateFactory.getInstance("X.509");
-            var certificates = new ArrayList<X509Certificate>();
-            while (buffer.hasRemaining()) {
-                var certificateSource = readStreamBigEndian24(buffer);
-                var certificate = (X509Certificate) factory.generateCertificate(certificateSource);
-                certificates.add(certificate);
-            }
-            return new CertificateMessage(metadata.version(), metadata.source(), certificates);
-        }catch (CertificateException exception) {
-            throw TlsAlert.certificateError(exception);
+    private static final byte ID = 0x0B;
+    private static final TlsMessageDeserializer DESERIALIZER = new TlsMessageDeserializer() {
+        @Override
+        public int id() {
+            return ID;
         }
+
+        @Override
+        public TlsMessage deserialize(TlsContext context, ByteBuffer buffer, TlsMessageMetadata metadata) {
+            var certificatesLength = readBigEndianInt24(buffer);
+            try(var _ = scopedRead(buffer, certificatesLength)) {
+                var certificates = new ArrayList<TlsCertificate>();
+                while (buffer.hasRemaining()) {
+                    var certificate = readStreamBigEndian24(buffer);
+                    certificates.add(TlsCertificate.of(certificate));
+                }
+                return new CertificateMessage(metadata.version(), metadata.source(), certificates, certificatesLength);
+            }
+        }
+    };
+
+    public CertificateMessage(TlsVersion version, TlsSource source, List<TlsCertificate> certificates) {
+        var length = certificates.stream()
+                .mapToInt(TlsCertificate::length)
+                .sum();
+        this(version, source, certificates, length);
+    }
+
+    public static TlsMessageDeserializer deserializer() {
+        return DESERIALIZER;
     }
 
     @Override
@@ -56,9 +66,9 @@ public record CertificateMessage(
 
     @Override
     public void serializePayload(ByteBuffer buffer) {
-        writeBigEndianInt24(buffer, getCertificatesLength());
+        writeBigEndianInt24(buffer, certificatesLength);
         for(var certificate : certificates) {
-            writeBytesBigEndian24(buffer, encodeCertificate(certificate));
+            writeBytesBigEndian24(buffer, certificate.encoded());
         }
     }
 
@@ -66,8 +76,7 @@ public record CertificateMessage(
     public void apply(TlsContext context) {
         var negotiatedCipher = context.getNegotiatedValue(TlsProperty.cipher())
                 .orElseThrow(() -> TlsAlert.noNegotiatedProperty(TlsProperty.cipher()));
-        var certificate = context.certificateStore()
-                .validator()
+        var certificate = context.certificateValidator()
                 .validate(context, source, certificates);
         switch (source) {
             case LOCAL -> {
@@ -86,7 +95,7 @@ public record CertificateMessage(
             case REMOTE -> {
                 var remoteConnectionState = context.remoteConnectionState()
                         .orElseThrow(TlsAlert::noRemoteConnectionState);
-                remoteConnectionState.setStaticCertificate(certificate);
+                remoteConnectionState.addCertificate(certificate);
                 if (negotiatedCipher.keyExchangeFactory().type() == TlsKeyExchangeType.STATIC) {
                     var keyExchange = negotiatedCipher.keyExchangeFactory()
                             .newRemoteKeyExchange(context, null);
@@ -102,21 +111,6 @@ public record CertificateMessage(
 
     @Override
     public int payloadLength() {
-        var certificatesLength = getCertificatesLength();
         return INT24_LENGTH + certificatesLength;
-    }
-
-    private int getCertificatesLength() {
-        return certificates.stream()
-                .mapToInt(buffer -> encodeCertificate(buffer).length + INT24_LENGTH)
-                .sum();
-    }
-
-    private static byte[] encodeCertificate(X509Certificate certificate) {
-        try {
-            return certificate.getEncoded();
-        }catch (CertificateEncodingException exception) {
-            throw TlsAlert.certificateError(exception);
-        }
     }
 }

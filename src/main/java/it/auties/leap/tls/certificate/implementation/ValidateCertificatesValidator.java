@@ -1,27 +1,22 @@
 package it.auties.leap.tls.certificate.implementation;
 
 import it.auties.leap.tls.alert.TlsAlert;
-import it.auties.leap.tls.certificate.TlsCertificateChainValidator;
+import it.auties.leap.tls.certificate.TlsCertificate;
+import it.auties.leap.tls.certificate.TlsCertificateValidator;
 import it.auties.leap.tls.context.TlsContext;
 import it.auties.leap.tls.context.TlsSource;
 import it.auties.leap.tls.property.TlsProperty;
 
-import java.security.cert.X509Certificate;
 import java.util.List;
 
-public final class ValidateCertificatesValidator implements TlsCertificateChainValidator {
-    private static final ValidateCertificatesValidator INSTANCE = new ValidateCertificatesValidator();
-
-    public static ValidateCertificatesValidator instance() {
-        return INSTANCE;
-    }
-
-    private ValidateCertificatesValidator() {
-
+public final class ValidateCertificatesValidator implements TlsCertificateValidator {
+    private final List<TlsCertificate> trustAnchors;
+    public ValidateCertificatesValidator(List<TlsCertificate> trustAnchors) {
+        this.trustAnchors = trustAnchors;
     }
 
     @Override
-    public X509Certificate validate(TlsContext context, TlsSource source, List<X509Certificate> certificates) {
+    public TlsCertificate validate(TlsContext context, TlsSource source, List<TlsCertificate> certificates) {
         if(certificates == null || certificates.isEmpty()) {
             throw new TlsAlert("Cannot validate X509 certificates: no certificates found");
         }
@@ -30,6 +25,6 @@ public final class ValidateCertificatesValidator implements TlsCertificateChainV
                 .orElseThrow(() -> TlsAlert.noNegotiatedProperty(TlsProperty.cipher()))
                 .authFactory()
                 .newAuth()
-                .validate(context, source, certificates);
+                .validate(context, certificates, trustAnchors);
     }
 }

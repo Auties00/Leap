@@ -4,6 +4,7 @@ import it.auties.leap.tls.context.TlsContext;
 import it.auties.leap.tls.context.TlsSource;
 import it.auties.leap.tls.message.TlsMessage;
 import it.auties.leap.tls.message.TlsMessageContentType;
+import it.auties.leap.tls.message.TlsMessageDeserializer;
 import it.auties.leap.tls.message.TlsMessageMetadata;
 import it.auties.leap.tls.version.TlsVersion;
 
@@ -16,11 +17,22 @@ public record ApplicationDataMessage(
         TlsSource source,
         ByteBuffer message
 ) implements TlsMessage {
-    public static final int ID = 0x17;
+    private static final int ID = 0x17;
+    private static final TlsMessageDeserializer DESERIALIZER = new TlsMessageDeserializer() {
+        @Override
+        public int id() {
+            return ID;
+        }
 
-    public static ApplicationDataMessage of(ByteBuffer buffer, TlsMessageMetadata metadata) {
-        var message = readBuffer(buffer, buffer.remaining());
-        return new ApplicationDataMessage(metadata.version(), metadata.source(), message);
+        @Override
+        public TlsMessage deserialize(TlsContext context, ByteBuffer buffer, TlsMessageMetadata metadata) {
+            var message = readBuffer(buffer, buffer.remaining());
+            return new ApplicationDataMessage(metadata.version(), metadata.source(), message);
+        }
+    };
+
+    public static TlsMessageDeserializer deserializer() {
+        return DESERIALIZER;
     }
 
     @Override

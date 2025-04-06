@@ -1,7 +1,7 @@
 package it.auties.leap.tls.context;
 
 import it.auties.leap.tls.alert.TlsAlert;
-import it.auties.leap.tls.certificate.TlsCertificateStore;
+import it.auties.leap.tls.certificate.TlsCertificateValidator;
 import it.auties.leap.tls.cipher.TlsCipherSuite;
 import it.auties.leap.tls.compression.TlsCompression;
 import it.auties.leap.tls.connection.TlsConnection;
@@ -20,11 +20,11 @@ import java.util.*;
 
 @SuppressWarnings({"UnusedReturnValue", "unchecked"})
 public class TlsContext {
-    private final TlsCertificateStore certificateStore;
+    private final TlsConnection localConnectionState;
+    private final TlsCertificateValidator certificateValidator;
     private final TlsMessageDeserializer messageDeserializer;
     private final TlsMasterSecretGenerator masterSecretGenerator;
     private final TlsConnectionInitializer connectionInitializer;
-    private final TlsConnection localConnectionState;
     private final Map<TlsProperty<?, ?>, PropertyValue<?, ?>> properties;
     private final Queue<ByteBuffer> bufferedMessages;
     private final TlsConnectionIntegrity connectionIntegrity;
@@ -34,13 +34,13 @@ public class TlsContext {
 
     TlsContext(
             TlsConnection localConnectionState,
-            TlsCertificateStore certificateStore,
+            TlsCertificateValidator certificateValidator,
             TlsMessageDeserializer messageDeserializer,
             TlsMasterSecretGenerator masterSecretGenerator,
             TlsConnectionInitializer connectionInitializer
     ) {
         this.localConnectionState = localConnectionState;
-        this.certificateStore = certificateStore;
+        this.certificateValidator = certificateValidator;
         this.messageDeserializer = messageDeserializer;
         this.masterSecretGenerator = masterSecretGenerator;
         this.connectionInitializer = connectionInitializer;
@@ -55,12 +55,12 @@ public class TlsContext {
             List<TlsCipherSuite> ciphers,
             List<TlsCompression> compressions,
             TlsConnection localConnectionState,
-            TlsCertificateStore certificateStore,
+            TlsCertificateValidator certificateValidator,
             TlsMessageDeserializer messageDeserializer,
             TlsMasterSecretGenerator masterSecretGenerator,
             TlsConnectionInitializer connectionInitializer
     ) {
-        return new TlsContext(localConnectionState, certificateStore, messageDeserializer, masterSecretGenerator, connectionInitializer)
+        return new TlsContext(localConnectionState, certificateValidator, messageDeserializer, masterSecretGenerator, connectionInitializer)
                 .addNegotiableProperty(TlsProperty.version(), versions)
                 .addNegotiableProperty(TlsProperty.clientExtensions(), extensions)
                 .addNegotiableProperty(TlsProperty.cipher(), ciphers)
@@ -73,28 +73,24 @@ public class TlsContext {
             List<TlsCipherSuite> ciphers,
             List<TlsCompression> compressions,
             TlsConnection localConnectionState,
-            TlsCertificateStore certificateStore,
+            TlsCertificateValidator certificateValidator,
             TlsMessageDeserializer messageDeserializer,
             TlsMasterSecretGenerator masterSecretGenerator,
             TlsConnectionInitializer connectionInitializer
     ) {
-        return new TlsContext(localConnectionState, certificateStore, messageDeserializer, masterSecretGenerator, connectionInitializer)
+        return new TlsContext(localConnectionState, certificateValidator, messageDeserializer, masterSecretGenerator, connectionInitializer)
                 .addNegotiableProperty(TlsProperty.version(), versions)
                 .addNegotiableProperty(TlsProperty.serverExtensions(), extensions)
                 .addNegotiableProperty(TlsProperty.cipher(), ciphers)
                 .addNegotiableProperty(TlsProperty.compression(), compressions);
     }
 
-    public static TlsClientContextBuilder newClientBuilder(TlsCertificateStore store) {
-        return new TlsClientContextBuilder(store);
+    public static TlsClientContextBuilder newClientBuilder() {
+        return new TlsClientContextBuilder();
     }
 
-    public static TlsServerContextBuilder newServerBuilder(TlsCertificateStore store) {
-        return new TlsServerContextBuilder(store);
-    }
-
-    public TlsCertificateStore certificateStore() {
-        return certificateStore;
+    public static TlsServerContextBuilder newServerBuilder() {
+        return new TlsServerContextBuilder();
     }
 
     public TlsConnection localConnectionState() {
@@ -119,6 +115,10 @@ public class TlsContext {
 
     public Optional<InetSocketAddress> address() {
         return Optional.ofNullable(address);
+    }
+
+    public TlsCertificateValidator certificateValidator() {
+        return certificateValidator;
     }
 
     public TlsContext setRemoteConnectionState(TlsConnection remoteConnectionState) {

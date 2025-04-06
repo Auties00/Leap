@@ -4,9 +4,7 @@ import it.auties.leap.tls.alert.TlsAlert;
 import it.auties.leap.tls.connection.TlsHandshakeStatus;
 import it.auties.leap.tls.context.TlsContext;
 import it.auties.leap.tls.context.TlsSource;
-import it.auties.leap.tls.message.TlsHandshakeMessage;
-import it.auties.leap.tls.message.TlsMessageContentType;
-import it.auties.leap.tls.message.TlsMessageMetadata;
+import it.auties.leap.tls.message.*;
 import it.auties.leap.tls.version.TlsVersion;
 
 import java.nio.ByteBuffer;
@@ -20,12 +18,23 @@ public record FinishedMessage(
         TlsSource source,
         byte[] hash
 ) implements TlsHandshakeMessage {
-    public static final int ID = 0x14;
+    private static final int ID = 0x14;
     private static final int MIN_HASH_LENGTH = 12;
+    private static final TlsMessageDeserializer DESERIALIZER = new TlsMessageDeserializer() {
+        @Override
+        public int id() {
+            return ID;
+        }
 
-    public static FinishedMessage of(ByteBuffer buffer, TlsMessageMetadata metadata) {
-        var hash = readBytes(buffer, buffer.remaining());
-        return new FinishedMessage(metadata.version(), metadata.source(), hash);
+        @Override
+        public TlsMessage deserialize(TlsContext context, ByteBuffer buffer, TlsMessageMetadata metadata) {
+            var hash = readBytes(buffer, buffer.remaining());
+            return new FinishedMessage(metadata.version(), metadata.source(), hash);
+        }
+    };
+
+    public static TlsMessageDeserializer deserializer() {
+        return DESERIALIZER;
     }
 
     public FinishedMessage {

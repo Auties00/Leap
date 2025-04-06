@@ -1,17 +1,26 @@
 package it.auties.leap.tls.cipher.auth.implementation;
 
 import it.auties.leap.tls.alert.TlsAlert;
+import it.auties.leap.tls.certificate.TlsCertificate;
 import it.auties.leap.tls.cipher.auth.TlsAuth;
 import it.auties.leap.tls.cipher.auth.TlsAuthFactory;
 import it.auties.leap.tls.context.TlsContext;
-import it.auties.leap.tls.context.TlsSource;
 
-import java.security.cert.X509Certificate;
 import java.util.List;
 
 public final class AnonymousAuth implements TlsAuth {
     private static final TlsAuth INSTANCE = new AnonymousAuth();
-    private static final TlsAuthFactory FACTORY = () -> INSTANCE;
+    private static final TlsAuthFactory FACTORY = new TlsAuthFactory() {
+        @Override
+        public TlsAuth newAuth() {
+            return INSTANCE;
+        }
+
+        @Override
+        public boolean isAnonymous() {
+            return true;
+        }
+    };
 
     private AnonymousAuth() {
 
@@ -22,7 +31,7 @@ public final class AnonymousAuth implements TlsAuth {
     }
 
     @Override
-    public X509Certificate validate(TlsContext context, TlsSource certificatesSource, List<X509Certificate> certificates) {
+    public TlsCertificate validate(TlsContext context, List<TlsCertificate> certificates, List<TlsCertificate> trustAnchors) {
         if(!certificates.isEmpty()) {
             throw new TlsAlert("Anonymous auth error: expected no certificates");
         }

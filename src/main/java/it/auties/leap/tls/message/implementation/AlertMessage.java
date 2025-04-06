@@ -8,6 +8,7 @@ import it.auties.leap.tls.context.TlsContext;
 import it.auties.leap.tls.context.TlsSource;
 import it.auties.leap.tls.message.TlsMessage;
 import it.auties.leap.tls.message.TlsMessageContentType;
+import it.auties.leap.tls.message.TlsMessageDeserializer;
 import it.auties.leap.tls.message.TlsMessageMetadata;
 import it.auties.leap.tls.version.TlsVersion;
 
@@ -21,16 +22,27 @@ public record AlertMessage(
         TlsAlertLevel alertLevel,
         TlsAlertType alertType
 ) implements TlsMessage {
-    public static final int ID = 0x00;
+    private static final int ID = 0x00;
+    private static final TlsMessageDeserializer DESERIALIZER = new TlsMessageDeserializer() {
+        @Override
+        public int id() {
+            return ID;
+        }
 
-    public static AlertMessage of(ByteBuffer buffer, TlsMessageMetadata metadata) {
-        var levelId = readBigEndianInt8(buffer);
-        var level = TlsAlertLevel.of(levelId)
-                .orElseThrow(() -> new IllegalArgumentException("Cannot decode TLS message, unknown alert level: " + levelId));
-        var typeId = readBigEndianInt8(buffer);
-        var type = TlsAlertType.of(typeId)
-                .orElseThrow(() -> new IllegalArgumentException("Cannot decode TLS message, unknown alert type: " + typeId));
-        return new AlertMessage(metadata.version(), metadata.source(), level, type);
+        @Override
+        public TlsMessage deserialize(TlsContext context, ByteBuffer buffer, TlsMessageMetadata metadata) {
+            var levelId = readBigEndianInt8(buffer);
+            var level = TlsAlertLevel.of(levelId)
+                    .orElseThrow(() -> new IllegalArgumentException("Cannot decode TLS message, unknown alert level: " + levelId));
+            var typeId = readBigEndianInt8(buffer);
+            var type = TlsAlertType.of(typeId)
+                    .orElseThrow(() -> new IllegalArgumentException("Cannot decode TLS message, unknown alert type: " + typeId));
+            return new AlertMessage(metadata.version(), metadata.source(), level, type);
+        }
+    };
+
+    public static TlsMessageDeserializer deserializer() {
+        return DESERIALIZER;
     }
 
     @Override

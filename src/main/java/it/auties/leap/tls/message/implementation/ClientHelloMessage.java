@@ -10,9 +10,7 @@ import it.auties.leap.tls.connection.TlsHandshakeStatus;
 import it.auties.leap.tls.context.TlsContext;
 import it.auties.leap.tls.context.TlsSource;
 import it.auties.leap.tls.extension.TlsExtension;
-import it.auties.leap.tls.message.TlsHandshakeMessage;
-import it.auties.leap.tls.message.TlsMessageContentType;
-import it.auties.leap.tls.message.TlsMessageMetadata;
+import it.auties.leap.tls.message.*;
 import it.auties.leap.tls.property.TlsProperty;
 import it.auties.leap.tls.version.TlsVersion;
 import it.auties.leap.tls.version.TlsVersionId;
@@ -36,10 +34,71 @@ public record ClientHelloMessage(
         List<TlsExtension.Configured.Client> extensions,
         int extensionsLength
 ) implements TlsHandshakeMessage {
-    public static final int ID = 0x01;
+    private static final int ID = 0x01;
     private static final int CLIENT_RANDOM_LENGTH = 32;
     private static final int SESSION_ID_LENGTH = 32;
     private static final int RANDOM_COOKIE_LENGTH = 32;
+    private static final TlsMessageDeserializer DESERIALIZER = new TlsMessageDeserializer() {
+        @Override
+        public int id() {
+            return ID;
+        }
+
+        @Override
+        public TlsMessage deserialize(TlsContext context, ByteBuffer buffer, TlsMessageMetadata metadata) {
+            var versionId = TlsVersionId.of(readBigEndianInt16(buffer));
+            var tlsVersion = TlsVersion.of(versionId)
+                    .orElseThrow(() -> new IllegalArgumentException("Unknown version: " + versionId));
+            var clientRandom = readBytes(buffer, CLIENT_RANDOM_LENGTH);
+            var sessionId = readBytesBigEndian8(buffer);
+            var cookie = switch (metadata.version().protocol()) {
+                case TCP -> null;
+                case UDP -> readBytesBigEndian8(buffer);
+            };
+            var ciphersLength = readBigEndianInt16(buffer);
+            var ciphers = new ArrayList<Integer>();
+            try (var _ = scopedRead(buffer, ciphersLength)) {
+                while (buffer.hasRemaining()) {
+                    var cipherId = readBigEndianInt16(buffer);
+                    ciphers.add(cipherId);
+                }
+            }
+            var compressions = new ArrayList<Byte>();
+            var compressionsLength = readBigEndianInt16(buffer);
+            try (var _ = scopedRead(buffer, compressionsLength)) {
+                while (buffer.hasRemaining()) {
+                    var compressionId = readBigEndianInt8(buffer);
+                    compressions.add(compressionId);
+                }
+            }
+            var extensions = new ArrayList<TlsExtension.Configured.Client>();
+            var extensionsLength = buffer.remaining() >= INT16_LENGTH ? readBigEndianInt16(buffer) : 0;
+            try (var _ = scopedRead(buffer, extensionsLength)) {
+                var extensionTypeToDecoder = context.getNegotiatedValue(TlsProperty.serverExtensions())
+                        .orElseThrow(() -> TlsAlert.noNegotiatedProperty(TlsProperty.serverExtensions()))
+                        .stream()
+                        .collect(Collectors.toUnmodifiableMap(TlsExtension::type, Function.identity()));
+                while (buffer.hasRemaining()) {
+                    var extensionType = readBigEndianInt16(buffer);
+                    var extensionDecoder = extensionTypeToDecoder.get(extensionType);
+                    if (extensionDecoder == null) {
+                        throw new TlsAlert("Unknown extension");
+                    }
+
+                    var extensionLength = readBigEndianInt16(buffer);
+                    if (extensionLength == 0) {
+                        continue;
+                    }
+
+                    try(var _ = scopedRead(buffer, extensionLength)) {
+                        extensionDecoder.deserialize(context, extensionType, buffer)
+                                .ifPresent(extensions::add);
+                    }
+                }
+            }
+            return new ClientHelloMessage(tlsVersion, metadata.source(), clientRandom, sessionId, cookie, ciphers, compressions, extensions, extensionsLength);
+        }
+    };
 
     public ClientHelloMessage {
         if(randomData == null || randomData.length != CLIENT_RANDOM_LENGTH) {
@@ -67,58 +126,8 @@ public record ClientHelloMessage(
         }
     }
 
-    public static ClientHelloMessage of(TlsContext context, ByteBuffer buffer, TlsMessageMetadata metadata) {
-        var versionId = TlsVersionId.of(readBigEndianInt16(buffer));
-        var tlsVersion = TlsVersion.of(versionId)
-                .orElseThrow(() -> new IllegalArgumentException("Unknown version: " + versionId));
-        var clientRandom = readBytes(buffer, CLIENT_RANDOM_LENGTH);
-        var sessionId = readBytesBigEndian8(buffer);
-        var cookie = switch (metadata.version().protocol()) {
-            case TCP -> null;
-            case UDP -> readBytesBigEndian8(buffer);
-        };
-        var ciphersLength = readBigEndianInt16(buffer);
-        var ciphers = new ArrayList<Integer>();
-        try (var _ = scopedRead(buffer, ciphersLength)) {
-            while (buffer.hasRemaining()) {
-                var cipherId = readBigEndianInt16(buffer);
-                ciphers.add(cipherId);
-            }
-        }
-        var compressions = new ArrayList<Byte>();
-        var compressionsLength = readBigEndianInt16(buffer);
-        try (var _ = scopedRead(buffer, compressionsLength)) {
-            while (buffer.hasRemaining()) {
-                var compressionId = readBigEndianInt8(buffer);
-                compressions.add(compressionId);
-            }
-        }
-        var extensions = new ArrayList<TlsExtension.Configured.Client>();
-        var extensionsLength = buffer.remaining() >= INT16_LENGTH ? readBigEndianInt16(buffer) : 0;
-        try (var _ = scopedRead(buffer, extensionsLength)) {
-            var extensionTypeToDecoder = context.getNegotiatedValue(TlsProperty.serverExtensions())
-                    .orElseThrow(() -> TlsAlert.noNegotiatedProperty(TlsProperty.serverExtensions()))
-                    .stream()
-                    .collect(Collectors.toUnmodifiableMap(TlsExtension::type, Function.identity()));
-            while (buffer.hasRemaining()) {
-                var extensionType = readBigEndianInt16(buffer);
-                var extensionDecoder = extensionTypeToDecoder.get(extensionType);
-                if (extensionDecoder == null) {
-                    throw new TlsAlert("Unknown extension");
-                }
-
-                var extensionLength = readBigEndianInt16(buffer);
-                if (extensionLength == 0) {
-                    continue;
-                }
-
-                try(var _ = scopedRead(buffer, extensionLength)) {
-                    extensionDecoder.deserialize(context, extensionType, buffer)
-                            .ifPresent(extensions::add);
-                }
-            }
-        }
-        return new ClientHelloMessage(tlsVersion, metadata.source(), clientRandom, sessionId, cookie, ciphers, compressions, extensions, extensionsLength);
+    public static TlsMessageDeserializer deserializer() {
+        return DESERIALIZER;
     }
 
     @Override
@@ -180,7 +189,7 @@ public record ClientHelloMessage(
             case LOCAL -> context.localConnectionState()
                     .setHandshakeStatus(TlsHandshakeStatus.HANDSHAKE_DONE);
             case REMOTE -> {
-                var credentials = TlsConnection.of(TlsConnectionType.CLIENT, randomData, sessionId, cookie);
+                var credentials = TlsConnection.newConnection(TlsConnectionType.CLIENT, randomData, sessionId, cookie);
                 credentials.setHandshakeStatus(TlsHandshakeStatus.HANDSHAKE_DONE);
                 context.setRemoteConnectionState(credentials);
 

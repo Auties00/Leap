@@ -39,7 +39,7 @@ public interface TlsAuthFactory {
         return RSAAuth.factory();
     }
 
-    static TlsAuthFactory sha() {
+    static TlsAuthFactory sha1() {
         return SHA1Auth.factory();
     }
 
@@ -59,5 +59,10 @@ public interface TlsAuthFactory {
         return SHARSAAuth.factory();
     }
 
+    static TlsAuthFactory hmacSha1() {
+        return null;
+    }
+
     TlsAuth newAuth();
+    boolean isAnonymous();
 }

@@ -19,10 +19,10 @@ public sealed interface TlsECPointFormat extends TlsIdentifiableProperty<Byte> {
         return Ansix962CompressedChar2.INSTANCE;
     }
 
-    static TlsECPointFormat reservedForPrivateUse(byte id) {
+    static TlsECPointFormat reserved(byte id) {
         if(id < -8 || id > -1) {
             throw new TlsAlert(
-                    "Only values from 248-255 (decimal) inclusive are reserved for Private Use",
+                    "Only values from 248-255 (decimal) inclusive are reserved",
                     URI.create("https://www.rfc-editor.org/rfc/rfc8422.html"),
                     "5.1.2"
             );

@@ -1,13 +1,13 @@
 package it.auties.leap.tls.certificate.implementation;
 
-import it.auties.leap.tls.certificate.TlsCertificateChainValidator;
+import it.auties.leap.tls.certificate.TlsCertificate;
+import it.auties.leap.tls.certificate.TlsCertificateValidator;
 import it.auties.leap.tls.context.TlsContext;
 import it.auties.leap.tls.context.TlsSource;
 
-import java.security.cert.X509Certificate;
 import java.util.List;
 
-public final class DiscardCertificatesValidator implements TlsCertificateChainValidator {
+public final class DiscardCertificatesValidator implements TlsCertificateValidator {
     private static final DiscardCertificatesValidator INSTANCE = new DiscardCertificatesValidator();
 
     public static DiscardCertificatesValidator instance() {
@@ -15,7 +15,7 @@ public final class DiscardCertificatesValidator implements TlsCertificateChainVa
     }
 
     @Override
-    public X509Certificate validate(TlsContext context, TlsSource source, List<X509Certificate> certificates) {
+    public TlsCertificate validate(TlsContext context, TlsSource source, List<TlsCertificate> certificates) {
         return certificates == null || certificates.isEmpty() ? null : certificates.getFirst();
     }
 }

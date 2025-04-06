@@ -1,7 +1,8 @@
 package it.auties.leap.tls.context;
 
 import it.auties.leap.tls.alert.TlsAlert;
-import it.auties.leap.tls.certificate.TlsCertificateStore;
+import it.auties.leap.tls.certificate.TlsCertificate;
+import it.auties.leap.tls.certificate.TlsCertificateValidator;
 import it.auties.leap.tls.cipher.TlsCipherSuite;
 import it.auties.leap.tls.compression.TlsCompression;
 import it.auties.leap.tls.connection.TlsConnectionInitializer;
@@ -10,25 +11,27 @@ import it.auties.leap.tls.message.TlsMessageDeserializer;
 import it.auties.leap.tls.secret.TlsMasterSecretGenerator;
 import it.auties.leap.tls.version.TlsVersion;
 
+import java.util.ArrayList;
 import java.util.List;
 
 @SuppressWarnings("unchecked")
 abstract sealed class TlsContextBuilder<S extends TlsContextBuilder<S>> permits TlsClientContextBuilder, TlsServerContextBuilder {
-    final TlsCertificateStore certificateStore;
     final TlsConnectionType mode;
+    final List<TlsCertificate> certificates;
     List<TlsVersion> versions;
     List<TlsCipherSuite> ciphers;
     List<TlsCompression> compressions;
     TlsMessageDeserializer messageDeserializer;
     TlsMasterSecretGenerator masterSecretGenerator;
     TlsConnectionInitializer connectionInitializer;
+    TlsCertificateValidator certificateValidator;
     byte[] randomData;
     byte[] sessionId;
     byte[] dtlsCookie;
 
-    TlsContextBuilder(TlsCertificateStore certificateStore, TlsConnectionType mode) {
-        this.certificateStore = certificateStore;
+    TlsContextBuilder(TlsConnectionType mode) {
         this.mode = mode;
+        this.certificates = new ArrayList<>();
     }
 
     public S versions(List<TlsVersion> versions) {
@@ -82,6 +85,22 @@ abstract sealed class TlsContextBuilder<S extends TlsContextBuilder<S>> permits 
     public S connectionInitializer(TlsConnectionInitializer connectionInitializer) {
         this.connectionInitializer = connectionInitializer;
         return (S) this;
+    }
+
+    public TlsContextBuilder<S> certificate(TlsCertificate certificate) {
+        this.certificates.add(certificate);
+        return this;
+    }
+
+
+    public TlsContextBuilder<S> certificates(List<TlsCertificate> certificates) {
+        this.certificates.addAll(certificates);
+        return this;
+    }
+
+    public TlsContextBuilder<S> certificateValidator(TlsCertificateValidator certificateValidator) {
+        this.certificateValidator = certificateValidator;
+        return this;
     }
 
     public abstract TlsContext build();

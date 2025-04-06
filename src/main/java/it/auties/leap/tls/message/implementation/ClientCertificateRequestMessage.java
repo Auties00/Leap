@@ -11,6 +11,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import static it.auties.leap.tls.util.BufferUtils.*;
+import static it.auties.leap.tls.util.BufferUtils.readStreamBigEndian16;
 
 public record ClientCertificateRequestMessage(
         TlsVersion version,
@@ -19,37 +20,48 @@ public record ClientCertificateRequestMessage(
         List<Integer> algorithms,
         List<String> authorities
 ) implements TlsHandshakeMessage {
-    public static final byte ID = 0x0D;
-
-    public static ClientCertificateRequestMessage of(ByteBuffer buffer, TlsMessageMetadata metadata) {
-        var certificatesLength = readBigEndianInt8(buffer);
-        var certificateTypes = new ArrayList<Byte>();
-        try(var _ = scopedRead(buffer, certificatesLength)) {
-            while (buffer.hasRemaining()) {
-                var certificateTypeId = readBigEndianInt8(buffer);
-                certificateTypes.add(certificateTypeId);
-            }
+    private static final byte ID = 0x0D;
+    private static final TlsMessageDeserializer DESERIALIZER = new TlsMessageDeserializer() {
+        @Override
+        public int id() {
+            return ID;
         }
 
-        var algorithmsLength = readBigEndianInt16(buffer);
-        var algorithms = new ArrayList<Integer>();
-        try(var _ = scopedRead(buffer, algorithmsLength)) {
-            while (buffer.hasRemaining()) {
-                var algorithmId = readBigEndianInt16(buffer);
-                algorithms.add(algorithmId);
+        @Override
+        public TlsMessage deserialize(TlsContext context, ByteBuffer buffer, TlsMessageMetadata metadata) {
+            var certificatesLength = readBigEndianInt8(buffer);
+            var certificateTypes = new ArrayList<Byte>();
+            try(var _ = scopedRead(buffer, certificatesLength)) {
+                while (buffer.hasRemaining()) {
+                    var certificateTypeId = readBigEndianInt8(buffer);
+                    certificateTypes.add(certificateTypeId);
+                }
             }
-        }
 
-        var authoritiesLength = readBigEndianInt16(buffer);
-        var authorities = new ArrayList<String>();
-        try(var _ = scopedRead(buffer, authoritiesLength)) {
-            while (buffer.hasRemaining()) {
-                var authority = new X500Principal(readStreamBigEndian16(buffer));
-                authorities.add(authority.getName(X500Principal.CANONICAL));
+            var algorithmsLength = readBigEndianInt16(buffer);
+            var algorithms = new ArrayList<Integer>();
+            try(var _ = scopedRead(buffer, algorithmsLength)) {
+                while (buffer.hasRemaining()) {
+                    var algorithmId = readBigEndianInt16(buffer);
+                    algorithms.add(algorithmId);
+                }
             }
-        }
 
-        return new ClientCertificateRequestMessage(metadata.version(), metadata.source(), certificateTypes, algorithms, authorities);
+            var authoritiesLength = readBigEndianInt16(buffer);
+            var authorities = new ArrayList<String>();
+            try(var _ = scopedRead(buffer, authoritiesLength)) {
+                while (buffer.hasRemaining()) {
+                    var authority = new X500Principal(readStreamBigEndian16(buffer));
+                    authorities.add(authority.getName(X500Principal.CANONICAL));
+                }
+            }
+
+            return new ClientCertificateRequestMessage(metadata.version(), metadata.source(), certificateTypes, algorithms, authorities);
+        }
+    };
+
+    public TlsMessageDeserializer DESERIALIZER() {
+        return DESERIALIZER;
     }
 
     @Override

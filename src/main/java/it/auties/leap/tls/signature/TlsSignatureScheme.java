@@ -178,10 +178,10 @@ public final class TlsSignatureScheme implements TlsSignature {
         return ECDSA_BRAINPOOLP512R1TLS13_SHA512;
     }
 
-    public static TlsSignature reservedForPrivateUse(int id) {
+    public static TlsSignature reserved(int id) {
         if(id < 0xFE00 || id > 0xFFFF) {
             throw new TlsAlert(
-                    "Only values from 0xFE00-0xFFFF (hex) inclusive are reserved for Private Use",
+                    "Only values from 0xFE00-0xFFFF (hex) inclusive are reserved",
                     URI.create("https://www.iana.org/assignments/tls-parameters/tls-signaturescheme.csv")
             );
         }

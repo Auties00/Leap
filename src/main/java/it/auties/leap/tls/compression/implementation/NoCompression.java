@@ -1,11 +1,9 @@
 package it.auties.leap.tls.compression.implementation;
 
 import it.auties.leap.tls.compression.TlsCompression;
-import it.auties.leap.tls.compression.TlsCompressor;
+import it.auties.leap.tls.compressor.TlsCompressor;
 
-import java.nio.ByteBuffer;
-
-public final class NoCompression implements TlsCompression, TlsCompressor {
+public final class NoCompression implements TlsCompression {
     private static final NoCompression INSTANCE = new NoCompression();
 
     private NoCompression() {
@@ -22,7 +20,7 @@ public final class NoCompression implements TlsCompression, TlsCompressor {
     }
 
     @Override
-    public void accept(ByteBuffer input, ByteBuffer output, boolean forCompression) {
-        output.put(input);
+    public TlsCompressor compressor() {
+        return TlsCompressor.none();
     }
 }
