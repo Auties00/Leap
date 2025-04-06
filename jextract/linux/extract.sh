@@ -1,3 +1,4 @@
+# Make sure to have a kernel version >= 6.13 or this won't find IORING_REGISTER_RESIZE_RINGS
 jextract -t it.auties.leap.socket.implementation.linux --output "./../../src/main/java" dependencies.h --header-class-name LinuxKernel \
 --include-function socket \
 --include-function connect \

@@ -8,7 +8,7 @@ import it.auties.leap.tls.extension.TlsExtension;
 import it.auties.leap.tls.extension.TlsExtensionDependencies;
 import it.auties.leap.tls.property.TlsIdentifiableProperty;
 import it.auties.leap.tls.property.TlsProperty;
-import it.auties.leap.tls.psk.TlsPSKExchangeMode;
+import it.auties.leap.tls.psk.TlsPskExchangeMode;
 import it.auties.leap.tls.version.TlsVersion;
 
 import java.nio.ByteBuffer;
@@ -21,7 +21,7 @@ import java.util.stream.Collectors;
 import static it.auties.leap.tls.util.BufferUtils.*;
 
 public record PSKExchangeModesExtension(
-        List<TlsPSKExchangeMode> modes
+        List<TlsPskExchangeMode> modes
 ) implements TlsExtension.Configured.Agnostic {
     @Override
     public void serializePayload(ByteBuffer buffer) {
@@ -47,7 +47,7 @@ public record PSKExchangeModesExtension(
     @Override
     public Optional<PSKExchangeModesExtension> deserialize(TlsContext context, int type, ByteBuffer buffer) {
         var modesSize = readBigEndianInt16(buffer);
-        var modes = new ArrayList<TlsPSKExchangeMode>(modesSize);
+        var modes = new ArrayList<TlsPskExchangeMode>(modesSize);
         var knownModes = context.getNegotiableValue(TlsProperty.pskExchangeModes())
                 .orElseThrow(() -> TlsAlert.noNegotiableProperty(TlsProperty.pskExchangeModes()))
                 .stream()

@@ -3,13 +3,13 @@ package it.auties.leap.tls.group.implementation;
 import it.auties.leap.tls.alert.TlsAlert;
 import it.auties.leap.tls.connection.TlsConnection;
 import it.auties.leap.tls.context.TlsContext;
-import it.auties.leap.tls.ec.TlsECParameters;
-import it.auties.leap.tls.ec.TlsECParametersDeserializer;
+import it.auties.leap.tls.ec.TlsEcParameters;
+import it.auties.leap.tls.ec.TlsEcParametersDeserializer;
 import it.auties.leap.tls.ec.implementation.NamedCurveParameters;
 import it.auties.leap.tls.group.TlsSupportedEllipticCurve;
 import it.auties.leap.tls.property.TlsProperty;
 import it.auties.leap.tls.secret.TlsSecret;
-import it.auties.leap.tls.util.ECKeyUtils;
+import it.auties.leap.tls.util.EcKeyUtils;
 import org.bouncycastle.jce.ECNamedCurveTable;
 import org.bouncycastle.jce.interfaces.ECPublicKey;
 import org.bouncycastle.jce.spec.ECNamedCurveParameterSpec;
@@ -277,13 +277,13 @@ public final class NamedEllipticCurve implements TlsSupportedEllipticCurve {
     }
 
     @Override
-    public TlsECParameters toParameters() {
+    public TlsEcParameters toParameters() {
         return new NamedCurveParameters(id);
     }
 
     @Override
-    public TlsECParametersDeserializer parametersDeserializer() {
-        return TlsECParametersDeserializer.namedCurve();
+    public TlsEcParametersDeserializer parametersDeserializer() {
+        return TlsEcParametersDeserializer.namedCurve();
     }
 
     public KeyPair generateKeyPair(TlsContext context) {
@@ -315,7 +315,7 @@ public final class NamedEllipticCurve implements TlsSupportedEllipticCurve {
                 }
                 case NamedParameterSpec namedParameterSpec -> {
                     var keyFactory = KeyFactory.getInstance(algorithm);
-                    var xecPublicKeySpec = new XECPublicKeySpec(namedParameterSpec, ECKeyUtils.fromUnsignedLittleEndianBytes(key));
+                    var xecPublicKeySpec = new XECPublicKeySpec(namedParameterSpec, EcKeyUtils.fromUnsignedLittleEndianBytes(key));
                     yield keyFactory.generatePublic(xecPublicKeySpec);
                 }
                 default -> throw new TlsAlert("Unsupported spec");
@@ -330,8 +330,8 @@ public final class NamedEllipticCurve implements TlsSupportedEllipticCurve {
     @Override
     public byte[] dumpPublicKey(PublicKey jcePublicKey) {
         return switch (jcePublicKey) {
-            case XECPublicKey publicKey -> ECKeyUtils.toUnsignedLittleEndianBytes(publicKey.getU());
-            case DHPublicKey publicKey -> ECKeyUtils.toUnsignedLittleEndianBytes(publicKey.getY());
+            case XECPublicKey publicKey -> EcKeyUtils.toUnsignedLittleEndianBytes(publicKey.getU());
+            case DHPublicKey publicKey -> EcKeyUtils.toUnsignedLittleEndianBytes(publicKey.getY());
             case ECPublicKey publicKey -> publicKey.getQ().getEncoded(false);
             default -> throw new TlsAlert("Unsupported key type");
         };

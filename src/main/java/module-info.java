@@ -43,4 +43,5 @@ module it.auties.leap {
     exports it.auties.leap.tls.secret;
     exports it.auties.leap.tls.name;
     exports it.auties.leap.tls.compressor;
+    exports it.auties.leap.tls.srtp;
 }

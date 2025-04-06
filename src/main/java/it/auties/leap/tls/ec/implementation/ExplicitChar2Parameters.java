@@ -1,8 +1,8 @@
 package it.auties.leap.tls.ec.implementation;
 
 import it.auties.leap.tls.context.TlsContext;
-import it.auties.leap.tls.ec.TlsECParameters;
-import it.auties.leap.tls.ec.TlsECParametersDeserializer;
+import it.auties.leap.tls.ec.TlsEcParameters;
+import it.auties.leap.tls.ec.TlsEcParametersDeserializer;
 import it.auties.leap.tls.alert.TlsAlert;
 import it.auties.leap.tls.group.TlsSupportedEllipticCurve;
 
@@ -11,18 +11,18 @@ import java.nio.ByteBuffer;
 
 import static it.auties.leap.tls.util.BufferUtils.*;
 
-public final class ExplicitChar2Parameters implements TlsECParameters {
+public final class ExplicitChar2Parameters implements TlsEcParameters {
     private static final byte BASIS_TRINOMIAL = 1;
     private static final byte BASIS_PENTANOMIAL = 2;
 
-    private static final TlsECParametersDeserializer DESERIALIZER = new TlsECParametersDeserializer() {
+    private static final TlsEcParametersDeserializer DESERIALIZER = new TlsEcParametersDeserializer() {
         @Override
         public byte type() {
             return 2;
         }
 
         @Override
-        public TlsECParameters deserialize(ByteBuffer input) {
+        public TlsEcParameters deserialize(ByteBuffer input) {
             var m = readBigEndianInt16(input);
             var basis = readBigEndianInt8(input);
             return switch (basis) {
@@ -83,7 +83,7 @@ public final class ExplicitChar2Parameters implements TlsECParameters {
         this.cofactor = cofactor;
     }
 
-    public static TlsECParametersDeserializer deserializer() {
+    public static TlsEcParametersDeserializer deserializer() {
         return DESERIALIZER;
     }
 

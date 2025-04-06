@@ -6,7 +6,7 @@ import it.auties.leap.tls.connection.TlsConnectionType;
 import it.auties.leap.tls.context.TlsSource;
 import it.auties.leap.tls.hash.TlsHash;
 import it.auties.leap.tls.hash.TlsHashFactory;
-import it.auties.leap.tls.hash.TlsPRF;
+import it.auties.leap.tls.hash.TlsPrf;
 import it.auties.leap.tls.version.TlsVersion;
 
 import java.nio.ByteBuffer;
@@ -75,7 +75,7 @@ public sealed abstract class ConnectionIntegrityDelegate {
             var digest = new byte[36];
             var offset = md5.digest(digest, 0, md5.length(), false);
             sha1.digest(digest, offset, sha1.length(), false);
-            var result = TlsPRF.tls10Prf(
+            var result = TlsPrf.tls10Prf(
                     masterSecret.data(),
                     tlsLabel.getBytes(),
                     digest,
@@ -119,7 +119,7 @@ public sealed abstract class ConnectionIntegrityDelegate {
                     .orElseThrow(() -> new TlsAlert("Master secret key is not available yet"));
             var useClientLabel = useClientLabel(source, mode);
             var tlsLabel = useClientLabel ? "client finished" : "server finished";
-            var result = TlsPRF.tls12Prf(
+            var result = TlsPrf.tls12Prf(
                     masterSecret.data(),
                     tlsLabel.getBytes(),
                     hash.digest(false),

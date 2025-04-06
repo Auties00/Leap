@@ -8,24 +8,24 @@ import java.net.URI;
 import java.util.Optional;
 
 // https://www.iana.org/assignments/tls-parameters/tls-pskkeyexchangemode.csv
-public sealed interface TlsPSKExchangeMode extends TlsIdentifiableProperty<Byte>, TlsPSKExchangeModeGenerator {
-    static TlsPSKExchangeMode pskKe() {
+public sealed interface TlsPskExchangeMode extends TlsIdentifiableProperty<Byte>, TlsPskExchangeModeGenerator {
+    static TlsPskExchangeMode pskKe() {
         return KE.INSTANCE;
     }
 
-    static TlsPSKExchangeMode pskDheKe() {
+    static TlsPskExchangeMode pskDheKe() {
         return DHEKE.INSTANCE;
     }
 
-    static TlsPSKExchangeMode reserved(byte id) {
+    static TlsPskExchangeMode reservedForPrivateUse(byte id) {
         return new Reserved(id, null);
     }
 
-    static TlsPSKExchangeMode reserved(byte id, TlsPSKExchangeModeGenerator generator) {
+    static TlsPskExchangeMode reservedForPrivateUse(byte id, TlsPskExchangeModeGenerator generator) {
         return new Reserved(id, generator);
     }
 
-    final class KE implements TlsPSKExchangeMode {
+    final class KE implements TlsPskExchangeMode {
         private static final KE INSTANCE = new KE();
 
         @Override
@@ -39,7 +39,7 @@ public sealed interface TlsPSKExchangeMode extends TlsIdentifiableProperty<Byte>
         }
     }
 
-    final class DHEKE implements TlsPSKExchangeMode {
+    final class DHEKE implements TlsPskExchangeMode {
         private static final DHEKE INSTANCE = new DHEKE();
 
         @Override
@@ -53,14 +53,14 @@ public sealed interface TlsPSKExchangeMode extends TlsIdentifiableProperty<Byte>
         }
     }
 
-    final class Reserved implements TlsPSKExchangeMode {
+    final class Reserved implements TlsPskExchangeMode {
         private final byte id;
-        private final TlsPSKExchangeModeGenerator generator;
+        private final TlsPskExchangeModeGenerator generator;
 
-        private Reserved(byte id, TlsPSKExchangeModeGenerator generator) {
+        private Reserved(byte id, TlsPskExchangeModeGenerator generator) {
             if(id != -32 && id != -31) {
                 throw new TlsAlert(
-                        "Only values from 224-255 (decimal) inclusive are reserved",
+                        "Only values from 224-255 (decimal) inclusive are reserved for Private Use",
                         URI.create("https://www.rfc-editor.org/rfc/rfc8446.html"),
                         "11"
                 );

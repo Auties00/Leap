@@ -1,8 +1,8 @@
 package it.auties.leap.tls.group.implementation;
 
 import it.auties.leap.tls.context.TlsContext;
-import it.auties.leap.tls.ec.TlsECParameters;
-import it.auties.leap.tls.ec.TlsECParametersDeserializer;
+import it.auties.leap.tls.ec.TlsEcParameters;
+import it.auties.leap.tls.ec.TlsEcParametersDeserializer;
 import it.auties.leap.tls.ec.implementation.ExplicitPrimeParameters;
 import it.auties.leap.tls.group.TlsSupportedEllipticCurve;
 import it.auties.leap.tls.secret.TlsSecret;
@@ -28,13 +28,13 @@ public final class ExplicitPrimeEllipticCurve implements TlsSupportedEllipticCur
     }
 
     @Override
-    public TlsECParameters toParameters() {
+    public TlsEcParameters toParameters() {
         return parameters;
     }
 
     @Override
-    public TlsECParametersDeserializer parametersDeserializer() {
-        return TlsECParametersDeserializer.explicitPrime();
+    public TlsEcParametersDeserializer parametersDeserializer() {
+        return TlsEcParametersDeserializer.explicitPrime();
     }
 
     @Override

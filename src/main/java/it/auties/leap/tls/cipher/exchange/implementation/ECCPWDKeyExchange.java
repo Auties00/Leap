@@ -4,8 +4,8 @@ import it.auties.leap.tls.cipher.exchange.TlsKeyExchange;
 import it.auties.leap.tls.cipher.exchange.TlsKeyExchangeFactory;
 import it.auties.leap.tls.cipher.exchange.TlsKeyExchangeType;
 import it.auties.leap.tls.context.TlsContext;
-import it.auties.leap.tls.ec.TlsECParameters;
-import it.auties.leap.tls.ec.TlsECParametersDeserializer;
+import it.auties.leap.tls.ec.TlsEcParameters;
+import it.auties.leap.tls.ec.TlsEcParametersDeserializer;
 import it.auties.leap.tls.secret.TlsPreMasterSecretGenerator;
 
 import java.nio.ByteBuffer;
@@ -73,18 +73,18 @@ public sealed abstract class ECCPWDKeyExchange implements TlsKeyExchange {
 
     private static final class Server extends ECCPWDKeyExchange {
         private final byte[] salt;
-        private final TlsECParameters params;
+        private final TlsEcParameters params;
         private final byte[] publicKey;
         private final byte[] password;
 
-        private Server(byte[] salt, TlsECParameters params, byte[] publicKey, byte[] password) {
+        private Server(byte[] salt, TlsEcParameters params, byte[] publicKey, byte[] password) {
             this.salt = salt;
             this.params = params;
             this.publicKey = publicKey;
             this.password = password;
         }
 
-        private Server(ByteBuffer buffer, TlsECParametersDeserializer decoder) {
+        private Server(ByteBuffer buffer, TlsEcParametersDeserializer decoder) {
             this.salt = readBytesBigEndian8(buffer);
             this.params = decoder.deserialize(buffer);
             this.publicKey = readBytesBigEndian8(buffer);

@@ -9,7 +9,7 @@ import it.auties.leap.tls.compression.TlsCompression;
 import it.auties.leap.tls.context.TlsContext;
 import it.auties.leap.tls.extension.TlsExtension;
 import it.auties.leap.tls.name.TlsNameType;
-import it.auties.leap.tls.psk.TlsPSKExchangeMode;
+import it.auties.leap.tls.psk.TlsPskExchangeMode;
 import it.auties.leap.tls.version.TlsVersion;
 
 import java.io.IOException;
@@ -34,7 +34,7 @@ public class DHE_CHACHA20POLY1305_SocketTest {
                 // TlsExtension.postHandshakeAuth(),
                 TlsExtension.signatureAlgorithms(),
                 TlsExtension.supportedVersions(),
-                TlsExtension.pskExchangeModes(List.of(TlsPSKExchangeMode.pskDheKe())),
+                TlsExtension.pskExchangeModes(List.of(TlsPskExchangeMode.pskDheKe())),
                 TlsExtension.keyShare(),
                 TlsExtension.padding(517)
         );

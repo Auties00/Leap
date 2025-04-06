@@ -5,6 +5,6 @@ import it.auties.leap.tls.version.TlsVersion;
 import java.util.Optional;
 
 @FunctionalInterface
-public interface TlsPSKExchangeModeGenerator {
+public interface TlsPskExchangeModeGenerator {
     Optional<byte[]> generate(TlsVersion version);
 }

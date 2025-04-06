@@ -17,11 +17,11 @@ public sealed interface TlsCompression extends TlsIdentifiableProperty<Byte> per
         return DeflateCompression.instance();
     }
 
-    static TlsCompression reserved(byte id) {
+    static TlsCompression reservedForPrivateUse(byte id) {
         return new ReservedCompression(id, null);
     }
 
-    static TlsCompression reserved(byte id, TlsCompressor consumer) {
+    static TlsCompression reservedForPrivateUse(byte id, TlsCompressor consumer) {
         return new ReservedCompression(id, consumer);
     }
 

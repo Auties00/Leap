@@ -1,11 +1,11 @@
 package it.auties.leap.tls.extension;
 
 import it.auties.leap.tls.context.TlsContext;
-import it.auties.leap.tls.ec.TlsECPointFormat;
+import it.auties.leap.tls.ec.TlsEcPointFormat;
 import it.auties.leap.tls.extension.implementation.*;
 import it.auties.leap.tls.group.TlsSupportedGroup;
 import it.auties.leap.tls.name.TlsNameType;
-import it.auties.leap.tls.psk.TlsPSKExchangeMode;
+import it.auties.leap.tls.psk.TlsPskExchangeMode;
 import it.auties.leap.tls.signature.TlsSignature;
 import it.auties.leap.tls.version.TlsVersion;
 
@@ -201,7 +201,7 @@ public sealed interface TlsExtension extends TlsExtensionMetadataProvider {
         return ECPointFormatExtension.all();
     }
 
-    static Configured.Agnostic ecPointFormats(List<TlsECPointFormat> formats) {
+    static Configured.Agnostic ecPointFormats(List<TlsEcPointFormat> formats) {
         return new ECPointFormatExtension(formats);
     }
 
@@ -221,7 +221,7 @@ public sealed interface TlsExtension extends TlsExtensionMetadataProvider {
         return new SignatureAlgorithmsExtension(algorithms);
     }
 
-    static Configured.Agnostic pskExchangeModes(List<TlsPSKExchangeMode> modes) {
+    static Configured.Agnostic pskExchangeModes(List<TlsPskExchangeMode> modes) {
         return new PSKExchangeModesExtension(modes);
     }
 

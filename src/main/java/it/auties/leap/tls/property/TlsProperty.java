@@ -3,10 +3,10 @@ package it.auties.leap.tls.property;
 import it.auties.leap.tls.certificate.TlsCertificateCompressionAlgorithm;
 import it.auties.leap.tls.cipher.TlsCipherSuite;
 import it.auties.leap.tls.compression.TlsCompression;
-import it.auties.leap.tls.ec.TlsECPointFormat;
+import it.auties.leap.tls.ec.TlsEcPointFormat;
 import it.auties.leap.tls.extension.*;
 import it.auties.leap.tls.group.TlsSupportedGroup;
-import it.auties.leap.tls.psk.TlsPSKExchangeMode;
+import it.auties.leap.tls.psk.TlsPskExchangeMode;
 import it.auties.leap.tls.signature.TlsSignature;
 import it.auties.leap.tls.version.TlsVersion;
 
@@ -22,12 +22,12 @@ public final class TlsProperty<I, O> implements TlsIdentifiableProperty<UUID> {
     private static final TlsProperty<List<TlsCipherSuite>, TlsCipherSuite> CIPHER = new TlsProperty<>();
     private static final TlsProperty<List<TlsCompression>, TlsCompression> COMPRESSION = new TlsProperty<>();
     private static final TlsProperty<List<TlsSupportedGroup>, List<TlsSupportedGroup>> SUPPORTED_GROUPS = new TlsProperty<>();
-    private static final TlsProperty<List<TlsECPointFormat>, List<TlsECPointFormat>> EC_POINTS_FORMATS = new TlsProperty<>();
+    private static final TlsProperty<List<TlsEcPointFormat>, List<TlsEcPointFormat>> EC_POINTS_FORMATS = new TlsProperty<>();
     private static final TlsProperty<Boolean, Boolean> EXTENDED_MASTER_SECRET = new TlsProperty<>();
     private static final TlsProperty<Boolean, Boolean> ENCRYPT_THEN_MAC = new TlsProperty<>();
     private static final TlsProperty<Boolean, Boolean> POST_HANDSHAKE_AUTH = new TlsProperty<>();
     private static final TlsProperty<List<String>, List<String>> APPLICATION_PROTOCOLS = new TlsProperty<>();
-    private static final TlsProperty<List<TlsPSKExchangeMode>, List<TlsPSKExchangeMode>> PSK_EXCHANGE_MODES = new TlsProperty<>();
+    private static final TlsProperty<List<TlsPskExchangeMode>, List<TlsPskExchangeMode>> PSK_EXCHANGE_MODES = new TlsProperty<>();
     private static final TlsProperty<List<TlsSignature>, List<TlsSignature>> SIGNATURE_ALGORITHMS = new TlsProperty<>();
     private static final TlsProperty<List<TlsCertificateCompressionAlgorithm>, List<TlsCertificateCompressionAlgorithm>> CERTIFICATE_COMPRESSION_ALGORITHMS = new TlsProperty<>();
 
@@ -81,11 +81,11 @@ public final class TlsProperty<I, O> implements TlsIdentifiableProperty<UUID> {
         return SUPPORTED_GROUPS;
     }
 
-    public static TlsProperty<List<TlsECPointFormat>, List<TlsECPointFormat>> ecPointsFormats() {
+    public static TlsProperty<List<TlsEcPointFormat>, List<TlsEcPointFormat>> ecPointsFormats() {
         return EC_POINTS_FORMATS;
     }
 
-    public static TlsProperty<List<TlsPSKExchangeMode>, List<TlsPSKExchangeMode>> pskExchangeModes() {
+    public static TlsProperty<List<TlsPskExchangeMode>, List<TlsPskExchangeMode>> pskExchangeModes() {
         return PSK_EXCHANGE_MODES;
     }
 

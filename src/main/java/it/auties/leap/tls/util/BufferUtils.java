@@ -105,15 +105,12 @@ public final class BufferUtils {
     }
 
     public static void writeLittleEndianInt24(ByteBuffer m, int i) {
-        m.put((byte) (i & 0xFF));
-        m.put((byte) ((i >> 8) & 0xFF));
+        writeLittleEndianInt16(m, i);
         m.put((byte) ((i >> 16) & 0xFF));
     }
 
     public static void writeLittleEndianInt32(ByteBuffer m, int i) {
-        m.put((byte) (i & 0xFF));
-        m.put((byte) ((i >> 8) & 0xFF));
-        m.put((byte) ((i >> 16) & 0xFF));
+        writeLittleEndianInt24(m, i);
         m.put((byte) ((i >> 24) & 0xFF));
     }
 
@@ -139,8 +136,7 @@ public final class BufferUtils {
 
     public static void writeBigEndianInt24(ByteBuffer output, int n) {
         output.put((byte) (n >>> 16));
-        output.put((byte) (n >>> 8));
-        output.put((byte) n);
+        writeBigEndianInt16(output, n);
     }
 
     public static void writeBigEndianInt24(int n, byte[] bs, int off) {
@@ -151,9 +147,7 @@ public final class BufferUtils {
 
     public static void writeBigEndianInt32(ByteBuffer output, int n) {
         output.put((byte) (n >>> 24));
-        output.put((byte) (n >>> 16));
-        output.put((byte) (n >>> 8));
-        output.put((byte) n);
+        writeBigEndianInt24(output, n);
     }
 
     public static void writeBigEndianInt32(int n, byte[] bs, int off) {
@@ -182,23 +176,17 @@ public final class BufferUtils {
 
     public static ByteBuffer readBufferLittleEndian8(ByteBuffer buffer) {
         var length = readLittleEndianInt8(buffer);
-        var sliced = buffer.slice(buffer.position(), length);
-        buffer.position(buffer.position() + length);
-        return sliced;
+        return readBuffer(buffer, length);
     }
 
     public static ByteBuffer readBufferLittleEndian16(ByteBuffer buffer) {
         var length = readLittleEndianInt16(buffer);
-        var sliced = buffer.slice(buffer.position(), length);
-        buffer.position(buffer.position() + length);
-        return sliced;
+        return readBuffer(buffer, length);
     }
 
     public static ByteBuffer readBufferLittleEndian24(ByteBuffer buffer) {
         var length = readLittleEndianInt24(buffer);
-        var sliced = buffer.slice(buffer.position(), length);
-        buffer.position(buffer.position() + length);
-        return sliced;
+        return readBuffer(buffer, length);
     }
 
     public static byte[] readBytes(ByteBuffer buffer, int length) {
@@ -209,92 +197,67 @@ public final class BufferUtils {
 
     public static byte[] readBytesLittleEndian8(ByteBuffer buffer) {
         var length = readLittleEndianInt8(buffer);
-        var bytes = new byte[length];
-        buffer.get(bytes);
-        return bytes;
+        return readBytes(buffer, length);
     }
 
     public static byte[] readBytesLittleEndian16(ByteBuffer buffer) {
         var length = readLittleEndianInt16(buffer);
-        var bytes = new byte[length];
-        buffer.get(bytes);
-        return bytes;
+        return readBytes(buffer, length);
     }
 
     public static byte[] readBytesLittleEndian24(ByteBuffer buffer) {
         var length = readLittleEndianInt24(buffer);
-        var bytes = new byte[length];
-        buffer.get(bytes);
-        return bytes;
+        return readBytes(buffer, length);
     }
 
     public static byte[] readBytesBigEndian8(ByteBuffer buffer) {
         var length = readBigEndianInt8(buffer);
-        var bytes = new byte[length];
-        buffer.get(bytes);
-        return bytes;
+        return readBytes(buffer, length);
     }
 
     public static byte[] readBytesBigEndian16(ByteBuffer buffer) {
         var length = readBigEndianInt16(buffer);
-        var bytes = new byte[length];
-        buffer.get(bytes);
-        return bytes;
+        return readBytes(buffer, length);
     }
 
     public static byte[] readBytesBigEndian24(ByteBuffer buffer) {
         var length = readBigEndianInt24(buffer);
-        var bytes = new byte[length];
-        buffer.get(bytes);
-        return bytes;
+        return readBytes(buffer, length);
     }
 
     public static InputStream readStream(ByteBuffer buffer, int length) {
-        var sliced = buffer.slice(buffer.position(), length);
-        buffer.position(buffer.position() + length);
+        var sliced = readBuffer(buffer, length);
         return new ByteBufferBackedInputStream(sliced);
     }
 
     public static InputStream readStreamLittleEndian8(ByteBuffer buffer) {
-        var length = readLittleEndianInt8(buffer);
-        var sliced = buffer.slice(buffer.position(), length);
-        buffer.position(buffer.position() + length);
+        var sliced = readBufferLittleEndian8(buffer);
         return new ByteBufferBackedInputStream(sliced);
     }
 
     public static InputStream readStreamLittleEndian16(ByteBuffer buffer) {
-        var length = readLittleEndianInt16(buffer);
-        var sliced = buffer.slice(buffer.position(), length);
-        buffer.position(buffer.position() + length);
+        var sliced = readBufferLittleEndian16(buffer);
         return new ByteBufferBackedInputStream(sliced);
     }
 
     public static InputStream readStreamLittleEndian24(ByteBuffer buffer) {
-        var length = readLittleEndianInt24(buffer);
-        var sliced = buffer.slice(buffer.position(), length);
-        buffer.position(buffer.position() + length);
+        var sliced = readBufferLittleEndian24(buffer);
         return new ByteBufferBackedInputStream(sliced);
     }
 
     public static InputStream readStreamBigEndian8(ByteBuffer buffer) {
         var length = readBigEndianInt8(buffer);
-        var sliced = buffer.slice(buffer.position(), length);
-        buffer.position(buffer.position() + length);
-        return new ByteBufferBackedInputStream(sliced);
+        return readStream(buffer, length);
     }
 
     public static InputStream readStreamBigEndian16(ByteBuffer buffer) {
         var length = readBigEndianInt16(buffer);
-        var sliced = buffer.slice(buffer.position(), length);
-        buffer.position(buffer.position() + length);
-        return new ByteBufferBackedInputStream(sliced);
+        return readStream(buffer, length);
     }
 
     public static InputStream readStreamBigEndian24(ByteBuffer buffer) {
         var length = readBigEndianInt24(buffer);
-        var sliced = buffer.slice(buffer.position(), length);
-        buffer.position(buffer.position() + length);
-        return new ByteBufferBackedInputStream(sliced);
+        return readStream(buffer, length);
     }
 
     public static void writeBytes(ByteBuffer m, byte[] s) {

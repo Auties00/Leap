@@ -5,7 +5,7 @@ import it.auties.leap.tls.cipher.exchange.TlsKeyExchange;
 import it.auties.leap.tls.cipher.exchange.TlsKeyExchangeFactory;
 import it.auties.leap.tls.cipher.exchange.TlsKeyExchangeType;
 import it.auties.leap.tls.context.TlsContext;
-import it.auties.leap.tls.ec.TlsECParameters;
+import it.auties.leap.tls.ec.TlsEcParameters;
 import it.auties.leap.tls.group.TlsKeyPair;
 import it.auties.leap.tls.group.TlsSupportedEllipticCurve;
 import it.auties.leap.tls.group.TlsSupportedFiniteField;
@@ -46,7 +46,7 @@ public sealed abstract class ECDHKeyExchange implements TlsKeyExchange {
     }
 
 
-    public abstract Optional<TlsECParameters> parameters();
+    public abstract Optional<TlsEcParameters> parameters();
 
     private static final class Client extends ECDHKeyExchange {
         private final byte[] publicKey;
@@ -67,16 +67,16 @@ public sealed abstract class ECDHKeyExchange implements TlsKeyExchange {
         }
 
         @Override
-        public Optional<TlsECParameters> parameters() {
+        public Optional<TlsEcParameters> parameters() {
             return Optional.empty();
         }
     }
 
     private static final class Server extends ECDHKeyExchange {
-        private final TlsECParameters parameters;
+        private final TlsEcParameters parameters;
         private final byte[] publicKey;
 
-        private Server(TlsKeyExchangeType type, TlsECParameters parameters, byte[] publicKey) {
+        private Server(TlsKeyExchangeType type, TlsEcParameters parameters, byte[] publicKey) {
             super(type);
             this.parameters = parameters;
             this.publicKey = publicKey;
@@ -94,7 +94,7 @@ public sealed abstract class ECDHKeyExchange implements TlsKeyExchange {
         }
 
         @Override
-        public Optional<TlsECParameters> parameters() {
+        public Optional<TlsEcParameters> parameters() {
             return Optional.ofNullable(parameters);
         }
     }

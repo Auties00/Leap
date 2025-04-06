@@ -2,8 +2,8 @@ package it.auties.leap.tls.ec.implementation;
 
 import it.auties.leap.tls.context.TlsContext;
 import it.auties.leap.tls.property.TlsProperty;
-import it.auties.leap.tls.ec.TlsECParameters;
-import it.auties.leap.tls.ec.TlsECParametersDeserializer;
+import it.auties.leap.tls.ec.TlsEcParameters;
+import it.auties.leap.tls.ec.TlsEcParametersDeserializer;
 import it.auties.leap.tls.alert.TlsAlert;
 import it.auties.leap.tls.group.TlsSupportedEllipticCurve;
 
@@ -11,15 +11,15 @@ import java.nio.ByteBuffer;
 
 import static it.auties.leap.tls.util.BufferUtils.*;
 
-public final class NamedCurveParameters implements TlsECParameters {
-    private static final TlsECParametersDeserializer DESERIALIZER = new TlsECParametersDeserializer() {
+public final class NamedCurveParameters implements TlsEcParameters {
+    private static final TlsEcParametersDeserializer DESERIALIZER = new TlsEcParametersDeserializer() {
         @Override
         public byte type() {
             return 3;
         }
 
         @Override
-        public TlsECParameters deserialize(ByteBuffer input) {
+        public TlsEcParameters deserialize(ByteBuffer input) {
             var namedGroup = readBigEndianInt16(input);
             return new NamedCurveParameters(namedGroup);
         }
@@ -31,7 +31,7 @@ public final class NamedCurveParameters implements TlsECParameters {
         this.namedGroup = namedGroup;
     }
 
-    public static TlsECParametersDeserializer deserializer() {
+    public static TlsEcParametersDeserializer deserializer() {
         return DESERIALIZER;
     }
 

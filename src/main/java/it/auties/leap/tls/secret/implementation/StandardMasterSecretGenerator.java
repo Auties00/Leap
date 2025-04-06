@@ -2,7 +2,7 @@ package it.auties.leap.tls.secret.implementation;
 
 import it.auties.leap.tls.alert.TlsAlert;
 import it.auties.leap.tls.context.TlsContext;
-import it.auties.leap.tls.hash.TlsPRF;
+import it.auties.leap.tls.hash.TlsPrf;
 import it.auties.leap.tls.property.TlsProperty;
 import it.auties.leap.tls.secret.TlsMasterSecretGenerator;
 import it.auties.leap.tls.secret.TlsSecret;
@@ -50,8 +50,8 @@ public final class StandardMasterSecretGenerator implements TlsMasterSecretGener
         var masterSecret = switch (version) {
             case TLS10, TLS11, DTLS10 -> {
                 var label = extendedMasterSecret ? LABEL_EXTENDED_MASTER_SECRET : LABEL_MASTER_SECRET;
-                var seed = extendedMasterSecret ? context.connectionIntegrity().digest() : TlsPRF.seed(clientRandom, serverRandom);
-                yield TlsPRF.tls10Prf(
+                var seed = extendedMasterSecret ? context.connectionIntegrity().digest() : TlsPrf.seed(clientRandom, serverRandom);
+                yield TlsPrf.tls10Prf(
                         preMasterSecret.data(),
                         label,
                         seed,
@@ -62,8 +62,8 @@ public final class StandardMasterSecretGenerator implements TlsMasterSecretGener
                 var negotiatedCipher = context.getNegotiatedValue(TlsProperty.cipher())
                         .orElseThrow(() -> TlsAlert.noNegotiatedProperty(TlsProperty.cipher()));
                 var label = extendedMasterSecret ? LABEL_EXTENDED_MASTER_SECRET : LABEL_MASTER_SECRET;
-                var seed = extendedMasterSecret ? context.connectionIntegrity().digest() : TlsPRF.seed(clientRandom, serverRandom);
-                yield TlsPRF.tls12Prf(
+                var seed = extendedMasterSecret ? context.connectionIntegrity().digest() : TlsPrf.seed(clientRandom, serverRandom);
+                yield TlsPrf.tls12Prf(
                         preMasterSecret.data(),
                         label,
                         seed,

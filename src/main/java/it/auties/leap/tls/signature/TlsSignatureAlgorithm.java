@@ -119,10 +119,10 @@ public final class TlsSignatureAlgorithm implements TlsSignature {
             return GOSTR34102012_512;
         }
 
-        public static Signature reserved(byte id, boolean intrinsicHash) {
+        public static Signature reservedForPrivateUse(byte id, boolean intrinsicHash) {
             if (id != -32 && id != -31) {
                 throw new TlsAlert(
-                        "Only values from 224-255 (decimal) inclusive are reserved",
+                        "Only values from 224-255 (decimal) inclusive are reserved for Private Use",
                         URI.create("https://www.rfc-editor.org/rfc/rfc5246.html"),
                         "12"
                 );
@@ -191,10 +191,10 @@ public final class TlsSignatureAlgorithm implements TlsSignature {
             return INTRINSIC;
         }
 
-        public static Hash reserved(byte id) {
+        public static Hash reservedForPrivateUse(byte id) {
             if (id != -32 && id != -31) {
                 throw new TlsAlert(
-                        "Only values from 224-255 (decimal) inclusive are reserved",
+                        "Only values from 224-255 (decimal) inclusive are reserved for Private Use",
                         URI.create("https://www.rfc-editor.org/rfc/rfc5246.html"),
                         "12"
                 );

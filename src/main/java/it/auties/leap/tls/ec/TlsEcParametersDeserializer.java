@@ -6,22 +6,22 @@ import it.auties.leap.tls.ec.implementation.NamedCurveParameters;
 
 import java.nio.ByteBuffer;
 
-public interface TlsECParametersDeserializer {
+public interface TlsEcParametersDeserializer {
     byte type();
-    TlsECParameters deserialize(ByteBuffer buffer);
+    TlsEcParameters deserialize(ByteBuffer buffer);
     default boolean accepts(byte ecType) {
         return ecType == type();
     }
 
-    static TlsECParametersDeserializer explicitChar2() {
+    static TlsEcParametersDeserializer explicitChar2() {
         return ExplicitChar2Parameters.deserializer();
     }
 
-    static TlsECParametersDeserializer explicitPrime() {
+    static TlsEcParametersDeserializer explicitPrime() {
         return ExplicitPrimeParameters.deserializer();
     }
 
-    static TlsECParametersDeserializer namedCurve() {
+    static TlsEcParametersDeserializer namedCurve() {
         return NamedCurveParameters.deserializer();
     }
 }

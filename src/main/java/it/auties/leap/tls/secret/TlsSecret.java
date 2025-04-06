@@ -2,6 +2,7 @@ package it.auties.leap.tls.secret;
 
 import java.util.Arrays;
 
+// TODO: Enforce secret destruction
 public final class TlsSecret {
     private final byte[] data;
     private boolean destroyed;
@@ -15,14 +16,10 @@ public final class TlsSecret {
     }
 
     public byte[] data() {
-
-
         return data;
     }
 
     public int length() {
-
-
         return data.length;
     }
 

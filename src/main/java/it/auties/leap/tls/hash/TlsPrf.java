@@ -3,7 +3,7 @@ package it.auties.leap.tls.hash;
 import java.util.Arrays;
 
 // Adapted from JDK com.sun.crypto.provider.PrfGenerator
-public final class TlsPRF {
+public final class TlsPrf {
     private static final byte[] EMPTY_BUFFER = new byte[0];
     private static final byte[] HMAC_IPAD_64 = genPad((byte) 0x36, 64);
     private static final byte[] HMAC_IPAD_128 = genPad((byte) 0x36, 128);

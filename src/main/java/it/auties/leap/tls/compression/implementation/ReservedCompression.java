@@ -13,7 +13,7 @@ public final class ReservedCompression implements TlsCompression {
     public ReservedCompression(byte id, TlsCompressor delegate) {
         if (id < -32 || id > -1) {
             throw new TlsAlert(
-                    "Only values from 224-255 (decimal) inclusive are reserved",
+                    "Only values from 224-255 (decimal) inclusive are reserved for Private Use",
                     URI.create("https://www.ietf.org/rfc/rfc3749.txt"),
                     "2"
             );

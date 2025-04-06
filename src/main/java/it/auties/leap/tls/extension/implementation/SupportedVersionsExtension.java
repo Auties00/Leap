@@ -1,7 +1,7 @@
 package it.auties.leap.tls.extension.implementation;
 
 import it.auties.leap.tls.alert.TlsAlert;
-import it.auties.leap.tls.cipher.TlsGREASE;
+import it.auties.leap.tls.cipher.TlsGrease;
 import it.auties.leap.tls.context.TlsContext;
 import it.auties.leap.tls.context.TlsSource;
 import it.auties.leap.tls.extension.TlsExtension;
@@ -49,9 +49,9 @@ public final class SupportedVersionsExtension implements TlsExtension.Configurab
         var grease = context.getNegotiableValue(TlsProperty.clientExtensions())
                 .orElseThrow(() -> TlsAlert.noNegotiableProperty(TlsProperty.clientExtensions()))
                 .stream()
-                .anyMatch(entry -> TlsGREASE.isGrease(entry.type()));
+                .anyMatch(entry -> TlsGrease.isGrease(entry.type()));
         if (grease) {
-            supportedVersions.add(TlsGREASE.greaseRandom());
+            supportedVersions.add(TlsGrease.greaseRandom());
         }
         return Optional.of(new ConfiguredClient(supportedVersions));
     }
@@ -68,7 +68,7 @@ public final class SupportedVersionsExtension implements TlsExtension.Configurab
 
     @Override
     public TlsExtensionDependencies dependencies() {
-        var values = TlsGREASE.values()
+        var values = TlsGrease.values()
                 .stream()
                 .map(grease -> grease.versionId().value())
                 .toArray(Integer[]::new);

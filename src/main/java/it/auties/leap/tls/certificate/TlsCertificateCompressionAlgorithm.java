@@ -19,10 +19,10 @@ public sealed interface TlsCertificateCompressionAlgorithm extends TlsIdentifiab
         return Zstd.INSTANCE;
     }
 
-    static TlsCertificateCompressionAlgorithm reserved(int id, TlsCompressor compressor) {
+    static TlsCertificateCompressionAlgorithm reservedForExperimentalUse(int id, TlsCompressor compressor) {
         if(id < 16384 || id > 65535) {
             throw new TlsAlert(
-                    "Only values from 16384-65535 (decimal) inclusive are reserved",
+                    "Only values from 16384-65535 (decimal) inclusive are reserved for Experimental Use",
                     URI.create("https://www.rfc-editor.org/rfc/rfc8879.html"),
                     "7.3"
             );

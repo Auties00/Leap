@@ -5,7 +5,7 @@ import it.auties.leap.tls.cipher.exchange.TlsExchangeMac;
 import it.auties.leap.tls.connection.TlsConnectionInitializer;
 import it.auties.leap.tls.context.TlsContext;
 import it.auties.leap.tls.hash.TlsHashFactory;
-import it.auties.leap.tls.hash.TlsPRF;
+import it.auties.leap.tls.hash.TlsPrf;
 import it.auties.leap.tls.property.TlsProperty;
 import it.auties.leap.tls.version.TlsVersion;
 
@@ -138,9 +138,9 @@ public final class StandardConnectionInitializer implements TlsConnectionInitial
         }else if (negotiatedVersion == TlsVersion.TLS10) {
             var clientKey = readBytes(keyBlock, keyLength);
             var serverKey = readBytes(keyBlock, keyLength);
-            var seed = TlsPRF.seed(clientRandom, serverRandom);
-            var expandedClientKey = TlsPRF.tls10Prf(clientKey, LABEL_CLIENT_WRITE_KEY, seed, expandedKeyLength.getAsInt());
-            var expandedServerKey = TlsPRF.tls10Prf(serverKey, LABEL_SERVER_WRITE_KEY, seed, expandedKeyLength.getAsInt());
+            var seed = TlsPrf.seed(clientRandom, serverRandom);
+            var expandedClientKey = TlsPrf.tls10Prf(clientKey, LABEL_CLIENT_WRITE_KEY, seed, expandedKeyLength.getAsInt());
+            var expandedServerKey = TlsPrf.tls10Prf(serverKey, LABEL_SERVER_WRITE_KEY, seed, expandedKeyLength.getAsInt());
 
             var localKey = switch (mode) {
                 case CLIENT -> expandedClientKey;
@@ -157,7 +157,7 @@ public final class StandardConnectionInitializer implements TlsConnectionInitial
                 var remoteCipher = cipherFactory.newCipher(false, remoteKey, new byte[0], remoteAuthenticator);
                 remoteConnectionState.setCipher(remoteCipher);
             } else {
-                var block = TlsPRF.tls10Prf(null, LABEL_IV_BLOCK, seed, ivLength << 1);
+                var block = TlsPrf.tls10Prf(null, LABEL_IV_BLOCK, seed, ivLength << 1);
                 var clientIv = Arrays.copyOf(block, ivLength);
                 var serverIv = Arrays.copyOfRange(block, ivLength, ivLength << 2);
 
@@ -182,8 +182,8 @@ public final class StandardConnectionInitializer implements TlsConnectionInitial
     private static ByteBuffer generateBlock(TlsVersion version, TlsHashFactory hashFactory, byte[] masterSecret, byte[] clientRandom, byte[] serverRandom, int keyBlockLen) {
         return switch (version) {
             case TLS10, TLS11 -> {
-                var seed = TlsPRF.seed(serverRandom, clientRandom);
-                var result = TlsPRF.tls10Prf(
+                var seed = TlsPrf.seed(serverRandom, clientRandom);
+                var result = TlsPrf.tls10Prf(
                         masterSecret,
                         LABEL_KEY_EXPANSION,
                         seed,
@@ -192,8 +192,8 @@ public final class StandardConnectionInitializer implements TlsConnectionInitial
                 yield ByteBuffer.wrap(result);
             }
             default -> {
-                var seed = TlsPRF.seed(serverRandom, clientRandom);
-                var result = TlsPRF.tls12Prf(
+                var seed = TlsPrf.seed(serverRandom, clientRandom);
+                var result = TlsPrf.tls12Prf(
                         masterSecret,
                         LABEL_KEY_EXPANSION,
                         seed,

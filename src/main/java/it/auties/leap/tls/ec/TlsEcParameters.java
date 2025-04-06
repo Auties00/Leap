@@ -9,24 +9,24 @@ import it.auties.leap.tls.group.TlsSupportedEllipticCurve;
 import java.nio.ByteBuffer;
 
 // https://github.com/topskychen/spongycastle/blob/master/core/src/main/java/org/bouncycastle/crypto/tls/TlsECCUtils.java#L420
-public interface TlsECParameters {
+public interface TlsEcParameters {
     void serialize(ByteBuffer buffer);
     int length();
     TlsSupportedEllipticCurve toGroup(TlsContext context);
 
-    static TlsECParameters explicitChar2(int m, byte basis, int k, byte[] a, byte[] b, byte[] encoding, byte[] order, byte[] cofactor) {
+    static TlsEcParameters explicitChar2(int m, byte basis, int k, byte[] a, byte[] b, byte[] encoding, byte[] order, byte[] cofactor) {
         return new ExplicitChar2Parameters(m, basis, k, a, b, encoding, order, cofactor);
     }
 
-    static TlsECParameters explicitChar2(int m, byte basis, int k1, int k2, int k3, byte[] a, byte[] b, byte[] encoding, byte[] order, byte[] cofactor) {
+    static TlsEcParameters explicitChar2(int m, byte basis, int k1, int k2, int k3, byte[] a, byte[] b, byte[] encoding, byte[] order, byte[] cofactor) {
         return new ExplicitChar2Parameters(m, basis, k1, k2, k3, a, b, encoding, order, cofactor);
     }
 
-    static TlsECParameters explicitPrime(byte[] prime, byte[] a, byte[] b, byte[] encoding, byte[] order, byte[] cofactor) {
+    static TlsEcParameters explicitPrime(byte[] prime, byte[] a, byte[] b, byte[] encoding, byte[] order, byte[] cofactor) {
         return new ExplicitPrimeParameters(prime, a, b, encoding, order, cofactor);
     }
 
-    static TlsECParameters namedCurve(int id) {
+    static TlsEcParameters namedCurve(int id) {
         return new NamedCurveParameters(id);
     }
 }

@@ -27,7 +27,7 @@ public class __Block_byref_ND {
     private static final GroupLayout $LAYOUT = MemoryLayout.structLayout(
         UnixKernel.C_POINTER.withName("__isa"),
         UnixKernel.C_INT.withName("__flags"),
-        UnixKernel.C_INT.withName("__reserved"),
+        UnixKernel.C_INT.withName("__reserved for Private Use"),
         UnixKernel.C_POINTER.withName("__FuncPtr")
     ).withName("__Block_byref_ND");
 
@@ -126,7 +126,7 @@ public class __Block_byref_ND {
         struct.set(__flags$LAYOUT, __flags$OFFSET, fieldValue);
     }
 
-    private static final OfInt __reserved$LAYOUT = (OfInt)$LAYOUT.select(groupElement("__reserved"));
+    private static final OfInt __reserved$LAYOUT = (OfInt)$LAYOUT.select(groupElement("__reserved for Private Use"));
 
     /**
      * Layout for field:

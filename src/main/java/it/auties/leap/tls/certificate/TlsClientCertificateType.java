@@ -65,10 +65,10 @@ public sealed interface TlsClientCertificateType extends TlsIdentifiableProperty
         return GostSign512.INSTANCE;
     }
 
-    static TlsClientCertificateType reserved(byte id) {
+    static TlsClientCertificateType reservedForPrivateUse(byte id) {
         if(id < -32 || id > -1) {
             throw new TlsAlert(
-                    "Only values from 224-255 (decimal) inclusive are reserved",
+                    "Only values from 224-255 (decimal) inclusive are reserved for Private Use",
                     URI.create("https://www.ietf.org/rfc/rfc3749.txt"),
                     "2"
             );

@@ -1,23 +1,23 @@
 package it.auties.leap.tls.ec.implementation;
 
 import it.auties.leap.tls.context.TlsContext;
-import it.auties.leap.tls.ec.TlsECParameters;
-import it.auties.leap.tls.ec.TlsECParametersDeserializer;
+import it.auties.leap.tls.ec.TlsEcParameters;
+import it.auties.leap.tls.ec.TlsEcParametersDeserializer;
 import it.auties.leap.tls.group.TlsSupportedEllipticCurve;
 
 import java.nio.ByteBuffer;
 
 import static it.auties.leap.tls.util.BufferUtils.*;
 
-public final class ExplicitPrimeParameters implements TlsECParameters {
-    private static final TlsECParametersDeserializer DESERIALIZER = new TlsECParametersDeserializer() {
+public final class ExplicitPrimeParameters implements TlsEcParameters {
+    private static final TlsEcParametersDeserializer DESERIALIZER = new TlsEcParametersDeserializer() {
         @Override
         public byte type() {
             return 1;
         }
 
         @Override
-        public TlsECParameters deserialize(ByteBuffer input) {
+        public TlsEcParameters deserialize(ByteBuffer input) {
             var prime = readBytesBigEndian8(input);
             var a = readBytesBigEndian8(input);
             var b = readBytesBigEndian8(input);
@@ -44,7 +44,7 @@ public final class ExplicitPrimeParameters implements TlsECParameters {
         this.cofactor = cofactor;
     }
 
-    public static TlsECParametersDeserializer deserializer() {
+    public static TlsEcParametersDeserializer deserializer() {
         return DESERIALIZER;
     }
 

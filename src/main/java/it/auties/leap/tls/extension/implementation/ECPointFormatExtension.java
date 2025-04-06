@@ -4,7 +4,7 @@ import it.auties.leap.tls.alert.TlsAlert;
 import it.auties.leap.tls.context.TlsContext;
 import it.auties.leap.tls.connection.TlsConnectionType;
 import it.auties.leap.tls.context.TlsSource;
-import it.auties.leap.tls.ec.TlsECPointFormat;
+import it.auties.leap.tls.ec.TlsEcPointFormat;
 import it.auties.leap.tls.extension.TlsExtension;
 import it.auties.leap.tls.extension.TlsExtensionDependencies;
 import it.auties.leap.tls.property.TlsIdentifiableProperty;
@@ -21,9 +21,9 @@ import java.util.stream.Collectors;
 import static it.auties.leap.tls.util.BufferUtils.*;
 
 public record ECPointFormatExtension(
-        List<TlsECPointFormat> supportedFormats
+        List<TlsEcPointFormat> supportedFormats
 ) implements TlsExtension.Configured.Agnostic {
-    private static final ECPointFormatExtension ALL = new ECPointFormatExtension(TlsECPointFormat.values());
+    private static final ECPointFormatExtension ALL = new ECPointFormatExtension(TlsEcPointFormat.values());
 
     public static TlsExtension.Configured.Agnostic all() {
         return ALL;
@@ -53,7 +53,7 @@ public record ECPointFormatExtension(
     @Override
     public Optional<ECPointFormatExtension> deserialize(TlsContext context, int type, ByteBuffer buffer) {
         var ecPointFormatsLength = readBigEndianInt8(buffer);
-        var ecPointFormats = new ArrayList<TlsECPointFormat>();
+        var ecPointFormats = new ArrayList<TlsEcPointFormat>();
         var knownFormats = context.getNegotiableValue(TlsProperty.ecPointsFormats())
                 .orElseThrow(() -> TlsAlert.noNegotiableProperty(TlsProperty.ecPointsFormats()))
                 .stream()
