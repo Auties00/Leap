@@ -1,20 +1,26 @@
 package it.auties.leap.tls.context;
 
+import it.auties.leap.socket.SocketProtocol;
 import it.auties.leap.tls.alert.TlsAlert;
 import it.auties.leap.tls.certificate.TlsCertificate;
 import it.auties.leap.tls.certificate.TlsCertificateValidator;
 import it.auties.leap.tls.cipher.TlsCipherSuite;
 import it.auties.leap.tls.compression.TlsCompression;
+import it.auties.leap.tls.connection.TlsConnection;
 import it.auties.leap.tls.connection.TlsConnectionInitializer;
 import it.auties.leap.tls.connection.TlsConnectionType;
+import it.auties.leap.tls.extension.TlsExtension;
+import it.auties.leap.tls.extension.TlsExtensionOwner;
 import it.auties.leap.tls.secret.TlsMasterSecretGenerator;
+import it.auties.leap.tls.util.TlsKeyUtils;
 import it.auties.leap.tls.version.TlsVersion;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 
 @SuppressWarnings("unchecked")
-abstract sealed class TlsContextBuilder<S extends TlsContextBuilder<S>> permits TlsClientContextBuilder, TlsServerContextBuilder {
+abstract sealed class TlsContextBuilder<S extends TlsContextBuilder<S, E>, E extends TlsExtensionOwner> permits TlsClientContextBuilder, TlsServerContextBuilder {
     final TlsConnectionType mode;
     final List<TlsCertificate> certificates;
     List<TlsVersion> versions;
@@ -26,6 +32,7 @@ abstract sealed class TlsContextBuilder<S extends TlsContextBuilder<S>> permits 
     byte[] randomData;
     byte[] sessionId;
     byte[] dtlsCookie;
+    List<? extends E> extensions;
 
     TlsContextBuilder(TlsConnectionType mode) {
         this.mode = mode;
@@ -80,20 +87,54 @@ abstract sealed class TlsContextBuilder<S extends TlsContextBuilder<S>> permits 
         return (S) this;
     }
 
-    public TlsContextBuilder<S> certificate(TlsCertificate certificate) {
+    public TlsContextBuilder<S, E> certificate(TlsCertificate certificate) {
         this.certificates.add(certificate);
         return this;
     }
 
 
-    public TlsContextBuilder<S> certificates(List<TlsCertificate> certificates) {
+    public TlsContextBuilder<S, E> certificates(List<TlsCertificate> certificates) {
         this.certificates.addAll(certificates);
         return this;
     }
 
-    public TlsContextBuilder<S> certificateValidator(TlsCertificateValidator certificateValidator) {
+    public TlsContextBuilder<S, E> certificateValidator(TlsCertificateValidator certificateValidator) {
         this.certificateValidator = certificateValidator;
         return this;
+    }
+    
+    public TlsContextBuilder<S, E> extensions(List<? extends E> extensions) {
+        this.extensions = extensions;
+        return this;
+    }
+
+    List<TlsVersion> buildVersions() {
+        if (this.versions != null && !this.versions.isEmpty()) {
+            return this.versions;
+        }
+
+        return TlsVersion.recommended(SocketProtocol.TCP);
+    }
+    
+    TlsConnection buildLocalConnection(List<TlsVersion> versions) {
+        var randomData = Objects.requireNonNullElseGet(this.randomData, TlsKeyUtils::randomData);
+        var sessionId = Objects.requireNonNullElseGet(this.sessionId, TlsKeyUtils::randomData);
+        var protocol = versions.getFirst().protocol();
+        var dtlsCookie = protocol == SocketProtocol.UDP ? Objects.requireNonNullElseGet(this.dtlsCookie, TlsKeyUtils::randomData) : null;
+        return TlsConnection.newConnection(TlsConnectionType.SERVER, randomData, sessionId, dtlsCookie, certificates);
+    }
+
+    List<? extends E> buildExtensions(List<TlsVersion> versions) {
+        return Objects.requireNonNullElseGet(this.extensions, () -> {
+            var results = new ArrayList<E>();
+            if(versions.contains(TlsVersion.TLS13) || versions.contains(TlsVersion.DTLS13)) {
+                results.add((E) TlsExtension.supportedVersions());
+                results.add((E) TlsExtension.supportedGroups());
+                results.add((E) TlsExtension.keyShare());
+            }
+
+            return results;
+        });
     }
 
     public abstract TlsContext build();
