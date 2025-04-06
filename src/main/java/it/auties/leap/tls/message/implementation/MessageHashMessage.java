@@ -16,20 +16,20 @@ public record MessageHashMessage(
         byte[] hash
 ) implements TlsHandshakeMessage {
     private static final byte ID = (byte) 0xFE;
-    private static final TlsMessageDeserializer DESERIALIZER = new TlsMessageDeserializer() {
+    private static final TlsHandshakeMessageDeserializer DESERIALIZER = new TlsHandshakeMessageDeserializer() {
         @Override
         public int id() {
             return ID;
         }
 
         @Override
-        public TlsMessage deserialize(TlsContext context, ByteBuffer buffer, TlsMessageMetadata metadata) {
+        public TlsHandshakeMessage deserialize(TlsContext context, ByteBuffer buffer, TlsMessageMetadata metadata) {
             var key = readBytes(buffer, buffer.remaining());
             return new MessageHashMessage(metadata.version(), metadata.source(), key);
         }
     };
 
-    public static TlsMessageDeserializer deserializer() {
+    public static TlsHandshakeMessageDeserializer deserializer() {
         return DESERIALIZER;
     }
 

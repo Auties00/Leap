@@ -34,14 +34,14 @@ public record ServerHelloMessage(
     private static final int SERVER_RANDOM_LENGTH = 32;
     private static final int SESSION_ID_LENGTH = 32;
     private static final byte ID = 0x02;
-    private static final TlsMessageDeserializer DESERIALIZER = new TlsMessageDeserializer() {
+    private static final TlsHandshakeMessageDeserializer DESERIALIZER = new TlsHandshakeMessageDeserializer() {
         @Override
         public int id() {
             return ID;
         }
 
         @Override
-        public TlsMessage deserialize(TlsContext context, ByteBuffer buffer, TlsMessageMetadata metadata) {
+        public TlsHandshakeMessage deserialize(TlsContext context, ByteBuffer buffer, TlsMessageMetadata metadata) {
             var tlsVersionId = readBigEndianInt16(buffer);
             var tlsVersion = TlsVersion.of(tlsVersionId)
                     .orElseThrow(() -> new IllegalArgumentException("Cannot decode TLS message, unknown protocol version: " + tlsVersionId));
@@ -94,7 +94,7 @@ public record ServerHelloMessage(
         }
     }
 
-    public static TlsMessageDeserializer deserializer() {
+    public static TlsHandshakeMessageDeserializer deserializer() {
         return DESERIALIZER;
     }
 

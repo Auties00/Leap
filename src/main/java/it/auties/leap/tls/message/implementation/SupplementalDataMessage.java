@@ -13,14 +13,14 @@ public record SupplementalDataMessage(
         TlsSource source
 ) implements TlsHandshakeMessage {
     private static final byte ID = 0x17;
-    private static final TlsMessageDeserializer DESERIALIZER = new TlsMessageDeserializer() {
+    private static final TlsHandshakeMessageDeserializer DESERIALIZER = new TlsHandshakeMessageDeserializer() {
         @Override
         public int id() {
             return ID;
         }
 
         @Override
-        public TlsMessage deserialize(TlsContext context, ByteBuffer buffer, TlsMessageMetadata metadata) {
+        public TlsHandshakeMessage deserialize(TlsContext context, ByteBuffer buffer, TlsMessageMetadata metadata) {
             if(buffer.hasRemaining()) {
                 throw new TlsAlert("Expected supplemental data message to have an empty payload");
             }
@@ -29,7 +29,7 @@ public record SupplementalDataMessage(
         }
     };
 
-    public static TlsMessageDeserializer deserializer() {
+    public static TlsHandshakeMessageDeserializer deserializer() {
         return DESERIALIZER;
     }
 

@@ -23,14 +23,14 @@ public record CompressedCertificateMessage(
         byte[] compressedCertificateMessage
 ) implements TlsHandshakeMessage {
     private static final byte ID = 0x19;
-    private static final TlsMessageDeserializer DESERIALIZER = new TlsMessageDeserializer() {
+    private static final TlsHandshakeMessageDeserializer DESERIALIZER = new TlsHandshakeMessageDeserializer() {
         @Override
         public int id() {
             return ID;
         }
 
         @Override
-        public TlsMessage deserialize(TlsContext context, ByteBuffer buffer, TlsMessageMetadata metadata) {
+        public TlsHandshakeMessage deserialize(TlsContext context, ByteBuffer buffer, TlsMessageMetadata metadata) {
             var negotiatedAlgorithms = context.getNegotiatedValue(TlsProperty.certificateCompressionAlgorithms())
                     .orElseThrow(() -> TlsAlert.noNegotiatedProperty(TlsProperty.certificateCompressionAlgorithms()))
                     .stream()
@@ -47,7 +47,7 @@ public record CompressedCertificateMessage(
         }
     };
 
-    public static TlsMessageDeserializer deserializer() {
+    public static TlsHandshakeMessageDeserializer deserializer() {
         return DESERIALIZER;
     }
 

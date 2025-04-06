@@ -2,10 +2,7 @@ package it.auties.leap.tls.message.implementation;
 
 import it.auties.leap.tls.context.TlsContext;
 import it.auties.leap.tls.context.TlsSource;
-import it.auties.leap.tls.message.TlsMessage;
-import it.auties.leap.tls.message.TlsMessageContentType;
-import it.auties.leap.tls.message.TlsMessageDeserializer;
-import it.auties.leap.tls.message.TlsMessageMetadata;
+import it.auties.leap.tls.message.*;
 import it.auties.leap.tls.version.TlsVersion;
 
 import java.nio.ByteBuffer;
@@ -18,17 +15,9 @@ public record ApplicationDataMessage(
         ByteBuffer message
 ) implements TlsMessage {
     private static final int ID = 0x17;
-    private static final TlsMessageDeserializer DESERIALIZER = new TlsMessageDeserializer() {
-        @Override
-        public int id() {
-            return ID;
-        }
-
-        @Override
-        public TlsMessage deserialize(TlsContext context, ByteBuffer buffer, TlsMessageMetadata metadata) {
-            var message = readBuffer(buffer, buffer.remaining());
-            return new ApplicationDataMessage(metadata.version(), metadata.source(), message);
-        }
+    private static final TlsMessageDeserializer DESERIALIZER = (_, buffer, metadata) -> {
+        var message = readBuffer(buffer, buffer.remaining());
+        return new ApplicationDataMessage(metadata.version(), metadata.source(), message);
     };
 
     public static TlsMessageDeserializer deserializer() {

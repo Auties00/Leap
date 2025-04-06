@@ -42,9 +42,8 @@ public final class TlsServerContextBuilder extends TlsContextBuilder<TlsServerCo
         var credentials = TlsConnection.newConnection(TlsConnectionType.SERVER, randomData, sessionId, dtlsCookie, certificates);
         var extensions = Objects.requireNonNullElse(this.extensions, DEFAULT_EXTENSIONS);
         var compressions = Objects.requireNonNullElse(this.compressions, TlsCompression.recommended());
-        var messageDeserializer = Objects.requireNonNullElse(this.messageDeserializer, TlsMessageDeserializer.builtin());
         var masterSecretGenerator = Objects.requireNonNullElse(this.masterSecretGenerator, TlsMasterSecretGenerator.builtin());
         var connectionInitializer = Objects.requireNonNullElse(this.connectionInitializer, TlsConnectionInitializer.builtin());
-        return TlsContext.ofServer(versions, extensions, ciphers, compressions, credentials, messageDeserializer, masterSecretGenerator, connectionInitializer);
+        return TlsContext.ofServer(versions, extensions, ciphers, compressions, credentials, masterSecretGenerator, connectionInitializer);
     }
 }

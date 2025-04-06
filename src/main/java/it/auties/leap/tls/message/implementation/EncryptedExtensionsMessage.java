@@ -23,14 +23,14 @@ public record EncryptedExtensionsMessage(
         int extensionsLength
 ) implements TlsHandshakeMessage {
     private static final byte ID = 0x08;
-    private static final TlsMessageDeserializer DESERIALIZER = new TlsMessageDeserializer() {
+    private static final TlsHandshakeMessageDeserializer DESERIALIZER = new TlsHandshakeMessageDeserializer() {
         @Override
         public int id() {
             return ID;
         }
 
         @Override
-        public TlsMessage deserialize(TlsContext context, ByteBuffer buffer, TlsMessageMetadata metadata) {
+        public TlsHandshakeMessage deserialize(TlsContext context, ByteBuffer buffer, TlsMessageMetadata metadata) {
             var extensionTypeToDecoder = context.getNegotiatedValue(TlsProperty.clientExtensions())
                     .orElseThrow(() -> TlsAlert.noNegotiatedProperty(TlsProperty.clientExtensions()))
                     .stream()
@@ -56,7 +56,7 @@ public record EncryptedExtensionsMessage(
         }
     };
 
-    public static TlsMessageDeserializer deserializer() {
+    public static TlsHandshakeMessageDeserializer deserializer() {
         return DESERIALIZER;
     }
 

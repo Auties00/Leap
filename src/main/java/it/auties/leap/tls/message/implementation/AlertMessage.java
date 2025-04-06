@@ -6,10 +6,7 @@ import it.auties.leap.tls.alert.TlsAlertLevel;
 import it.auties.leap.tls.alert.TlsAlertType;
 import it.auties.leap.tls.context.TlsContext;
 import it.auties.leap.tls.context.TlsSource;
-import it.auties.leap.tls.message.TlsMessage;
-import it.auties.leap.tls.message.TlsMessageContentType;
-import it.auties.leap.tls.message.TlsMessageDeserializer;
-import it.auties.leap.tls.message.TlsMessageMetadata;
+import it.auties.leap.tls.message.*;
 import it.auties.leap.tls.version.TlsVersion;
 
 import java.nio.ByteBuffer;
@@ -23,22 +20,14 @@ public record AlertMessage(
         TlsAlertType alertType
 ) implements TlsMessage {
     private static final int ID = 0x00;
-    private static final TlsMessageDeserializer DESERIALIZER = new TlsMessageDeserializer() {
-        @Override
-        public int id() {
-            return ID;
-        }
-
-        @Override
-        public TlsMessage deserialize(TlsContext context, ByteBuffer buffer, TlsMessageMetadata metadata) {
-            var levelId = readBigEndianInt8(buffer);
-            var level = TlsAlertLevel.of(levelId)
-                    .orElseThrow(() -> new IllegalArgumentException("Cannot decode TLS message, unknown alert level: " + levelId));
-            var typeId = readBigEndianInt8(buffer);
-            var type = TlsAlertType.of(typeId)
-                    .orElseThrow(() -> new IllegalArgumentException("Cannot decode TLS message, unknown alert type: " + typeId));
-            return new AlertMessage(metadata.version(), metadata.source(), level, type);
-        }
+    private static final TlsMessageDeserializer DESERIALIZER = (_, buffer, metadata) -> {
+        var levelId = readBigEndianInt8(buffer);
+        var level = TlsAlertLevel.of(levelId)
+                .orElseThrow(() -> new IllegalArgumentException("Cannot decode TLS message, unknown alert level: " + levelId));
+        var typeId = readBigEndianInt8(buffer);
+        var type = TlsAlertType.of(typeId)
+                .orElseThrow(() -> new IllegalArgumentException("Cannot decode TLS message, unknown alert type: " + typeId));
+        return new AlertMessage(metadata.version(), metadata.source(), level, type);
     };
 
     public static TlsMessageDeserializer deserializer() {

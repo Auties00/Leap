@@ -20,14 +20,14 @@ public record ClientKeyExchangeMessage(
         TlsKeyExchange parameters
 ) implements TlsHandshakeMessage {
     private static final byte ID = 0x10;
-    private static final TlsMessageDeserializer DESERIALIZER = new TlsMessageDeserializer() {
+    private static final TlsHandshakeMessageDeserializer DESERIALIZER = new TlsHandshakeMessageDeserializer() {
         @Override
         public int id() {
             return ID;
         }
 
         @Override
-        public TlsMessage deserialize(TlsContext context, ByteBuffer buffer, TlsMessageMetadata metadata) {
+        public TlsHandshakeMessage deserialize(TlsContext context, ByteBuffer buffer, TlsMessageMetadata metadata) {
             var messageLength = readBigEndianInt24(buffer);
             try (var _ = scopedRead(buffer, messageLength)) {
                 var remoteParameters = context.getNegotiatedValue(TlsProperty.cipher())
@@ -39,7 +39,7 @@ public record ClientKeyExchangeMessage(
         }
     };
 
-    public static TlsMessageDeserializer deserializer() {
+    public static TlsHandshakeMessageDeserializer deserializer() {
         return DESERIALIZER;
     }
 

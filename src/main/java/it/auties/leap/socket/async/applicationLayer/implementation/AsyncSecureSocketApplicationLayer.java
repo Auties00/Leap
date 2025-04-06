@@ -19,6 +19,7 @@ import it.auties.leap.tls.extension.TlsExtensionDependencies;
 import it.auties.leap.tls.extension.TlsExtensionOwner;
 import it.auties.leap.tls.message.TlsHandshakeMessage;
 import it.auties.leap.tls.message.TlsMessage;
+import it.auties.leap.tls.message.TlsMessageDeserializer;
 import it.auties.leap.tls.message.TlsMessageMetadata;
 import it.auties.leap.tls.message.implementation.*;
 import it.auties.leap.tls.property.TlsProperty;
@@ -436,8 +437,7 @@ public class AsyncSecureSocketApplicationLayer extends AsyncSocketApplicationLay
                 .filter(TlsCipher::enabled)
                 .map(cipher -> cipher.decrypt(tlsContext, metadata, buffer))
                 .orElse(buffer);
-        var message = tlsContext.messageDeserializer()
-                .deserialize(tlsContext, plaintext,  metadata.withLength(plaintext.remaining()))
+        var message = TlsMessage.of(tlsContext, plaintext, metadata.withLength(plaintext.remaining()))
                 .orElseThrow(() -> new TlsAlert("Cannot deserialize message: unknown type"));
         System.err.println("Read " + message.getClass().getName());
         var result = handleOrClose(message);

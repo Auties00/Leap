@@ -21,14 +21,14 @@ public record ClientCertificateRequestMessage(
         List<String> authorities
 ) implements TlsHandshakeMessage {
     private static final byte ID = 0x0D;
-    private static final TlsMessageDeserializer DESERIALIZER = new TlsMessageDeserializer() {
+    private static final TlsHandshakeMessageDeserializer DESERIALIZER = new TlsHandshakeMessageDeserializer() {
         @Override
         public int id() {
             return ID;
         }
 
         @Override
-        public TlsMessage deserialize(TlsContext context, ByteBuffer buffer, TlsMessageMetadata metadata) {
+        public TlsHandshakeMessage deserialize(TlsContext context, ByteBuffer buffer, TlsMessageMetadata metadata) {
             var certificatesLength = readBigEndianInt8(buffer);
             var certificateTypes = new ArrayList<Byte>();
             try(var _ = scopedRead(buffer, certificatesLength)) {
@@ -60,7 +60,7 @@ public record ClientCertificateRequestMessage(
         }
     };
 
-    public TlsMessageDeserializer DESERIALIZER() {
+    public static TlsHandshakeMessageDeserializer deserializer() {
         return DESERIALIZER;
     }
 

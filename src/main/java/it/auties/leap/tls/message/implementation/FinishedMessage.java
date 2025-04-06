@@ -20,20 +20,20 @@ public record FinishedMessage(
 ) implements TlsHandshakeMessage {
     private static final int ID = 0x14;
     private static final int MIN_HASH_LENGTH = 12;
-    private static final TlsMessageDeserializer DESERIALIZER = new TlsMessageDeserializer() {
+    private static final TlsHandshakeMessageDeserializer DESERIALIZER = new TlsHandshakeMessageDeserializer() {
         @Override
         public int id() {
             return ID;
         }
 
         @Override
-        public TlsMessage deserialize(TlsContext context, ByteBuffer buffer, TlsMessageMetadata metadata) {
+        public TlsHandshakeMessage deserialize(TlsContext context, ByteBuffer buffer, TlsMessageMetadata metadata) {
             var hash = readBytes(buffer, buffer.remaining());
             return new FinishedMessage(metadata.version(), metadata.source(), hash);
         }
     };
 
-    public static TlsMessageDeserializer deserializer() {
+    public static TlsHandshakeMessageDeserializer deserializer() {
         return DESERIALIZER;
     }
 

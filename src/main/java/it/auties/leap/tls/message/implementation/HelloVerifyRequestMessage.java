@@ -15,20 +15,20 @@ public record HelloVerifyRequestMessage(
         byte[] cookie
 ) implements TlsHandshakeMessage {
     private static final byte ID = 0x03;
-    private static final TlsMessageDeserializer DESERIALIZER = new TlsMessageDeserializer() {
+    private static final TlsHandshakeMessageDeserializer DESERIALIZER = new TlsHandshakeMessageDeserializer() {
         @Override
         public int id() {
             return ID;
         }
 
         @Override
-        public TlsMessage deserialize(TlsContext context, ByteBuffer buffer, TlsMessageMetadata metadata) {
+        public TlsHandshakeMessage deserialize(TlsContext context, ByteBuffer buffer, TlsMessageMetadata metadata) {
             var cookie = readBytesBigEndian8(buffer);
             return new HelloVerifyRequestMessage(metadata.version(), metadata.source(), cookie);
         }
     };
 
-    public static TlsMessageDeserializer deserializer() {
+    public static TlsHandshakeMessageDeserializer deserializer() {
         return DESERIALIZER;
     }
 

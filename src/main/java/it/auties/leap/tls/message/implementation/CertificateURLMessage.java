@@ -21,14 +21,14 @@ public record CertificateURLMessage(
         int urlAndHashListLength
 ) implements TlsHandshakeMessage {
     private static final byte ID = 0x15;
-    private static final TlsMessageDeserializer DESERIALIZER = new TlsMessageDeserializer() {
+    private static final TlsHandshakeMessageDeserializer DESERIALIZER = new TlsHandshakeMessageDeserializer() {
         @Override
         public int id() {
             return ID;
         }
 
         @Override
-        public TlsMessage deserialize(TlsContext context, ByteBuffer buffer, TlsMessageMetadata metadata) {
+        public TlsHandshakeMessage deserialize(TlsContext context, ByteBuffer buffer, TlsMessageMetadata metadata) {
             var typeId = readBigEndianInt8(buffer);
             var type = TlsCertificateChainType.of(typeId)
                     .orElseThrow(() -> new IllegalArgumentException("Invalid certificate chain type: " + typeId));
@@ -44,7 +44,7 @@ public record CertificateURLMessage(
         }
     };
 
-    public static TlsMessageDeserializer deserializer() {
+    public static TlsHandshakeMessageDeserializer deserializer() {
         return DESERIALIZER;
     }
 

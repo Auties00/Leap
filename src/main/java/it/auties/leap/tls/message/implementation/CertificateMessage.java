@@ -23,14 +23,14 @@ public record CertificateMessage(
         int certificatesLength
 ) implements TlsHandshakeMessage {
     private static final byte ID = 0x0B;
-    private static final TlsMessageDeserializer DESERIALIZER = new TlsMessageDeserializer() {
+    private static final TlsHandshakeMessageDeserializer DESERIALIZER = new TlsHandshakeMessageDeserializer() {
         @Override
         public int id() {
             return ID;
         }
 
         @Override
-        public TlsMessage deserialize(TlsContext context, ByteBuffer buffer, TlsMessageMetadata metadata) {
+        public TlsHandshakeMessage deserialize(TlsContext context, ByteBuffer buffer, TlsMessageMetadata metadata) {
             var certificatesLength = readBigEndianInt24(buffer);
             try(var _ = scopedRead(buffer, certificatesLength)) {
                 var certificates = new ArrayList<TlsCertificate>();
@@ -50,7 +50,7 @@ public record CertificateMessage(
         this(version, source, certificates, length);
     }
 
-    public static TlsMessageDeserializer deserializer() {
+    public static TlsHandshakeMessageDeserializer deserializer() {
         return DESERIALIZER;
     }
 

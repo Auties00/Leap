@@ -7,7 +7,6 @@ import it.auties.leap.tls.cipher.TlsCipherSuite;
 import it.auties.leap.tls.compression.TlsCompression;
 import it.auties.leap.tls.connection.TlsConnectionInitializer;
 import it.auties.leap.tls.connection.TlsConnectionType;
-import it.auties.leap.tls.message.TlsMessageDeserializer;
 import it.auties.leap.tls.secret.TlsMasterSecretGenerator;
 import it.auties.leap.tls.version.TlsVersion;
 
@@ -21,7 +20,6 @@ abstract sealed class TlsContextBuilder<S extends TlsContextBuilder<S>> permits 
     List<TlsVersion> versions;
     List<TlsCipherSuite> ciphers;
     List<TlsCompression> compressions;
-    TlsMessageDeserializer messageDeserializer;
     TlsMasterSecretGenerator masterSecretGenerator;
     TlsConnectionInitializer connectionInitializer;
     TlsCertificateValidator certificateValidator;
@@ -54,11 +52,6 @@ abstract sealed class TlsContextBuilder<S extends TlsContextBuilder<S>> permits 
 
     public S compressions(List<TlsCompression> compressions) {
         this.compressions = compressions;
-        return (S) this;
-    }
-
-    public S messageDeserializer(TlsMessageDeserializer messageDeserializer) {
-        this.messageDeserializer = messageDeserializer;
         return (S) this;
     }
 
