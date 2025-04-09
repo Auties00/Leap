@@ -6,7 +6,7 @@ import it.auties.leap.tls.message.implementation.*;
 import java.nio.ByteBuffer;
 import java.util.List;
 
-public interface TlsHandshakeMessageDeserializer extends TlsMessageDeserializer{
+public interface TlsHandshakeMessageDeserializer extends TlsMessageDeserializer {
     static TlsHandshakeMessageDeserializer certificate() {
         return CertificateMessage.deserializer();
     }
@@ -97,6 +97,10 @@ public interface TlsHandshakeMessageDeserializer extends TlsMessageDeserializer{
 
     static TlsHandshakeMessageDeserializer supplementalData() {
         return SupplementalDataMessage.deserializer();
+    }
+
+    static TlsMessageDeserializer any() {
+        return HandshakeMessageDeserializer.instance();
     }
 
     static List<TlsHandshakeMessageDeserializer> values() {

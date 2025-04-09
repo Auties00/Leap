@@ -1,7 +1,9 @@
 package it.auties.leap.tls.message;
 
 import it.auties.leap.tls.context.TlsContext;
-import it.auties.leap.tls.message.implementation.*;
+import it.auties.leap.tls.message.implementation.AlertMessage;
+import it.auties.leap.tls.message.implementation.ApplicationDataMessage;
+import it.auties.leap.tls.message.implementation.ChangeCipherSpecMessage;
 
 import java.nio.ByteBuffer;
 import java.util.List;
@@ -17,6 +19,10 @@ public interface TlsMessageDeserializer {
 
     static TlsMessageDeserializer changeCipherSpec() {
         return ChangeCipherSpecMessage.deserializer();
+    }
+
+    static TlsMessageDeserializer handshake() {
+        return TlsHandshakeMessageDeserializer.any();
     }
 
     static List<TlsMessageDeserializer> values() {

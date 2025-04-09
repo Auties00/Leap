@@ -52,12 +52,8 @@ public interface TlsCipherFactory {
         return CtrOmacCipher.factory();
     }
 
-    static TlsCipherFactory cm() {
-        return null;
-    }
-
     static TlsCipherFactory f8() {
-        return null;
+        return F8Cipher.factory();
     }
 
     TlsCipherWithEngineFactory with(TlsCipherEngineFactory factory);

@@ -47,9 +47,14 @@ public record ALPNExtension(
 
     @Override
     public void apply(TlsContext context, TlsSource source) {
-        switch (source) {
-            case LOCAL -> context.addNegotiableProperty(TlsProperty.applicationProtocols(), supportedProtocols);
-            case REMOTE -> context.addNegotiatedProperty(TlsProperty.applicationProtocols(), supportedProtocols);
+        var connection = switch (source) {
+            case LOCAL -> context.localConnectionState();
+            case REMOTE -> context.remoteConnectionState()
+                    .orElseThrow(TlsAlert::noRemoteConnectionState);
+        };
+        switch (connection.type()) {
+            case CLIENT -> context.addNegotiableProperty(TlsProperty.applicationProtocols(), supportedProtocols);
+            case SERVER -> context.addNegotiatedProperty(TlsProperty.applicationProtocols(), supportedProtocols);
         }
     }
 

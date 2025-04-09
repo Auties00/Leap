@@ -69,9 +69,14 @@ public record SignatureAlgorithmsExtension(
 
     @Override
     public void apply(TlsContext context, TlsSource source) {
-        switch (source) {
-            case LOCAL -> context.addNegotiableProperty(TlsProperty.signatureAlgorithms(), algorithms);
-            case REMOTE -> context.addNegotiatedProperty(TlsProperty.signatureAlgorithms(), algorithms);
+        var connection = switch (source) {
+            case LOCAL -> context.localConnectionState();
+            case REMOTE -> context.remoteConnectionState()
+                    .orElseThrow(TlsAlert::noRemoteConnectionState);
+        };
+        switch (connection.type()) {
+            case CLIENT -> context.addNegotiableProperty(TlsProperty.signatureAlgorithms(), algorithms);
+            case SERVER -> context.addNegotiatedProperty(TlsProperty.signatureAlgorithms(), algorithms);
         }
     }
 

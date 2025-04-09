@@ -18,12 +18,20 @@ public final class TlsHmac {
         return new TlsHmac(TlsHash.sha1());
     }
 
+    public static TlsHmac sha224() {
+        return new TlsHmac(TlsHash.sha224());
+    }
+
     public static TlsHmac sha256() {
         return new TlsHmac(TlsHash.sha256());
     }
 
     public static TlsHmac sha384() {
         return new TlsHmac(TlsHash.sha384());
+    }
+
+    public static TlsHmac sha512() {
+        return new TlsHmac(TlsHash.sha512());
     }
 
     public static TlsHmac sm3() {

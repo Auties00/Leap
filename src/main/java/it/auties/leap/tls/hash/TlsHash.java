@@ -17,12 +17,20 @@ public interface TlsHash {
         return new SHA1Hash();
     }
 
+    static TlsHash sha224() {
+        return new SHA224Hash();
+    }
+
     static TlsHash sha256() {
         return new SHA256Hash();
     }
 
     static TlsHash sha384() {
         return new SHA384Hash();
+    }
+
+    static TlsHash sha512() {
+        return new SHA512Hash();
     }
 
     static TlsHash sm3() {

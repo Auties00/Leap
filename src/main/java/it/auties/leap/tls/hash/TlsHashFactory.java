@@ -15,12 +15,20 @@ public interface TlsHashFactory {
         return SHA1Hash.factory();
     }
 
+    static TlsHashFactory sha224() {
+        return SHA224Hash.factory();
+    }
+
     static TlsHashFactory sha256() {
         return SHA256Hash.factory();
     }
 
     static TlsHashFactory sha384() {
         return SHA384Hash.factory();
+    }
+
+    static TlsHashFactory sha512() {
+        return SHA512Hash.factory();
     }
 
     static TlsHashFactory sm3() {
@@ -30,7 +38,7 @@ public interface TlsHashFactory {
     static TlsHashFactory gostr341112_256() {
         return GOSTR341112_256_Hash.factory();
     }
-    
+
     TlsHash newHash();
 
     int length();

@@ -44,9 +44,14 @@ public record ECPointFormatExtension(
 
     @Override
     public void apply(TlsContext context, TlsSource source) {
-        switch (source) {
-            case LOCAL -> context.addNegotiableProperty(TlsProperty.ecPointsFormats(), supportedFormats);
-            case REMOTE -> context.addNegotiatedProperty(TlsProperty.ecPointsFormats(), supportedFormats);
+        var connection = switch (source) {
+            case LOCAL -> context.localConnectionState();
+            case REMOTE -> context.remoteConnectionState()
+                    .orElseThrow(TlsAlert::noRemoteConnectionState);
+        };
+        switch (connection.type()) {
+            case CLIENT -> context.addNegotiableProperty(TlsProperty.ecPointsFormats(), supportedFormats);
+            case SERVER -> context.addNegotiatedProperty(TlsProperty.ecPointsFormats(), supportedFormats);
         }
     }
 

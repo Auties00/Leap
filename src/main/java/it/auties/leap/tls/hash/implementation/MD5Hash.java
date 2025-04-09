@@ -9,10 +9,24 @@ import java.util.Arrays;
 import static it.auties.leap.tls.util.BufferUtils.readLittleEndianInt32;
 import static it.auties.leap.tls.util.BufferUtils.writeLittleEndianInt32;
 
-;
-
 public final class MD5Hash implements TlsHash {
     private static final int BLOCK_LENGTH = 4;
+    private static final int S11 = 7;
+    private static final int S12 = 12;
+    private static final int S13 = 17;
+    private static final int S14 = 22;
+    private static final int S21 = 5;
+    private static final int S22 = 9;
+    private static final int S23 = 14;
+    private static final int S24 = 20;
+    private static final int S31 = 4;
+    private static final int S32 = 11;
+    private static final int S33 = 16;
+    private static final int S34 = 23;
+    private static final int S41 = 6;
+    private static final int S42 = 10;
+    private static final int S43 = 15;
+    private static final int S44 = 21;
     private static final TlsHashFactory FACTORY = new TlsHashFactory() {
         @Override
         public TlsHash newHash() {
@@ -176,9 +190,6 @@ public final class MD5Hash implements TlsHash {
         }
     }
 
-    /**
-     * reset the chaining variables to the IV values.
-     */
     @Override
     public void reset() {
         byteCount = 0;
@@ -196,48 +207,11 @@ public final class MD5Hash implements TlsHash {
         Arrays.fill(x, 0);
     }
 
-    //
-    // round 1 left rotates
-    //
-    private static final int S11 = 7;
-    private static final int S12 = 12;
-    private static final int S13 = 17;
-    private static final int S14 = 22;
 
-    //
-    // round 2 left rotates
-    //
-    private static final int S21 = 5;
-    private static final int S22 = 9;
-    private static final int S23 = 14;
-    private static final int S24 = 20;
-
-    //
-    // round 3 left rotates
-    //
-    private static final int S31 = 4;
-    private static final int S32 = 11;
-    private static final int S33 = 16;
-    private static final int S34 = 23;
-
-    //
-    // round 4 left rotates
-    //
-    private static final int S41 = 6;
-    private static final int S42 = 10;
-    private static final int S43 = 15;
-    private static final int S44 = 21;
-
-    /*
-     * rotate int x left n bits.
-     */
     private int rotateLeft(int x, int n) {
         return (x << n) | (x >>> (32 - n));
     }
 
-    /*
-     * F, G, H and I are the basic MD5 functions.
-     */
     private int F(int u, int v, int w) {
         return (u & v) | (~u & w);
     }
@@ -260,9 +234,6 @@ public final class MD5Hash implements TlsHash {
         int c = h3;
         int d = h4;
 
-        //
-        // Round 1 - F cycle, 16 times.
-        //
         a = rotateLeft(a + F(b, c, d) + x[0] + 0xd76aa478, S11) + b;
         d = rotateLeft(d + F(a, b, c) + x[1] + 0xe8c7b756, S12) + a;
         c = rotateLeft(c + F(d, a, b) + x[2] + 0x242070db, S13) + d;
@@ -280,9 +251,6 @@ public final class MD5Hash implements TlsHash {
         c = rotateLeft(c + F(d, a, b) + x[14] + 0xa679438e, S13) + d;
         b = rotateLeft(b + F(c, d, a) + x[15] + 0x49b40821, S14) + c;
 
-        //
-        // Round 2 - G cycle, 16 times.
-        //
         a = rotateLeft(a + G(b, c, d) + x[1] + 0xf61e2562, S21) + b;
         d = rotateLeft(d + G(a, b, c) + x[6] + 0xc040b340, S22) + a;
         c = rotateLeft(c + G(d, a, b) + x[11] + 0x265e5a51, S23) + d;
@@ -300,9 +268,6 @@ public final class MD5Hash implements TlsHash {
         c = rotateLeft(c + G(d, a, b) + x[7] + 0x676f02d9, S23) + d;
         b = rotateLeft(b + G(c, d, a) + x[12] + 0x8d2a4c8a, S24) + c;
 
-        //
-        // Round 3 - H cycle, 16 times.
-        //
         a = rotateLeft(a + H(b, c, d) + x[5] + 0xfffa3942, S31) + b;
         d = rotateLeft(d + H(a, b, c) + x[8] + 0x8771f681, S32) + a;
         c = rotateLeft(c + H(d, a, b) + x[11] + 0x6d9d6122, S33) + d;
@@ -320,9 +285,6 @@ public final class MD5Hash implements TlsHash {
         c = rotateLeft(c + H(d, a, b) + x[15] + 0x1fa27cf8, S33) + d;
         b = rotateLeft(b + H(c, d, a) + x[2] + 0xc4ac5665, S34) + c;
 
-        //
-        // Round 4 - K cycle, 16 times.
-        //
         a = rotateLeft(a + K(b, c, d) + x[0] + 0xf4292244, S41) + b;
         d = rotateLeft(d + K(a, b, c) + x[7] + 0x432aff97, S42) + a;
         c = rotateLeft(c + K(d, a, b) + x[14] + 0xab9423a7, S43) + d;
@@ -345,9 +307,6 @@ public final class MD5Hash implements TlsHash {
         h3 += c;
         h4 += d;
 
-        //
-        // reset the offset and clean out the word buffer.
-        //
         xOff = 0;
         Arrays.fill(x, 0);
     }

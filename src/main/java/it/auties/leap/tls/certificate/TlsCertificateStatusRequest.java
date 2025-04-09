@@ -11,8 +11,8 @@ import java.util.Optional;
 
 import static it.auties.leap.tls.util.BufferUtils.*;
 
-public sealed interface TlsCertificateStatusRequest extends TlsIdentifiableProperty<Byte>, TlsSerializableProperty permits TlsCertificateStatusRequest.TlsCertificateOCSPStatusRequest {
-    static TlsCertificateOCSPStatusRequest ocsp(List<byte[]> responderId, List<byte[]> requestExtensions) {
+public sealed interface TlsCertificateStatusRequest extends TlsIdentifiableProperty<Byte>, TlsSerializableProperty permits TlsCertificateStatusRequest.OCSP {
+    static OCSP ocsp(List<byte[]> responderId, List<byte[]> requestExtensions) {
         if(responderId == null) {
             throw new NullPointerException("responderId");
         }
@@ -27,14 +27,14 @@ public sealed interface TlsCertificateStatusRequest extends TlsIdentifiablePrope
         var requestExtensionsLength = requestExtensions.stream()
                 .mapToInt(bytes -> INT16_LENGTH + bytes.length)
                 .sum();
-        return new TlsCertificateOCSPStatusRequest(responderId, responderIdLength, requestExtensions, requestExtensionsLength);
+        return new OCSP(responderId, responderIdLength, requestExtensions, requestExtensionsLength);
     }
 
     @SuppressWarnings("SwitchStatementWithTooFewBranches")
-    static Optional<TlsCertificateOCSPStatusRequest> of(ByteBuffer buffer) {
+    static Optional<? extends TlsCertificateStatusRequest> of(ByteBuffer buffer) {
         var requestId = readBigEndianInt8(buffer);
         return switch (requestId) {
-            case 1 -> Optional.of(TlsCertificateOCSPStatusRequest.of(buffer));
+            case OCSP.ID -> Optional.of(OCSP.of(buffer));
             default -> Optional.empty();
         };
     }
@@ -49,20 +49,22 @@ public sealed interface TlsCertificateStatusRequest extends TlsIdentifiablePrope
         return INT8_LENGTH;
     }
 
-    final class TlsCertificateOCSPStatusRequest implements TlsCertificateStatusRequest {
+    final class OCSP implements TlsCertificateStatusRequest {
+        private static final int ID = 1;
+
         private final List<byte[]> responderIdList;
         private final int responderIdListLength;
         private final List<byte[]> requestExtensions;
         private final int requestExtensionsLength;
 
-        private TlsCertificateOCSPStatusRequest(List<byte[]> responderIdList, int responderIdListLength, List<byte[]> requestExtensions, int requestExtensionsLength) {
+        private OCSP(List<byte[]> responderIdList, int responderIdListLength, List<byte[]> requestExtensions, int requestExtensionsLength) {
             this.responderIdList = responderIdList;
             this.responderIdListLength = responderIdListLength;
             this.requestExtensions = requestExtensions;
             this.requestExtensionsLength = requestExtensionsLength;
         }
 
-        public static TlsCertificateOCSPStatusRequest of(ByteBuffer buffer) {
+        public static OCSP of(ByteBuffer buffer) {
             var responderIdLength = readBigEndianInt16(buffer);
             var responderIdList = new ArrayList<byte[]>();
             try(var _ = scopedRead(buffer, responderIdLength)) {
@@ -77,12 +79,12 @@ public sealed interface TlsCertificateStatusRequest extends TlsIdentifiablePrope
                 requestExtensions.add(requestExtension);
             }
 
-            return new TlsCertificateOCSPStatusRequest(responderIdList, responderIdLength, requestExtensions, requestExtensionsLength);
+            return new OCSP(responderIdList, responderIdLength, requestExtensions, requestExtensionsLength);
         }
 
         @Override
         public Byte id() {
-            return 0;
+            return ID;
         }
 
         public List<byte[]> responderIdList() {

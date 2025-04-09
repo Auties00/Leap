@@ -3,7 +3,7 @@ package it.auties.leap.tls.message.implementation;
 import it.auties.leap.tls.context.TlsContext;
 import it.auties.leap.tls.context.TlsSource;
 import it.auties.leap.tls.message.*;
-import it.auties.leap.tls.srtp.TlsSrtpEktKey;
+import it.auties.leap.tls.srtp.SrtpEktKey;
 import it.auties.leap.tls.version.TlsVersion;
 
 import java.nio.ByteBuffer;
@@ -11,7 +11,7 @@ import java.nio.ByteBuffer;
 public record EktMessage(
         TlsVersion version,
         TlsSource source,
-        TlsSrtpEktKey key
+        SrtpEktKey key
 ) implements TlsHandshakeMessage {
     private static final byte ID = 0x1A;
     private static final TlsHandshakeMessageDeserializer DESERIALIZER = new TlsHandshakeMessageDeserializer() {
@@ -22,7 +22,7 @@ public record EktMessage(
 
         @Override
         public TlsHandshakeMessage deserialize(TlsContext context, ByteBuffer buffer, TlsMessageMetadata metadata) {
-            var key = TlsSrtpEktKey.of(buffer);
+            var key = SrtpEktKey.of(buffer);
             return new EktMessage(metadata.version(), metadata.source(), key);
         }
     };

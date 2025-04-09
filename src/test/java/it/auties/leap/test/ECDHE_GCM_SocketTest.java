@@ -8,7 +8,7 @@ import it.auties.leap.tls.cipher.TlsCipherSuite;
 import it.auties.leap.tls.compression.TlsCompression;
 import it.auties.leap.tls.context.TlsContext;
 import it.auties.leap.tls.extension.TlsExtension;
-import it.auties.leap.tls.name.TlsNameType;
+import it.auties.leap.tls.name.TlsName;
 import it.auties.leap.tls.psk.TlsPskExchangeMode;
 import it.auties.leap.tls.version.TlsVersion;
 
@@ -25,7 +25,7 @@ public class ECDHE_GCM_SocketTest {
                 TlsCipherSuite.ecdheRsaWithAes128GcmSha256()
         );
         var extensions = List.of(
-                TlsExtension.serverNameIndication(TlsNameType.HOST_NAME),
+                TlsExtension.serverNameIndication(TlsName.HOST_NAME),
                 TlsExtension.ecPointFormats(),
                 TlsExtension.supportedGroups(),
                 TlsExtension.nextProtocolNegotiation(),

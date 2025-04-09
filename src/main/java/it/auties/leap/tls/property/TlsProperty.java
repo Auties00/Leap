@@ -1,12 +1,14 @@
 package it.auties.leap.tls.property;
 
 import it.auties.leap.tls.certificate.TlsCertificateCompressionAlgorithm;
+import it.auties.leap.tls.certificate.TlsTrustedAuthority;
 import it.auties.leap.tls.cipher.TlsCipherSuite;
 import it.auties.leap.tls.compression.TlsCompression;
 import it.auties.leap.tls.ec.TlsEcPointFormat;
 import it.auties.leap.tls.extension.*;
 import it.auties.leap.tls.group.TlsSupportedGroup;
 import it.auties.leap.tls.psk.TlsPskExchangeMode;
+import it.auties.leap.tls.record.TlsMaxFragmentLength;
 import it.auties.leap.tls.signature.TlsSignature;
 import it.auties.leap.tls.version.TlsVersion;
 
@@ -30,6 +32,9 @@ public final class TlsProperty<I, O> implements TlsIdentifiableProperty<UUID> {
     private static final TlsProperty<List<TlsPskExchangeMode>, List<TlsPskExchangeMode>> PSK_EXCHANGE_MODES = new TlsProperty<>();
     private static final TlsProperty<List<TlsSignature>, List<TlsSignature>> SIGNATURE_ALGORITHMS = new TlsProperty<>();
     private static final TlsProperty<List<TlsCertificateCompressionAlgorithm>, List<TlsCertificateCompressionAlgorithm>> CERTIFICATE_COMPRESSION_ALGORITHMS = new TlsProperty<>();
+    private static final TlsProperty<TlsMaxFragmentLength, TlsMaxFragmentLength> MAX_FRAGMENT_LENGTH = new TlsProperty<>();
+    private static final TlsProperty<Boolean, Boolean> CERTIFICATE_URLS = new TlsProperty<>();
+    private static final TlsProperty<List<TlsTrustedAuthority>, List<TlsTrustedAuthority>> TRUSTED_CA = new TlsProperty<>();
 
     private final UUID id;
 
@@ -95,6 +100,18 @@ public final class TlsProperty<I, O> implements TlsIdentifiableProperty<UUID> {
 
     public static TlsProperty<List<TlsCertificateCompressionAlgorithm>, List<TlsCertificateCompressionAlgorithm>> certificateCompressionAlgorithms() {
         return CERTIFICATE_COMPRESSION_ALGORITHMS;
+    }
+
+    public static TlsProperty<TlsMaxFragmentLength, TlsMaxFragmentLength> maxFragmentLength() {
+        return MAX_FRAGMENT_LENGTH;
+    }
+
+    public static TlsProperty<Boolean, Boolean> certificateUrls() {
+        return CERTIFICATE_URLS;
+    }
+
+    public static TlsProperty<List<TlsTrustedAuthority>, List<TlsTrustedAuthority>> trustedCA() {
+        return TRUSTED_CA;
     }
 
     @Override

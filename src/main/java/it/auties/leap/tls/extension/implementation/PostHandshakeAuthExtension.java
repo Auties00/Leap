@@ -33,18 +33,20 @@ public record PostHandshakeAuthExtension(
 
     @Override
     public void apply(TlsContext context, TlsSource source) {
-        switch (source) {
-            case LOCAL -> context.addNegotiableProperty(TlsProperty.postHandshakeAuth(), true);
-            case REMOTE -> context.addNegotiatedProperty(TlsProperty.postHandshakeAuth(), true);
+        var connection = switch (source) {
+            case LOCAL -> context.localConnectionState();
+            case REMOTE -> context.remoteConnectionState()
+                    .orElseThrow(TlsAlert::noRemoteConnectionState);
+        };
+        switch (connection.type()) {
+            case CLIENT -> context.addNegotiableProperty(TlsProperty.postHandshakeAuth(), true);
+            case SERVER -> context.addNegotiatedProperty(TlsProperty.postHandshakeAuth(), true);
         }
     }
 
     @Override
     public Optional<PostHandshakeAuthExtension> deserialize(TlsContext context, int type, ByteBuffer buffer) {
-        if (buffer.hasRemaining()) {
-            throw new TlsAlert("Unexpected extension payload");
-        }
-
+        buffer.position(buffer.limit());
         return Optional.of(INSTANCE);
     }
 

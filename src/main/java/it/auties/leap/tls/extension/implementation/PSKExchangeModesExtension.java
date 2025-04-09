@@ -38,9 +38,14 @@ public record PSKExchangeModesExtension(
 
     @Override
     public void apply(TlsContext context, TlsSource source) {
-        switch (source) {
-            case LOCAL -> context.addNegotiableProperty(TlsProperty.pskExchangeModes(), modes);
-            case REMOTE -> context.addNegotiatedProperty(TlsProperty.pskExchangeModes(), modes);
+        var connection = switch (source) {
+            case LOCAL -> context.localConnectionState();
+            case REMOTE -> context.remoteConnectionState()
+                    .orElseThrow(TlsAlert::noRemoteConnectionState);
+        };
+        switch (connection.type()) {
+            case CLIENT -> context.addNegotiableProperty(TlsProperty.pskExchangeModes(), modes);
+            case SERVER -> context.addNegotiatedProperty(TlsProperty.pskExchangeModes(), modes);
         }
     }
 

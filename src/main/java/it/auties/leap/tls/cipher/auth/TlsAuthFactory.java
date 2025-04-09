@@ -60,7 +60,7 @@ public interface TlsAuthFactory {
     }
 
     static TlsAuthFactory hmacSha1() {
-        return null;
+        return HMACSHA1Auth.factory();
     }
 
     TlsAuth newAuth();

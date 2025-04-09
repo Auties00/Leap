@@ -1,11 +1,13 @@
 package it.auties.leap.tls.extension;
 
+import it.auties.leap.tls.certificate.TlsTrustedAuthority;
 import it.auties.leap.tls.context.TlsContext;
 import it.auties.leap.tls.ec.TlsEcPointFormat;
 import it.auties.leap.tls.extension.implementation.*;
 import it.auties.leap.tls.group.TlsSupportedGroup;
-import it.auties.leap.tls.name.TlsNameType;
+import it.auties.leap.tls.name.TlsName;
 import it.auties.leap.tls.psk.TlsPskExchangeMode;
+import it.auties.leap.tls.record.TlsMaxFragmentLength;
 import it.auties.leap.tls.signature.TlsSignature;
 import it.auties.leap.tls.version.TlsVersion;
 
@@ -181,8 +183,8 @@ public sealed interface TlsExtension extends TlsExtensionMetadataProvider {
         return new NPNServerExtension(selectedProtocol);
     }
 
-    static Configurable serverNameIndication(TlsNameType nameType) {
-        return new SNIConfigurableExtension(nameType);
+    static Configurable serverNameIndication(TlsName.Type nameType) {
+        return new ServerNameExtension(nameType);
     }
 
     static Configurable supportedVersions() {
@@ -224,6 +226,31 @@ public sealed interface TlsExtension extends TlsExtensionMetadataProvider {
     static Configured.Agnostic pskExchangeModes(List<TlsPskExchangeMode> modes) {
         return new PSKExchangeModesExtension(modes);
     }
+
+    static Configured.Agnostic maxFragmentLength(TlsMaxFragmentLength maxFragmentLength) {
+        return new MaxFragmentLengthExtension(maxFragmentLength);
+    }
+
+    static Configured.Agnostic clientCertificateUrl() {
+        return ClientCertificateUrlExtension.instance();
+    }
+
+    static Configured.Client trustedCAKeys(List<TlsTrustedAuthority> trustedAuthorities) {
+        return new TrustedCAKeysClientExtension(trustedAuthorities);
+    }
+
+    static Configured.Server trustedCAKeys() {
+        return TrustedCAKeysServerExtension.instance();
+    }
+
+    static Configured.Server truncatedHmac() {
+        return TruncatedHmacExtension.instance();
+    }
+
+    static Configured.Server userMapping() {
+        return TruncatedHmacExtension.instance();
+    }
+
 
     static Configurable keyShare() {
         return KeyShareExtension.instance();

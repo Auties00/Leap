@@ -6,20 +6,20 @@ import java.nio.ByteBuffer;
 
 import static it.auties.leap.tls.util.BufferUtils.*;
 
-public final class TlsSrtpEktKey implements TlsSerializableProperty {
+public final class SrtpEktKey implements TlsSerializableProperty {
     private final byte[] ektKeyValue;
     private final byte[] srtpMasterSalt;
     private final int ektSpi;
     private final int ektTtl;
 
-    private TlsSrtpEktKey(byte[] ektKeyValue, byte[] srtpMasterSalt, int ektSpi, int ektTtl) {
+    private SrtpEktKey(byte[] ektKeyValue, byte[] srtpMasterSalt, int ektSpi, int ektTtl) {
         this.ektKeyValue = ektKeyValue;
         this.srtpMasterSalt = srtpMasterSalt;
         this.ektSpi = ektSpi;
         this.ektTtl = ektTtl;
     }
 
-    public static TlsSrtpEktKey newEktKey(byte[] ektKeyValue, byte[] srtpMasterSalt, int ektSpi, int ektTtl) {
+    public static SrtpEktKey newEktKey(byte[] ektKeyValue, byte[] srtpMasterSalt, int ektSpi, int ektTtl) {
         if(ektKeyValue == null) {
             throw new NullPointerException("ektKeyValue");
         }
@@ -36,10 +36,10 @@ public final class TlsSrtpEktKey implements TlsSerializableProperty {
             throw new IllegalArgumentException("ektTtl");
         }
 
-        return new TlsSrtpEktKey(ektKeyValue, srtpMasterSalt, ektSpi, ektTtl);
+        return new SrtpEktKey(ektKeyValue, srtpMasterSalt, ektSpi, ektTtl);
     }
 
-    public static TlsSrtpEktKey of(ByteBuffer buffer) {
+    public static SrtpEktKey of(ByteBuffer buffer) {
         var ektKeyValue = readBytesBigEndian8(buffer);
         var srtpMasterSalt = readBytesBigEndian8(buffer);
         var ektSpi = readBigEndianInt16(buffer);
@@ -52,7 +52,7 @@ public final class TlsSrtpEktKey implements TlsSerializableProperty {
             throw new IllegalArgumentException("ektTtl");
         }
 
-        return new TlsSrtpEktKey(ektKeyValue, srtpMasterSalt, ektSpi, ektTtl);
+        return new SrtpEktKey(ektKeyValue, srtpMasterSalt, ektSpi, ektTtl);
     }
 
     public byte[] ektKeyValue() {

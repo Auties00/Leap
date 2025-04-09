@@ -8,21 +8,21 @@ import java.util.Optional;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
-public enum TlsSrtpEktCipher implements TlsIdentifiableProperty<Byte> {
+public enum SrtpEktCipher implements TlsIdentifiableProperty<Byte> {
     RESERVED((byte) 0),
     AESKW_128((byte) 1),
     AESKW_256((byte) 2);
 
-    private static final Map<Byte, TlsSrtpEktCipher> VALUES = Arrays.stream(values())
-            .collect(Collectors.toUnmodifiableMap(TlsSrtpEktCipher::id, Function.identity()));
+    private static final Map<Byte, SrtpEktCipher> VALUES = Arrays.stream(values())
+            .collect(Collectors.toUnmodifiableMap(SrtpEktCipher::id, Function.identity()));
 
     private final byte id;
 
-    TlsSrtpEktCipher(byte id) {
+    SrtpEktCipher(byte id) {
         this.id = id;
     }
 
-    public static Optional<TlsSrtpEktCipher> of(byte id) {
+    public static Optional<SrtpEktCipher> of(byte id) {
         return Optional.ofNullable(VALUES.get(id));
     }
 

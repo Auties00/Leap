@@ -41,18 +41,20 @@ public record NPNServerExtension(
 
     @Override
     public void apply(TlsContext context, TlsSource source) {
-        switch (source) {
-            case LOCAL -> context.addNegotiableProperty(TlsProperty.applicationProtocols(), List.of(selectedProtocol));
-            case REMOTE -> context.addNegotiatedProperty(TlsProperty.applicationProtocols(), List.of(selectedProtocol));
+        var connection = switch (source) {
+            case LOCAL -> context.localConnectionState();
+            case REMOTE -> context.remoteConnectionState()
+                    .orElseThrow(TlsAlert::noRemoteConnectionState);
+        };
+        switch (connection.type()) {
+            case CLIENT -> context.addNegotiableProperty(TlsProperty.applicationProtocols(), List.of(selectedProtocol));
+            case SERVER -> context.addNegotiatedProperty(TlsProperty.applicationProtocols(), List.of(selectedProtocol));
         }
     }
 
     @Override
     public Optional<NPNClientExtension> deserialize(TlsContext context, int type, ByteBuffer response) {
-        if (response.hasRemaining()) {
-            throw new TlsAlert("Unexpected extension payload");
-        }
-
+        buffer.position(buffer.limit());
         return Optional.of(NPNClientExtension.instance());
     }
 

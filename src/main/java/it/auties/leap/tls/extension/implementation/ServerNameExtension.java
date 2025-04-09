@@ -5,21 +5,21 @@ import it.auties.leap.tls.context.TlsContext;
 import it.auties.leap.tls.context.TlsSource;
 import it.auties.leap.tls.extension.TlsExtension;
 import it.auties.leap.tls.extension.TlsExtensionDependencies;
-import it.auties.leap.tls.name.TlsNameType;
+import it.auties.leap.tls.name.TlsName;
 import it.auties.leap.tls.property.TlsProperty;
 import it.auties.leap.tls.version.TlsVersion;
 
 import java.net.InetSocketAddress;
 import java.nio.BufferUnderflowException;
 import java.nio.ByteBuffer;
-import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
 import static it.auties.leap.tls.util.BufferUtils.*;
 
-public record SNIConfigurableExtension(
-        TlsNameType nameType
+public record ServerNameExtension(
+        TlsName.Type name
 ) implements TlsExtension.Configurable {
     @Override
     public TlsExtensionDependencies dependencies() {
@@ -37,17 +37,18 @@ public record SNIConfigurableExtension(
     }
 
     private Optional<? extends TlsExtension.Configured.Agnostic> configure(TlsContext context) {
-        return switch (nameType) {
+        return switch (name) {
             case HOST_NAME -> {
                 var hostname = context.address()
                         .map(InetSocketAddress::getHostName)
                         .orElse(null);
-                if(hostname == null || !nameType.accepts(hostname)) {
+                if(hostname == null) {
                     yield Optional.empty();
                 }
 
-                var name = hostname.getBytes(StandardCharsets.US_ASCII);
-                yield Optional.of(new Configured(name, nameType));
+                var tlsName = TlsName.hostName(hostname);
+                var extension = new Configured(List.of(tlsName), tlsName.length());
+                yield Optional.of(extension);
             }
         };
     }
@@ -62,20 +63,24 @@ public record SNIConfigurableExtension(
         return SERVER_NAME_VERSIONS;
     }
 
+    // TODO: Split in client and server
     private record Configured(
-            byte[] name,
-            TlsNameType nameType
+            List<TlsName> names,
+            int namesLength
     ) implements TlsExtension.Configured.Agnostic {
         @Override
         public void serializePayload(ByteBuffer buffer) {
-            writeBigEndianInt16(buffer, INT8_LENGTH + INT16_LENGTH + name.length);
-            writeBigEndianInt8(buffer, nameType.id());
-            writeBytesBigEndian16(buffer, name);
+            if(namesLength > 0) {
+                writeBigEndianInt16(buffer, namesLength);
+                for(var name : names) {
+                    name.serialize(buffer);
+                }
+            }
         }
 
         @Override
         public int payloadLength() {
-            return INT16_LENGTH + INT8_LENGTH + INT16_LENGTH + name.length;
+            return namesLength > 0 ? INT16_LENGTH + namesLength : 0;
         }
 
         @Override
@@ -92,8 +97,8 @@ public record SNIConfigurableExtension(
                     case CLIENT -> context.getNegotiatedValue(TlsProperty.clientExtensions())
                             .orElseThrow(() -> TlsAlert.noNegotiatedProperty(TlsProperty.clientExtensions()))
                             .stream()
-                            .filter(entry -> entry instanceof SNIConfigurableExtension.Configured)
-                            .map(entry -> (SNIConfigurableExtension.Configured) entry)
+                            .filter(entry -> entry instanceof ServerNameExtension.Configured)
+                            .map(entry -> (ServerNameExtension.Configured) entry)
                             .findFirst();
                     case SERVER -> throw new BufferUnderflowException();
                 };
@@ -105,14 +110,13 @@ public record SNIConfigurableExtension(
             }
 
             try(var _ = scopedRead(buffer, listLength)) {
-                var nameTypeId = readBigEndianInt8(buffer);
-                var nameType = TlsNameType.of(nameTypeId);
-                if(nameType.isEmpty()) {
-                    return Optional.empty();
+                var names = new ArrayList<TlsName>();
+                while (buffer.hasRemaining()) {
+                    var name = TlsName.of(buffer)
+                            .orElseThrow(() -> new TlsAlert("Invalid server name type"));
+                    names.add(name);
                 }
-
-                var nameBytes = readBytesBigEndian16(buffer);
-                var extension = new SNIConfigurableExtension.Configured(nameBytes, nameType.get());
+                var extension = new ServerNameExtension.Configured(names, listLength);
                 return Optional.of(extension);
             }
         }
