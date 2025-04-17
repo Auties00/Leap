@@ -39,8 +39,8 @@ public record TruncatedHmacExtension(
                     .orElseThrow(TlsAlert::noRemoteConnectionState);
         };
         switch (connection.type()) {
-            case CLIENT -> context.addNegotiableProperty(TlsProperty.extendedMasterSecret(), true);
-            case SERVER -> context.addNegotiatedProperty(TlsProperty.extendedMasterSecret(), true);
+            case CLIENT -> context.addNegotiableProperty(TlsProperty.truncatedHmac(), true);
+            case SERVER -> context.addNegotiatedProperty(TlsProperty.truncatedHmac(), true);
         }
     }
 

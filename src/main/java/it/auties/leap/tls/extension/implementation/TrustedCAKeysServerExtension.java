@@ -1,7 +1,7 @@
 package it.auties.leap.tls.extension.implementation;
 
 import it.auties.leap.tls.alert.TlsAlert;
-import it.auties.leap.tls.certificate.TlsTrustedAuthority;
+import it.auties.leap.tls.certificate.authority.TlsCertificateTrustedAuthority;
 import it.auties.leap.tls.context.TlsContext;
 import it.auties.leap.tls.context.TlsSource;
 import it.auties.leap.tls.extension.TlsExtension;
@@ -46,10 +46,10 @@ public record TrustedCAKeysServerExtension(
     @Override
     public Optional<TrustedCAKeysClientExtension> deserialize(TlsContext context, int type, ByteBuffer buffer) {
         var trustedAuthoritiesLength = readBigEndianInt16(buffer);
-        var trustedAuthorities = new ArrayList<TlsTrustedAuthority>();
+        var trustedAuthorities = new ArrayList<TlsCertificateTrustedAuthority>();
         try(var _ = scopedRead(buffer, trustedAuthoritiesLength)) {
             while (buffer.hasRemaining()) {
-                var trustedAuthority = TlsTrustedAuthority.of(buffer)
+                var trustedAuthority = TlsCertificateTrustedAuthority.of(buffer)
                         .orElseThrow(() -> new TlsAlert("Invalid trusted authority"));
                 trustedAuthorities.add(trustedAuthority);
             }

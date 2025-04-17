@@ -1,7 +1,7 @@
 package it.auties.leap.tls.property;
 
 import it.auties.leap.tls.certificate.TlsCertificateCompressionAlgorithm;
-import it.auties.leap.tls.certificate.TlsTrustedAuthority;
+import it.auties.leap.tls.certificate.authority.TlsCertificateTrustedAuthority;
 import it.auties.leap.tls.cipher.TlsCipherSuite;
 import it.auties.leap.tls.compression.TlsCompression;
 import it.auties.leap.tls.ec.TlsEcPointFormat;
@@ -34,7 +34,8 @@ public final class TlsProperty<I, O> implements TlsIdentifiableProperty<UUID> {
     private static final TlsProperty<List<TlsCertificateCompressionAlgorithm>, List<TlsCertificateCompressionAlgorithm>> CERTIFICATE_COMPRESSION_ALGORITHMS = new TlsProperty<>();
     private static final TlsProperty<TlsMaxFragmentLength, TlsMaxFragmentLength> MAX_FRAGMENT_LENGTH = new TlsProperty<>();
     private static final TlsProperty<Boolean, Boolean> CERTIFICATE_URLS = new TlsProperty<>();
-    private static final TlsProperty<List<TlsTrustedAuthority>, List<TlsTrustedAuthority>> TRUSTED_CA = new TlsProperty<>();
+    private static final TlsProperty<List<TlsCertificateTrustedAuthority>, List<TlsCertificateTrustedAuthority>> TRUSTED_CA = new TlsProperty<>();
+    private static final TlsProperty<Boolean, Boolean> TRUNCATED_HMAC = new TlsProperty<>();
 
     private final UUID id;
 
@@ -110,8 +111,12 @@ public final class TlsProperty<I, O> implements TlsIdentifiableProperty<UUID> {
         return CERTIFICATE_URLS;
     }
 
-    public static TlsProperty<List<TlsTrustedAuthority>, List<TlsTrustedAuthority>> trustedCA() {
+    public static TlsProperty<List<TlsCertificateTrustedAuthority>, List<TlsCertificateTrustedAuthority>> trustedCA() {
         return TRUSTED_CA;
+    }
+
+    public static TlsProperty<Boolean, Boolean> truncatedHmac() {
+        return TRUNCATED_HMAC;
     }
 
     @Override

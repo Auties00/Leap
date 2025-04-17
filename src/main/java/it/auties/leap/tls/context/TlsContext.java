@@ -1,12 +1,12 @@
 package it.auties.leap.tls.context;
 
 import it.auties.leap.tls.alert.TlsAlert;
-import it.auties.leap.tls.certificate.TlsCertificateValidator;
+import it.auties.leap.tls.certificate.validator.TlsCertificateValidator;
 import it.auties.leap.tls.cipher.TlsCipherSuite;
 import it.auties.leap.tls.compression.TlsCompression;
 import it.auties.leap.tls.connection.TlsConnection;
 import it.auties.leap.tls.connection.TlsConnectionInitializer;
-import it.auties.leap.tls.connection.TlsConnectionIntegrity;
+import it.auties.leap.tls.connection.TlsConnectionHandshakeHash;
 import it.auties.leap.tls.extension.TlsExtensionOwner;
 import it.auties.leap.tls.message.TlsHandshakeMessageDeserializer;
 import it.auties.leap.tls.message.TlsMessageDeserializer;
@@ -28,7 +28,7 @@ public class TlsContext {
     private final TlsConnectionInitializer connectionInitializer;
     private final Map<TlsProperty<?, ?>, PropertyValue<?, ?>> properties;
     private final Queue<ByteBuffer> bufferedMessages;
-    private final TlsConnectionIntegrity connectionIntegrity;
+    private final TlsConnectionHandshakeHash connectionIntegrity;
     private volatile InetSocketAddress address;
     private volatile TlsConnection remoteConnectionState;
     private volatile TlsSecret masterSecretKey;
@@ -49,7 +49,7 @@ public class TlsContext {
             addHandshakeMessageDeserializer(deserializer);
         }
         this.bufferedMessages = new LinkedList<>();
-        this.connectionIntegrity = new TlsConnectionIntegrity();
+        this.connectionIntegrity = new TlsConnectionHandshakeHash();
     }
 
     static TlsContext ofClient(
@@ -188,7 +188,7 @@ public class TlsContext {
         return this;
     }
 
-    public TlsConnectionIntegrity connectionIntegrity() {
+    public TlsConnectionHandshakeHash connectionIntegrity() {
         return connectionIntegrity;
     }
 

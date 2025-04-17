@@ -1,7 +1,7 @@
 package it.auties.leap.tls.connection;
 
 import it.auties.leap.tls.alert.TlsAlert;
-import it.auties.leap.tls.connection.implementation.ConnectionIntegrityDelegate;
+import it.auties.leap.tls.connection.implementation.ConnectionHandshakeHashDelegate;
 import it.auties.leap.tls.context.TlsContext;
 import it.auties.leap.tls.context.TlsSource;
 import it.auties.leap.tls.hash.TlsHashFactory;
@@ -11,11 +11,11 @@ import java.io.ByteArrayOutputStream;
 import java.nio.ByteBuffer;
 
 // TODO: Use something more efficient than ByteArrayOutputStream for buffering (toByteArray() copies the result which makes 0 sense)
-public final class TlsConnectionIntegrity {
+public final class TlsConnectionHandshakeHash {
     private final ByteArrayOutputStream buffer;
-    private ConnectionIntegrityDelegate delegate;
+    private ConnectionHandshakeHashDelegate delegate;
 
-    public TlsConnectionIntegrity() {
+    public TlsConnectionHandshakeHash() {
         this.buffer = new ByteArrayOutputStream();
     }
 
@@ -24,7 +24,7 @@ public final class TlsConnectionIntegrity {
             throw new TlsAlert("Already initialized");
         }
 
-        this.delegate = ConnectionIntegrityDelegate.of(version, factory);
+        this.delegate = ConnectionHandshakeHashDelegate.of(version, factory);
         var buffered = buffer.toByteArray();
         buffer.reset();
         delegate.update(buffered, 0, buffered.length);

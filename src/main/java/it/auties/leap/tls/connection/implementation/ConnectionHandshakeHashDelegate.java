@@ -11,12 +11,12 @@ import it.auties.leap.tls.version.TlsVersion;
 
 import java.nio.ByteBuffer;
 
-public sealed abstract class ConnectionIntegrityDelegate {
-    public static ConnectionIntegrityDelegate of(TlsVersion version, TlsHashFactory hash) {
+public sealed abstract class ConnectionHandshakeHashDelegate {
+    public static ConnectionHandshakeHashDelegate of(TlsVersion version, TlsHashFactory hash) {
         return switch (version) {
-            case TLS13, DTLS13 -> new ConnectionIntegrityDelegate.TLS13(hash.newHash());
-            case TLS12, DTLS12 -> new ConnectionIntegrityDelegate.TLS12(hash.newHash());
-            case TLS10, TLS11, DTLS10 -> new ConnectionIntegrityDelegate.TLS10();
+            case TLS13, DTLS13 -> new ConnectionHandshakeHashDelegate.TLS13(hash.newHash());
+            case TLS12, DTLS12 -> new ConnectionHandshakeHashDelegate.TLS12(hash.newHash());
+            case TLS10, TLS11, DTLS10 -> new ConnectionHandshakeHashDelegate.TLS10();
         };
     }
 
@@ -33,7 +33,7 @@ public sealed abstract class ConnectionIntegrityDelegate {
                 || (mode == TlsConnectionType.SERVER && source == TlsSource.REMOTE);
     }
 
-    private static final class TLS10 extends ConnectionIntegrityDelegate {
+    private static final class TLS10 extends ConnectionHandshakeHashDelegate {
         private final TlsHash md5;
         private final TlsHash sha1;
 
@@ -90,7 +90,7 @@ public sealed abstract class ConnectionIntegrityDelegate {
         }
     }
 
-    private static final class TLS12 extends ConnectionIntegrityDelegate {
+    private static final class TLS12 extends ConnectionHandshakeHashDelegate {
         private final TlsHash hash;
 
         public TLS12(TlsHash hash) {
@@ -133,7 +133,7 @@ public sealed abstract class ConnectionIntegrityDelegate {
         }
     }
 
-    private static final class TLS13 extends ConnectionIntegrityDelegate {
+    private static final class TLS13 extends ConnectionHandshakeHashDelegate {
         private static final byte[] HKDF_LABEL = "tls13 finished".getBytes();
         private static final byte[] HKDF_CONTEXT = new byte[0];
 

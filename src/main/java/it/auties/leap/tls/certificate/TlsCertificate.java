@@ -1,5 +1,9 @@
 package it.auties.leap.tls.certificate;
 
+import it.auties.leap.tls.alert.TlsAlert;
+import it.auties.leap.tls.alert.TlsAlertLevel;
+import it.auties.leap.tls.alert.TlsAlertType;
+
 import java.io.InputStream;
 import java.security.PrivateKey;
 import java.security.cert.CertificateEncodingException;
@@ -26,10 +30,6 @@ public final class TlsCertificate {
     }
 
     public static TlsCertificate of(X509Certificate value, PrivateKey key) {
-        if(key == null) {
-            throw new IllegalArgumentException("key cannot be null");
-        }
-
         return new TlsCertificate(value, key);
     }
 
@@ -43,7 +43,7 @@ public final class TlsCertificate {
             var certificate = (X509Certificate) factory.generateCertificate(value);
             return new TlsCertificate(certificate, null);
         }catch (CertificateException exception) {
-            throw new RuntimeException(exception);
+            throw new TlsAlert("Cannot parse certificate: " + exception.getMessage(), TlsAlertLevel.FATAL, TlsAlertType.BAD_CERTIFICATE);
         }
     }
 

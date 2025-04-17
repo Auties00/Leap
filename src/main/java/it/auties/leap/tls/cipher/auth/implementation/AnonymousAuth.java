@@ -32,9 +32,10 @@ public final class AnonymousAuth implements TlsAuth {
 
     @Override
     public TlsCertificate validate(TlsContext context, List<TlsCertificate> certificates, List<TlsCertificate> trustAnchors) {
-        if(!certificates.isEmpty()) {
+        if(certificates != null && !certificates.isEmpty()) {
             throw new TlsAlert("Anonymous auth error: expected no certificates");
         }
+
         return null;
     }
 }

@@ -1,7 +1,7 @@
 package it.auties.leap.tls.extension.implementation;
 
-import it.auties.leap.tls.certificate.TlsCertificateStatusRequest;
-import it.auties.leap.tls.certificate.TlsCertificateStatusResponse;
+import it.auties.leap.tls.certificate.status.TlsCertificateStatusRequest;
+import it.auties.leap.tls.certificate.status.TlsCertificateStatusResponse;
 import it.auties.leap.tls.context.TlsContext;
 import it.auties.leap.tls.context.TlsSource;
 import it.auties.leap.tls.extension.TlsExtension;

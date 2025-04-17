@@ -1,6 +1,6 @@
 package it.auties.leap.tls.message.implementation;
 
-import it.auties.leap.tls.certificate.TlsCertificateStatusRequest;
+import it.auties.leap.tls.certificate.status.TlsCertificateStatusRequest;
 import it.auties.leap.tls.context.TlsContext;
 import it.auties.leap.tls.context.TlsSource;
 import it.auties.leap.tls.message.*;

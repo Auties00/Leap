@@ -5,13 +5,10 @@ import it.auties.leap.tls.ec.implementation.ExplicitChar2Parameters;
 import it.auties.leap.tls.ec.implementation.ExplicitPrimeParameters;
 import it.auties.leap.tls.ec.implementation.NamedCurveParameters;
 import it.auties.leap.tls.group.TlsSupportedEllipticCurve;
-
-import java.nio.ByteBuffer;
+import it.auties.leap.tls.property.TlsSerializableProperty;
 
 // https://github.com/topskychen/spongycastle/blob/master/core/src/main/java/org/bouncycastle/crypto/tls/TlsECCUtils.java#L420
-public interface TlsEcParameters {
-    void serialize(ByteBuffer buffer);
-    int length();
+public interface TlsEcParameters extends TlsSerializableProperty {
     TlsSupportedEllipticCurve toGroup(TlsContext context);
 
     static TlsEcParameters explicitChar2(int m, byte basis, int k, byte[] a, byte[] b, byte[] encoding, byte[] order, byte[] cofactor) {

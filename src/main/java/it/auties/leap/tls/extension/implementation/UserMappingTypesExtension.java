@@ -1,14 +1,10 @@
 package it.auties.leap.tls.extension.implementation;
 
-import it.auties.leap.tls.certificate.TlsCertificateStatusRequest;
-import it.auties.leap.tls.certificate.TlsCertificateStatusResponse;
 import it.auties.leap.tls.context.TlsContext;
 import it.auties.leap.tls.context.TlsSource;
 import it.auties.leap.tls.extension.TlsExtension;
 import it.auties.leap.tls.extension.TlsExtensionDependencies;
-import it.auties.leap.tls.supplemental.TlsSupplementalDataFormats;
 import it.auties.leap.tls.supplemental.user.TlsUserMappingData;
-import it.auties.leap.tls.util.BufferUtils;
 import it.auties.leap.tls.version.TlsVersion;
 
 import java.nio.ByteBuffer;

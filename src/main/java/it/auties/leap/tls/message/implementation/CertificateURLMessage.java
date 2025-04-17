@@ -1,7 +1,7 @@
 package it.auties.leap.tls.message.implementation;
 
-import it.auties.leap.tls.certificate.TlsCertificateChainType;
-import it.auties.leap.tls.certificate.TlsCertificateURLAndHash;
+import it.auties.leap.tls.certificate.url.TlsCertificateChainType;
+import it.auties.leap.tls.certificate.url.TlsCertificateUrlAndHash;
 import it.auties.leap.tls.context.TlsContext;
 import it.auties.leap.tls.context.TlsSource;
 import it.auties.leap.tls.message.*;
@@ -17,7 +17,7 @@ public record CertificateURLMessage(
         TlsVersion version,
         TlsSource source,
         TlsCertificateChainType type,
-        List<TlsCertificateURLAndHash> urlAndHashList,
+        List<TlsCertificateUrlAndHash> urlAndHashList,
         int urlAndHashListLength
 ) implements TlsHandshakeMessage {
     private static final byte ID = 0x15;
@@ -32,11 +32,11 @@ public record CertificateURLMessage(
             var typeId = readBigEndianInt8(buffer);
             var type = TlsCertificateChainType.of(typeId)
                     .orElseThrow(() -> new IllegalArgumentException("Invalid certificate chain type: " + typeId));
-            var urlAndHashList = new ArrayList<TlsCertificateURLAndHash>();
+            var urlAndHashList = new ArrayList<TlsCertificateUrlAndHash>();
             var urlAndHashListLength = buffer.remaining() >= INT16_LENGTH ? readBigEndianInt16(buffer) : 0;
             try (var _ = scopedRead(buffer, urlAndHashListLength)) {
                 while (buffer.hasRemaining()) {
-                    var urlAndHash = TlsCertificateURLAndHash.of(buffer);
+                    var urlAndHash = TlsCertificateUrlAndHash.of(buffer);
                     urlAndHashList.add(urlAndHash);
                 }
             }

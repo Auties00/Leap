@@ -1,9 +1,6 @@
 package it.auties.leap.tls.certificate;
 
-import it.auties.leap.tls.alert.TlsAlert;
 import it.auties.leap.tls.property.TlsIdentifiableProperty;
-
-import java.net.URI;
 
 // For historical reasons, the names of some client certificate types
 // include the algorithm used to sign the certificate.  For example,
@@ -67,11 +64,7 @@ public sealed interface TlsClientCertificateType extends TlsIdentifiableProperty
 
     static TlsClientCertificateType reservedForPrivateUse(byte id) {
         if(id < -32 || id > -1) {
-            throw new TlsAlert(
-                    "Only values from 224-255 (decimal) inclusive are reserved for Private Use",
-                    URI.create("https://www.ietf.org/rfc/rfc3749.txt"),
-                    "2"
-            );
+            throw new IllegalArgumentException("Only values from 224-255 (decimal) inclusive are reserved for Private Use");
         }
 
         return new Reserved(id);

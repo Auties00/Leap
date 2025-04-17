@@ -1,7 +1,6 @@
-package it.auties.leap.tls.certificate;
+package it.auties.leap.tls.certificate.validator;
 
-import it.auties.leap.tls.certificate.implementation.DiscardCertificatesValidator;
-import it.auties.leap.tls.certificate.implementation.ValidateCertificatesValidator;
+import it.auties.leap.tls.certificate.TlsCertificate;
 import it.auties.leap.tls.context.TlsContext;
 import it.auties.leap.tls.context.TlsSource;
 import it.auties.leap.tls.util.CertificateUtils;
@@ -20,6 +19,6 @@ public interface TlsCertificateValidator {
     }
 
     static TlsCertificateValidator discard() {
-        return DiscardCertificatesValidator.instance();
+        return DiscardCertificatesValidator.INSTANCE;
     }
 }

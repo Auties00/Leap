@@ -3,7 +3,7 @@ package it.auties.leap.tls.context;
 import it.auties.leap.socket.SocketProtocol;
 import it.auties.leap.tls.alert.TlsAlert;
 import it.auties.leap.tls.certificate.TlsCertificate;
-import it.auties.leap.tls.certificate.TlsCertificateValidator;
+import it.auties.leap.tls.certificate.validator.TlsCertificateValidator;
 import it.auties.leap.tls.cipher.TlsCipherSuite;
 import it.auties.leap.tls.compression.TlsCompression;
 import it.auties.leap.tls.connection.TlsConnection;

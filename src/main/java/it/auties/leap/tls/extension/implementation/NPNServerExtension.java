@@ -53,7 +53,7 @@ public record NPNServerExtension(
     }
 
     @Override
-    public Optional<NPNClientExtension> deserialize(TlsContext context, int type, ByteBuffer response) {
+    public Optional<NPNClientExtension> deserialize(TlsContext context, int type, ByteBuffer buffer) {
         buffer.position(buffer.limit());
         return Optional.of(NPNClientExtension.instance());
     }

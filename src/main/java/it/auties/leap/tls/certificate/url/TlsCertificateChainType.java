@@ -1,4 +1,4 @@
-package it.auties.leap.tls.certificate;
+package it.auties.leap.tls.certificate.url;
 
 import it.auties.leap.tls.property.TlsIdentifiableProperty;
 

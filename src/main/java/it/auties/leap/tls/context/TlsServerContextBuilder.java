@@ -1,6 +1,6 @@
 package it.auties.leap.tls.context;
 
-import it.auties.leap.tls.certificate.TlsCertificateValidator;
+import it.auties.leap.tls.certificate.validator.TlsCertificateValidator;
 import it.auties.leap.tls.cipher.TlsCipherSuite;
 import it.auties.leap.tls.compression.TlsCompression;
 import it.auties.leap.tls.connection.TlsConnectionInitializer;

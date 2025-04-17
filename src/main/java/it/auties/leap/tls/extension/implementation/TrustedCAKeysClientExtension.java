@@ -1,6 +1,6 @@
 package it.auties.leap.tls.extension.implementation;
 
-import it.auties.leap.tls.certificate.TlsTrustedAuthority;
+import it.auties.leap.tls.certificate.authority.TlsCertificateTrustedAuthority;
 import it.auties.leap.tls.context.TlsContext;
 import it.auties.leap.tls.context.TlsSource;
 import it.auties.leap.tls.extension.TlsExtension;
@@ -16,12 +16,12 @@ import static it.auties.leap.tls.util.BufferUtils.INT16_LENGTH;
 import static it.auties.leap.tls.util.BufferUtils.writeBigEndianInt16;
 
 public record TrustedCAKeysClientExtension(
-        List<TlsTrustedAuthority> trustedAuthorities,
+        List<TlsCertificateTrustedAuthority> trustedAuthorities,
         int trustedAuthoritiesLength
 ) implements TlsExtension.Configured.Client {
-    public TrustedCAKeysClientExtension(List<TlsTrustedAuthority> trustedAuthorities) {
+    public TrustedCAKeysClientExtension(List<TlsCertificateTrustedAuthority> trustedAuthorities) {
         var trustedAuthoritiesLength = trustedAuthorities.stream()
-                .mapToInt(TlsTrustedAuthority::length)
+                .mapToInt(TlsCertificateTrustedAuthority::length)
                 .sum();
         this(trustedAuthorities, trustedAuthoritiesLength);
     }
