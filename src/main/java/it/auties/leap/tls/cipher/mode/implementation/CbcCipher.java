@@ -1,6 +1,8 @@
 package it.auties.leap.tls.cipher.mode.implementation;
 
 import it.auties.leap.tls.alert.TlsAlert;
+import it.auties.leap.tls.alert.TlsAlertLevel;
+import it.auties.leap.tls.alert.TlsAlertType;
 import it.auties.leap.tls.cipher.engine.TlsCipherEngine;
 import it.auties.leap.tls.cipher.exchange.TlsExchangeMac;
 import it.auties.leap.tls.cipher.mode.TlsCipher;
@@ -60,7 +62,7 @@ public final class CbcCipher extends TlsCipher.Block {
         switch (authenticator.version()) {
             case TLS10, DTLS10 -> throw new UnsupportedOperationException();
             case TLS11, TLS12, DTLS12 -> tls11Encrypt(contentType, input, output);
-            case TLS13, DTLS13 -> throw new TlsAlert("CBC ciphers are not allowed in (D)TLSv1.3");
+            case TLS13, DTLS13 -> throw new TlsAlert("CBC ciphers are not allowed in (D)TLSv1.3", TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR);
         };
     }
 
@@ -71,7 +73,7 @@ public final class CbcCipher extends TlsCipher.Block {
             SecureRandom.getInstanceStrong()
                     .nextBytes(nonce);
         }catch (NoSuchAlgorithmException _) {
-            throw TlsAlert.noSecureRandom();
+            throw new TlsAlert("No secure RNG algorithm", TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR);
         }
         System.out.println("IV: " + Arrays.toString(nonce));
         var inputPositionWithNonce = input.position() - nonce.length;
@@ -82,7 +84,7 @@ public final class CbcCipher extends TlsCipher.Block {
         }
         var plaintextLength = addPadding(input);
         if(plaintextLength != encryptBlock(input, output)) {
-            throw new TlsAlert("Unexpected number of plaintext bytes");
+            throw new TlsAlert("Unexpected number of plaintext bytes", TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR);
         }
     }
 
@@ -91,7 +93,7 @@ public final class CbcCipher extends TlsCipher.Block {
         return switch (authenticator.version()) {
             case TLS10, DTLS10 -> throw new UnsupportedOperationException();
             case TLS11, TLS12, DTLS12 -> tls11Decrypt(metadata, input);
-            case TLS13, DTLS13 -> throw new TlsAlert("CBC ciphers are not allowed in (D)TLSv1.3");
+            case TLS13, DTLS13 -> throw new TlsAlert("CBC ciphers are not allowed in (D)TLSv1.3", TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR);
         };
     }
 
@@ -100,7 +102,7 @@ public final class CbcCipher extends TlsCipher.Block {
                 .limit(input.capacity());
         var cipheredLength = input.remaining();
         if(cipheredLength != decryptBlock(input, output)) {
-            throw new TlsAlert("Unexpected number of ciphered bytes");
+            throw new TlsAlert("Unexpected number of ciphered bytes", TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR);
         }
         removePadding(output);
         checkCbcMac(output, metadata.contentType().id(), null);
@@ -140,12 +142,12 @@ public final class CbcCipher extends TlsCipher.Block {
         var toCheck = output.duplicate()
                 .position(offset + newLen);
         if(!toCheck.hasRemaining()) {
-            throw new TlsAlert("Padding length should be positive");
+            throw new TlsAlert("Padding length should be positive", TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR);
         }
 
         while (toCheck.hasRemaining()) {
             if (toCheck.get() != padValue) {
-                throw new TlsAlert("Invalid TLS padding data");
+                throw new TlsAlert("Invalid TLS padding data", TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR);
             }
         }
 

@@ -1,6 +1,8 @@
 package it.auties.leap.tls.message.implementation;
 
 import it.auties.leap.tls.alert.TlsAlert;
+import it.auties.leap.tls.alert.TlsAlertLevel;
+import it.auties.leap.tls.alert.TlsAlertType;
 import it.auties.leap.tls.context.TlsContext;
 import it.auties.leap.tls.context.TlsSource;
 import it.auties.leap.tls.extension.TlsExtension;
@@ -32,7 +34,9 @@ public record EncryptedExtensionsMessage(
         @Override
         public TlsHandshakeMessage deserialize(TlsContext context, ByteBuffer buffer, TlsMessageMetadata metadata) {
             var extensionTypeToDecoder = context.getNegotiatedValue(TlsProperty.clientExtensions())
-                    .orElseThrow(() -> TlsAlert.noNegotiatedProperty(TlsProperty.clientExtensions()))
+                    .orElseThrow(() -> {
+                        throw new TlsAlert("Missing negotiated property: " + TlsProperty.clientExtensions().id(), TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR);
+                    })
                     .stream()
                     .collect(Collectors.toUnmodifiableMap(TlsExtension::type, Function.identity()));
             var extensions = new ArrayList<TlsExtension.Configured.Server>();
@@ -42,7 +46,7 @@ public record EncryptedExtensionsMessage(
                     var extensionType = readBigEndianInt16(buffer);
                     var extensionDecoder = extensionTypeToDecoder.get(extensionType);
                     if (extensionDecoder == null) {
-                        throw new TlsAlert("Unknown extension");
+                        throw new TlsAlert("Unknown extension", TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR);
                     }
 
                     var extensionLength = readBigEndianInt16(buffer);

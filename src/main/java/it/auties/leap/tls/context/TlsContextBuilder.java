@@ -2,8 +2,10 @@ package it.auties.leap.tls.context;
 
 import it.auties.leap.socket.SocketProtocol;
 import it.auties.leap.tls.alert.TlsAlert;
+import it.auties.leap.tls.alert.TlsAlertLevel;
+import it.auties.leap.tls.alert.TlsAlertType;
 import it.auties.leap.tls.certificate.TlsCertificate;
-import it.auties.leap.tls.certificate.validator.TlsCertificateValidator;
+import it.auties.leap.tls.certificate.TlsCertificateValidator;
 import it.auties.leap.tls.cipher.TlsCipherSuite;
 import it.auties.leap.tls.compression.TlsCompression;
 import it.auties.leap.tls.connection.TlsConnection;
@@ -11,7 +13,7 @@ import it.auties.leap.tls.connection.TlsConnectionInitializer;
 import it.auties.leap.tls.connection.TlsConnectionType;
 import it.auties.leap.tls.extension.TlsExtension;
 import it.auties.leap.tls.extension.TlsExtensionOwner;
-import it.auties.leap.tls.secret.TlsMasterSecretGenerator;
+import it.auties.leap.tls.secret.master.TlsMasterSecretGenerator;
 import it.auties.leap.tls.util.TlsKeyUtils;
 import it.auties.leap.tls.version.TlsVersion;
 
@@ -44,7 +46,7 @@ abstract sealed class TlsContextBuilder<S extends TlsContextBuilder<S, E>, E ext
             var protocol = versions.getFirst().protocol();
             for (var i = 1; i < versions.size(); i++) {
                 if (versions.get(i).protocol() != protocol) {
-                    throw new TlsAlert("Protocol mismatch");
+                    throw new TlsAlert("Protocol mismatch", TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR);
                 }
             }
         }

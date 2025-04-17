@@ -1,9 +1,10 @@
 package it.auties.leap.tls.ec;
 
 import it.auties.leap.tls.alert.TlsAlert;
+import it.auties.leap.tls.alert.TlsAlertLevel;
+import it.auties.leap.tls.alert.TlsAlertType;
 import it.auties.leap.tls.property.TlsIdentifiableProperty;
 
-import java.net.URI;
 import java.util.List;
 
 public sealed interface TlsEcPointFormat extends TlsIdentifiableProperty<Byte> {
@@ -20,12 +21,8 @@ public sealed interface TlsEcPointFormat extends TlsIdentifiableProperty<Byte> {
     }
 
     static TlsEcPointFormat reservedForPrivateUse(byte id) {
-        if(id < -8 || id > -1) {
-            throw new TlsAlert(
-                    "Only values from 248-255 (decimal) inclusive are reserved for Private Use",
-                    URI.create("https://www.rfc-editor.org/rfc/rfc8422.html"),
-                    "5.1.2"
-            );
+        if (id < -8 || id > -1) {
+            throw new TlsAlert("Only values from 248-255 (decimal) inclusive are reserved for Private Use", TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR);
         }
 
         return new Reserved(id);
@@ -68,6 +65,7 @@ public sealed interface TlsEcPointFormat extends TlsIdentifiableProperty<Byte> {
 
     final class Reserved implements TlsEcPointFormat {
         private final byte id;
+
         private Reserved(byte id) {
             this.id = id;
         }

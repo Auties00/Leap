@@ -39,7 +39,7 @@ public final class MgmStrongCipher extends TlsCipher.Block {
 
     private MgmStrongCipher(TlsCipherEngine engine, byte[] fixedIv, TlsExchangeMac authenticator) {
         if(!(engine instanceof KuznyechikEngine) && !(engine instanceof MagmaEngine)) {
-            throw new TlsAlert("MGM_L mode is supported only by Kuznyechik and Magma engines");
+            throw new TlsAlert("MGM_L mode is supported only by Kuznyechik and Magma engines", TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR);
         }
         super(engine, fixedIv, authenticator);
     }

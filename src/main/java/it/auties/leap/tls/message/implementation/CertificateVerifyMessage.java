@@ -22,7 +22,7 @@ public record CertificateVerifyMessage(
         @Override
         public TlsHandshakeMessage deserialize(TlsContext context, ByteBuffer buffer, TlsMessageMetadata metadata) {
             if(buffer.hasRemaining()) {
-                throw new TlsAlert("Expected certificate verify message to have an empty payload");
+                throw new TlsAlert("Expected certificate verify message to have an empty payload", TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR);
             }
 
             return new CertificateVerifyMessage(metadata.version(), metadata.source());

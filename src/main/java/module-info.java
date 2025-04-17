@@ -49,4 +49,8 @@ module it.auties.leap {
     exports it.auties.leap.tls.certificate.status;
     exports it.auties.leap.tls.certificate.url;
     exports it.auties.leap.tls.certificate.authority;
+    exports it.auties.leap.tls.certificate.compression;
+    exports it.auties.leap.tls.psk.implementation;
+    exports it.auties.leap.tls.secret.preMaster;
+    exports it.auties.leap.tls.secret.master;
 }

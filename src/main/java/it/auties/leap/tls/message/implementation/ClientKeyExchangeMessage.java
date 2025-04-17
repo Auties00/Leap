@@ -1,6 +1,8 @@
 package it.auties.leap.tls.message.implementation;
 
 import it.auties.leap.tls.alert.TlsAlert;
+import it.auties.leap.tls.alert.TlsAlertLevel;
+import it.auties.leap.tls.alert.TlsAlertType;
 import it.auties.leap.tls.cipher.exchange.TlsKeyExchange;
 import it.auties.leap.tls.cipher.exchange.TlsKeyExchangeType;
 import it.auties.leap.tls.context.TlsContext;
@@ -31,7 +33,7 @@ public record ClientKeyExchangeMessage(
             var messageLength = readBigEndianInt24(buffer);
             try (var _ = scopedRead(buffer, messageLength)) {
                 var remoteParameters = context.getNegotiatedValue(TlsProperty.cipher())
-                        .orElseThrow(() -> TlsAlert.noNegotiatedProperty(TlsProperty.cipher()))
+                        .orElseThrow(() -> new TlsAlert("No cipher was negotiated", TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR))
                         .keyExchangeFactory()
                         .newRemoteKeyExchange(context, buffer);
                 return new ClientKeyExchangeMessage(metadata.version(), metadata.source(), remoteParameters);
@@ -66,9 +68,9 @@ public record ClientKeyExchangeMessage(
     @Override
     public void apply(TlsContext context) {
         var negotiatedCipher = context.getNegotiatedValue(TlsProperty.cipher())
-                .orElseThrow(() -> TlsAlert.noNegotiatedProperty(TlsProperty.cipher()));
+                .orElseThrow(() -> new TlsAlert("No cipher was negotiated", TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR));
         if (negotiatedCipher.keyExchangeFactory().type() != TlsKeyExchangeType.EPHEMERAL) {
-            throw new TlsAlert("Unexpected client key exchange message for static key exchange");
+            throw new TlsAlert("Unexpected client key exchange message for static key exchange", TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR);
         }
 
         switch (source) {
@@ -76,7 +78,7 @@ public record ClientKeyExchangeMessage(
                     .setKeyExchange(parameters);
             case REMOTE -> {
                 context.remoteConnectionState()
-                        .orElseThrow(TlsAlert::noRemoteConnectionState)
+                        .orElseThrow(() -> new TlsAlert("No remote connection state was created", TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR))
                         .setKeyExchange(parameters);
                 var localKeyExchange = negotiatedCipher.keyExchangeFactory()
                         .newLocalKeyExchange(context);

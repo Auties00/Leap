@@ -23,7 +23,7 @@ public record HelloRequestMessage(
         @Override
         public TlsHandshakeMessage deserialize(TlsContext context, ByteBuffer buffer, TlsMessageMetadata metadata) {
             if(buffer.hasRemaining()) {
-                throw new TlsAlert("Expected server hello request message to have an empty payload", URI.create("https://datatracker.ietf.org/doc/html/rfc5246#section-7.4.9"), "7.4.1.1");
+                throw new TlsAlert("Expected server hello request message to have an empty payload", URI.create("https://datatracker.ietf.org/doc/html/rfc5246#section-7.4.9"), "7.4.1.1", TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR);
             }
 
             return new HelloRequestMessage(metadata.version(), metadata.source());

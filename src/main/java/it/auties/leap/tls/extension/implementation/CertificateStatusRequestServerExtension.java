@@ -1,7 +1,6 @@
 package it.auties.leap.tls.extension.implementation;
 
-import it.auties.leap.tls.certificate.status.TlsCertificateStatusRequest;
-import it.auties.leap.tls.certificate.status.TlsCertificateStatusResponse;
+import it.auties.leap.tls.certificate.TlsCertificateStatus;
 import it.auties.leap.tls.context.TlsContext;
 import it.auties.leap.tls.context.TlsSource;
 import it.auties.leap.tls.extension.TlsExtension;
@@ -13,7 +12,7 @@ import java.util.List;
 import java.util.Optional;
 
 public record CertificateStatusRequestServerExtension(
-        TlsCertificateStatusResponse response
+        TlsCertificateStatus.Response response
 ) implements TlsExtension.Configured.Server {
     @Override
     public void serializePayload(ByteBuffer buffer) {
@@ -32,7 +31,7 @@ public record CertificateStatusRequestServerExtension(
 
     @Override
     public Optional<CertificateStatusRequestClientExtension> deserialize(TlsContext context, int type, ByteBuffer buffer) {
-        var request = TlsCertificateStatusRequest.of(buffer)
+        var request = TlsCertificateStatus.Request.of(buffer)
                 .orElseThrow(() -> new IllegalArgumentException("Invalid request"));
         var extension = new CertificateStatusRequestClientExtension(request);
         return Optional.of(extension);

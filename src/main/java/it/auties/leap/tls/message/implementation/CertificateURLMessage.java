@@ -1,7 +1,7 @@
 package it.auties.leap.tls.message.implementation;
 
-import it.auties.leap.tls.certificate.url.TlsCertificateChainType;
-import it.auties.leap.tls.certificate.url.TlsCertificateUrlAndHash;
+import it.auties.leap.tls.certificate.TlsCertificateUrl;
+import it.auties.leap.tls.certificate.TlsCertificateUrlAndHash;
 import it.auties.leap.tls.context.TlsContext;
 import it.auties.leap.tls.context.TlsSource;
 import it.auties.leap.tls.message.*;
@@ -16,7 +16,7 @@ import static it.auties.leap.tls.util.BufferUtils.*;
 public record CertificateURLMessage(
         TlsVersion version,
         TlsSource source,
-        TlsCertificateChainType type,
+        TlsCertificateUrl.IdentifierType type,
         List<TlsCertificateUrlAndHash> urlAndHashList,
         int urlAndHashListLength
 ) implements TlsHandshakeMessage {
@@ -30,7 +30,7 @@ public record CertificateURLMessage(
         @Override
         public TlsHandshakeMessage deserialize(TlsContext context, ByteBuffer buffer, TlsMessageMetadata metadata) {
             var typeId = readBigEndianInt8(buffer);
-            var type = TlsCertificateChainType.of(typeId)
+            var type = TlsCertificateUrl.IdentifierType.of(typeId)
                     .orElseThrow(() -> new IllegalArgumentException("Invalid certificate chain type: " + typeId));
             var urlAndHashList = new ArrayList<TlsCertificateUrlAndHash>();
             var urlAndHashListLength = buffer.remaining() >= INT16_LENGTH ? readBigEndianInt16(buffer) : 0;

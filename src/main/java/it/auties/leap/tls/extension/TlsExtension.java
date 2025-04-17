@@ -1,6 +1,6 @@
 package it.auties.leap.tls.extension;
 
-import it.auties.leap.tls.certificate.authority.TlsCertificateTrustedAuthority;
+import it.auties.leap.tls.certificate.TlsCertificateTrustedAuthority;
 import it.auties.leap.tls.context.TlsContext;
 import it.auties.leap.tls.ec.TlsEcPointFormat;
 import it.auties.leap.tls.extension.implementation.*;

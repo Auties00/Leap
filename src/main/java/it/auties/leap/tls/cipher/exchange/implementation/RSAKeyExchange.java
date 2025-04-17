@@ -1,12 +1,14 @@
 package it.auties.leap.tls.cipher.exchange.implementation;
 
+import it.auties.leap.tls.alert.TlsAlert;
+import it.auties.leap.tls.alert.TlsAlertLevel;
+import it.auties.leap.tls.alert.TlsAlertType;
 import it.auties.leap.tls.cipher.exchange.TlsKeyExchange;
 import it.auties.leap.tls.cipher.exchange.TlsKeyExchangeFactory;
 import it.auties.leap.tls.cipher.exchange.TlsKeyExchangeType;
-import it.auties.leap.tls.context.TlsContext;
 import it.auties.leap.tls.connection.TlsConnectionType;
-import it.auties.leap.tls.alert.TlsAlert;
-import it.auties.leap.tls.secret.TlsPreMasterSecretGenerator;
+import it.auties.leap.tls.context.TlsContext;
+import it.auties.leap.tls.secret.preMaster.TlsPreMasterSecretGenerator;
 import it.auties.leap.tls.secret.TlsSecret;
 
 import java.nio.ByteBuffer;
@@ -18,10 +20,9 @@ public sealed abstract class RSAKeyExchange implements TlsKeyExchange {
     private static final TlsKeyExchangeFactory STATIC_FACTORY = new TlsKeyExchangeFactory() {
         @Override
         public TlsKeyExchange newLocalKeyExchange(TlsContext context) {
-            var mode = context.localConnectionState().type()
-                    ;
+            var mode = context.localConnectionState().type();
             if (mode == TlsConnectionType.SERVER) {
-                throw new TlsAlert("Unsupported RSA key exchange");
+                throw new TlsAlert("Unsupported RSA key exchange", TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR);
             }
 
             var preMasterSecret = TlsPreMasterSecretGenerator.rsa()
@@ -31,10 +32,9 @@ public sealed abstract class RSAKeyExchange implements TlsKeyExchange {
 
         @Override
         public TlsKeyExchange newRemoteKeyExchange(TlsContext context, ByteBuffer ephemeralKeyExchangeSource) {
-            var mode = context.localConnectionState().type()
-                    ;
+            var mode = context.localConnectionState().type();
             if (mode == TlsConnectionType.SERVER) {
-                throw new TlsAlert("Unsupported RSA key exchange");
+                throw new TlsAlert("Unsupported RSA key exchange", TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR);
             }
 
             return new RSAKeyExchange.Client(ephemeralKeyExchangeSource);

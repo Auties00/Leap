@@ -1,7 +1,7 @@
 package it.auties.leap.tls.property;
 
 import it.auties.leap.tls.certificate.TlsCertificateCompressionAlgorithm;
-import it.auties.leap.tls.certificate.authority.TlsCertificateTrustedAuthority;
+import it.auties.leap.tls.certificate.TlsCertificateTrustedAuthority;
 import it.auties.leap.tls.cipher.TlsCipherSuite;
 import it.auties.leap.tls.compression.TlsCompression;
 import it.auties.leap.tls.ec.TlsEcPointFormat;

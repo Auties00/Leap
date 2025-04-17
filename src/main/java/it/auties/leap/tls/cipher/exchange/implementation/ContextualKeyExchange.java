@@ -1,11 +1,13 @@
 package it.auties.leap.tls.cipher.exchange.implementation;
 
 import it.auties.leap.tls.alert.TlsAlert;
+import it.auties.leap.tls.alert.TlsAlertLevel;
+import it.auties.leap.tls.alert.TlsAlertType;
 import it.auties.leap.tls.cipher.exchange.TlsKeyExchange;
 import it.auties.leap.tls.cipher.exchange.TlsKeyExchangeFactory;
 import it.auties.leap.tls.cipher.exchange.TlsKeyExchangeType;
 import it.auties.leap.tls.context.TlsContext;
-import it.auties.leap.tls.secret.TlsPreMasterSecretGenerator;
+import it.auties.leap.tls.secret.preMaster.TlsPreMasterSecretGenerator;
 
 import java.nio.ByteBuffer;
 
@@ -20,7 +22,7 @@ public final class ContextualKeyExchange implements TlsKeyExchange {
         @Override
         public TlsKeyExchange newRemoteKeyExchange(TlsContext context, ByteBuffer ephemeralKeyExchangeSource) {
             if(ephemeralKeyExchangeSource.hasRemaining()) {
-                throw new TlsAlert("Expected empty buffer");
+                throw new TlsAlert("Expected empty buffer", TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR);
             }
 
             return INSTANCE;

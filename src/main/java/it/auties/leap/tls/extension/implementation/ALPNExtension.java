@@ -1,6 +1,8 @@
 package it.auties.leap.tls.extension.implementation;
 
 import it.auties.leap.tls.alert.TlsAlert;
+import it.auties.leap.tls.alert.TlsAlertLevel;
+import it.auties.leap.tls.alert.TlsAlertType;
 import it.auties.leap.tls.context.TlsContext;
 import it.auties.leap.tls.connection.TlsConnectionType;
 import it.auties.leap.tls.context.TlsSource;
@@ -50,7 +52,7 @@ public record ALPNExtension(
         var connection = switch (source) {
             case LOCAL -> context.localConnectionState();
             case REMOTE -> context.remoteConnectionState()
-                    .orElseThrow(TlsAlert::noRemoteConnectionState);
+                    .orElseThrow(() -> new TlsAlert("No remote connection state was created", TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR));
         };
         switch (connection.type()) {
             case CLIENT -> context.addNegotiableProperty(TlsProperty.applicationProtocols(), supportedProtocols);
@@ -63,7 +65,7 @@ public record ALPNExtension(
         var supportedProtocolsSize = readBigEndianInt16(buffer);
         var supportedProtocols = new ArrayList<String>();
         var negotiableProtocols = context.getNegotiableValue(TlsProperty.applicationProtocols())
-                .orElseThrow(() -> TlsAlert.noNegotiableProperty(TlsProperty.applicationProtocols()));
+                .orElseThrow(() -> new TlsAlert("Missing negotiable property: " + TlsProperty.applicationProtocols().id(), TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR));
         var negotiableProtocolsSet = new HashSet<>(negotiableProtocols);
         var mode = context.localConnectionState().type();
         try(var _ = scopedRead(buffer, supportedProtocolsSize)) {
@@ -72,7 +74,7 @@ public record ALPNExtension(
                 if(negotiableProtocolsSet.contains(supportedProtocol)) {
                     supportedProtocols.add(supportedProtocol);
                 }else if(mode == TlsConnectionType.CLIENT) {
-                    throw new TlsAlert("Remote tried to negotiate an application protocol that wasn't advertised");
+                    throw new TlsAlert("Remote tried to negotiate an application protocol that wasn't advertised", TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR);
                 }
             }
         }

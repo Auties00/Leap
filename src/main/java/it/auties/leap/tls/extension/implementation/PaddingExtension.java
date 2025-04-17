@@ -1,6 +1,8 @@
 package it.auties.leap.tls.extension.implementation;
 
 import it.auties.leap.tls.alert.TlsAlert;
+import it.auties.leap.tls.alert.TlsAlertLevel;
+import it.auties.leap.tls.alert.TlsAlertType;
 import it.auties.leap.tls.context.TlsContext;
 import it.auties.leap.tls.context.TlsSource;
 import it.auties.leap.tls.extension.TlsExtension;
@@ -18,7 +20,7 @@ public record PaddingExtension(
 ) implements TlsExtension.Configured.Agnostic {
     public PaddingExtension {
         if(padLength < 0) {
-            throw new TlsAlert("Invalid negative padding length");
+            throw new TlsAlert("Invalid negative padding length", TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR);
         }
     }
 

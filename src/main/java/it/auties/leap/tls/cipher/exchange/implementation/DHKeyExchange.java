@@ -1,6 +1,8 @@
 package it.auties.leap.tls.cipher.exchange.implementation;
 
 import it.auties.leap.tls.alert.TlsAlert;
+import it.auties.leap.tls.alert.TlsAlertLevel;
+import it.auties.leap.tls.alert.TlsAlertType;
 import it.auties.leap.tls.cipher.exchange.TlsKeyExchange;
 import it.auties.leap.tls.cipher.exchange.TlsKeyExchangeFactory;
 import it.auties.leap.tls.cipher.exchange.TlsKeyExchangeType;
@@ -9,7 +11,7 @@ import it.auties.leap.tls.context.TlsContext;
 import it.auties.leap.tls.group.TlsKeyPair;
 import it.auties.leap.tls.group.TlsSupportedFiniteField;
 import it.auties.leap.tls.property.TlsProperty;
-import it.auties.leap.tls.secret.TlsPreMasterSecretGenerator;
+import it.auties.leap.tls.secret.preMaster.TlsPreMasterSecretGenerator;
 
 import javax.crypto.interfaces.DHPublicKey;
 import java.math.BigInteger;
@@ -133,16 +135,18 @@ public abstract sealed class DHKeyExchange implements TlsKeyExchange {
 
                 case EPHEMERAL -> {
                     var remoteKeyExchange = context.remoteConnectionState()
-                            .orElseThrow(TlsAlert::noRemoteConnectionState)
+                            .orElseThrow(() -> new TlsAlert("No remote connection state was created", TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR))
                             .keyExchange()
-                            .orElseThrow(TlsAlert::noRemoteKeyExchange);
+                            .orElseThrow(() -> new TlsAlert("No remote key exchange was created", TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR));
                     var group = context.getNegotiatedValue(TlsProperty.supportedGroups())
-                            .orElseThrow(() -> TlsAlert.noNegotiatedProperty(TlsProperty.supportedGroups()))
+                            .orElseThrow(() -> {
+                                throw new TlsAlert("Missing negotiated property: " + TlsProperty.supportedGroups().id(), TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR);
+                            })
                             .stream()
                             .filter(entry -> entry instanceof TlsSupportedFiniteField supportedFiniteField
                                     && supportedFiniteField.accepts(remoteKeyExchange))
                             .findFirst()
-                            .orElseThrow(TlsAlert::noSupportedFiniteField);
+                            .orElseThrow(() -> new TlsAlert("No supported group is a finite field", TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR));
                     var keyPair = group.generateKeyPair(context);
                     var publicKey = (DHPublicKey) keyPair.getPublic();
                     localConnectionState.addEphemeralKeyPair(TlsKeyPair.of(group, keyPair))
@@ -164,11 +168,11 @@ public abstract sealed class DHKeyExchange implements TlsKeyExchange {
         @Override
         public TlsKeyExchange newRemoteKeyExchange(TlsContext context, ByteBuffer ephemeralKeyExchangeSource) {
             var remoteConnectionState = context.remoteConnectionState()
-                    .orElseThrow(TlsAlert::noRemoteConnectionState);
+                    .orElseThrow(() -> new TlsAlert("No remote connection state was created", TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR));
             return switch (type) {
                 case STATIC -> {
                     if(ephemeralKeyExchangeSource != null) {
-                        throw new TlsAlert("Static key exchange should not receive an ephemeral key exchange source");
+                        throw new TlsAlert("Static key exchange should not receive an ephemeral key exchange source", TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR);
                     }
 
                     var certificate = remoteConnectionState.staticCertificate()
@@ -179,7 +183,7 @@ public abstract sealed class DHKeyExchange implements TlsKeyExchange {
 
                 case EPHEMERAL -> {
                     if(ephemeralKeyExchangeSource == null) {
-                        throw new TlsAlert("Ephemeral key exchange should receive an ephemeral key exchange source");
+                        throw new TlsAlert("Ephemeral key exchange should receive an ephemeral key exchange source", TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR);
                     }
 
                     yield switch (remoteConnectionState.type()) {

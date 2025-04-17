@@ -1,5 +1,7 @@
 package it.auties.leap.tls.ec.implementation;
 
+import it.auties.leap.tls.alert.TlsAlertLevel;
+import it.auties.leap.tls.alert.TlsAlertType;
 import it.auties.leap.tls.context.TlsContext;
 import it.auties.leap.tls.property.TlsProperty;
 import it.auties.leap.tls.ec.TlsEcParameters;
@@ -48,11 +50,11 @@ public final class NamedCurveParameters implements TlsEcParameters {
     @Override
     public TlsSupportedEllipticCurve toGroup(TlsContext context) {
         return context.getNegotiatedValue(TlsProperty.supportedGroups())
-                .orElseThrow(() -> TlsAlert.noNegotiatedProperty(TlsProperty.supportedGroups()))
+                .orElseThrow(() -> new TlsAlert("Missing negotiated property: " + TlsProperty.supportedGroups().id(), TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR))
                 .stream()
                 .filter(entry -> entry instanceof TlsSupportedEllipticCurve supportedCurve && supportedCurve.accepts(namedGroup))
                 .findFirst()
                 .map(entry -> (TlsSupportedEllipticCurve) entry)
-                .orElseThrow(TlsAlert::noSupportedEllipticCurve);
+                .orElseThrow(() -> new TlsAlert("No supported group is an elliptic curve", TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR));
     }
 }

@@ -1,87 +1,62 @@
 package it.auties.leap.tls.psk;
 
 import it.auties.leap.tls.alert.TlsAlert;
+import it.auties.leap.tls.alert.TlsAlertLevel;
+import it.auties.leap.tls.alert.TlsAlertType;
 import it.auties.leap.tls.property.TlsIdentifiableProperty;
-import it.auties.leap.tls.version.TlsVersion;
 
-import java.net.URI;
-import java.util.Optional;
+import java.util.Objects;
 
-// https://www.iana.org/assignments/tls-parameters/tls-pskkeyexchangemode.csv
-public sealed interface TlsPskExchangeMode extends TlsIdentifiableProperty<Byte>, TlsPskExchangeModeGenerator {
+public final class TlsPskExchangeMode implements TlsIdentifiableProperty<Byte> {
+    private static final TlsPskExchangeMode KE = new TlsPskExchangeMode((byte) 0, Type.KE, TlsPskExchangeModeGenerator.ke());
+    private static final TlsPskExchangeMode DHE_KE = new TlsPskExchangeMode((byte) 1, Type.DHE_KE, TlsPskExchangeModeGenerator.dheKe());
+
+    private final byte id;
+    private final Type type;
+    private final TlsPskExchangeModeGenerator generator;
+
+    private TlsPskExchangeMode(byte id, Type type, TlsPskExchangeModeGenerator generator) {
+        this.id = id;
+        this.type = type;
+        this.generator = generator;
+    }
+
     static TlsPskExchangeMode pskKe() {
-        return KE.INSTANCE;
+        return KE;
     }
 
     static TlsPskExchangeMode pskDheKe() {
-        return DHEKE.INSTANCE;
+        return DHE_KE;
     }
 
     static TlsPskExchangeMode reservedForPrivateUse(byte id) {
-        return new Reserved(id, null);
+        return reservedForPrivateUse(id, null);
     }
 
     static TlsPskExchangeMode reservedForPrivateUse(byte id, TlsPskExchangeModeGenerator generator) {
-        return new Reserved(id, generator);
+        if(id != -32 && id != -31) {
+            throw new TlsAlert("Only values from 224-255 (decimal) inclusive are reserved for Private Use", TlsAlertLevel.FATAL, TlsAlertType.ILLEGAL_PARAMETER);
+        }
+
+        return new TlsPskExchangeMode(id, Type.RESERVED_FOR_PRIVATE_USE, Objects.requireNonNullElse(generator, TlsPskExchangeModeGenerator.stub()));
     }
 
-    final class KE implements TlsPskExchangeMode {
-        private static final KE INSTANCE = new KE();
-
-        @Override
-        public Byte id() {
-            return 0;
-        }
-
-        @Override
-        public Optional<byte[]> generate(TlsVersion version) {
-            return Optional.empty();
-        }
+    @Override
+    public Byte id() {
+        return id;
     }
 
-    final class DHEKE implements TlsPskExchangeMode {
-        private static final DHEKE INSTANCE = new DHEKE();
-
-        @Override
-        public Byte id() {
-            return 1;
-        }
-
-        @Override
-        public Optional<byte[]> generate(TlsVersion version) {
-            return Optional.empty();
-        }
+    public Type type() {
+        return type;
     }
 
-    final class Reserved implements TlsPskExchangeMode {
-        private final byte id;
-        private final TlsPskExchangeModeGenerator generator;
+    public TlsPskExchangeModeGenerator generator() {
+        return generator;
+    }
 
-        private Reserved(byte id, TlsPskExchangeModeGenerator generator) {
-            if(id != -32 && id != -31) {
-                throw new TlsAlert(
-                        "Only values from 224-255 (decimal) inclusive are reserved for Private Use",
-                        URI.create("https://www.rfc-editor.org/rfc/rfc8446.html"),
-                        "11"
-                );
-            }
-
-            this.id = id;
-            this.generator = generator;
-        }
-
-        @Override
-        public Byte id() {
-            return id;
-        }
-
-        @Override
-        public Optional<byte[]> generate(TlsVersion version) {
-            if(generator == null) {
-                throw TlsAlert.stub();
-            }else {
-                return generator.generate(version);
-            }
-        }
+    public enum Type {
+        KE,
+        DHE_KE,
+        RESERVED_FOR_PRIVATE_USE
     }
 }

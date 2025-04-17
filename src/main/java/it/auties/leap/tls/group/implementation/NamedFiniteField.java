@@ -1,6 +1,8 @@
 package it.auties.leap.tls.group.implementation;
 
 import it.auties.leap.tls.alert.TlsAlert;
+import it.auties.leap.tls.alert.TlsAlertLevel;
+import it.auties.leap.tls.alert.TlsAlertType;
 import it.auties.leap.tls.cipher.exchange.TlsKeyExchange;
 import it.auties.leap.tls.cipher.exchange.implementation.DHKeyExchange;
 import it.auties.leap.tls.connection.TlsConnection;
@@ -89,7 +91,7 @@ public final class NamedFiniteField implements TlsSupportedFiniteField {
                 .privateKey()
                 .orElseThrow(() -> new TlsAlert("Missing local key pair"));
         var keyExchangeType = context.getNegotiatedValue(TlsProperty.cipher())
-                .orElseThrow(() -> TlsAlert.noNegotiatedProperty(TlsProperty.cipher()))
+                .orElseThrow(() -> new TlsAlert("No cipher was negotiated", TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR))
                 .keyExchangeFactory()
                 .type();
         var publicKey = switch (keyExchangeType) {
@@ -98,7 +100,7 @@ public final class NamedFiniteField implements TlsSupportedFiniteField {
                     .map(Certificate::getPublicKey)
                     .orElseThrow(() -> new TlsAlert("Missing remote public key for static pre master secret generation"));
             case EPHEMERAL -> context.remoteConnectionState()
-                    .orElseThrow(TlsAlert::noRemoteConnectionState)
+                    .orElseThrow(() -> new TlsAlert("No remote connection state was created", TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR))
                     .ephemeralKeyPair()
                     .orElseThrow(() -> new TlsAlert("Missing remote public key for ephemeral pre master secret generation"))
                     .publicKey();
@@ -134,7 +136,7 @@ public final class NamedFiniteField implements TlsSupportedFiniteField {
     @Override
     public byte[] dumpPublicKey(PublicKey jcePublicKey) {
         if(!(jcePublicKey instanceof DHPublicKey publicKey)) {
-            throw new TlsAlert("Unsupported key type");
+            throw new TlsAlert("Unsupported key type", TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR);
         }
 
         return publicKey.getY().toByteArray();

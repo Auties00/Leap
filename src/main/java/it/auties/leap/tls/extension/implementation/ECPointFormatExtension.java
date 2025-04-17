@@ -1,6 +1,8 @@
 package it.auties.leap.tls.extension.implementation;
 
 import it.auties.leap.tls.alert.TlsAlert;
+import it.auties.leap.tls.alert.TlsAlertLevel;
+import it.auties.leap.tls.alert.TlsAlertType;
 import it.auties.leap.tls.context.TlsContext;
 import it.auties.leap.tls.connection.TlsConnectionType;
 import it.auties.leap.tls.context.TlsSource;
@@ -47,7 +49,7 @@ public record ECPointFormatExtension(
         var connection = switch (source) {
             case LOCAL -> context.localConnectionState();
             case REMOTE -> context.remoteConnectionState()
-                    .orElseThrow(TlsAlert::noRemoteConnectionState);
+                    .orElseThrow(() -> new TlsAlert("No remote connection state was created", TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR));
         };
         switch (connection.type()) {
             case CLIENT -> context.addNegotiableProperty(TlsProperty.ecPointsFormats(), supportedFormats);
@@ -60,7 +62,7 @@ public record ECPointFormatExtension(
         var ecPointFormatsLength = readBigEndianInt8(buffer);
         var ecPointFormats = new ArrayList<TlsEcPointFormat>();
         var knownFormats = context.getNegotiableValue(TlsProperty.ecPointsFormats())
-                .orElseThrow(() -> TlsAlert.noNegotiableProperty(TlsProperty.ecPointsFormats()))
+                .orElseThrow(() -> new TlsAlert("Missing negotiable property: " + TlsProperty.ecPointsFormats().id(), TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR))
                 .stream()
                 .collect(Collectors.toUnmodifiableMap(TlsIdentifiableProperty::id, Function.identity()));
         var mode = context.localConnectionState().type();
@@ -70,7 +72,7 @@ public record ECPointFormatExtension(
             if(ecPointFormat != null) {
                 ecPointFormats.add(ecPointFormat);
             }else if(mode == TlsConnectionType.CLIENT) {
-                throw new TlsAlert("Remote tried to negotiate an ec point that wasn't advertised");
+                throw new TlsAlert("Remote tried to negotiate an ec point that wasn't advertised", TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR);
             }
         }
         var extension = new ECPointFormatExtension(ecPointFormats);

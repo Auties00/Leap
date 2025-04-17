@@ -1,6 +1,8 @@
 package it.auties.leap.tls.message.implementation;
 
 import it.auties.leap.tls.alert.TlsAlert;
+import it.auties.leap.tls.alert.TlsAlertLevel;
+import it.auties.leap.tls.alert.TlsAlertType;
 import it.auties.leap.tls.certificate.TlsCertificate;
 import it.auties.leap.tls.cipher.exchange.TlsKeyExchangeType;
 import it.auties.leap.tls.connection.TlsConnectionType;
@@ -75,7 +77,11 @@ public record CertificateMessage(
     @Override
     public void apply(TlsContext context) {
         var negotiatedCipher = context.getNegotiatedValue(TlsProperty.cipher())
-                .orElseThrow(() -> TlsAlert.noNegotiatedProperty(TlsProperty.cipher()));
+                .orElseThrow(() -> new TlsAlert("No cipher was negotiated", TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR));
+        if(negotiatedCipher.authFactory().isAnonymous()) {
+            throw new TlsAlert("Anonymous cipher don't support certificate message", TlsAlertLevel.FATAL, TlsAlertType.UNEXPECTED_MESSAGE);
+        }
+
         var certificate = context.certificateValidator()
                 .validate(context, source, certificates);
         switch (source) {
@@ -94,7 +100,7 @@ public record CertificateMessage(
 
             case REMOTE -> {
                 var remoteConnectionState = context.remoteConnectionState()
-                        .orElseThrow(TlsAlert::noRemoteConnectionState);
+                        .orElseThrow(() -> new TlsAlert("No remote connection state was created", TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR));
                 remoteConnectionState.addCertificate(certificate);
                 if (negotiatedCipher.keyExchangeFactory().type() == TlsKeyExchangeType.STATIC) {
                     var keyExchange = negotiatedCipher.keyExchangeFactory()

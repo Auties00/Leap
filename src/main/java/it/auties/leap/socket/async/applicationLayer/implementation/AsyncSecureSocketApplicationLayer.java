@@ -82,14 +82,18 @@ public class AsyncSecureSocketApplicationLayer extends AsyncSocketApplicationLay
 
     private CompletableFuture<Void> sendClientHello() {
         var versions1 = tlsContext.getNegotiableValue(TlsProperty.version())
-                .orElseThrow(() -> TlsAlert.noNegotiableProperty(TlsProperty.version()));
+                .orElseThrow(() -> {
+                    throw new TlsAlert("Missing negotiable property: " + TlsProperty.version().id(), TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR);
+                });
         var versionsSet = new HashSet<>(versions1);
         var legacyVersion = versions1.stream()
                 .reduce((first, second) -> first.id().value() > second.id().value() ? first : second)
                 .orElseThrow(() -> new TlsAlert("No version was set in the tls config"))
                 .toLegacyVersion();
         var availableCiphers = tlsContext.getNegotiableValue(TlsProperty.cipher())
-                .orElseThrow(() -> TlsAlert.noNegotiableProperty(TlsProperty.cipher()))
+                .orElseThrow(() -> {
+                    throw new TlsAlert("Missing negotiable property: " + TlsProperty.cipher().id(), TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR);
+                })
                 .stream()
                 .filter(cipher -> cipher.versions().stream().anyMatch(versionsSet::contains))
                 .toList();
@@ -97,16 +101,22 @@ public class AsyncSecureSocketApplicationLayer extends AsyncSocketApplicationLay
                 .map(TlsCipherSuite::id)
                 .toList();
         var availableCompressions = tlsContext.getNegotiableValue(TlsProperty.compression())
-                .orElseThrow(() -> TlsAlert.noNegotiableProperty(TlsProperty.compression()));
+                .orElseThrow(() -> {
+                    throw new TlsAlert("Missing negotiable property: " + TlsProperty.compression().id(), TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR);
+                });
         var availableCompressionsIds = availableCompressions.stream()
                 .map(TlsCompression::id)
                 .toList();
 
         var extensions = tlsContext.getNegotiableValue(TlsProperty.clientExtensions())
-                .orElseThrow(() -> TlsAlert.noNegotiableProperty(TlsProperty.clientExtensions()));
+                .orElseThrow(() -> {
+                    throw new TlsAlert("Missing negotiable property: " + TlsProperty.clientExtensions().id(), TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR);
+                });
         var supportedVersions = tlsContext.getNegotiableValue(TlsProperty.version())
                 .map(HashSet::new)
-                .orElseThrow(() -> TlsAlert.noNegotiableProperty(TlsProperty.version()));
+                .orElseThrow(() -> {
+                    throw new TlsAlert("Missing negotiable property: " + TlsProperty.version().id(), TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR);
+                });
 
         var dependenciesTree = new LinkedHashMap<Integer, TlsExtensionOwner.Client>();
         for (var extension : extensions) {
@@ -280,7 +290,9 @@ public class AsyncSecureSocketApplicationLayer extends AsyncSocketApplicationLay
         }
 
         var version = tlsContext.getNegotiatedValue(TlsProperty.version())
-                .orElseThrow(() -> TlsAlert.noNegotiatedProperty(TlsProperty.version()));
+                .orElseThrow(() -> {
+                    throw new TlsAlert("Missing negotiated property: " + TlsProperty.version().id(), TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR);
+                });
         var certificatesMessage = new CertificateMessage(
                 version,
                 TlsSource.LOCAL,
@@ -292,10 +304,12 @@ public class AsyncSecureSocketApplicationLayer extends AsyncSocketApplicationLay
 
     private CompletableFuture<Void> sendClientKeyExchange() {
         var version = tlsContext.getNegotiatedValue(TlsProperty.version())
-                .orElseThrow(() -> TlsAlert.noNegotiatedProperty(TlsProperty.version()));
+                .orElseThrow(() -> {
+                    throw new TlsAlert("Missing negotiated property: " + TlsProperty.version().id(), TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR);
+                });
         var parameters = tlsContext.localConnectionState()
                 .keyExchange()
-                .orElseThrow(TlsAlert::noLocalKeyExchange);
+                .orElseThrow(() -> new TlsAlert("No local key exchange was created", TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR));
         var keyExchangeMessage = new ClientKeyExchangeMessage(
                 version,
                 TlsSource.LOCAL,
@@ -311,7 +325,9 @@ public class AsyncSecureSocketApplicationLayer extends AsyncSocketApplicationLay
         }
 
         var version = tlsContext.getNegotiatedValue(TlsProperty.version())
-                .orElseThrow(() -> TlsAlert.noNegotiatedProperty(TlsProperty.version()));
+                .orElseThrow(() -> {
+                    throw new TlsAlert("Missing negotiated property: " + TlsProperty.version().id(), TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR);
+                });
         var clientVerifyCertificate = new CertificateVerifyMessage(
                 version,
                 TlsSource.LOCAL
@@ -322,7 +338,9 @@ public class AsyncSecureSocketApplicationLayer extends AsyncSocketApplicationLay
 
     private CompletableFuture<Void> sendClientChangeCipher() {
         var version = tlsContext.getNegotiatedValue(TlsProperty.version())
-                .orElseThrow(() -> TlsAlert.noNegotiatedProperty(TlsProperty.version()));
+                .orElseThrow(() -> {
+                    throw new TlsAlert("Missing negotiated property: " + TlsProperty.version().id(), TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR);
+                });
         var changeCipherSpec = new ChangeCipherSpecMessage(
                 version,
                 TlsSource.LOCAL
@@ -333,7 +351,9 @@ public class AsyncSecureSocketApplicationLayer extends AsyncSocketApplicationLay
 
     private CompletableFuture<Void> sendClientFinish() {
         var version = tlsContext.getNegotiatedValue(TlsProperty.version())
-                .orElseThrow(() -> TlsAlert.noNegotiatedProperty(TlsProperty.version()));
+                .orElseThrow(() -> {
+                    throw new TlsAlert("Missing negotiated property: " + TlsProperty.version().id(), TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR);
+                });
         var handshakeHash = tlsContext.connectionIntegrity()
                 .finish(tlsContext, TlsSource.LOCAL);
         var finishedMessage = new FinishedMessage(
@@ -480,7 +500,9 @@ public class AsyncSecureSocketApplicationLayer extends AsyncSocketApplicationLay
         if (isLocalCipherEnabled()) {
             assertNotEquals(buffer, tlsBuffer);
             var version = tlsContext.getNegotiatedValue(TlsProperty.version())
-                    .orElseThrow(() -> TlsAlert.noNegotiatedProperty(TlsProperty.version()));
+                    .orElseThrow(() -> {
+                        throw new TlsAlert("Missing negotiated property: " + TlsProperty.version().id(), TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR);
+                    });
             var dataMessage = new ApplicationDataMessage(version, TlsSource.LOCAL, buffer);
             return write(dataMessage);
         }
@@ -564,7 +586,9 @@ public class AsyncSecureSocketApplicationLayer extends AsyncSocketApplicationLay
 
         try {
             var version = tlsContext.getNegotiatedValue(TlsProperty.version())
-                    .orElseThrow(() -> TlsAlert.noNegotiatedProperty(TlsProperty.version()));
+                    .orElseThrow(() -> {
+                        throw new TlsAlert("Missing negotiated property: " + TlsProperty.version().id(), TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR);
+                    });
             var alertMessage = new AlertMessage(
                     version,
                     TlsSource.LOCAL,

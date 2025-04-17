@@ -2,6 +2,8 @@ package it.auties.leap.tls.util;
 
 import it.auties.leap.StableValue;
 import it.auties.leap.tls.alert.TlsAlert;
+import it.auties.leap.tls.alert.TlsAlertLevel;
+import it.auties.leap.tls.alert.TlsAlertType;
 import it.auties.leap.tls.certificate.TlsCertificate;
 import it.auties.leap.tls.cipher.exchange.TlsKeyExchangeType;
 import it.auties.leap.tls.connection.TlsConnectionType;
@@ -14,8 +16,8 @@ import java.security.GeneralSecurityException;
 import java.security.KeyStore;
 import java.security.cert.*;
 import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.List;
+import java.util.stream.Collectors;
 
 public final class CertificateUtils {
     private static final String CLIENT_AUTH_USE_OID = "1.3.6.1.5.5.7.3.2";
@@ -38,13 +40,13 @@ public final class CertificateUtils {
     private static void checkAlgorithm(String expectedAlgorithm, TlsCertificate leafCert) {
         var sigAlgName = leafCert.value().getSigAlgName();
         if (sigAlgName == null || !sigAlgName.toUpperCase().contains(expectedAlgorithm.toUpperCase())) {
-            throw new TlsAlert("Certificate signature algorithm (%s) does not match expected algorithm (%s).".formatted(sigAlgName, expectedAlgorithm));
+            throw new TlsAlert("Certificate signature algorithm (%s) does not match expected algorithm (%s).".formatted(sigAlgName, expectedAlgorithm), TlsAlertLevel.FATAL, TlsAlertType.UNSUPPORTED_CERTIFICATE);
         }
     }
 
     private static TlsCertificate getLeafCert(List<TlsCertificate> certificateChain) {
         if (certificateChain == null || certificateChain.isEmpty()) {
-            throw new TlsAlert("Remote certificate chain is empty.");
+            throw new TlsAlert("Empty certificate chain", TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR);
         }
 
         return certificateChain.getFirst();
@@ -53,50 +55,51 @@ public final class CertificateUtils {
     private static void checkRemote(InetSocketAddress remoteAddress, TlsCertificate leafCert) {
         try {
             HostnameChecker.match(remoteAddress.getHostName(), leafCert.value(), false);
-        } catch (CertificateException e) {
-            throw new TlsAlert("Invalid remote address", e);
+        } catch (CertificateException _) {
+            throw new TlsAlert("Invalid remote address", TlsAlertLevel.FATAL, TlsAlertType.BAD_CERTIFICATE);
         }
     }
 
-    private static void validateCertificate(List<TlsCertificate> trusted, List<TlsCertificate> certificateChain) {
+    private static void validateCertificate(List<TlsCertificate> trustedCertificates, List<TlsCertificate> certificates) {
+        var trustAnchors = trustedCertificates.stream()
+                .map(trustedCertificate -> new TrustAnchor(trustedCertificate.value(), null))
+                .collect(Collectors.toUnmodifiableSet());
+        if (trustAnchors.isEmpty()) {
+            throw new TlsAlert("No trust anchors found", TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR);
+        }
+
         try {
             var certFactory = CertificateFactory.getInstance("X.509");
-            var path = new ArrayList<X509Certificate>();
-            var trustAnchors = new HashSet<TrustAnchor>();
-            for(var trustAnchor : trusted) {
-                path.add(trustAnchor.value());
-                trustAnchors.add(new TrustAnchor(trustAnchor.value(), null));
-            }
-            var certPath = certFactory.generateCertPath(path);
+            var certPath = certFactory.generateCertPath(certificates.stream().map(TlsCertificate::value).toList());
             var pkixParams = new PKIXParameters(trustAnchors);
             pkixParams.setRevocationEnabled(false); // Boolean.getBoolean("com.sun.net.ssl.checkRevocation");
             var cpv = CertPathValidator.getInstance("PKIX");
             cpv.validate(certPath, pkixParams);
         }catch (GeneralSecurityException exception) {
-            throw new TlsAlert("Cannot validate certificate: certificate error", exception);
+            throw new TlsAlert("Cannot validate certificate: " + exception.getMessage(), TlsAlertLevel.FATAL, TlsAlertType.BAD_CERTIFICATE);
         }
     }
 
     @SuppressWarnings("NonStrictComparisonCanBeEquality")
-    public static void validateUsage(X509Certificate certificate, TlsKeyExchangeType type, TlsConnectionType mode) {
-        var keyUsage = certificate.getKeyUsage();
-        var extendedKeyUsage = getExtendedKeyUsageIfParsable(certificate);
+    public static void validateUsage(TlsCertificate certificate, TlsKeyExchangeType type, TlsConnectionType mode) {
+        var keyUsage = certificate.value().getKeyUsage();
+        var extendedKeyUsage = getExtendedKeyUsageIfParsable(certificate.value());
         switch (mode) {
             case CLIENT -> {
                 if(keyUsage != null) {
                     switch (type) {
                         case STATIC -> {
                             if (keyUsage.length <= KU_KEY_ENCIPHERMENT || !keyUsage[KU_KEY_ENCIPHERMENT]) {
-                                throw new TlsAlert("Extended key usage does not permit key encipherment");
+                                throw new TlsAlert("Extended key usage does not permit key encipherment", TlsAlertLevel.FATAL, TlsAlertType.BAD_CERTIFICATE);
                             }
 
                             if (keyUsage.length <= KU_KEY_AGREEMENT || !keyUsage[KU_KEY_AGREEMENT]) {
-                                throw new TlsAlert("Extended key usage does not permit key agreement");
+                                throw new TlsAlert("Extended key usage does not permit key agreement", TlsAlertLevel.FATAL, TlsAlertType.BAD_CERTIFICATE);
                             }
                         }
                         case EPHEMERAL -> {
                             if (keyUsage.length <= KU_SIGNATURE || !keyUsage[KU_SIGNATURE]) {
-                                throw new TlsAlert("Extended key usage does not permit digital signature");
+                                throw new TlsAlert("Extended key usage does not permit digital signature", TlsAlertLevel.FATAL, TlsAlertType.BAD_CERTIFICATE);
                             }
                         }
                     }
@@ -105,19 +108,19 @@ public final class CertificateUtils {
                 if(extendedKeyUsage != null
                         && !extendedKeyUsage.contains(ANY_USE_OID)
                         && !extendedKeyUsage.contains(SERVER_AUTH_USE_OID)) {
-                    throw new TlsAlert("Extended key usage does not permit use for TLS server authentication");
+                    throw new TlsAlert("Extended key usage does not permit use for TLS server authentication", TlsAlertLevel.FATAL, TlsAlertType.BAD_CERTIFICATE);
                 }
             }
 
             case SERVER -> {
                 if (keyUsage != null && (keyUsage.length <= KU_SIGNATURE || !keyUsage[KU_SIGNATURE])) {
-                    throw new TlsAlert("Extended key usage does not permit digital signature");
+                    throw new TlsAlert("Extended key usage does not permit digital signature", TlsAlertLevel.FATAL, TlsAlertType.BAD_CERTIFICATE);
                 }
 
                 if (extendedKeyUsage != null
                         && !extendedKeyUsage.contains(ANY_USE_OID)
                         && !extendedKeyUsage.contains(CLIENT_AUTH_USE_OID)) {
-                    throw new TlsAlert("Extended key usage does not permit use for TLS client authentication");
+                    throw new TlsAlert("Extended key usage does not permit use for TLS client authentication", TlsAlertLevel.FATAL, TlsAlertType.BAD_CERTIFICATE);
                 }
             }
         }
@@ -135,7 +138,7 @@ public final class CertificateUtils {
         return DEFAULT_TRUST_ANCHORS.orElseSet(() -> {
             var file = new File(CertificateUtils.DEFAULT_KEY_STORE_PATH);
             if (!file.isFile() || !file.canRead()) {
-                throw new TlsAlert("Cannot load default trust anchors: " + file + " is not a file or cannot be read");
+                throw new TlsAlert("Cannot load default trust anchors: " + file + " is not a file or cannot be read", TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR);
             }
 
             try {
@@ -157,10 +160,13 @@ public final class CertificateUtils {
 
                         trustAnchors.add(TlsCertificate.of(x509Certificate));
                     }
+                    if(trustAnchors.isEmpty()) {
+                        throw new TlsAlert("No trust anchors found", TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR);
+                    }
                     return trustAnchors;
                 }
             } catch (Throwable throwable) {
-                throw new TlsAlert("Cannot load default trust anchors", throwable);
+                throw new TlsAlert("Cannot load default trust anchors: " + throwable.getMessage(), TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR);
             }
         });
     }

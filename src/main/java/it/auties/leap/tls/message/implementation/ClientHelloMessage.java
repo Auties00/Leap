@@ -2,6 +2,8 @@ package it.auties.leap.tls.message.implementation;
 
 import it.auties.leap.socket.SocketProtocol;
 import it.auties.leap.tls.alert.TlsAlert;
+import it.auties.leap.tls.alert.TlsAlertLevel;
+import it.auties.leap.tls.alert.TlsAlertType;
 import it.auties.leap.tls.cipher.TlsCipherSuite;
 import it.auties.leap.tls.compression.TlsCompression;
 import it.auties.leap.tls.connection.TlsConnection;
@@ -75,14 +77,16 @@ public record ClientHelloMessage(
             var extensionsLength = buffer.remaining() >= INT16_LENGTH ? readBigEndianInt16(buffer) : 0;
             try (var _ = scopedRead(buffer, extensionsLength)) {
                 var extensionTypeToDecoder = context.getNegotiatedValue(TlsProperty.serverExtensions())
-                        .orElseThrow(() -> TlsAlert.noNegotiatedProperty(TlsProperty.serverExtensions()))
+                        .orElseThrow(() -> {
+                            throw new TlsAlert("Missing negotiated property: " + TlsProperty.serverExtensions().id(), TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR);
+                        })
                         .stream()
                         .collect(Collectors.toUnmodifiableMap(TlsExtension::type, Function.identity()));
                 while (buffer.hasRemaining()) {
                     var extensionType = readBigEndianInt16(buffer);
                     var extensionDecoder = extensionTypeToDecoder.get(extensionType);
                     if (extensionDecoder == null) {
-                        throw new TlsAlert("Unknown extension");
+                        throw new TlsAlert("Unknown extension", TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR);
                     }
 
                     var extensionLength = readBigEndianInt16(buffer);
@@ -102,27 +106,27 @@ public record ClientHelloMessage(
 
     public ClientHelloMessage {
         if(randomData == null || randomData.length != CLIENT_RANDOM_LENGTH) {
-            throw new TlsAlert("Invalid random data length");
+            throw new TlsAlert("Invalid random data length", TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR);
         }
 
         if(sessionId == null || sessionId.length != SESSION_ID_LENGTH) {
-            throw new TlsAlert("Invalid session id length");
+            throw new TlsAlert("Invalid session id length", TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR);
         }
 
         if((version.protocol() == SocketProtocol.UDP) == (cookie == null)) {
-            throw new TlsAlert("Invalid dtls cookie");
+            throw new TlsAlert("Invalid dtls cookie", TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR);
         }
 
         if(ciphers == null || ciphers.isEmpty()) {
-            throw new TlsAlert("Invalid ciphers");
+            throw new TlsAlert("Invalid ciphers", TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR);
         }
 
         if(compressions == null || compressions.isEmpty()) {
-            throw new TlsAlert("Invalid compressions");
+            throw new TlsAlert("Invalid compressions", TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR);
         }
 
         if(extensions == null) {
-            throw new TlsAlert("Invalid extensions");
+            throw new TlsAlert("Invalid extensions", TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR);
         }
     }
 
@@ -209,7 +213,9 @@ public record ClientHelloMessage(
 
     private TlsCipherSuite chooseCipher(TlsContext context) {
         var negotiableCiphers = context.getNegotiableValue(TlsProperty.cipher())
-                .orElseThrow(() -> TlsAlert.noNegotiableProperty(TlsProperty.cipher()))
+                .orElseThrow(() -> {
+                    throw new TlsAlert("Missing negotiable property: " + TlsProperty.cipher().id(), TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR);
+                })
                 .stream()
                 .collect(Collectors.toUnmodifiableMap(TlsCipherSuite::id, Function.identity()));
         for(var advertisedCipherId : ciphers) {
@@ -219,12 +225,14 @@ public record ClientHelloMessage(
                 return advertisedCipher;
             }
         }
-        throw new TlsAlert("None of the advertised ciphers are supported or enabled");
+        throw new TlsAlert("None of the advertised ciphers are supported or enabled", TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR);
     }
 
     private void chooseCompression(TlsContext context) {
         var negotiableCompressions = context.getNegotiableValue(TlsProperty.compression())
-                .orElseThrow(() -> TlsAlert.noNegotiableProperty(TlsProperty.compression()))
+                .orElseThrow(() -> {
+                    throw new TlsAlert("Missing negotiable property: " + TlsProperty.compression().id(), TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR);
+                })
                 .stream()
                 .collect(Collectors.toUnmodifiableMap(TlsCompression::id, Function.identity()));
         for(var advertisedCompressionId : compressions) {
@@ -234,6 +242,6 @@ public record ClientHelloMessage(
                 return;
             }
         }
-        throw new TlsAlert("None of the advertised compressions are supported or enabled");
+        throw new TlsAlert("None of the advertised compressions are supported or enabled", TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR);
     }
 }

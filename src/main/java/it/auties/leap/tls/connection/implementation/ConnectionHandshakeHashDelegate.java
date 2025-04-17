@@ -1,6 +1,8 @@
 package it.auties.leap.tls.connection.implementation;
 
 import it.auties.leap.tls.alert.TlsAlert;
+import it.auties.leap.tls.alert.TlsAlertLevel;
+import it.auties.leap.tls.alert.TlsAlertType;
 import it.auties.leap.tls.context.TlsContext;
 import it.auties.leap.tls.connection.TlsConnectionType;
 import it.auties.leap.tls.context.TlsSource;
@@ -69,7 +71,7 @@ public sealed abstract class ConnectionHandshakeHashDelegate {
             var mode = context.localConnectionState().type()
                     ;
             var masterSecret = context.masterSecretKey()
-                    .orElseThrow(() -> new TlsAlert("Master secret key is not available yet"));
+                    .orElseThrow(() -> new TlsAlert("Master secret key is not available yet", TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR));
             var useClientLabel = useClientLabel(source, mode);
             var tlsLabel = useClientLabel ? "client finished" : "server finished";
             var digest = new byte[36];
@@ -116,7 +118,7 @@ public sealed abstract class ConnectionHandshakeHashDelegate {
         public byte[] finish(TlsContext context, TlsSource source) {
             var mode = context.localConnectionState().type();
             var masterSecret = context.masterSecretKey()
-                    .orElseThrow(() -> new TlsAlert("Master secret key is not available yet"));
+                    .orElseThrow(() -> new TlsAlert("Master secret key is not available yet", TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR));
             var useClientLabel = useClientLabel(source, mode);
             var tlsLabel = useClientLabel ? "client finished" : "server finished";
             var result = TlsPrf.tls12Prf(

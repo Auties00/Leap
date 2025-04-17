@@ -1,6 +1,8 @@
 package it.auties.leap.tls.util;
 
 import it.auties.leap.tls.alert.TlsAlert;
+import it.auties.leap.tls.alert.TlsAlertLevel;
+import it.auties.leap.tls.alert.TlsAlertType;
 
 import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
@@ -23,7 +25,7 @@ public final class TlsKeyUtils {
                     .nextBytes(data);
             return data;
         }catch (NoSuchAlgorithmException _) {
-            throw TlsAlert.noSecureRandom();
+            throw new TlsAlert("No secure RNG algorithm", TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR);
         }
     }
 }

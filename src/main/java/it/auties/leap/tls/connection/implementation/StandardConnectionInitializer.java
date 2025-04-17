@@ -1,6 +1,8 @@
 package it.auties.leap.tls.connection.implementation;
 
 import it.auties.leap.tls.alert.TlsAlert;
+import it.auties.leap.tls.alert.TlsAlertLevel;
+import it.auties.leap.tls.alert.TlsAlertType;
 import it.auties.leap.tls.cipher.exchange.TlsExchangeMac;
 import it.auties.leap.tls.connection.TlsConnectionInitializer;
 import it.auties.leap.tls.context.TlsContext;
@@ -32,12 +34,12 @@ public final class StandardConnectionInitializer implements TlsConnectionInitial
 
         var localConnectionState = context.localConnectionState();
         var remoteConnectionState = context.remoteConnectionState()
-                .orElseThrow(TlsAlert::noRemoteConnectionState);
+                .orElseThrow(() -> new TlsAlert("No remote connection state was created", TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR));
 
         var negotiatedVersion = context.getNegotiatedValue(TlsProperty.version())
-                .orElseThrow(() -> TlsAlert.noNegotiatedProperty(TlsProperty.version()));
+                .orElseThrow(() -> new TlsAlert("Missing negotiated property: " + TlsProperty.version().id(), TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR));
         var negotiatedCipher = context.getNegotiatedValue(TlsProperty.cipher())
-                .orElseThrow(() -> TlsAlert.noNegotiatedProperty(TlsProperty.cipher()));
+                .orElseThrow(() -> new TlsAlert("No cipher was negotiated", TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR));
         var clientRandom = switch (mode) {
             case CLIENT -> localConnectionState.randomData();
             case SERVER -> remoteConnectionState.randomData();
@@ -175,7 +177,7 @@ public final class StandardConnectionInitializer implements TlsConnectionInitial
                 remoteConnectionState.setCipher(remoteCipher);
             }
         } else {
-            throw new TlsAlert("TLS 1.1+ should not be negotiating exportable ciphersuites");
+            throw new TlsAlert("TLS 1.1+ should not be negotiating exportable ciphersuites", TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR);
         }
     }
 

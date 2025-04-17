@@ -1,6 +1,8 @@
 package it.auties.leap.tls.extension.implementation;
 
 import it.auties.leap.tls.alert.TlsAlert;
+import it.auties.leap.tls.alert.TlsAlertLevel;
+import it.auties.leap.tls.alert.TlsAlertType;
 import it.auties.leap.tls.cipher.TlsGrease;
 import it.auties.leap.tls.context.TlsContext;
 import it.auties.leap.tls.context.TlsSource;
@@ -44,10 +46,10 @@ public final class SupportedVersionsExtension implements TlsExtension.Configurab
     public Optional<? extends TlsExtension.Configured.Client> configureClient(TlsContext context, int messageLength) {
         var supportedVersions = new ArrayList<TlsVersionId>();
         context.getNegotiableValue(TlsProperty.version())
-                .orElseThrow(() -> TlsAlert.noNegotiableProperty(TlsProperty.version()))
+                .orElseThrow(() -> new TlsAlert("Missing negotiable property: " + TlsProperty.version().id(), TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR))
                 .forEach(version -> supportedVersions.add(version.id()));
         var grease = context.getNegotiableValue(TlsProperty.clientExtensions())
-                .orElseThrow(() -> TlsAlert.noNegotiableProperty(TlsProperty.clientExtensions()))
+                .orElseThrow(() -> new TlsAlert("Missing negotiable property: " + TlsProperty.clientExtensions().id(), TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR))
                 .stream()
                 .anyMatch(entry -> TlsGrease.isGrease(entry.type()));
         if (grease) {
@@ -59,10 +61,10 @@ public final class SupportedVersionsExtension implements TlsExtension.Configurab
     @Override
     public Optional<? extends TlsExtension.Configured.Server> configureServer(TlsContext context, int messageLength) {
         var version = context.getNegotiableValue(TlsProperty.version())
-                .orElseThrow(() -> TlsAlert.noNegotiableProperty(TlsProperty.version()))
+                .orElseThrow(() -> new TlsAlert("Missing negotiable property: " + TlsProperty.version().id(), TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR))
                 .stream()
                 .reduce((first, second) -> first.id().value() > second.id().value() ? first : second)
-                .orElseThrow(() -> TlsAlert.noNegotiableProperty(TlsProperty.version()));
+                .orElseThrow(() -> new TlsAlert("Missing negotiable property: " + TlsProperty.version().id(), TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR));
         return Optional.of(new ConfiguredServer(version));
     }
 
@@ -99,12 +101,12 @@ public final class SupportedVersionsExtension implements TlsExtension.Configurab
             var minor = readBigEndianInt8(buffer);
             var versionId = TlsVersionId.of(major, minor);
             var supportedVersions = context.getNegotiableValue(TlsProperty.version())
-                    .orElseThrow(() -> TlsAlert.noNegotiableProperty(TlsProperty.version()))
+                    .orElseThrow(() -> new TlsAlert("Missing negotiable property: " + TlsProperty.version().id(), TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR))
                     .stream()
                     .collect(Collectors.toUnmodifiableMap(TlsVersion::id, Function.identity()));
             var supportedVersion = supportedVersions.get(versionId);
             if(supportedVersion == null) {
-                throw new TlsAlert("Remote tried to negotiate a version that wasn't advertised");
+                throw new TlsAlert("Remote tried to negotiate a version that wasn't advertised", TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR);
             }
             var extension = new ConfiguredServer(supportedVersion);
             return Optional.of(extension);

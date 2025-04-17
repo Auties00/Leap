@@ -1,5 +1,7 @@
 package it.auties.leap.tls.cipher.mode;
 
+import it.auties.leap.tls.alert.TlsAlertLevel;
+import it.auties.leap.tls.alert.TlsAlertType;
 import it.auties.leap.tls.cipher.engine.TlsCipherEngine;
 import it.auties.leap.tls.context.TlsContext;
 import it.auties.leap.tls.alert.TlsAlert;
@@ -18,7 +20,7 @@ public sealed abstract class TlsCipher {
 
     protected TlsCipher(TlsCipherEngine engine, byte[] fixedIv, TlsExchangeMac authenticator) {
         if(fixedIv == null || fixedIv.length != fixedIvLength()) {
-            throw new TlsAlert("Unexpected IV length");
+            throw new TlsAlert("Unexpected IV length", TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR);
         }
 
         this.engine = engine;
@@ -84,11 +86,11 @@ public sealed abstract class TlsCipher {
 
         var contentLen = bb.remaining() - tagLen;
         if (contentLen < 0) {
-            throw new TlsAlert("bad record");
+            throw new TlsAlert("bad record", TlsAlertLevel.FATAL, TlsAlertType.BAD_RECORD_MAC);
         }
 
         if (!checkMacTags(tagLen, contentType, bb, sequence, false)) {
-            throw new TlsAlert("bad record MAC");
+            throw new TlsAlert("bad record MAC", TlsAlertLevel.FATAL, TlsAlertType.BAD_RECORD_MAC);
         }
     }
 
@@ -107,11 +109,11 @@ public sealed abstract class TlsCipher {
 
         var contentLen = bb.remaining() - tagLen;
         if (contentLen < 0) {
-            throw new TlsAlert("bad record");
+            throw new TlsAlert("bad record", TlsAlertLevel.FATAL, TlsAlertType.BAD_RECORD_MAC);
         }
 
         if (!checkMacTags(tagLen, contentType, bb, sequence, false)) {
-            throw new TlsAlert("bad record MAC");
+            throw new TlsAlert("bad record MAC", TlsAlertLevel.FATAL, TlsAlertType.BAD_RECORD_MAC);
         }
 
         var cipheredLength = bb.remaining();
@@ -126,7 +128,7 @@ public sealed abstract class TlsCipher {
         var macOffset = lim - tagLen;
         bb.limit(macOffset);
         var hash = authenticator.createAuthenticationHmacBlock(contentType, bb, sequence, isSimulated)
-                .orElseThrow(() -> new TlsAlert("Expected mac capabilities from an authenticator with an HMAC"));
+                .orElseThrow(() -> new TlsAlert("Expected mac capabilities from an authenticator with an HMAC", TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR));
         bb.position(macOffset);
         bb.limit(lim);
         try {
@@ -154,7 +156,7 @@ public sealed abstract class TlsCipher {
     public abstract non-sealed static class Block extends TlsCipher {
         protected Block(TlsCipherEngine engine, byte[] fixedIv, TlsExchangeMac authenticator) {
             if(engine != null && !(engine instanceof TlsCipherEngine.Block)) {
-                throw new TlsAlert("Expected block engine");
+                throw new TlsAlert("Expected block engine", TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR);
             }
 
             super(engine, fixedIv, authenticator);
@@ -169,7 +171,7 @@ public sealed abstract class TlsCipher {
     public abstract non-sealed static class Stream extends TlsCipher {
         protected Stream(TlsCipherEngine engine, byte[] fixedIv, TlsExchangeMac authenticator) {
             if(engine != null && !(engine instanceof TlsCipherEngine.Stream)) {
-                throw new TlsAlert("Expected stream engine");
+                throw new TlsAlert("Expected stream engine", TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR);
             }
             super(engine, fixedIv, authenticator);
         }

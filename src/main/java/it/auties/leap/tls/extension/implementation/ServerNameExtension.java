@@ -1,6 +1,8 @@
 package it.auties.leap.tls.extension.implementation;
 
 import it.auties.leap.tls.alert.TlsAlert;
+import it.auties.leap.tls.alert.TlsAlertLevel;
+import it.auties.leap.tls.alert.TlsAlertType;
 import it.auties.leap.tls.context.TlsContext;
 import it.auties.leap.tls.context.TlsSource;
 import it.auties.leap.tls.extension.TlsExtension;
@@ -95,7 +97,9 @@ public record ServerNameExtension(
             if(!buffer.hasRemaining()) {
                 return switch (context.localConnectionState().type()) {
                     case CLIENT -> context.getNegotiatedValue(TlsProperty.clientExtensions())
-                            .orElseThrow(() -> TlsAlert.noNegotiatedProperty(TlsProperty.clientExtensions()))
+                            .orElseThrow(() -> {
+                                throw new TlsAlert("Missing negotiated property: " + TlsProperty.clientExtensions().id(), TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR);
+                            })
                             .stream()
                             .filter(entry -> entry instanceof ServerNameExtension.Configured)
                             .map(entry -> (ServerNameExtension.Configured) entry)
@@ -113,7 +117,7 @@ public record ServerNameExtension(
                 var names = new ArrayList<TlsName>();
                 while (buffer.hasRemaining()) {
                     var name = TlsName.of(buffer)
-                            .orElseThrow(() -> new TlsAlert("Invalid server name type"));
+                            .orElseThrow(() -> new TlsAlert("Invalid server name type", TlsAlertLevel.FATAL, TlsAlertType.ILLEGAL_PARAMETER));
                     names.add(name);
                 }
                 var extension = new ServerNameExtension.Configured(names, listLength);

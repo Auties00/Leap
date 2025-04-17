@@ -16,15 +16,15 @@ public record TlsMessageMetadata(
 ) {
     public TlsMessageMetadata {
         if(contentType == null) {
-            throw new TlsAlert("Invalid content type");
+            throw new TlsAlert("Invalid content type", TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR);
         }
 
         if(version == null) {
-            throw new TlsAlert("Invalid version");
+            throw new TlsAlert("Invalid version", TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR);
         }
 
         if(source == null) {
-            throw new TlsAlert("Invalid source");
+            throw new TlsAlert("Invalid source", TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR);
         }
     }
 

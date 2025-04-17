@@ -1,7 +1,9 @@
 package it.auties.leap.tls.context;
 
 import it.auties.leap.tls.alert.TlsAlert;
-import it.auties.leap.tls.certificate.validator.TlsCertificateValidator;
+import it.auties.leap.tls.alert.TlsAlertLevel;
+import it.auties.leap.tls.alert.TlsAlertType;
+import it.auties.leap.tls.certificate.TlsCertificateValidator;
 import it.auties.leap.tls.cipher.TlsCipherSuite;
 import it.auties.leap.tls.compression.TlsCompression;
 import it.auties.leap.tls.connection.TlsConnection;
@@ -11,7 +13,7 @@ import it.auties.leap.tls.extension.TlsExtensionOwner;
 import it.auties.leap.tls.message.TlsHandshakeMessageDeserializer;
 import it.auties.leap.tls.message.TlsMessageDeserializer;
 import it.auties.leap.tls.property.TlsProperty;
-import it.auties.leap.tls.secret.TlsMasterSecretGenerator;
+import it.auties.leap.tls.secret.master.TlsMasterSecretGenerator;
 import it.auties.leap.tls.secret.TlsSecret;
 import it.auties.leap.tls.version.TlsVersion;
 
@@ -137,7 +139,7 @@ public class TlsContext {
     public <I, O> TlsContext addNegotiatedProperty(TlsProperty<I, O> property, O propertyValue) {
         var value = (PropertyValue<I, O>) properties.get(property);
         if(value == null) {
-            throw TlsAlert.noNegotiableProperty(property);
+            throw new TlsAlert("Missing negotiable property: " + property.id(), TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR);
         }
 
         value.setNegotiated(propertyValue);

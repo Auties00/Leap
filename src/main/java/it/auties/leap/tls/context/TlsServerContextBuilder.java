@@ -1,12 +1,12 @@
 package it.auties.leap.tls.context;
 
-import it.auties.leap.tls.certificate.validator.TlsCertificateValidator;
+import it.auties.leap.tls.certificate.TlsCertificateValidator;
 import it.auties.leap.tls.cipher.TlsCipherSuite;
 import it.auties.leap.tls.compression.TlsCompression;
 import it.auties.leap.tls.connection.TlsConnectionInitializer;
 import it.auties.leap.tls.connection.TlsConnectionType;
 import it.auties.leap.tls.extension.TlsExtensionOwner;
-import it.auties.leap.tls.secret.TlsMasterSecretGenerator;
+import it.auties.leap.tls.secret.master.TlsMasterSecretGenerator;
 
 import java.util.Objects;
 

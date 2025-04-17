@@ -1,6 +1,8 @@
 package it.auties.leap.tls.message.implementation;
 
 import it.auties.leap.tls.alert.TlsAlert;
+import it.auties.leap.tls.alert.TlsAlertLevel;
+import it.auties.leap.tls.alert.TlsAlertType;
 import it.auties.leap.tls.connection.TlsHandshakeStatus;
 import it.auties.leap.tls.context.TlsContext;
 import it.auties.leap.tls.context.TlsSource;
@@ -24,7 +26,7 @@ public record ServerHelloDoneMessage(
         @Override
         public TlsHandshakeMessage deserialize(TlsContext context, ByteBuffer buffer, TlsMessageMetadata metadata) {
             if(buffer.hasRemaining()) {
-                throw new TlsAlert("Expected server hello done message to have an empty payload", URI.create("https://datatracker.ietf.org/doc/html/rfc5246"), "7.4.5");
+                throw new TlsAlert("Expected server hello done message to have an empty payload", URI.create("https://datatracker.ietf.org/doc/html/rfc5246"), "7.4.5", TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR);
             }
 
             return new ServerHelloDoneMessage(metadata.version(), metadata.source());
@@ -59,7 +61,7 @@ public record ServerHelloDoneMessage(
     public void apply(TlsContext context) {
         switch (context.localConnectionState().type()) {
             case CLIENT -> context.remoteConnectionState()
-                    .orElseThrow(TlsAlert::noRemoteConnectionState)
+                    .orElseThrow(() -> new TlsAlert("No remote connection state was created", TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR))
                     .setHandshakeStatus(TlsHandshakeStatus.HANDSHAKE_STARTED);
             case SERVER -> context.localConnectionState()
                     .setHandshakeStatus(TlsHandshakeStatus.HANDSHAKE_STARTED);

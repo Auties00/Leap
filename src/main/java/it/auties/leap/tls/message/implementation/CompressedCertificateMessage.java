@@ -1,6 +1,8 @@
 package it.auties.leap.tls.message.implementation;
 
 import it.auties.leap.tls.alert.TlsAlert;
+import it.auties.leap.tls.alert.TlsAlertLevel;
+import it.auties.leap.tls.alert.TlsAlertType;
 import it.auties.leap.tls.certificate.TlsCertificateCompressionAlgorithm;
 import it.auties.leap.tls.context.TlsContext;
 import it.auties.leap.tls.context.TlsSource;
@@ -32,13 +34,15 @@ public record CompressedCertificateMessage(
         @Override
         public TlsHandshakeMessage deserialize(TlsContext context, ByteBuffer buffer, TlsMessageMetadata metadata) {
             var negotiatedAlgorithms = context.getNegotiatedValue(TlsProperty.certificateCompressionAlgorithms())
-                    .orElseThrow(() -> TlsAlert.noNegotiatedProperty(TlsProperty.certificateCompressionAlgorithms()))
+                    .orElseThrow(() -> {
+                        throw new TlsAlert("Missing negotiated property: " + TlsProperty.certificateCompressionAlgorithms().id(), TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR);
+                    })
                     .stream()
                     .collect(Collectors.toUnmodifiableMap(TlsIdentifiableProperty::id, Function.identity()));
             var algorithmId = readBigEndianInt16(buffer);
             var algorithm = negotiatedAlgorithms.get(algorithmId);
             if(algorithm == null) {
-                throw new TlsAlert("Remote tried to send a compressed certificate using a compression algorithm that wasn't advertised");
+                throw new TlsAlert("Remote tried to send a compressed certificate using a compression algorithm that wasn't advertised", TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR);
             }
 
             var compressedLength = readBigEndianInt16(buffer);

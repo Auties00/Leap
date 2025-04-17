@@ -1,6 +1,8 @@
 package it.auties.leap.tls.message.implementation;
 
 import it.auties.leap.tls.alert.TlsAlert;
+import it.auties.leap.tls.alert.TlsAlertLevel;
+import it.auties.leap.tls.alert.TlsAlertType;
 import it.auties.leap.tls.context.TlsContext;
 import it.auties.leap.tls.context.TlsSource;
 import it.auties.leap.tls.message.*;
@@ -18,7 +20,7 @@ public record ChangeCipherSpecMessage(
     private static final TlsMessageDeserializer DESERIALIZER = (_, buffer, metadata) -> {
         var id = readBigEndianInt8(buffer);
         if(id != ChangeCipherSpecMessage.ID) {
-            throw new TlsAlert("Invalid cipher spec");
+            throw new TlsAlert("Invalid cipher spec", TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR);
         }
 
         return new ChangeCipherSpecMessage(metadata.version(), metadata.source());
@@ -54,12 +56,12 @@ public record ChangeCipherSpecMessage(
             switch (source) {
                 case LOCAL -> context.localConnectionState()
                         .cipher()
-                        .orElseThrow(TlsAlert::noLocalCipher)
+                        .orElseThrow(() -> new TlsAlert("No local cipher", TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR))
                         .setEnabled(true);
                 case REMOTE -> context.remoteConnectionState()
-                        .orElseThrow(TlsAlert::noRemoteConnectionState)
+                        .orElseThrow(() -> new TlsAlert("No remote connection state was created", TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR))
                         .cipher()
-                        .orElseThrow(TlsAlert::noRemoteCipher)
+                        .orElseThrow(() -> new TlsAlert("No remote cipher", TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR))
                         .setEnabled(true);
             }
         }catch (Exception e) {

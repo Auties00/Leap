@@ -1,12 +1,12 @@
 package it.auties.leap.tls.cipher.exchange;
 
+import it.auties.leap.tls.certificate.TlsCertificate;
 import it.auties.leap.tls.context.TlsContext;
-import it.auties.leap.tls.secret.TlsPreMasterSecretGenerator;
+import it.auties.leap.tls.secret.preMaster.TlsPreMasterSecretGenerator;
 import it.auties.leap.tls.secret.TlsSecret;
 import it.auties.leap.tls.util.CertificateUtils;
 
 import java.nio.ByteBuffer;
-import java.security.cert.X509Certificate;
 import java.util.Optional;
 
 public interface TlsKeyExchange {
@@ -20,7 +20,7 @@ public interface TlsKeyExchange {
         return Optional.empty();
     }
 
-    default void acceptsOrThrow(X509Certificate certificate, TlsContext context) {
+    default void acceptsOrThrow(TlsCertificate certificate, TlsContext context) {
         var mode = context.localConnectionState().type();
         CertificateUtils.validateUsage(certificate, type(), mode);
     }

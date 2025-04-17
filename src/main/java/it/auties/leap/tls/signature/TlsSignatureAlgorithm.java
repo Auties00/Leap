@@ -1,22 +1,23 @@
 package it.auties.leap.tls.signature;
 
 import it.auties.leap.tls.alert.TlsAlert;
+import it.auties.leap.tls.alert.TlsAlertLevel;
+import it.auties.leap.tls.alert.TlsAlertType;
 import it.auties.leap.tls.property.TlsIdentifiableProperty;
 
-import java.net.URI;
 import java.util.Objects;
 
 public final class TlsSignatureAlgorithm implements TlsSignature {
     public static TlsSignature of(TlsSignatureAlgorithm.Signature signature, TlsSignatureAlgorithm.Hash hash) {
-        if(signature == null) {
+        if (signature == null) {
             throw new NullPointerException("signature");
         }
 
-        if(hash == null) {
+        if (hash == null) {
             throw new NullPointerException("hash");
         }
 
-        if(signature.intrinsicHash() != hash.equals(Hash.intrinsic())) {
+        if (signature.intrinsicHash() != hash.equals(Hash.intrinsic())) {
             throw new IllegalArgumentException("Hash does not match intrinsic");
         }
 
@@ -25,6 +26,7 @@ public final class TlsSignatureAlgorithm implements TlsSignature {
 
     private final Signature signature;
     private final Hash hash;
+
     private TlsSignatureAlgorithm(Signature signature, Hash hash) {
         this.hash = hash;
         this.signature = signature;
@@ -37,9 +39,7 @@ public final class TlsSignatureAlgorithm implements TlsSignature {
 
     @Override
     public boolean equals(Object other) {
-        return this == other || other instanceof TlsSignatureAlgorithm that
-                && Objects.equals(signature, that.signature)
-                && Objects.equals(hash, that.hash);
+        return this == other || other instanceof TlsSignatureAlgorithm that && Objects.equals(signature, that.signature) && Objects.equals(hash, that.hash);
     }
 
     @Override
@@ -121,11 +121,7 @@ public final class TlsSignatureAlgorithm implements TlsSignature {
 
         public static Signature reservedForPrivateUse(byte id, boolean intrinsicHash) {
             if (id != -32 && id != -31) {
-                throw new TlsAlert(
-                        "Only values from 224-255 (decimal) inclusive are reserved for Private Use",
-                        URI.create("https://www.rfc-editor.org/rfc/rfc5246.html"),
-                        "12"
-                );
+                throw new TlsAlert("Only values from 224-255 (decimal) inclusive are reserved for Private Use", TlsAlertLevel.FATAL, TlsAlertType.ILLEGAL_PARAMETER);
             }
 
             return new Signature(id, intrinsicHash);
@@ -193,11 +189,7 @@ public final class TlsSignatureAlgorithm implements TlsSignature {
 
         public static Hash reservedForPrivateUse(byte id) {
             if (id != -32 && id != -31) {
-                throw new TlsAlert(
-                        "Only values from 224-255 (decimal) inclusive are reserved for Private Use",
-                        URI.create("https://www.rfc-editor.org/rfc/rfc5246.html"),
-                        "12"
-                );
+                throw new TlsAlert("Only values from 224-255 (decimal) inclusive are reserved for Private Use", TlsAlertLevel.FATAL, TlsAlertType.ILLEGAL_PARAMETER);
             }
 
             return new Hash(id);

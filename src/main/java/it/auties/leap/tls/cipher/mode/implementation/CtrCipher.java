@@ -38,7 +38,7 @@ public final class CtrCipher extends TlsCipher.Block {
 
     private CtrCipher(TlsCipherEngine engine, byte[] fixedIv, TlsExchangeMac authenticator) {
         if(!(engine instanceof MagmaEngine)) {
-            throw new TlsAlert("CTR mode is supported only by Magma engines");
+            throw new TlsAlert("CTR mode is supported only by Magma engines", TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR);
         }
 
         super(engine, fixedIv, authenticator);

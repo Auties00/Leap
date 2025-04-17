@@ -1,16 +1,17 @@
 package it.auties.leap.tls.cipher;
 
+import it.auties.leap.tls.alert.TlsAlert;
+import it.auties.leap.tls.alert.TlsAlertLevel;
+import it.auties.leap.tls.alert.TlsAlertType;
 import it.auties.leap.tls.cipher.auth.TlsAuthFactory;
 import it.auties.leap.tls.cipher.engine.TlsCipherEngineFactory;
 import it.auties.leap.tls.cipher.exchange.TlsKeyExchangeFactory;
 import it.auties.leap.tls.cipher.mode.TlsCipherFactory;
-import it.auties.leap.tls.alert.TlsAlert;
 import it.auties.leap.tls.hash.TlsHashFactory;
 import it.auties.leap.tls.property.TlsIdentifiableProperty;
 import it.auties.leap.tls.srtp.SrtpCipherSuite;
 import it.auties.leap.tls.version.TlsVersion;
 
-import java.net.URI;
 import java.util.List;
 import java.util.Objects;
 
@@ -2154,7 +2155,8 @@ public sealed class TlsCipherSuite implements TlsIdentifiableProperty<Integer> p
         if(id >>> 8 != 0xFF) {
             throw new TlsAlert(
                     "Only values from 0xFF00-0xFFFF inclusive are reserved for Private Use",
-                    URI.create("https://www.iana.org/assignments/tls-parameters/tls-parameters-4.csv")
+                    TlsAlertLevel.FATAL,
+                    TlsAlertType.INTERNAL_ERROR
             );
         }
 

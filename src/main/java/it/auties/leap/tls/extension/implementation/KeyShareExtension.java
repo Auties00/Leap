@@ -1,6 +1,8 @@
 package it.auties.leap.tls.extension.implementation;
 
 import it.auties.leap.tls.alert.TlsAlert;
+import it.auties.leap.tls.alert.TlsAlertLevel;
+import it.auties.leap.tls.alert.TlsAlertType;
 import it.auties.leap.tls.connection.TlsConnection;
 import it.auties.leap.tls.connection.TlsConnectionType;
 import it.auties.leap.tls.context.TlsContext;
@@ -76,7 +78,7 @@ public final class KeyShareExtension implements TlsExtension.Configurable {
         var entries = new ArrayList<KeyShareEntry>();
         var entriesLength = 0;
         var supportedGroups = context.getNegotiableValue(TlsProperty.supportedGroups())
-                .orElseThrow(() -> TlsAlert.noNegotiableProperty(TlsProperty.supportedGroups()));
+                .orElseThrow(() -> new TlsAlert("Missing negotiable property: " + TlsProperty.supportedGroups().id(), TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR));
         for(var supportedGroup : supportedGroups) {
             var keyPair = supportedGroup.generateKeyPair(context);
             var entry = new KeyShareEntry(supportedGroup, keyPair.getPublic(), keyPair.getPrivate());
@@ -115,14 +117,14 @@ public final class KeyShareExtension implements TlsExtension.Configurable {
                         var selectedGroup = chooseGroup(localState);
                         localState.chooseEphemeralKeyPair(selectedGroup);
                         context.remoteConnectionState()
-                                .orElseThrow(TlsAlert::noRemoteConnectionState)
+                                .orElseThrow(() -> new TlsAlert("No remote connection state was created", TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR))
                                 .chooseEphemeralKeyPair(selectedGroup);
                     }
                 }
 
                 case REMOTE -> {
                     var remoteState = context.remoteConnectionState()
-                            .orElseThrow(TlsAlert::noRemoteConnectionState);
+                            .orElseThrow(() -> new TlsAlert("No remote connection state was created", TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR));
                     for(var entry : entries) {
                         remoteState.addEphemeralKeyPair(TlsKeyPair.of(entry.namedGroup(), entry.publicKey(), entry.privateKey()));
                     }
@@ -148,7 +150,7 @@ public final class KeyShareExtension implements TlsExtension.Configurable {
                 }
             }
 
-            throw new TlsAlert("There isn't a proposed key share that matches an advertised supported group");
+            throw new TlsAlert("There isn't a proposed key share that matches an advertised supported group", TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR);
         }
 
         @Override
@@ -156,7 +158,9 @@ public final class KeyShareExtension implements TlsExtension.Configurable {
             var entries = new ArrayList<KeyShareEntry>();
             var entriesSize = buffer.remaining();
             var supportedGroups = context.getNegotiableValue(TlsProperty.supportedGroups())
-                    .orElseThrow(() -> TlsAlert.noNegotiableProperty(TlsProperty.supportedGroups()))
+                    .orElseThrow(() -> {
+                        throw new TlsAlert("Missing negotiable property: " + TlsProperty.supportedGroups().id(), TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR);
+                    })
                     .stream()
                     .collect(Collectors.toUnmodifiableMap(TlsIdentifiableProperty::id, Function.identity()));
             while (buffer.hasRemaining()) {
@@ -168,11 +172,11 @@ public final class KeyShareExtension implements TlsExtension.Configurable {
                     var entry = new KeyShareEntry(namedGroup, publicKey, null, rawPublicKey);
                     entries.add(entry);
                 }else if (context.localConnectionState().type() == TlsConnectionType.CLIENT) {
-                    throw new TlsAlert("Remote tried to negotiate a key from a named group that wasn't advertised");
+                    throw new TlsAlert("Remote tried to negotiate a key from a named group that wasn't advertised", TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR);
                 }
             }
             if(context.localConnectionState().type() == TlsConnectionType.CLIENT && entries.size() > 1) {
-                throw new TlsAlert("Remote tried to negotiate too many keys");
+                throw new TlsAlert("Remote tried to negotiate too many keys", TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR);
             }
             var extension = new KeyShareExtension.Configured(entries, entriesSize);
             return Optional.of(extension);

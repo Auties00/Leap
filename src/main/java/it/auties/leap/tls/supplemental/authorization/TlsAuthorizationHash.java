@@ -101,7 +101,7 @@ public sealed interface TlsAuthorizationHash extends TlsIdentifiableProperty<Byt
 
         public static None of(ByteBuffer buffer) {
             if (buffer.hasRemaining()) {
-                throw new TlsAlert("Expected empty payload");
+                throw new TlsAlert("Expected empty payload", TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR);
             }
 
             return INSTANCE;

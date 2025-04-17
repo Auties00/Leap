@@ -1,6 +1,8 @@
 package it.auties.leap.tls.message.implementation;
 
 import it.auties.leap.tls.alert.TlsAlert;
+import it.auties.leap.tls.alert.TlsAlertLevel;
+import it.auties.leap.tls.alert.TlsAlertType;
 import it.auties.leap.tls.cipher.exchange.TlsKeyExchangeType;
 import it.auties.leap.tls.connection.TlsConnection;
 import it.auties.leap.tls.connection.TlsConnectionType;
@@ -55,7 +57,9 @@ public record HelloRetryRequestMessage(
             var compressionId = readBigEndianInt8(buffer);
 
             var extensionTypeToDecoder = context.getNegotiatedValue(TlsProperty.clientExtensions())
-                    .orElseThrow(() -> TlsAlert.noNegotiatedProperty(TlsProperty.clientExtensions()))
+                    .orElseThrow(() -> {
+                        throw new TlsAlert("Missing negotiated property: " + TlsProperty.clientExtensions().id(), TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR);
+                    })
                     .stream()
                     .collect(Collectors.toUnmodifiableMap(TlsExtension::type, Function.identity()));
             var extensions = new ArrayList<TlsExtension.Configured.Server>();
@@ -65,7 +69,7 @@ public record HelloRetryRequestMessage(
                     var extensionType = readBigEndianInt16(buffer);
                     var extensionDecoder = extensionTypeToDecoder.get(extensionType);
                     if (extensionDecoder == null) {
-                        throw new TlsAlert("Unknown extension");
+                        throw new TlsAlert("Unknown extension", TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR);
                     }
 
                     var extensionLength = readBigEndianInt16(buffer);
@@ -82,15 +86,15 @@ public record HelloRetryRequestMessage(
 
     public HelloRetryRequestMessage {
         if(randomData == null || randomData.length != SERVER_RANDOM_LENGTH) {
-            throw new TlsAlert("Invalid random data length");
+            throw new TlsAlert("Invalid random data length", TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR);
         }
 
         if(sessionId == null || sessionId.length != SESSION_ID_LENGTH) {
-            throw new TlsAlert("Invalid session id length");
+            throw new TlsAlert("Invalid session id length", TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR);
         }
 
         if(extensions == null) {
-            throw new TlsAlert("Invalid extensions");
+            throw new TlsAlert("Invalid extensions", TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR);
         }
     }
 
@@ -150,7 +154,9 @@ public record HelloRetryRequestMessage(
                 context.setRemoteConnectionState(credentials);
 
                 var negotiatedCipher = context.getNegotiableValue(TlsProperty.cipher())
-                        .orElseThrow(() -> TlsAlert.noNegotiableProperty(TlsProperty.cipher()))
+                        .orElseThrow(() -> {
+                            throw new TlsAlert("Missing negotiable property: " + TlsProperty.cipher().id(), TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR);
+                        })
                         .stream()
                         .filter(entry -> entry.id() == cipher)
                         .findFirst()
@@ -158,7 +164,9 @@ public record HelloRetryRequestMessage(
                 context.addNegotiatedProperty(TlsProperty.cipher(), negotiatedCipher);
 
                 var negotiatedCompression = context.getNegotiableValue(TlsProperty.compression())
-                        .orElseThrow(() -> TlsAlert.noNegotiableProperty(TlsProperty.compression()))
+                        .orElseThrow(() -> {
+                            throw new TlsAlert("Missing negotiable property: " + TlsProperty.compression().id(), TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR);
+                        })
                         .stream()
                         .filter(entry -> entry.id() == compression)
                         .findFirst()
@@ -178,7 +186,7 @@ public record HelloRetryRequestMessage(
 
                 if(version == TlsVersion.TLS13 || version == TlsVersion.DTLS13) {
                     if(negotiatedCipher.keyExchangeFactory().type() == TlsKeyExchangeType.STATIC) {
-                        throw new TlsAlert("Static key exchange not supported");
+                        throw new TlsAlert("Static key exchange not supported", TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR);
                     }
 
                     var localKeyExchange = negotiatedCipher.keyExchangeFactory()
@@ -188,13 +196,15 @@ public record HelloRetryRequestMessage(
                     var remoteKeyExchange = negotiatedCipher.keyExchangeFactory()
                             .newRemoteKeyExchange(context, ByteBuffer.allocate(0));
                     context.remoteConnectionState()
-                            .orElseThrow(TlsAlert::noRemoteConnectionState)
+                            .orElseThrow(() -> new TlsAlert("No remote connection state was created", TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR))
                             .setKeyExchange(remoteKeyExchange);
                     context.connectionInitializer()
                             .initialize(context);
                 }else {
                     context.getNegotiatedValue(TlsProperty.clientExtensions())
-                            .orElseThrow(() -> TlsAlert.noNegotiatedProperty(TlsProperty.clientExtensions()))
+                            .orElseThrow(() -> {
+                                throw new TlsAlert("Missing negotiated property: " + TlsProperty.clientExtensions().id(), TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR);
+                            })
                             .stream()
                             .filter(entry -> !seen.contains(entry.type()))
                             .forEach(entry -> entry.apply(context, source));

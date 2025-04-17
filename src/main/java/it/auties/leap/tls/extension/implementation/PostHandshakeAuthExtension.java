@@ -1,6 +1,8 @@
 package it.auties.leap.tls.extension.implementation;
 
 import it.auties.leap.tls.alert.TlsAlert;
+import it.auties.leap.tls.alert.TlsAlertLevel;
+import it.auties.leap.tls.alert.TlsAlertType;
 import it.auties.leap.tls.context.TlsContext;
 import it.auties.leap.tls.context.TlsSource;
 import it.auties.leap.tls.extension.TlsExtension;
@@ -36,7 +38,7 @@ public record PostHandshakeAuthExtension(
         var connection = switch (source) {
             case LOCAL -> context.localConnectionState();
             case REMOTE -> context.remoteConnectionState()
-                    .orElseThrow(TlsAlert::noRemoteConnectionState);
+                    .orElseThrow(() -> new TlsAlert("No remote connection state was created", TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR));
         };
         switch (connection.type()) {
             case CLIENT -> context.addNegotiableProperty(TlsProperty.postHandshakeAuth(), true);

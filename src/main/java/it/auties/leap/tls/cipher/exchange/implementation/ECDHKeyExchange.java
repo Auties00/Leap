@@ -1,6 +1,8 @@
 package it.auties.leap.tls.cipher.exchange.implementation;
 
 import it.auties.leap.tls.alert.TlsAlert;
+import it.auties.leap.tls.alert.TlsAlertLevel;
+import it.auties.leap.tls.alert.TlsAlertType;
 import it.auties.leap.tls.cipher.exchange.TlsKeyExchange;
 import it.auties.leap.tls.cipher.exchange.TlsKeyExchangeFactory;
 import it.auties.leap.tls.cipher.exchange.TlsKeyExchangeType;
@@ -10,7 +12,7 @@ import it.auties.leap.tls.group.TlsKeyPair;
 import it.auties.leap.tls.group.TlsSupportedEllipticCurve;
 import it.auties.leap.tls.group.TlsSupportedFiniteField;
 import it.auties.leap.tls.property.TlsProperty;
-import it.auties.leap.tls.secret.TlsPreMasterSecretGenerator;
+import it.auties.leap.tls.secret.preMaster.TlsPreMasterSecretGenerator;
 
 import javax.crypto.interfaces.DHPublicKey;
 import java.nio.ByteBuffer;
@@ -113,16 +115,18 @@ public sealed abstract class ECDHKeyExchange implements TlsKeyExchange {
 
                 case EPHEMERAL -> {
                     var remoteKeyExchange = context.remoteConnectionState()
-                            .orElseThrow(TlsAlert::noRemoteConnectionState)
+                            .orElseThrow(() -> new TlsAlert("No remote connection state was created", TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR))
                             .keyExchange()
-                            .orElseThrow(TlsAlert::noRemoteKeyExchange);
+                            .orElseThrow(() -> new TlsAlert("No remote key exchange was created", TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR));
                     var group = context.getNegotiatedValue(TlsProperty.supportedGroups())
-                            .orElseThrow(() -> TlsAlert.noNegotiatedProperty(TlsProperty.supportedGroups()))
+                            .orElseThrow(() -> {
+                                throw new TlsAlert("Missing negotiated property: " + TlsProperty.supportedGroups().id(), TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR);
+                            })
                             .stream()
                             .filter(entry -> entry instanceof TlsSupportedFiniteField supportedFiniteField
                                     && supportedFiniteField.accepts(remoteKeyExchange))
                             .findFirst()
-                            .orElseThrow(TlsAlert::noSupportedFiniteField);
+                            .orElseThrow(() -> new TlsAlert("No supported group is a finite field", TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR));
                     var keyPair = group.generateKeyPair(context);
                     var publicKey = (DHPublicKey) keyPair.getPublic();
                     localConnectionState.addEphemeralKeyPair(TlsKeyPair.of(group, keyPair))
@@ -143,9 +147,9 @@ public sealed abstract class ECDHKeyExchange implements TlsKeyExchange {
             return switch (context.localConnectionState().type()) {
                 case CLIENT -> {
                     var remoteKeyExchange = context.remoteConnectionState()
-                            .orElseThrow(TlsAlert::noRemoteConnectionState)
+                            .orElseThrow(() -> new TlsAlert("No remote connection state was created", TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR))
                             .keyExchange()
-                            .orElseThrow(TlsAlert::noRemoteKeyExchange);
+                            .orElseThrow(() -> new TlsAlert("No remote key exchange was created", TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR));
                     if(!(remoteKeyExchange instanceof Server remoteEcdhKeyExchange)) {
                         throw TlsAlert.keyExchangeTypeMismatch("ECDH");
                     }
@@ -173,14 +177,16 @@ public sealed abstract class ECDHKeyExchange implements TlsKeyExchange {
                 }
                 case CLIENT -> {
                     var supportedGroups = context.getNegotiatedValue(TlsProperty.supportedGroups())
-                            .orElseThrow(() -> TlsAlert.noNegotiatedProperty(TlsProperty.supportedGroups()));
+                            .orElseThrow(() -> {
+                                throw new TlsAlert("Missing negotiated property: " + TlsProperty.supportedGroups().id(), TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR);
+                            });
                     var ecType = readBigEndianInt8(ephemeralKeyExchangeSource);
                     var parameters = supportedGroups.stream()
                             .filter(group -> group instanceof TlsSupportedEllipticCurve supportedEllipticCurve
                                     && supportedEllipticCurve.parametersDeserializer().accepts(ecType))
                             .findFirst()
                             .map(group -> (TlsSupportedEllipticCurve) group)
-                            .orElseThrow(TlsAlert::noSupportedEllipticCurve)
+                            .orElseThrow(() -> new TlsAlert("No supported group is an elliptic curve", TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR))
                             .parametersDeserializer()
                             .deserialize(ephemeralKeyExchangeSource);
                     var publicKey = readBytesBigEndian8(ephemeralKeyExchangeSource);
@@ -191,12 +197,14 @@ public sealed abstract class ECDHKeyExchange implements TlsKeyExchange {
 
         private Server newServerKeyExchange(TlsContext context) {
             var group = context.getNegotiatedValue(TlsProperty.supportedGroups())
-                    .orElseThrow(() -> TlsAlert.noNegotiatedProperty(TlsProperty.supportedGroups()))
+                    .orElseThrow(() -> {
+                        throw new TlsAlert("Missing negotiated property: " + TlsProperty.supportedGroups().id(), TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR);
+                    })
                     .stream()
                     .filter(supportedGroup -> supportedGroup instanceof TlsSupportedEllipticCurve)
                     .map(supportedGroup -> (TlsSupportedEllipticCurve) supportedGroup)
                     .findFirst()
-                    .orElseThrow(TlsAlert::noSupportedEllipticCurve);
+                    .orElseThrow(() -> new TlsAlert("No supported group is an elliptic curve", TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR));
             var keyPair = group.generateKeyPair(context);
             context.localConnectionState()
                     .addEphemeralKeyPair(TlsKeyPair.of(group, keyPair))

@@ -1,6 +1,8 @@
 package it.auties.leap.tls.cipher.auth.implementation;
 
 import it.auties.leap.tls.alert.TlsAlert;
+import it.auties.leap.tls.alert.TlsAlertLevel;
+import it.auties.leap.tls.alert.TlsAlertType;
 import it.auties.leap.tls.certificate.TlsCertificate;
 import it.auties.leap.tls.cipher.auth.TlsAuth;
 import it.auties.leap.tls.cipher.auth.TlsAuthFactory;
@@ -33,7 +35,7 @@ public final class AnonymousAuth implements TlsAuth {
     @Override
     public TlsCertificate validate(TlsContext context, List<TlsCertificate> certificates, List<TlsCertificate> trustAnchors) {
         if(certificates != null && !certificates.isEmpty()) {
-            throw new TlsAlert("Anonymous auth error: expected no certificates");
+            throw new TlsAlert("Anonymous auth error: expected no certificates", TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR);
         }
 
         return null;

@@ -1,6 +1,8 @@
 package it.auties.leap.tls.cipher;
 
 import it.auties.leap.tls.alert.TlsAlert;
+import it.auties.leap.tls.alert.TlsAlertLevel;
+import it.auties.leap.tls.alert.TlsAlertType;
 import it.auties.leap.tls.cipher.auth.TlsAuthFactory;
 import it.auties.leap.tls.cipher.engine.TlsCipherEngine;
 import it.auties.leap.tls.cipher.engine.TlsCipherEngineFactory;
@@ -19,22 +21,25 @@ public final class TlsGrease {
     private static final TlsCipherEngineFactory ENGINE_FACTORY = new TlsCipherEngineFactory() {
         @Override
         public TlsCipherEngine newCipherEngine(boolean forEncryption, byte[] key) {
-            throw new TlsAlert("GREASE cipher should not be selected");
+            return throwOnUsage();
         }
 
         @Override
         public int keyLength() {
-            throw new TlsAlert("GREASE cipher should not be selected");
+            return throwOnUsage();
         }
 
         @Override
         public int blockLength() {
-            throw new TlsAlert("GREASE cipher should not be selected");
+            return throwOnUsage();
         }
     };
-    private static final TlsCipherFactory MODE_FACTORY = _ -> {
-        throw new TlsAlert("GREASE cipher should not be selected");
-    };
+
+    private static final TlsCipherFactory MODE_FACTORY = _ -> throwOnUsage();
+
+    private static <T> T throwOnUsage() {
+        throw new TlsAlert("GREASE cipher should not be selected", TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR);
+    }
 
     private static final TlsGrease GREASE_0A = new TlsGrease(TlsVersionId.of(0x0A0A), createGREASECipher(0x0A0A));
     private static final TlsGrease GREASE_1A = new TlsGrease(TlsVersionId.of(0x1A1A), createGREASECipher(0x1A1A));
@@ -139,14 +144,14 @@ public final class TlsGrease {
             return values.get(index)
                     .versionId();
         }catch (NoSuchAlgorithmException _) {
-            throw TlsAlert.noSecureRandom();
+            throw new TlsAlert("No secure RNG algorithm", TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR);
         }
     }
 
     public static List<TlsGrease> values() {
         return VALUES;
     }
-    
+
     public static boolean isGrease(int extensionType) {
         return (extensionType & 0x0f0f) == 0x0a0a;
     }

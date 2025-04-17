@@ -1,6 +1,6 @@
 package it.auties.leap.tls.message.implementation;
 
-import it.auties.leap.tls.certificate.status.TlsCertificateStatusRequest;
+import it.auties.leap.tls.certificate.TlsCertificateStatus;
 import it.auties.leap.tls.context.TlsContext;
 import it.auties.leap.tls.context.TlsSource;
 import it.auties.leap.tls.message.*;
@@ -11,7 +11,7 @@ import java.nio.ByteBuffer;
 public record CertificateStatusMessage(
         TlsVersion version,
         TlsSource source,
-        TlsCertificateStatusRequest request
+        TlsCertificateStatus.Request request
 ) implements TlsHandshakeMessage {
     private static final byte ID = 0x16;
     private static final TlsHandshakeMessageDeserializer DESERIALIZER = new TlsHandshakeMessageDeserializer() {
@@ -22,7 +22,7 @@ public record CertificateStatusMessage(
 
         @Override
         public TlsHandshakeMessage deserialize(TlsContext context, ByteBuffer buffer, TlsMessageMetadata metadata) {
-            var request = TlsCertificateStatusRequest.of(buffer)
+            var request = TlsCertificateStatus.Request.of(buffer)
                     .orElseThrow(() -> new IllegalArgumentException("Invalid certificate request"));
             return new CertificateStatusMessage(metadata.version(), metadata.source(), request);
         }

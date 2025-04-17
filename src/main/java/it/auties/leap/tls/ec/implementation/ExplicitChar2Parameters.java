@@ -1,5 +1,7 @@
 package it.auties.leap.tls.ec.implementation;
 
+import it.auties.leap.tls.alert.TlsAlertLevel;
+import it.auties.leap.tls.alert.TlsAlertType;
 import it.auties.leap.tls.context.TlsContext;
 import it.auties.leap.tls.ec.TlsEcParameters;
 import it.auties.leap.tls.ec.TlsEcParametersDeserializer;
@@ -50,7 +52,7 @@ public final class ExplicitChar2Parameters implements TlsEcParameters {
                     var cofactor = readBytesBigEndian8(input);
                     yield new ExplicitChar2Parameters(m, basis, k1, k2, k3, a, b, encoding, order, cofactor);
                 }
-                default -> throw new TlsAlert("Unknown basis: " + basis);
+                default -> throw new TlsAlert("Unknown basis: " + basis, TlsAlertLevel.FATAL, TlsAlertType.ILLEGAL_PARAMETER);
             };
         }
     };
@@ -98,7 +100,7 @@ public final class ExplicitChar2Parameters implements TlsEcParameters {
                 writeBigEndianInt8(buffer, k2);
                 writeBigEndianInt8(buffer, k3);
             }
-            default -> throw new TlsAlert("Unknown basis: " + basis);
+            default -> throw new TlsAlert("Unknown basis: " + basis, TlsAlertLevel.FATAL, TlsAlertType.ILLEGAL_PARAMETER);
         }
         writeBytesBigEndian8(buffer, a);
         writeBytesBigEndian8(buffer, b);
@@ -123,7 +125,7 @@ public final class ExplicitChar2Parameters implements TlsEcParameters {
         return switch (basis) {
             case BASIS_TRINOMIAL -> INT8_LENGTH;
             case BASIS_PENTANOMIAL -> INT8_LENGTH + INT8_LENGTH + INT8_LENGTH;
-            default -> throw new TlsAlert("Unknown basis: " + basis);
+            default -> throw new TlsAlert("Unknown basis: " + basis, TlsAlertLevel.FATAL, TlsAlertType.ILLEGAL_PARAMETER);
         };
     }
 

@@ -1,6 +1,8 @@
 package it.auties.leap.tls.connection;
 
 import it.auties.leap.tls.alert.TlsAlert;
+import it.auties.leap.tls.alert.TlsAlertLevel;
+import it.auties.leap.tls.alert.TlsAlertType;
 import it.auties.leap.tls.connection.implementation.ConnectionHandshakeHashDelegate;
 import it.auties.leap.tls.context.TlsContext;
 import it.auties.leap.tls.context.TlsSource;
@@ -10,24 +12,20 @@ import it.auties.leap.tls.version.TlsVersion;
 import java.io.ByteArrayOutputStream;
 import java.nio.ByteBuffer;
 
-// TODO: Use something more efficient than ByteArrayOutputStream for buffering (toByteArray() copies the result which makes 0 sense)
-public final class TlsConnectionHandshakeHash {
-    private final ByteArrayOutputStream buffer;
+public final class TlsConnectionHandshakeHash extends ByteArrayOutputStream {
     private ConnectionHandshakeHashDelegate delegate;
 
     public TlsConnectionHandshakeHash() {
-        this.buffer = new ByteArrayOutputStream();
+
     }
 
     public void init(TlsVersion version, TlsHashFactory factory) {
         if(delegate != null) {
-            throw new TlsAlert("Already initialized");
+            throw new TlsAlert("Already initialized", TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR);
         }
 
         this.delegate = ConnectionHandshakeHashDelegate.of(version, factory);
-        var buffered = buffer.toByteArray();
-        buffer.reset();
-        delegate.update(buffered, 0, buffered.length);
+        delegate.update(buf, 0, buf.length);
     }
 
     public void update(ByteBuffer input) {
@@ -35,14 +33,14 @@ public final class TlsConnectionHandshakeHash {
             delegate.update(input);
         }else {
             while (input.hasRemaining()) {
-                buffer.write(input.get());
+                write(input.get());
             }
         }
     }
 
     public byte[] digest() {
         if(delegate == null) {
-            throw new TlsAlert("Not initialized");
+            throw new TlsAlert("Not initialized", TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR);
         }
 
         return delegate.digest();
@@ -50,7 +48,7 @@ public final class TlsConnectionHandshakeHash {
 
     public byte[] finish(TlsContext context, TlsSource source) {
         if(delegate == null) {
-            throw new TlsAlert("Not initialized");
+            throw new TlsAlert("Not initialized", TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR);
         }
 
         return delegate.finish(context, source);

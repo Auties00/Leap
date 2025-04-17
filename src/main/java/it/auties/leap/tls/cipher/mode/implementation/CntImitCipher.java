@@ -39,7 +39,7 @@ public final class CntImitCipher extends TlsCipher.Block {
 
     private CntImitCipher(TlsCipherEngine engine, byte[] fixedIv, TlsExchangeMac authenticator) {
         if(!(engine instanceof KuznyechikEngine) && !(engine instanceof MagmaEngine)) {
-            throw new TlsAlert("CNT_IMIT mode is supported only by Kuznyechik and Magma engines");
+            throw new TlsAlert("CNT_IMIT mode is supported only by Kuznyechik and Magma engines", TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR);
         }
         super(engine, fixedIv, authenticator);
     }
