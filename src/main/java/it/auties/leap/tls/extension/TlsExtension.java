@@ -1,6 +1,6 @@
 package it.auties.leap.tls.extension;
 
-import it.auties.leap.tls.certificate.TlsCertificateTrustedAuthority;
+import it.auties.leap.tls.certificate.TlsCertificateTrustedAuthorities;
 import it.auties.leap.tls.context.TlsContext;
 import it.auties.leap.tls.ec.TlsEcPointFormat;
 import it.auties.leap.tls.extension.implementation.*;
@@ -235,7 +235,7 @@ public sealed interface TlsExtension extends TlsExtensionMetadataProvider {
         return ClientCertificateUrlExtension.instance();
     }
 
-    static Configured.Client trustedCAKeys(List<TlsCertificateTrustedAuthority> trustedAuthorities) {
+    static Configured.Client trustedCAKeys(TlsCertificateTrustedAuthorities trustedAuthorities) {
         return new TrustedCAKeysClientExtension(trustedAuthorities);
     }
 

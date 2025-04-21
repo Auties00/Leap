@@ -14,6 +14,9 @@ import java.util.List;
 import static it.auties.leap.tls.util.BufferUtils.*;
 
 public sealed interface TlsCertificateStatus extends TlsIdentifiableProperty<Byte>, TlsSerializableProperty {
+    Type type();
+    TlsCertificateStatus deserialize(ByteBuffer buffer);
+
     sealed interface Request extends TlsCertificateStatus {
         static Ocsp ocsp(List<byte[]> responderId, List<byte[]> requestExtensions) {
             checkOcsp(responderId, requestExtensions);
@@ -46,7 +49,7 @@ public sealed interface TlsCertificateStatus extends TlsIdentifiableProperty<Byt
                     .sum();
         }
 
-        Type type();
+        @Override
         Response deserialize(ByteBuffer buffer);
 
         final class Ocsp implements Request {
@@ -202,7 +205,7 @@ public sealed interface TlsCertificateStatus extends TlsIdentifiableProperty<Byt
             return new OcspMulti(data, length);
         }
 
-        Type type();
+        @Override
         Request deserialize(ByteBuffer buffer);
 
         final class Ocsp implements Response {

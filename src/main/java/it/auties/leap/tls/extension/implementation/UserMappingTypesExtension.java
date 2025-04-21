@@ -4,7 +4,7 @@ import it.auties.leap.tls.context.TlsContext;
 import it.auties.leap.tls.context.TlsSource;
 import it.auties.leap.tls.extension.TlsExtension;
 import it.auties.leap.tls.extension.TlsExtensionDependencies;
-import it.auties.leap.tls.supplemental.user.TlsUserMappingData;
+import it.auties.leap.tls.supplemental.TlsUserMappingData;
 import it.auties.leap.tls.version.TlsVersion;
 
 import java.nio.ByteBuffer;

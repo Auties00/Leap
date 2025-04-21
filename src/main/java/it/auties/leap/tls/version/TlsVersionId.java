@@ -58,7 +58,8 @@ public final class TlsVersionId {
 
     @Override
     public boolean equals(Object obj) {
-        return obj == this || obj instanceof TlsVersionId that && this.value == that.value;
+        return obj == this || obj instanceof TlsVersionId that
+                && this.value == that.value;
     }
 
     @Override

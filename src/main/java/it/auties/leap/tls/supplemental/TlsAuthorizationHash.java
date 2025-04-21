@@ -1,6 +1,8 @@
-package it.auties.leap.tls.supplemental.authorization;
+package it.auties.leap.tls.supplemental;
 
 import it.auties.leap.tls.alert.TlsAlert;
+import it.auties.leap.tls.alert.TlsAlertLevel;
+import it.auties.leap.tls.alert.TlsAlertType;
 import it.auties.leap.tls.hash.TlsHash;
 import it.auties.leap.tls.hash.TlsHashFactory;
 import it.auties.leap.tls.property.TlsIdentifiableProperty;
@@ -32,7 +34,7 @@ public sealed interface TlsAuthorizationHash extends TlsIdentifiableProperty<Byt
 
     static MD5 md5(byte[] hash) {
         if(hash == null || hash.length == TlsHashFactory.md5().length()) {
-            throw new IllegalArgumentException("Invalid hash");
+            throw new TlsAlert("Invalid hash", TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR);
         }
 
         return new MD5(hash);
@@ -40,7 +42,7 @@ public sealed interface TlsAuthorizationHash extends TlsIdentifiableProperty<Byt
 
     static SHA1 sha1(byte[] hash) {
         if(hash == null || hash.length == TlsHashFactory.sha1().length()) {
-            throw new IllegalArgumentException("Invalid hash");
+            throw new TlsAlert("Invalid hash", TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR);
         }
 
         return new SHA1(hash);
@@ -48,7 +50,7 @@ public sealed interface TlsAuthorizationHash extends TlsIdentifiableProperty<Byt
 
     static SHA224 sha224(byte[] hash) {
         if(hash == null || hash.length == TlsHashFactory.sha224().length()) {
-            throw new IllegalArgumentException("Invalid hash");
+            throw new TlsAlert("Invalid hash", TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR);
         }
 
         return new SHA224(hash);
@@ -56,7 +58,7 @@ public sealed interface TlsAuthorizationHash extends TlsIdentifiableProperty<Byt
 
     static SHA256 sha256(byte[] hash) {
         if(hash == null || hash.length == TlsHashFactory.sha256().length()) {
-            throw new IllegalArgumentException("Invalid hash");
+            throw new TlsAlert("Invalid hash", TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR);
         }
 
         return new SHA256(hash);
@@ -64,7 +66,7 @@ public sealed interface TlsAuthorizationHash extends TlsIdentifiableProperty<Byt
 
     static SHA384 sha384(byte[] hash) {
         if(hash == null || hash.length == TlsHashFactory.sha384().length()) {
-            throw new IllegalArgumentException("Invalid hash");
+            throw new TlsAlert("Invalid hash", TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR);
         }
 
         return new SHA384(hash);
@@ -72,7 +74,7 @@ public sealed interface TlsAuthorizationHash extends TlsIdentifiableProperty<Byt
 
     static SHA512 sha512(byte[] hash) {
         if(hash == null || hash.length == TlsHashFactory.sha512().length()) {
-            throw new IllegalArgumentException("Invalid hash");
+            throw new TlsAlert("Invalid hash", TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR);
         }
 
         return new SHA512(hash);

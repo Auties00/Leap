@@ -42,14 +42,8 @@ module it.auties.leap {
     exports it.auties.leap.tls.context;
     exports it.auties.leap.tls.secret;
     exports it.auties.leap.tls.name;
-    exports it.auties.leap.tls.compressor;
     exports it.auties.leap.tls.srtp;
     exports it.auties.leap.tls.record;
-    exports it.auties.leap.tls.certificate.validator;
-    exports it.auties.leap.tls.certificate.status;
-    exports it.auties.leap.tls.certificate.url;
-    exports it.auties.leap.tls.certificate.authority;
-    exports it.auties.leap.tls.certificate.compression;
     exports it.auties.leap.tls.psk.implementation;
     exports it.auties.leap.tls.secret.preMaster;
     exports it.auties.leap.tls.secret.master;

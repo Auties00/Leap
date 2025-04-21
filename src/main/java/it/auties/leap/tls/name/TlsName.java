@@ -1,6 +1,8 @@
 package it.auties.leap.tls.name;
 
 import it.auties.leap.tls.alert.TlsAlert;
+import it.auties.leap.tls.alert.TlsAlertLevel;
+import it.auties.leap.tls.alert.TlsAlertType;
 import it.auties.leap.tls.property.TlsIdentifiableProperty;
 import it.auties.leap.tls.property.TlsSerializableProperty;
 import it.auties.leap.tls.util.sun.IPAddressUtil;
@@ -14,7 +16,7 @@ import static it.auties.leap.tls.util.BufferUtils.*;
 public sealed interface TlsName extends TlsIdentifiableProperty<Byte>, TlsSerializableProperty {
     static HostName hostName(String name) {
         if(IPAddressUtil.isHostName(name)) {
-            throw new TlsAlert("Invalid host name: " + name);
+            throw new TlsAlert("Invalid host name: " + name, TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR);
         }
 
         return new HostName(name.getBytes(StandardCharsets.US_ASCII));

@@ -41,7 +41,7 @@ public record FinishedMessage(
 
     public FinishedMessage {
         if(hash == null || hash.length < MIN_HASH_LENGTH) {
-            throw new TlsAlert("The hash should be at least %s bytes long".formatted(MIN_HASH_LENGTH));
+            throw new TlsAlert("The hash should be at least %s bytes long".formatted(MIN_HASH_LENGTH), TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR);
         }
     }
 

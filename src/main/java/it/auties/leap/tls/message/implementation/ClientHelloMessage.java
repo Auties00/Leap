@@ -77,9 +77,7 @@ public record ClientHelloMessage(
             var extensionsLength = buffer.remaining() >= INT16_LENGTH ? readBigEndianInt16(buffer) : 0;
             try (var _ = scopedRead(buffer, extensionsLength)) {
                 var extensionTypeToDecoder = context.getNegotiatedValue(TlsProperty.serverExtensions())
-                        .orElseThrow(() -> {
-                            throw new TlsAlert("Missing negotiated property: " + TlsProperty.serverExtensions().id(), TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR);
-                        })
+                        .orElseThrow(() -> new TlsAlert("Missing negotiated property: serverExtensions", TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR))
                         .stream()
                         .collect(Collectors.toUnmodifiableMap(TlsExtension::type, Function.identity()));
                 while (buffer.hasRemaining()) {
@@ -213,9 +211,7 @@ public record ClientHelloMessage(
 
     private TlsCipherSuite chooseCipher(TlsContext context) {
         var negotiableCiphers = context.getNegotiableValue(TlsProperty.cipher())
-                .orElseThrow(() -> {
-                    throw new TlsAlert("Missing negotiable property: " + TlsProperty.cipher().id(), TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR);
-                })
+                .orElseThrow(() -> new TlsAlert("Missing negotiable property: " + TlsProperty.cipher().id(), TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR))
                 .stream()
                 .collect(Collectors.toUnmodifiableMap(TlsCipherSuite::id, Function.identity()));
         for(var advertisedCipherId : ciphers) {
@@ -230,9 +226,7 @@ public record ClientHelloMessage(
 
     private void chooseCompression(TlsContext context) {
         var negotiableCompressions = context.getNegotiableValue(TlsProperty.compression())
-                .orElseThrow(() -> {
-                    throw new TlsAlert("Missing negotiable property: " + TlsProperty.compression().id(), TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR);
-                })
+                .orElseThrow(() -> new TlsAlert("Missing negotiable property: " + TlsProperty.compression().id(), TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR))
                 .stream()
                 .collect(Collectors.toUnmodifiableMap(TlsCompression::id, Function.identity()));
         for(var advertisedCompressionId : compressions) {

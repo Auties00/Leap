@@ -46,9 +46,7 @@ public final class RSAPreMasterSecretGenerator implements TlsPreMasterSecretGene
             var preMasterSecret = new byte[48];
             SecureRandom.getInstanceStrong().nextBytes(preMasterSecret);
             var version = context.getNegotiatedValue(TlsProperty.version())
-                    .orElseThrow(() -> {
-                        throw new TlsAlert("Missing negotiable property: " + TlsProperty.version().id(), TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR);
-                    });
+                    .orElseThrow(() -> new TlsAlert("Missing negotiable property: " + TlsProperty.version().id(), TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR));
             preMasterSecret[0] = version.id().minor();
             preMasterSecret[1] = version.id().major();
             return preMasterSecret;

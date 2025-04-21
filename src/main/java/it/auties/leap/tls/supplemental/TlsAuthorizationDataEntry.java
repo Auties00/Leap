@@ -1,4 +1,4 @@
-package it.auties.leap.tls.supplemental.authorization;
+package it.auties.leap.tls.supplemental;
 
 import it.auties.leap.tls.property.TlsIdentifiableProperty;
 import it.auties.leap.tls.property.TlsSerializableProperty;
@@ -18,16 +18,6 @@ public sealed interface TlsAuthorizationDataEntry extends TlsIdentifiablePropert
             case SAMLAssertionUrl.ID -> Optional.of(SAMLAssertionUrl.of(buffer));
             default -> Optional.empty();
         };
-    }
-
-    @Override
-    default void serialize(ByteBuffer buffer) {
-        writeBigEndianInt8(buffer, id());
-    }
-
-    @Override
-    default int length() {
-        return INT8_LENGTH;
     }
 
     final class X509AttrCert implements TlsAuthorizationDataEntry {
@@ -55,13 +45,13 @@ public sealed interface TlsAuthorizationDataEntry extends TlsIdentifiablePropert
 
         @Override
         public void serialize(ByteBuffer buffer) {
-            TlsAuthorizationDataEntry.super.serialize(buffer);
+            writeBigEndianInt8(buffer, id());
             writeBytesBigEndian16(buffer, certificate);
         }
 
         @Override
         public int length() {
-            return TlsAuthorizationDataEntry.super.length()
+            return INT8_LENGTH
                     + INT16_LENGTH + certificate.length;
         }
     }
@@ -91,13 +81,13 @@ public sealed interface TlsAuthorizationDataEntry extends TlsIdentifiablePropert
 
         @Override
         public void serialize(ByteBuffer buffer) {
-            TlsAuthorizationDataEntry.super.serialize(buffer);
+            writeBigEndianInt8(buffer, id());
             writeBytesBigEndian16(buffer, assertion);
         }
 
         @Override
         public int length() {
-            return TlsAuthorizationDataEntry.super.length()
+            return INT8_LENGTH
                     + INT16_LENGTH + assertion.length;
         }
     }
@@ -127,13 +117,13 @@ public sealed interface TlsAuthorizationDataEntry extends TlsIdentifiablePropert
 
         @Override
         public void serialize(ByteBuffer buffer) {
-            TlsAuthorizationDataEntry.super.serialize(buffer);
+            writeBigEndianInt8(buffer, id());
             urlAndHash.serialize(buffer);
         }
 
         @Override
         public int length() {
-            return TlsAuthorizationDataEntry.super.length()
+            return INT8_LENGTH
                     + urlAndHash.length();
         }
     }
@@ -163,13 +153,13 @@ public sealed interface TlsAuthorizationDataEntry extends TlsIdentifiablePropert
 
         @Override
         public void serialize(ByteBuffer buffer) {
-            TlsAuthorizationDataEntry.super.serialize(buffer);
+            writeBigEndianInt8(buffer, id());
             urlAndHash.serialize(buffer);
         }
 
         @Override
         public int length() {
-            return TlsAuthorizationDataEntry.super.length()
+            return INT8_LENGTH
                     + urlAndHash.length();
         }
     }

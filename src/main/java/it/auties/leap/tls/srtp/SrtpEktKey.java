@@ -1,5 +1,8 @@
 package it.auties.leap.tls.srtp;
 
+import it.auties.leap.tls.alert.TlsAlert;
+import it.auties.leap.tls.alert.TlsAlertLevel;
+import it.auties.leap.tls.alert.TlsAlertType;
 import it.auties.leap.tls.property.TlsSerializableProperty;
 
 import java.nio.ByteBuffer;
@@ -21,19 +24,19 @@ public final class SrtpEktKey implements TlsSerializableProperty {
 
     public static SrtpEktKey newEktKey(byte[] ektKeyValue, byte[] srtpMasterSalt, int ektSpi, int ektTtl) {
         if(ektKeyValue == null) {
-            throw new NullPointerException("ektKeyValue");
+            throw new TlsAlert("ektKeyValue", TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR);
         }
 
         if(srtpMasterSalt == null) {
-            throw new NullPointerException("srtpMasterSalt");
+            throw new TlsAlert("srtpMasterSalt", TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR);
         }
 
         if(ektSpi < 0) {
-            throw new IllegalArgumentException("ektSpi");
+            throw new TlsAlert("ektSpi", TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR);
         }
 
         if(ektTtl < 0) {
-            throw new IllegalArgumentException("ektTtl");
+            throw new TlsAlert("ektTtl", TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR);
         }
 
         return new SrtpEktKey(ektKeyValue, srtpMasterSalt, ektSpi, ektTtl);
@@ -44,12 +47,12 @@ public final class SrtpEktKey implements TlsSerializableProperty {
         var srtpMasterSalt = readBytesBigEndian8(buffer);
         var ektSpi = readBigEndianInt16(buffer);
         if(ektSpi < 0) {
-            throw new IllegalArgumentException("ektSpi");
+            throw new TlsAlert("ektSpi", TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR);
         }
 
         var ektTtl = readBigEndianInt24(buffer);
         if(ektTtl < 0) {
-            throw new IllegalArgumentException("ektTtl");
+            throw new TlsAlert("ektTtl", TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR);
         }
 
         return new SrtpEktKey(ektKeyValue, srtpMasterSalt, ektSpi, ektTtl);

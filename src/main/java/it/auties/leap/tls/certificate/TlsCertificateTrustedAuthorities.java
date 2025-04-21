@@ -11,7 +11,6 @@ import it.auties.leap.tls.property.TlsSerializableProperty;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -37,34 +36,30 @@ public final class TlsCertificateTrustedAuthorities implements TlsSerializablePr
         return new TlsCertificateTrustedAuthorities(trustedAuthoritiesList, length);
     }
 
-    public static Optional<TlsCertificateTrustedAuthorities> of(TlsContext context, ByteBuffer buffer) {
-        return context.getNegotiableValue(TlsProperty.trustedCA())
-                .map(negotiableTrustedCAs -> {
-                    var trustedAuthoritiesLength = buffer.remaining() >= INT16_LENGTH ? readBigEndianInt16(buffer) : 0;
-                    var trustedAuthoritiesList = new ArrayList<TlsCertificateTrustedAuthority>();
-                    var advertisedAuthoritiesTypesToDeserializer = negotiableTrustedCAs.stream()
-                            .collect(Collectors.toUnmodifiableMap(TlsCertificateTrustedAuthority::id, Function.identity()));
-                    try(var _ = scopedRead(buffer, trustedAuthoritiesLength)) {
-                        while (buffer.hasRemaining()) {
-                            var typeId = readBigEndianInt8(buffer);
-                            var deserializer = advertisedAuthoritiesTypesToDeserializer.get(typeId);
-                            if(deserializer != null) {
-                                var entry = deserializer.deserialize(buffer);
-                                trustedAuthoritiesList.add(entry);
-                            }else if(context.localConnectionState().type() == TlsConnectionType.CLIENT) {
-                                throw new TlsAlert("Remote sent a CA type that wasn't advertised: " + typeId, TlsAlertLevel.FATAL, TlsAlertType.HANDSHAKE_FAILURE);
-                            }
-                        }
-                    }
-                    return new TlsCertificateTrustedAuthorities(trustedAuthoritiesList, trustedAuthoritiesLength);
-                })
-                .or(() -> {
-                    if(context.localConnectionState().type() == TlsConnectionType.CLIENT) {
-                        throw new TlsAlert("Trusted CAs aren't negotiable", TlsAlertLevel.FATAL, TlsAlertType.HANDSHAKE_FAILURE);
-                    }
+    public static TlsCertificateTrustedAuthorities of(TlsContext context, ByteBuffer buffer) {
+        var negotiableTrustedCAs = context.getNegotiableValue(TlsProperty.trustedCA());
+        if(negotiableTrustedCAs.isEmpty()) {
+            throw new TlsAlert("Trusted CAs aren't negotiable", TlsAlertLevel.FATAL, TlsAlertType.HANDSHAKE_FAILURE);
+        }
 
-                    return Optional.empty();
-                });
+        var trustedAuthoritiesLength = buffer.remaining() >= INT16_LENGTH ? readBigEndianInt16(buffer) : 0;
+        var trustedAuthoritiesList = new ArrayList<TlsCertificateTrustedAuthority>();
+        var advertisedAuthoritiesTypesToDeserializer = negotiableTrustedCAs.get()
+                .stream()
+                .collect(Collectors.toUnmodifiableMap(TlsCertificateTrustedAuthority::id, Function.identity()));
+        try(var _ = scopedRead(buffer, trustedAuthoritiesLength)) {
+            while (buffer.hasRemaining()) {
+                var typeId = readBigEndianInt8(buffer);
+                var deserializer = advertisedAuthoritiesTypesToDeserializer.get(typeId);
+                if(deserializer != null) {
+                    var entry = deserializer.deserialize(buffer);
+                    trustedAuthoritiesList.add(entry);
+                }else if(context.localConnectionState().type() == TlsConnectionType.CLIENT) {
+                    throw new TlsAlert("Remote sent a CA type that wasn't advertised: " + typeId, TlsAlertLevel.FATAL, TlsAlertType.HANDSHAKE_FAILURE);
+                }
+            }
+        }
+        return new TlsCertificateTrustedAuthorities(trustedAuthoritiesList, trustedAuthoritiesLength);
     }
 
     public List<TlsCertificateTrustedAuthority> trustedAuthoritiesList() {

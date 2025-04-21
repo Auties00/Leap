@@ -54,7 +54,7 @@ public final class HttpConfigBuilder {
                 TlsCipherSuite.rsaWithAes128CbcSha()
         );
         var extensions = List.of(
-                TlsExtension.serverNameIndication(TlsName.HOST_NAME),
+                TlsExtension.serverNameIndication(TlsName.Type.HOST_NAME),
                 TlsExtension.ecPointFormats(),
                 TlsExtension.supportedGroups(),
                 TlsExtension.nextProtocolNegotiation(),

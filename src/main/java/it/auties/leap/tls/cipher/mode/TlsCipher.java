@@ -64,7 +64,7 @@ public sealed abstract class TlsCipher {
         }
 
         var hmac = authenticator.createAuthenticationHmacBlock(contentId, destination, null, false)
-                .orElseThrow(() -> new TlsAlert("Expected mac capabilities from an authenticator with an HMAC"));
+                .orElseThrow(() -> new TlsAlert("Expected mac capabilities from an authenticator with an HMAC", TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR));
         System.out.println("Using HMAC: " + Arrays.toString(hmac));
         var hmacPosition = destination.limit();
         destination.limit(hmacPosition + hmac.length);

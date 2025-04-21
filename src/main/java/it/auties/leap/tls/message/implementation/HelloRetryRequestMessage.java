@@ -57,9 +57,7 @@ public record HelloRetryRequestMessage(
             var compressionId = readBigEndianInt8(buffer);
 
             var extensionTypeToDecoder = context.getNegotiatedValue(TlsProperty.clientExtensions())
-                    .orElseThrow(() -> {
-                        throw new TlsAlert("Missing negotiated property: " + TlsProperty.clientExtensions().id(), TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR);
-                    })
+                    .orElseThrow(() -> new TlsAlert("Missing negotiated property: clientExtensions", TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR))
                     .stream()
                     .collect(Collectors.toUnmodifiableMap(TlsExtension::type, Function.identity()));
             var extensions = new ArrayList<TlsExtension.Configured.Server>();
@@ -154,23 +152,19 @@ public record HelloRetryRequestMessage(
                 context.setRemoteConnectionState(credentials);
 
                 var negotiatedCipher = context.getNegotiableValue(TlsProperty.cipher())
-                        .orElseThrow(() -> {
-                            throw new TlsAlert("Missing negotiable property: " + TlsProperty.cipher().id(), TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR);
-                        })
+                        .orElseThrow(() -> new TlsAlert("Missing negotiable property: " + TlsProperty.cipher().id(), TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR))
                         .stream()
                         .filter(entry -> entry.id() == cipher)
                         .findFirst()
-                        .orElseThrow(() -> new TlsAlert("Remote negotiated a cipher that wasn't available"));
+                        .orElseThrow(() -> new TlsAlert("Remote negotiated a cipher that wasn't available", TlsAlertLevel.FATAL, TlsAlertType.ILLEGAL_PARAMETER));
                 context.addNegotiatedProperty(TlsProperty.cipher(), negotiatedCipher);
 
                 var negotiatedCompression = context.getNegotiableValue(TlsProperty.compression())
-                        .orElseThrow(() -> {
-                            throw new TlsAlert("Missing negotiable property: " + TlsProperty.compression().id(), TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR);
-                        })
+                        .orElseThrow(() -> new TlsAlert("Missing negotiable property: " + TlsProperty.compression().id(), TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR))
                         .stream()
                         .filter(entry -> entry.id() == compression)
                         .findFirst()
-                        .orElseThrow(() -> new TlsAlert("Remote negotiated a compression that wasn't available"));
+                        .orElseThrow(() -> new TlsAlert("Remote negotiated a compression that wasn't available", TlsAlertLevel.FATAL, TlsAlertType.ILLEGAL_PARAMETER));
                 context.addNegotiatedProperty(TlsProperty.compression(), negotiatedCompression);
 
                 var seen = new HashSet<Integer>();
@@ -202,9 +196,7 @@ public record HelloRetryRequestMessage(
                             .initialize(context);
                 }else {
                     context.getNegotiatedValue(TlsProperty.clientExtensions())
-                            .orElseThrow(() -> {
-                                throw new TlsAlert("Missing negotiated property: " + TlsProperty.clientExtensions().id(), TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR);
-                            })
+                            .orElseThrow(() -> new TlsAlert("Missing negotiated property: clientExtensions", TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR))
                             .stream()
                             .filter(entry -> !seen.contains(entry.type()))
                             .forEach(entry -> entry.apply(context, source));

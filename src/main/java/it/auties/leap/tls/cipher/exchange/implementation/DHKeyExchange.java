@@ -6,7 +6,6 @@ import it.auties.leap.tls.alert.TlsAlertType;
 import it.auties.leap.tls.cipher.exchange.TlsKeyExchange;
 import it.auties.leap.tls.cipher.exchange.TlsKeyExchangeFactory;
 import it.auties.leap.tls.cipher.exchange.TlsKeyExchangeType;
-import it.auties.leap.tls.connection.TlsConnection;
 import it.auties.leap.tls.context.TlsContext;
 import it.auties.leap.tls.group.TlsKeyPair;
 import it.auties.leap.tls.group.TlsSupportedFiniteField;
@@ -16,7 +15,6 @@ import it.auties.leap.tls.secret.preMaster.TlsPreMasterSecretGenerator;
 import javax.crypto.interfaces.DHPublicKey;
 import java.math.BigInteger;
 import java.nio.ByteBuffer;
-import java.security.PublicKey;
 
 import static it.auties.leap.tls.util.BufferUtils.*;
 
@@ -88,7 +86,7 @@ public abstract sealed class DHKeyExchange implements TlsKeyExchange {
         private final BigInteger p;
         private final BigInteger g;
         private final byte[] publicKey;
- 
+
         private Server(TlsKeyExchangeType type, BigInteger p, BigInteger g, byte[] publicKey) {
             super(type);
             this.p = p;
@@ -127,41 +125,52 @@ public abstract sealed class DHKeyExchange implements TlsKeyExchange {
             var localConnectionState = context.localConnectionState();
             return switch (type) {
                 case STATIC -> {
-                    var certificate = localConnectionState.staticCertificate()
-                            .orElseThrow(() -> new TlsAlert("No local static certificate"))
-                            .getPublicKey();
-                    yield newKeyExchange(localConnectionState, certificate);
-                }
-
-                case EPHEMERAL -> {
-                    var remoteKeyExchange = context.remoteConnectionState()
-                            .orElseThrow(() -> new TlsAlert("No remote connection state was created", TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR))
-                            .keyExchange()
-                            .orElseThrow(() -> new TlsAlert("No remote key exchange was created", TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR));
-                    var group = context.getNegotiatedValue(TlsProperty.supportedGroups())
-                            .orElseThrow(() -> {
-                                throw new TlsAlert("Missing negotiated property: " + TlsProperty.supportedGroups().id(), TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR);
-                            })
+                    var dhStaticPublicKey = localConnectionState.certificates()
                             .stream()
-                            .filter(entry -> entry instanceof TlsSupportedFiniteField supportedFiniteField
-                                    && supportedFiniteField.accepts(remoteKeyExchange))
+                            .filter(entry -> entry.value().getPublicKey() instanceof DHPublicKey)
                             .findFirst()
-                            .orElseThrow(() -> new TlsAlert("No supported group is a finite field", TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR));
-                    var keyPair = group.generateKeyPair(context);
-                    var publicKey = (DHPublicKey) keyPair.getPublic();
-                    localConnectionState.addEphemeralKeyPair(TlsKeyPair.of(group, keyPair))
-                            .chooseEphemeralKeyPair(group);
-                    var p = publicKey.getParams()
-                            .getP();
-                    var g = publicKey.getParams()
-                            .getG();
-                    var y = publicKey.getY()
-                            .toByteArray();
+                            .map(entry -> (DHPublicKey) entry.value().getPublicKey())
+                            .orElseThrow(() -> new TlsAlert("Expected at least one static DH certificate", TlsAlertLevel.FATAL, TlsAlertType.CERTIFICATE_UNOBTAINABLE));
                     yield switch (localConnectionState.type()) {
-                        case CLIENT -> new Client(type, p, g, y);
-                        case SERVER -> new Server(type, p, g, y);
+                        case CLIENT -> new Client(type, dhStaticPublicKey.getParams().getP(), dhStaticPublicKey.getParams().getG(), dhStaticPublicKey.getY().toByteArray());
+                        case SERVER -> new Server(type, dhStaticPublicKey.getParams().getP(), dhStaticPublicKey.getParams().getG(), dhStaticPublicKey.getY().toByteArray());
                     };
                 }
+
+                case EPHEMERAL -> switch (localConnectionState.type()) {
+                    case CLIENT -> {
+                        var remoteKeyExchange = context.remoteConnectionState()
+                                .orElseThrow(() -> new TlsAlert("No remote connection state was created", TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR))
+                                .keyExchange()
+                                .orElseThrow(() -> new TlsAlert("No remote key exchange was created", TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR));
+                        var group = context.getNegotiatedValue(TlsProperty.supportedGroups())
+                                .orElseThrow(() -> new TlsAlert("Missing negotiated property: supportedGroups", TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR))
+                                .stream()
+                                .filter(entry -> entry instanceof TlsSupportedFiniteField supportedFiniteField
+                                        && supportedFiniteField.accepts(remoteKeyExchange))
+                                .findFirst()
+                                .orElseThrow(() -> new TlsAlert("No supported group is a finite field", TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR));
+                        var keyPair = group.generateKeyPair(context);
+                        var publicKey = (DHPublicKey) keyPair.getPublic();
+                        localConnectionState.addEphemeralKeyPair(TlsKeyPair.of(group, keyPair))
+                                .chooseEphemeralKeyPair(group);
+                        yield new Client(type, publicKey.getParams().getP(), publicKey.getParams().getG(), publicKey.getY().toByteArray());
+                    }
+                    case SERVER -> {
+                        var group = context.getNegotiatedValue(TlsProperty.supportedGroups())
+                                .orElseThrow(() -> new TlsAlert("Missing negotiated property: supportedGroups", TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR))
+                                .stream()
+                                .filter(supportedGroup -> supportedGroup instanceof TlsSupportedFiniteField)
+                                .map(supportedGroup -> (TlsSupportedFiniteField) supportedGroup)
+                                .findFirst()
+                                .orElseThrow(() -> new TlsAlert("No supported group is a finite field", TlsAlertLevel.FATAL, TlsAlertType.ILLEGAL_PARAMETER));
+                        var keyPair = group.generateKeyPair(context);
+                        var publicKey = (DHPublicKey) keyPair.getPublic();
+                        localConnectionState.addEphemeralKeyPair(TlsKeyPair.of(group, keyPair))
+                                .chooseEphemeralKeyPair(group);
+                        yield new Server(type, publicKey.getParams().getP(), publicKey.getParams().getG(), publicKey.getY().toByteArray());
+                    }
+                };
             };
         }
 
@@ -175,10 +184,16 @@ public abstract sealed class DHKeyExchange implements TlsKeyExchange {
                         throw new TlsAlert("Static key exchange should not receive an ephemeral key exchange source", TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR);
                     }
 
-                    var certificate = remoteConnectionState.staticCertificate()
-                            .orElseThrow(() -> new TlsAlert("No remote static certificate"))
-                            .getPublicKey();
-                    yield newKeyExchange(remoteConnectionState, certificate);
+                    var dhPublicKey = remoteConnectionState.certificates()
+                            .stream()
+                            .filter(entry -> entry.value().getPublicKey() instanceof DHPublicKey)
+                            .findFirst()
+                            .map(entry -> (DHPublicKey) entry.value().getPublicKey())
+                            .orElseThrow(() -> new TlsAlert("Missing remote static DH certificate", TlsAlertLevel.FATAL, TlsAlertType.CERTIFICATE_UNOBTAINABLE));
+                    yield switch (remoteConnectionState.type()) {
+                        case CLIENT -> new Client(type, dhPublicKey.getParams().getP(), dhPublicKey.getParams().getG(), dhPublicKey.getY().toByteArray());
+                        case SERVER -> new Server(type, dhPublicKey.getParams().getP(), dhPublicKey.getParams().getG(), dhPublicKey.getY().toByteArray());
+                    };
                 }
 
                 case EPHEMERAL -> {
@@ -190,10 +205,10 @@ public abstract sealed class DHKeyExchange implements TlsKeyExchange {
                         case CLIENT -> {
                             var localPublicKey = context.localConnectionState()
                                     .ephemeralKeyPair()
-                                    .orElseThrow(TlsAlert::noKeyPairSelected)
+                                    .orElseThrow(() -> new TlsAlert("No ephemeral key pair was generated for local connection", TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR))
                                     .publicKey();
                             if (!(localPublicKey instanceof DHPublicKey dhPublicKey)) {
-                                throw TlsAlert.keyExchangeTypeMismatch("DH");
+                                throw new TlsAlert("Remote ephemeral key pair type mismatch: expected DH", TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR);
                             }
 
                             var p = dhPublicKey.getParams().getP();
@@ -210,20 +225,6 @@ public abstract sealed class DHKeyExchange implements TlsKeyExchange {
                         }
                     };
                 }
-            };
-        }
-
-        private TlsKeyExchange newKeyExchange(TlsConnection connection, PublicKey certificate) {
-            if(!(certificate instanceof DHPublicKey dhPublicKey)) {
-                throw TlsAlert.keyExchangeTypeMismatch("DH");
-            }
-
-            var p = dhPublicKey.getParams().getP();
-            var g = dhPublicKey.getParams().getG();
-            var y = dhPublicKey.getY().toByteArray();
-            return switch (connection.type()) {
-                case CLIENT -> new Client(type, p, g, y);
-                case SERVER -> new Server(type, p, g, y);
             };
         }
     }

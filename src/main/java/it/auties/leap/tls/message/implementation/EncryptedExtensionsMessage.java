@@ -34,9 +34,7 @@ public record EncryptedExtensionsMessage(
         @Override
         public TlsHandshakeMessage deserialize(TlsContext context, ByteBuffer buffer, TlsMessageMetadata metadata) {
             var extensionTypeToDecoder = context.getNegotiatedValue(TlsProperty.clientExtensions())
-                    .orElseThrow(() -> {
-                        throw new TlsAlert("Missing negotiated property: " + TlsProperty.clientExtensions().id(), TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR);
-                    })
+                    .orElseThrow(() -> new TlsAlert("Missing negotiated property: clientExtensions", TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR))
                     .stream()
                     .collect(Collectors.toUnmodifiableMap(TlsExtension::type, Function.identity()));
             var extensions = new ArrayList<TlsExtension.Configured.Server>();

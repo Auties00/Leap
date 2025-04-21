@@ -1,5 +1,8 @@
-package it.auties.leap.tls.supplemental.authorization;
+package it.auties.leap.tls.supplemental;
 
+import it.auties.leap.tls.alert.TlsAlert;
+import it.auties.leap.tls.alert.TlsAlertLevel;
+import it.auties.leap.tls.alert.TlsAlertType;
 import it.auties.leap.tls.property.TlsSerializableProperty;
 
 import java.nio.ByteBuffer;
@@ -22,13 +25,13 @@ public final class TlsAuthorizationUrlAndHash implements TlsSerializableProperty
         return new TlsAuthorizationUrlAndHash(url, hash);
     }
 
-    public static TlsAuthorizationUrlAndHash newUrlAndHash(byte[] url, TlsAuthorizationHash hash) {
+    public static TlsAuthorizationUrlAndHash of(byte[] url, TlsAuthorizationHash hash) {
         if (url == null) {
-            throw new NullPointerException("url");
+            throw new TlsAlert("url", TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR);
         }
 
         if(hash == null) {
-            throw new NullPointerException("hash");
+            throw new TlsAlert("hash", TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR);
         }
 
         return new TlsAuthorizationUrlAndHash(url, hash);

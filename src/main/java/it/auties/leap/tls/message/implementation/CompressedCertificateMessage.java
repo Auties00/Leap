@@ -34,9 +34,7 @@ public record CompressedCertificateMessage(
         @Override
         public TlsHandshakeMessage deserialize(TlsContext context, ByteBuffer buffer, TlsMessageMetadata metadata) {
             var negotiatedAlgorithms = context.getNegotiatedValue(TlsProperty.certificateCompressionAlgorithms())
-                    .orElseThrow(() -> {
-                        throw new TlsAlert("Missing negotiated property: " + TlsProperty.certificateCompressionAlgorithms().id(), TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR);
-                    })
+                    .orElseThrow(() -> new TlsAlert("Missing negotiated property: certificateCompressionAlgorithms", TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR))
                     .stream()
                     .collect(Collectors.toUnmodifiableMap(TlsIdentifiableProperty::id, Function.identity()));
             var algorithmId = readBigEndianInt16(buffer);

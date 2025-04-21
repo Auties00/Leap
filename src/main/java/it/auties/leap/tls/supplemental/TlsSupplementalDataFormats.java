@@ -1,24 +1,25 @@
 package it.auties.leap.tls.supplemental;
 
 import it.auties.leap.tls.alert.TlsAlert;
+import it.auties.leap.tls.alert.TlsAlertLevel;
+import it.auties.leap.tls.alert.TlsAlertType;
 import it.auties.leap.tls.property.TlsIdentifiableProperty;
-
-import java.net.URI;
 
 public sealed interface TlsSupplementalDataFormats extends TlsIdentifiableProperty<Integer> {
     static UserMappingData userMappingData() {
-        return RsaSign.INSTANCE;
+        return UserMappingData.INSTANCE;
     }
 
     static AuthorizationData authorizationData() {
-        return DssSign.INSTANCE;
+        return AuthorizationData.INSTANCE;
     }
 
     static TlsSupplementalDataFormats reservedForPrivateUse(int id) {
         if(id < 65280 || id > 65535) {
             throw new TlsAlert(
                     "Only values from 65280-65535 (decimal) inclusive are reserved for Private Use",
-                    URI.create("https://www.iana.org/assignments/tls-parameters/tls-parameters.xhtml#tls-parameters-12")
+                    TlsAlertLevel.FATAL,
+                    TlsAlertType.INTERNAL_ERROR
             );
         }
 
@@ -26,7 +27,7 @@ public sealed interface TlsSupplementalDataFormats extends TlsIdentifiableProper
     }
 
     final class UserMappingData implements TlsSupplementalDataFormats {
-        private static final RsaSign INSTANCE = new RsaSign();
+        private static final UserMappingData INSTANCE = new UserMappingData();
 
         @Override
         public Integer id() {
@@ -35,7 +36,7 @@ public sealed interface TlsSupplementalDataFormats extends TlsIdentifiableProper
     }
 
     final class AuthorizationData implements TlsSupplementalDataFormats {
-        private static final RsaSign INSTANCE = new RsaSign();
+        private static final AuthorizationData INSTANCE = new AuthorizationData();
 
         @Override
         public Integer id() {

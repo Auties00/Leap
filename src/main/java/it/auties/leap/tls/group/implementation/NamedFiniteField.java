@@ -5,7 +5,6 @@ import it.auties.leap.tls.alert.TlsAlertLevel;
 import it.auties.leap.tls.alert.TlsAlertType;
 import it.auties.leap.tls.cipher.exchange.TlsKeyExchange;
 import it.auties.leap.tls.cipher.exchange.implementation.DHKeyExchange;
-import it.auties.leap.tls.connection.TlsConnection;
 import it.auties.leap.tls.context.TlsContext;
 import it.auties.leap.tls.group.TlsSupportedFiniteField;
 import it.auties.leap.tls.property.TlsProperty;
@@ -17,7 +16,6 @@ import javax.crypto.spec.DHParameterSpec;
 import javax.crypto.spec.DHPublicKeySpec;
 import java.math.BigInteger;
 import java.security.*;
-import java.security.cert.Certificate;
 import java.util.Arrays;
 
 public final class NamedFiniteField implements TlsSupportedFiniteField {
@@ -79,7 +77,7 @@ public final class NamedFiniteField implements TlsSupportedFiniteField {
             keyPairGenerator.initialize(spec);
             return keyPairGenerator.generateKeyPair();
         } catch (GeneralSecurityException exception) {
-            throw new TlsAlert("Cannot generate EC keypair", exception);
+            throw new TlsAlert("Cannot generate EC keypair: " + exception.getMessage(), TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR);
         }
     }
 
@@ -87,22 +85,24 @@ public final class NamedFiniteField implements TlsSupportedFiniteField {
     public TlsSecret computeSharedSecret(TlsContext context) {
         var privateKey = context.localConnectionState()
                 .ephemeralKeyPair()
-                .orElseThrow(TlsAlert::noKeyPairSelected)
+                .orElseThrow(() -> new TlsAlert("Missing local ephemeral key pair", TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR))
                 .privateKey()
-                .orElseThrow(() -> new TlsAlert("Missing local key pair"));
+                .orElseThrow(() -> new TlsAlert("Missing local ephemeral private key", TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR));
         var keyExchangeType = context.getNegotiatedValue(TlsProperty.cipher())
                 .orElseThrow(() -> new TlsAlert("No cipher was negotiated", TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR))
                 .keyExchangeFactory()
                 .type();
         var publicKey = switch (keyExchangeType) {
             case STATIC -> context.remoteConnectionState()
-                    .flatMap(TlsConnection::staticCertificate)
-                    .map(Certificate::getPublicKey)
-                    .orElseThrow(() -> new TlsAlert("Missing remote public key for static pre master secret generation"));
+                    .orElseThrow(() -> new TlsAlert("No remote connection state was created", TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR))
+                    .staticCertificate()
+                    .orElseThrow(() -> new TlsAlert("Expected at least one static DH certificate", TlsAlertLevel.FATAL, TlsAlertType.CERTIFICATE_UNOBTAINABLE))
+                    .value()
+                    .getPublicKey();
             case EPHEMERAL -> context.remoteConnectionState()
                     .orElseThrow(() -> new TlsAlert("No remote connection state was created", TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR))
                     .ephemeralKeyPair()
-                    .orElseThrow(() -> new TlsAlert("Missing remote public key for ephemeral pre master secret generation"))
+                    .orElseThrow(() -> new TlsAlert("Missing remote public key for ephemeral pre master secret generation", TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR))
                     .publicKey();
         };
         try {
@@ -114,7 +114,7 @@ public final class NamedFiniteField implements TlsSupportedFiniteField {
             System.out.println("Pre master secret: " + Arrays.toString(result));
             return TlsSecret.of(result);
         }catch (GeneralSecurityException exception) {
-            throw new TlsAlert("Cannot compute shared secret", exception);
+            throw new TlsAlert("Cannot compute shared secret: " + exception.getMessage(), TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR);
         }
     }
 
@@ -129,7 +129,7 @@ public final class NamedFiniteField implements TlsSupportedFiniteField {
             );
             return keyFactory.generatePublic(dhPubKeySpecs);
         }catch (GeneralSecurityException exception) {
-            throw new TlsAlert("Cannot parse DH key", exception);
+            throw new TlsAlert("Cannot parse DH key: " + exception.getMessage(), TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR);
         }
     }
 

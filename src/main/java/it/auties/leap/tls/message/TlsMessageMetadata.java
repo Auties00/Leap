@@ -1,6 +1,8 @@
 package it.auties.leap.tls.message;
 
 import it.auties.leap.tls.alert.TlsAlert;
+import it.auties.leap.tls.alert.TlsAlertLevel;
+import it.auties.leap.tls.alert.TlsAlertType;
 import it.auties.leap.tls.context.TlsSource;
 import it.auties.leap.tls.version.TlsVersion;
 

@@ -97,9 +97,7 @@ public record ServerNameExtension(
             if(!buffer.hasRemaining()) {
                 return switch (context.localConnectionState().type()) {
                     case CLIENT -> context.getNegotiatedValue(TlsProperty.clientExtensions())
-                            .orElseThrow(() -> {
-                                throw new TlsAlert("Missing negotiated property: " + TlsProperty.clientExtensions().id(), TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR);
-                            })
+                            .orElseThrow(() -> new TlsAlert("Missing negotiated property: clientExtensions", TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR))
                             .stream()
                             .filter(entry -> entry instanceof ServerNameExtension.Configured)
                             .map(entry -> (ServerNameExtension.Configured) entry)

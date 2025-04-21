@@ -50,7 +50,7 @@ public final class NamedCurveParameters implements TlsEcParameters {
     @Override
     public TlsSupportedEllipticCurve toGroup(TlsContext context) {
         return context.getNegotiatedValue(TlsProperty.supportedGroups())
-                .orElseThrow(() -> new TlsAlert("Missing negotiated property: " + TlsProperty.supportedGroups().id(), TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR))
+                .orElseThrow(() -> new TlsAlert("Missing negotiated property: supportedGroups", TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR))
                 .stream()
                 .filter(entry -> entry instanceof TlsSupportedEllipticCurve supportedCurve && supportedCurve.accepts(namedGroup))
                 .findFirst()

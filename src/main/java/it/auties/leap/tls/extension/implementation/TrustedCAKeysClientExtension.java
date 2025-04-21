@@ -1,6 +1,6 @@
 package it.auties.leap.tls.extension.implementation;
 
-import it.auties.leap.tls.certificate.TlsCertificateTrustedAuthority;
+import it.auties.leap.tls.certificate.TlsCertificateTrustedAuthorities;
 import it.auties.leap.tls.context.TlsContext;
 import it.auties.leap.tls.context.TlsSource;
 import it.auties.leap.tls.extension.TlsExtension;
@@ -12,35 +12,22 @@ import java.nio.ByteBuffer;
 import java.util.List;
 import java.util.Optional;
 
-import static it.auties.leap.tls.util.BufferUtils.INT16_LENGTH;
-import static it.auties.leap.tls.util.BufferUtils.writeBigEndianInt16;
-
 public record TrustedCAKeysClientExtension(
-        List<TlsCertificateTrustedAuthority> trustedAuthorities,
-        int trustedAuthoritiesLength
+        TlsCertificateTrustedAuthorities authorities
 ) implements TlsExtension.Configured.Client {
-    public TrustedCAKeysClientExtension(List<TlsCertificateTrustedAuthority> trustedAuthorities) {
-        var trustedAuthoritiesLength = trustedAuthorities.stream()
-                .mapToInt(TlsCertificateTrustedAuthority::length)
-                .sum();
-        this(trustedAuthorities, trustedAuthoritiesLength);
-    }
     @Override
     public void serializePayload(ByteBuffer buffer) {
-        writeBigEndianInt16(buffer, trustedAuthoritiesLength);
-        for(var trustedAuthority : trustedAuthorities) {
-            trustedAuthority.serialize(buffer);
-        }
+        authorities.serialize(buffer);
     }
 
     @Override
     public int payloadLength() {
-        return INT16_LENGTH + trustedAuthoritiesLength;
+        return authorities.length();
     }
 
     @Override
     public void apply(TlsContext context, TlsSource source) {
-        context.addNegotiableProperty(TlsProperty.trustedCA(), trustedAuthorities);
+        context.addNegotiableProperty(TlsProperty.trustedCA(), authorities.trustedAuthoritiesList());
     }
 
     @Override

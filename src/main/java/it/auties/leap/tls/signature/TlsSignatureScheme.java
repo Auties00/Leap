@@ -1,8 +1,9 @@
 package it.auties.leap.tls.signature;
 
 import it.auties.leap.tls.alert.TlsAlert;
+import it.auties.leap.tls.alert.TlsAlertLevel;
+import it.auties.leap.tls.alert.TlsAlertType;
 
-import java.net.URI;
 import java.util.Objects;
 
 // https://www.iana.org/assignments/tls-parameters/tls-signaturescheme.csv
@@ -179,17 +180,15 @@ public final class TlsSignatureScheme implements TlsSignature {
     }
 
     public static TlsSignature reservedForPrivateUse(int id) {
-        if(id < 0xFE00 || id > 0xFFFF) {
-            throw new TlsAlert(
-                    "Only values from 0xFE00-0xFFFF (hex) inclusive are reserved for Private Use",
-                    URI.create("https://www.iana.org/assignments/tls-parameters/tls-signaturescheme.csv")
-            );
+        if (id < 0xFE00 || id > 0xFFFF) {
+            throw new TlsAlert("Only values from 0xFE00-0xFFFF (hex) inclusive are reserved for Private Use", TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR);
         }
 
         return new TlsSignatureScheme(id);
     }
 
     private final int id;
+
     private TlsSignatureScheme(int id) {
         this.id = id;
     }
@@ -198,11 +197,10 @@ public final class TlsSignatureScheme implements TlsSignature {
     public Integer id() {
         return id;
     }
-    
+
     @Override
     public boolean equals(Object other) {
-        return other == this || other instanceof TlsSignatureScheme that
-                && Objects.equals(this.id(), that.id());
+        return other == this || other instanceof TlsSignatureScheme that && Objects.equals(this.id(), that.id());
     }
 
     @Override

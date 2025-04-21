@@ -89,25 +89,25 @@ abstract sealed class TlsContextBuilder<S extends TlsContextBuilder<S, E>, E ext
         return (S) this;
     }
 
-    public TlsContextBuilder<S, E> certificate(TlsCertificate certificate) {
+    public S certificate(TlsCertificate certificate) {
         this.certificates.add(certificate);
-        return this;
+        return (S) this;
     }
 
 
-    public TlsContextBuilder<S, E> certificates(List<TlsCertificate> certificates) {
+    public S certificates(List<TlsCertificate> certificates) {
         this.certificates.addAll(certificates);
-        return this;
+        return (S) this;
     }
 
-    public TlsContextBuilder<S, E> certificateValidator(TlsCertificateValidator certificateValidator) {
+    public S certificateValidator(TlsCertificateValidator certificateValidator) {
         this.certificateValidator = certificateValidator;
-        return this;
+        return (S) this;
     }
     
-    public TlsContextBuilder<S, E> extensions(List<? extends E> extensions) {
+    public S extensions(List<? extends E> extensions) {
         this.extensions = extensions;
-        return this;
+        return (S) this;
     }
 
     List<TlsVersion> buildVersions() {

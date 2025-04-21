@@ -32,7 +32,7 @@ public final class StandardMasterSecretGenerator implements TlsMasterSecretGener
         var preMasterSecret = localKeyExchange.preMasterSecret()
                 .orElseGet(() -> localKeyExchange.preMasterSecretGenerator().generatePreMasterSecret(context));
         var version = context.getNegotiatedValue(TlsProperty.version())
-                .orElseThrow(() -> new TlsAlert("Missing negotiated property: " + TlsProperty.version().id(), TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR));
+                .orElseThrow(() -> new TlsAlert("Missing negotiated property: version", TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR));
         var extendedMasterSecret = context.getNegotiatedValue(TlsProperty.extendedMasterSecret())
                 .orElse(false);
         var clientRandom = switch (context.localConnectionState().type()) {

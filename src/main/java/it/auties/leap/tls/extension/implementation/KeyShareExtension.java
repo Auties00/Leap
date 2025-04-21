@@ -158,9 +158,7 @@ public final class KeyShareExtension implements TlsExtension.Configurable {
             var entries = new ArrayList<KeyShareEntry>();
             var entriesSize = buffer.remaining();
             var supportedGroups = context.getNegotiableValue(TlsProperty.supportedGroups())
-                    .orElseThrow(() -> {
-                        throw new TlsAlert("Missing negotiable property: " + TlsProperty.supportedGroups().id(), TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR);
-                    })
+                    .orElseThrow(() -> new TlsAlert("Missing negotiable property: " + TlsProperty.supportedGroups().id(), TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR))
                     .stream()
                     .collect(Collectors.toUnmodifiableMap(TlsIdentifiableProperty::id, Function.identity()));
             while (buffer.hasRemaining()) {

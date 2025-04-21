@@ -2,6 +2,7 @@ package it.auties.leap.tls.connection;
 
 import it.auties.leap.tls.certificate.TlsCertificate;
 import it.auties.leap.tls.cipher.exchange.TlsKeyExchange;
+import it.auties.leap.tls.cipher.exchange.TlsKeyExchangeType;
 import it.auties.leap.tls.cipher.mode.TlsCipher;
 import it.auties.leap.tls.group.TlsKeyPair;
 import it.auties.leap.tls.group.TlsSupportedGroup;
@@ -18,6 +19,7 @@ public final class TlsConnection {
 
     private final Map<Integer, TlsKeyPair> ephemeralKeyPairs;
     private volatile Integer selectedEphemeralKeyPair;
+    private volatile TlsCertificate selectedStaticCertificate;
 
     private volatile TlsKeyExchange keyExchange;
 
@@ -111,6 +113,10 @@ public final class TlsConnection {
     }
 
     public boolean chooseEphemeralKeyPair(TlsSupportedGroup group) {
+        if(keyExchange == null || keyExchange.type() != TlsKeyExchangeType.EPHEMERAL || selectedEphemeralKeyPair != null) {
+            return false;
+        }
+
         if(!ephemeralKeyPairs.containsKey(group.id())) {
             return false;
         }
@@ -130,5 +136,22 @@ public final class TlsConnection {
 
     public Collection<TlsCertificate> certificates() {
         return Collections.unmodifiableCollection(certificates);
+    }
+
+    public Optional<TlsCertificate> staticCertificate() {
+        return Optional.ofNullable(selectedStaticCertificate);
+    }
+
+    public boolean chooseStaticCertificate(TlsCertificate certificate) {
+        if(keyExchange == null || keyExchange.type() != TlsKeyExchangeType.STATIC || selectedStaticCertificate != null) {
+            return false;
+        }
+
+        if(!certificates.contains(certificate)) {
+            return false;
+        }
+
+        this.selectedStaticCertificate = certificate;
+        return true;
     }
 }

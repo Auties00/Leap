@@ -37,7 +37,7 @@ public final class StandardConnectionInitializer implements TlsConnectionInitial
                 .orElseThrow(() -> new TlsAlert("No remote connection state was created", TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR));
 
         var negotiatedVersion = context.getNegotiatedValue(TlsProperty.version())
-                .orElseThrow(() -> new TlsAlert("Missing negotiated property: " + TlsProperty.version().id(), TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR));
+                .orElseThrow(() -> new TlsAlert("Missing negotiated property: version", TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR));
         var negotiatedCipher = context.getNegotiatedValue(TlsProperty.cipher())
                 .orElseThrow(() -> new TlsAlert("No cipher was negotiated", TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR));
         var clientRandom = switch (mode) {

@@ -1,6 +1,8 @@
 package it.auties.leap.tls.message.implementation;
 
 import it.auties.leap.tls.alert.TlsAlert;
+import it.auties.leap.tls.alert.TlsAlertLevel;
+import it.auties.leap.tls.alert.TlsAlertType;
 import it.auties.leap.tls.context.TlsContext;
 import it.auties.leap.tls.message.TlsMessage;
 import it.auties.leap.tls.message.TlsMessageDeserializer;
@@ -28,7 +30,7 @@ public final class HandshakeMessageDeserializer implements TlsMessageDeserialize
         try (var _ = scopedRead(buffer, handshakePayloadLength)) {
             return context.findHandshakeMessageDeserializer(id)
                     .map(deserializer -> deserializer.deserialize(context, buffer, metadata.withLength(handshakePayloadLength)))
-                    .orElseThrow(() -> new TlsAlert("Unknown message type: " + id));
+                    .orElseThrow(() -> new TlsAlert("Unknown message type: " + id, TlsAlertLevel.FATAL, TlsAlertType.ILLEGAL_PARAMETER));
         }
     }
 }

@@ -1,10 +1,15 @@
 package it.auties.leap.tls.message.implementation;
 
 import it.auties.leap.tls.alert.TlsAlert;
+import it.auties.leap.tls.alert.TlsAlertLevel;
+import it.auties.leap.tls.alert.TlsAlertType;
 import it.auties.leap.tls.connection.TlsKeyUpdateRequestType;
 import it.auties.leap.tls.context.TlsContext;
 import it.auties.leap.tls.context.TlsSource;
-import it.auties.leap.tls.message.*;
+import it.auties.leap.tls.message.TlsHandshakeMessage;
+import it.auties.leap.tls.message.TlsHandshakeMessageDeserializer;
+import it.auties.leap.tls.message.TlsMessageContentType;
+import it.auties.leap.tls.message.TlsMessageMetadata;
 import it.auties.leap.tls.version.TlsVersion;
 
 import java.nio.ByteBuffer;
@@ -31,7 +36,7 @@ public record KeyUpdateRequestMessage(
 
             var requestTypeId = readBigEndianInt8(buffer);
             var requestType = TlsKeyUpdateRequestType.of(requestTypeId)
-                    .orElseThrow(() -> new TlsAlert("Unknown request type id: " + requestTypeId));
+                    .orElseThrow(() -> new TlsAlert("Unknown request type id: " + requestTypeId, TlsAlertLevel.FATAL, TlsAlertType.ILLEGAL_PARAMETER));
             return new KeyUpdateRequestMessage(metadata.version(), metadata.source(), requestType);
         }
     };

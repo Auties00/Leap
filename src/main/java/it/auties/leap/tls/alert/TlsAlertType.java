@@ -36,7 +36,7 @@ public enum TlsAlertType implements TlsIdentifiableProperty<Byte> {
     NO_RENEGOTIATION((byte) 100, "no_renegotiation", true),
     MISSING_EXTENSION((byte) 109, "missing_extension", true),
     UNSUPPORTED_EXTENSION((byte) 110, "unsupported_extension", true),
-    CERT_UNOBTAINABLE((byte) 111, "certificate_unobtainable", true),
+    CERTIFICATE_UNOBTAINABLE((byte) 111, "certificate_unobtainable", true),
     UNRECOGNIZED_NAME((byte) 112, "unrecognized_name", true),
     BAD_CERT_STATUS_RESPONSE((byte) 113, "bad_certificate_status_response", true),
     BAD_CERT_HASH_VALUE((byte) 114, "bad_certificate_hash_value", true),

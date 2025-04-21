@@ -21,19 +21,19 @@ public final class TlsPskExchangeMode implements TlsIdentifiableProperty<Byte> {
         this.generator = generator;
     }
 
-    static TlsPskExchangeMode pskKe() {
+    public static TlsPskExchangeMode pskKe() {
         return KE;
     }
 
-    static TlsPskExchangeMode pskDheKe() {
+    public static TlsPskExchangeMode pskDheKe() {
         return DHE_KE;
     }
 
-    static TlsPskExchangeMode reservedForPrivateUse(byte id) {
+    public static TlsPskExchangeMode reservedForPrivateUse(byte id) {
         return reservedForPrivateUse(id, null);
     }
 
-    static TlsPskExchangeMode reservedForPrivateUse(byte id, TlsPskExchangeModeGenerator generator) {
+    public static TlsPskExchangeMode reservedForPrivateUse(byte id, TlsPskExchangeModeGenerator generator) {
         if(id != -32 && id != -31) {
             throw new TlsAlert("Only values from 224-255 (decimal) inclusive are reserved for Private Use", TlsAlertLevel.FATAL, TlsAlertType.ILLEGAL_PARAMETER);
         }
