@@ -1,5 +1,6 @@
 package it.auties.leap.tls.extension;
 
+import it.auties.leap.tls.certificate.TlsCertificateStatus;
 import it.auties.leap.tls.certificate.TlsCertificateTrustedAuthorities;
 import it.auties.leap.tls.context.TlsContext;
 import it.auties.leap.tls.ec.TlsEcPointFormat;
@@ -9,6 +10,7 @@ import it.auties.leap.tls.name.TlsName;
 import it.auties.leap.tls.psk.TlsPskExchangeMode;
 import it.auties.leap.tls.record.TlsMaxFragmentLength;
 import it.auties.leap.tls.signature.TlsSignature;
+import it.auties.leap.tls.supplemental.TlsUserMappingData;
 import it.auties.leap.tls.version.TlsVersion;
 
 import java.nio.ByteBuffer;
@@ -16,7 +18,6 @@ import java.util.List;
 import java.util.Optional;
 
 public sealed interface TlsExtension extends TlsExtensionMetadataProvider {
-
     // Pre-TLS 1.3 Extensions (or extensions behaving differently in 1.3)
     List<TlsVersion> RENEGOTIATION_INFO_VERSIONS = List.of(TlsVersion.TLS10, TlsVersion.TLS11, TlsVersion.TLS12); // RFC 5746 - Not used in TLS 1.3
     List<TlsVersion> SESSION_TICKET_VERSIONS = List.of(TlsVersion.TLS10, TlsVersion.TLS11, TlsVersion.TLS12); // RFC 5077 - Superseded by PSK mechanism in TLS 1.3
@@ -251,6 +252,17 @@ public sealed interface TlsExtension extends TlsExtensionMetadataProvider {
         return TruncatedHmacExtension.instance();
     }
 
+    static Configured.Client certificateStatusRequest(TlsCertificateStatus.Request request) {
+        return new CertificateStatusRequestClientExtension(request);
+    }
+
+    static Configured.Server certificateStatusRequest() {
+        return CertificateStatusRequestServerExtension.instance();
+    }
+
+    static Configured.Agnostic userMappingTypes(List<TlsUserMappingData> data) {
+        return new UserMappingTypesExtension(data);
+    }
 
     static Configurable keyShare() {
         return KeyShareExtension.instance();

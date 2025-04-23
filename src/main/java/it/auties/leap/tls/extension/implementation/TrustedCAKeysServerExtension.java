@@ -15,10 +15,12 @@ import java.nio.ByteBuffer;
 import java.util.List;
 import java.util.Optional;
 
-public record TrustedCAKeysServerExtension(
-
-) implements TlsExtension.Configured.Server {
+public final class TrustedCAKeysServerExtension implements TlsExtension.Configured.Server {
     private static final TrustedCAKeysServerExtension INSTANCE = new TrustedCAKeysServerExtension();
+
+    private TrustedCAKeysServerExtension() {
+
+    }
 
     public static TrustedCAKeysServerExtension instance() {
         return INSTANCE;
@@ -37,7 +39,7 @@ public record TrustedCAKeysServerExtension(
     @Override
     public void apply(TlsContext context, TlsSource source) {
         var trustedCAs = context.getNegotiableValue(TlsProperty.trustedCA())
-                .orElseThrow(() -> new TlsAlert("Missing negotiable property: " + TlsProperty.trustedCA().id(), TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR));
+                .orElseThrow(() -> new TlsAlert("Missing negotiable property: trustedCA", TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR));
         context.addNegotiatedProperty(TlsProperty.trustedCA(), trustedCAs);
     }
 
@@ -61,5 +63,15 @@ public record TrustedCAKeysServerExtension(
     @Override
     public TlsExtensionDependencies dependencies() {
         return TlsExtensionDependencies.none();
+    }
+
+    @Override
+    public int hashCode() {
+        return type();
+    }
+
+    @Override
+    public String toString() {
+        return "TrustedCAKeysServerExtension[]";
     }
 }

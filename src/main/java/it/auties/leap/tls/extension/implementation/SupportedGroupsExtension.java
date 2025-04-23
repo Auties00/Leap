@@ -74,7 +74,7 @@ public record SupportedGroupsExtension(
         var groupsSize = readBigEndianInt16(buffer);
         var groups = new ArrayList<TlsSupportedGroup>(groupsSize);
         var knownGroups = context.getNegotiableValue(TlsProperty.supportedGroups())
-                .orElseThrow(() -> new TlsAlert("Missing negotiable property: " + TlsProperty.ecPointsFormats().id(), TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR))
+                .orElseThrow(() -> new TlsAlert("Missing negotiable property: ecPointsFormats", TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR))
                 .stream()
                 .collect(Collectors.toUnmodifiableMap(TlsIdentifiableProperty::id, Function.identity()));
         var mode = context.localConnectionState().type();

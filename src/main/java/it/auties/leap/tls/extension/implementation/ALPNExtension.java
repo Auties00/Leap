@@ -65,7 +65,7 @@ public record ALPNExtension(
         var supportedProtocolsSize = readBigEndianInt16(buffer);
         var supportedProtocols = new ArrayList<String>();
         var negotiableProtocols = context.getNegotiableValue(TlsProperty.applicationProtocols())
-                .orElseThrow(() -> new TlsAlert("Missing negotiable property: " + TlsProperty.applicationProtocols().id(), TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR));
+                .orElseThrow(() -> new TlsAlert("Missing negotiable property: applicationProtocols", TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR));
         var negotiableProtocolsSet = new HashSet<>(negotiableProtocols);
         var mode = context.localConnectionState().type();
         try(var _ = scopedRead(buffer, supportedProtocolsSize)) {

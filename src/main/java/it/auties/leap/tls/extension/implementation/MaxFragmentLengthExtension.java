@@ -55,7 +55,7 @@ public record MaxFragmentLengthExtension(
     public void apply(TlsContext context, TlsSource source) {
         if(source == TlsSource.REMOTE && context.localConnectionState().type() == TlsConnectionType.CLIENT) {
             var advertised = context.getNegotiableValue(TlsProperty.maxFragmentLength())
-                    .orElseThrow(() -> new TlsAlert("Missing negotiable property: " + TlsProperty.maxFragmentLength().id(), TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR));
+                    .orElseThrow(() -> new TlsAlert("Missing negotiable property: maxFragmentLength", TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR));
             if(advertised != maxFragmentLength) {
                 throw new TlsAlert("Remote tried to negotiate a max fragment length that wasn't advertised", TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR);
             }

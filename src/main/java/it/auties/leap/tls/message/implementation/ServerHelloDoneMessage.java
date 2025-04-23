@@ -62,9 +62,9 @@ public record ServerHelloDoneMessage(
         switch (context.localConnectionState().type()) {
             case CLIENT -> context.remoteConnectionState()
                     .orElseThrow(() -> new TlsAlert("No remote connection state was created", TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR))
-                    .setHandshakeStatus(TlsHandshakeStatus.HANDSHAKE_STARTED);
+                    .setHandshakeStatus(TlsHandshakeStatus.HANDSHAKE_DONE);
             case SERVER -> context.localConnectionState()
-                    .setHandshakeStatus(TlsHandshakeStatus.HANDSHAKE_STARTED);
+                    .setHandshakeStatus(TlsHandshakeStatus.HANDSHAKE_DONE);
         }
     }
 }

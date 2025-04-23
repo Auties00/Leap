@@ -4,9 +4,8 @@ import it.auties.leap.tls.alert.TlsAlert;
 import it.auties.leap.tls.alert.TlsAlertLevel;
 import it.auties.leap.tls.alert.TlsAlertType;
 import it.auties.leap.tls.context.TlsContext;
-import it.auties.leap.tls.ec.TlsEcParameters;
+import it.auties.leap.tls.ec.TlsEcCurveType;
 import it.auties.leap.tls.ec.TlsEcParametersDeserializer;
-import it.auties.leap.tls.ec.implementation.NamedCurveParameters;
 import it.auties.leap.tls.group.TlsSupportedEllipticCurve;
 import it.auties.leap.tls.property.TlsProperty;
 import it.auties.leap.tls.secret.TlsSecret;
@@ -277,8 +276,8 @@ public final class NamedEllipticCurve implements TlsSupportedEllipticCurve {
     }
 
     @Override
-    public TlsEcParameters toParameters() {
-        return new NamedCurveParameters(id);
+    public TlsEcCurveType toParameters() {
+        return TlsEcCurveType.namedCurve(id);
     }
 
     @Override

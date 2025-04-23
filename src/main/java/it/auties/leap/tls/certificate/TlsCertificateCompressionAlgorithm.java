@@ -44,7 +44,7 @@ public final class TlsCertificateCompressionAlgorithm implements TlsIdentifiable
             throw new TlsAlert("Only values from 16384-65535 (decimal) inclusive are reserved for Experimental Use", TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR);
         }
 
-        return new TlsCertificateCompressionAlgorithm(id, Type.RESERVED_FOR_EXPERIMENTAL_USE, Objects.requireNonNullElse(compressor, TlsCompressor.stub()));
+        return new TlsCertificateCompressionAlgorithm(id, Type.RESERVED_FOR_EXPERIMENTAL_USE, Objects.requireNonNullElse(compressor, TlsCompressor.unsupported()));
     }
 
     @Override

@@ -14,10 +14,12 @@ import java.nio.ByteBuffer;
 import java.util.List;
 import java.util.Optional;
 
-public record EncryptThenMacExtension(
-
-) implements TlsExtension.Configured.Agnostic {
+public final class EncryptThenMacExtension implements TlsExtension.Configured.Agnostic {
     private static final EncryptThenMacExtension INSTANCE = new EncryptThenMacExtension();
+
+    private EncryptThenMacExtension() {
+
+    }
 
     public static EncryptThenMacExtension instance() {
         return INSTANCE;
@@ -68,5 +70,15 @@ public record EncryptThenMacExtension(
     @Override
     public TlsExtensionDependencies dependencies() {
         return TlsExtensionDependencies.none();
+    }
+
+    @Override
+    public int hashCode() {
+        return type();
+    }
+
+    @Override
+    public String toString() {
+        return "EncryptThenMacExtension[]";
     }
 }

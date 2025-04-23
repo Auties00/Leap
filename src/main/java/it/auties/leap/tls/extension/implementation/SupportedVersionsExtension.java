@@ -46,10 +46,10 @@ public final class SupportedVersionsExtension implements TlsExtension.Configurab
     public Optional<? extends TlsExtension.Configured.Client> configureClient(TlsContext context, int messageLength) {
         var supportedVersions = new ArrayList<TlsVersionId>();
         context.getNegotiableValue(TlsProperty.version())
-                .orElseThrow(() -> new TlsAlert("Missing negotiable property: " + TlsProperty.version().id(), TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR))
+                .orElseThrow(() -> new TlsAlert("Missing negotiable property: version", TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR))
                 .forEach(version -> supportedVersions.add(version.id()));
         var grease = context.getNegotiableValue(TlsProperty.clientExtensions())
-                .orElseThrow(() -> new TlsAlert("Missing negotiable property: " + TlsProperty.clientExtensions().id(), TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR))
+                .orElseThrow(() -> new TlsAlert("Missing negotiable property: clientExtensions", TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR))
                 .stream()
                 .anyMatch(entry -> TlsGrease.isGrease(entry.type()));
         if (grease) {
@@ -61,10 +61,10 @@ public final class SupportedVersionsExtension implements TlsExtension.Configurab
     @Override
     public Optional<? extends TlsExtension.Configured.Server> configureServer(TlsContext context, int messageLength) {
         var version = context.getNegotiableValue(TlsProperty.version())
-                .orElseThrow(() -> new TlsAlert("Missing negotiable property: " + TlsProperty.version().id(), TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR))
+                .orElseThrow(() -> new TlsAlert("Missing negotiable property: version", TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR))
                 .stream()
                 .reduce((first, second) -> first.id().value() > second.id().value() ? first : second)
-                .orElseThrow(() -> new TlsAlert("Missing negotiable property: " + TlsProperty.version().id(), TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR));
+                .orElseThrow(() -> new TlsAlert("Missing negotiable property: version", TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR));
         return Optional.of(new ConfiguredServer(version));
     }
 
@@ -75,6 +75,16 @@ public final class SupportedVersionsExtension implements TlsExtension.Configurab
                 .map(grease -> grease.versionId().value())
                 .toArray(Integer[]::new);
         return TlsExtensionDependencies.some(values);
+    }
+
+    @Override
+    public int hashCode() {
+        return type();
+    }
+
+    @Override
+    public String toString() {
+        return "SupportedVersionsExtension[supportedVersion(s)=<configurable>]";
     }
 
     private record ConfiguredClient(
@@ -101,7 +111,7 @@ public final class SupportedVersionsExtension implements TlsExtension.Configurab
             var minor = readBigEndianInt8(buffer);
             var versionId = TlsVersionId.of(major, minor);
             var supportedVersions = context.getNegotiableValue(TlsProperty.version())
-                    .orElseThrow(() -> new TlsAlert("Missing negotiable property: " + TlsProperty.version().id(), TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR))
+                    .orElseThrow(() -> new TlsAlert("Missing negotiable property: version", TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR))
                     .stream()
                     .collect(Collectors.toUnmodifiableMap(TlsVersion::id, Function.identity()));
             var supportedVersion = supportedVersions.get(versionId);
@@ -134,12 +144,12 @@ public final class SupportedVersionsExtension implements TlsExtension.Configurab
     }
 
     private record ConfiguredServer(
-            TlsVersion version
+            TlsVersion supportedVersion
     ) implements TlsExtension.Configured.Server {
         @Override
         public void serializePayload(ByteBuffer buffer) {
-            writeBigEndianInt8(buffer, version.id().major());
-            writeBigEndianInt8(buffer, version.id().minor());
+            writeBigEndianInt8(buffer, supportedVersion.id().major());
+            writeBigEndianInt8(buffer, supportedVersion.id().minor());
         }
 
         @Override
@@ -159,7 +169,7 @@ public final class SupportedVersionsExtension implements TlsExtension.Configurab
 
         @Override
         public void apply(TlsContext context, TlsSource source) {
-            context.addNegotiatedProperty(TlsProperty.version(), version);
+            context.addNegotiatedProperty(TlsProperty.version(), supportedVersion);
         }
 
         @Override

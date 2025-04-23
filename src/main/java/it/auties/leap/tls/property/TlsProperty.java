@@ -10,6 +10,7 @@ import it.auties.leap.tls.group.TlsSupportedGroup;
 import it.auties.leap.tls.psk.TlsPskExchangeMode;
 import it.auties.leap.tls.record.TlsMaxFragmentLength;
 import it.auties.leap.tls.signature.TlsSignature;
+import it.auties.leap.tls.supplemental.TlsUserMappingDataDeserializer;
 import it.auties.leap.tls.version.TlsVersion;
 
 import java.util.List;
@@ -36,6 +37,7 @@ public final class TlsProperty<I, O> implements TlsIdentifiableProperty<UUID> {
     private static final TlsProperty<Boolean, Boolean> CERTIFICATE_URLS = new TlsProperty<>();
     private static final TlsProperty<List<TlsCertificateTrustedAuthority>, List<TlsCertificateTrustedAuthority>> TRUSTED_CA = new TlsProperty<>();
     private static final TlsProperty<Boolean, Boolean> TRUNCATED_HMAC = new TlsProperty<>();
+    private static final TlsProperty<List<TlsUserMappingDataDeserializer>, List<TlsUserMappingDataDeserializer>> USER_MAPPINGS = new TlsProperty<>();
 
     private final UUID id;
 
@@ -43,7 +45,7 @@ public final class TlsProperty<I, O> implements TlsIdentifiableProperty<UUID> {
         this.id = UUID.randomUUID();
     }
 
-    public static <K, V> TlsProperty<K, V> newTlsProperty() {
+    public static <K, V> TlsProperty<K, V> of() {
         return new TlsProperty<>();
     }
 
@@ -117,6 +119,10 @@ public final class TlsProperty<I, O> implements TlsIdentifiableProperty<UUID> {
 
     public static TlsProperty<Boolean, Boolean> truncatedHmac() {
         return TRUNCATED_HMAC;
+    }
+
+    public static TlsProperty<List<TlsUserMappingDataDeserializer>, List<TlsUserMappingDataDeserializer>> userMappings() {
+        return USER_MAPPINGS;
     }
 
     @Override

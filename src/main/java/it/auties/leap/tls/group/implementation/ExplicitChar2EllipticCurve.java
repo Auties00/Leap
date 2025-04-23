@@ -1,9 +1,8 @@
 package it.auties.leap.tls.group.implementation;
 
 import it.auties.leap.tls.context.TlsContext;
-import it.auties.leap.tls.ec.TlsEcParameters;
+import it.auties.leap.tls.ec.TlsEcCurveType;
 import it.auties.leap.tls.ec.TlsEcParametersDeserializer;
-import it.auties.leap.tls.ec.implementation.ExplicitChar2Parameters;
 import it.auties.leap.tls.group.TlsSupportedEllipticCurve;
 import it.auties.leap.tls.secret.TlsSecret;
 
@@ -11,9 +10,9 @@ import java.security.KeyPair;
 import java.security.PublicKey;
 
 public final class ExplicitChar2EllipticCurve implements TlsSupportedEllipticCurve {
-    private final ExplicitChar2Parameters parameters;
+    private final TlsEcCurveType.ExplicitChar2 parameters;
 
-    public ExplicitChar2EllipticCurve(ExplicitChar2Parameters parameters) {
+    public ExplicitChar2EllipticCurve(TlsEcCurveType.ExplicitChar2 parameters) {
         this.parameters = parameters;
     }
 
@@ -28,7 +27,7 @@ public final class ExplicitChar2EllipticCurve implements TlsSupportedEllipticCur
     }
 
     @Override
-    public TlsEcParameters toParameters() {
+    public TlsEcCurveType toParameters() {
         return parameters;
     }
 

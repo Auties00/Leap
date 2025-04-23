@@ -5,7 +5,7 @@ import it.auties.leap.tls.alert.TlsAlertType;
 import it.auties.leap.tls.context.TlsContext;
 import it.auties.leap.tls.alert.TlsAlert;
 import it.auties.leap.tls.connection.TlsConnection;
-import it.auties.leap.tls.group.TlsKeyPair;
+import it.auties.leap.tls.group.TlsSupportedGroupKeys;
 import it.auties.leap.tls.secret.preMaster.TlsPreMasterSecretGenerator;
 import it.auties.leap.tls.property.TlsProperty;
 import it.auties.leap.tls.secret.TlsSecret;
@@ -32,7 +32,7 @@ public final class RSAPreMasterSecretGenerator implements TlsPreMasterSecretGene
             var cipher = Cipher.getInstance("RSA/ECB/PKCS1Padding");
             var remotePublicKey = context.remoteConnectionState()
                     .flatMap(TlsConnection::ephemeralKeyPair)
-                    .map(TlsKeyPair::publicKey)
+                    .map(TlsSupportedGroupKeys::publicKey)
                     .orElseThrow(() -> new TlsAlert("No remote connection state was created", TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR));
             cipher.init(Cipher.WRAP_MODE, remotePublicKey);
             return TlsSecret.of(cipher.wrap(new SecretKeySpec(preMasterSecret, "raw")));
@@ -46,7 +46,7 @@ public final class RSAPreMasterSecretGenerator implements TlsPreMasterSecretGene
             var preMasterSecret = new byte[48];
             SecureRandom.getInstanceStrong().nextBytes(preMasterSecret);
             var version = context.getNegotiatedValue(TlsProperty.version())
-                    .orElseThrow(() -> new TlsAlert("Missing negotiable property: " + TlsProperty.version().id(), TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR));
+                    .orElseThrow(() -> new TlsAlert("Missing negotiable property: version", TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR));
             preMasterSecret[0] = version.id().minor();
             preMasterSecret[1] = version.id().major();
             return preMasterSecret;

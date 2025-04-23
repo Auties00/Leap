@@ -56,7 +56,7 @@ public record PSKExchangeModesExtension(
         var modesSize = readBigEndianInt16(buffer);
         var modes = new ArrayList<TlsPskExchangeMode>(modesSize);
         var knownModes = context.getNegotiableValue(TlsProperty.pskExchangeModes())
-                .orElseThrow(() -> new TlsAlert("Missing negotiable property: " + TlsProperty.pskExchangeModes().id(), TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR))
+                .orElseThrow(() -> new TlsAlert("Missing negotiable property: pskExchangeModes", TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR))
                 .stream()
                 .collect(Collectors.toUnmodifiableMap(TlsIdentifiableProperty::id, Function.identity()));
         var mode = context.localConnectionState().type();

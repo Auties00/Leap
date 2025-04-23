@@ -22,7 +22,7 @@ public interface TlsMessageDeserializer {
     }
 
     static TlsMessageDeserializer handshake() {
-        return TlsHandshakeMessageDeserializer.any();
+        return TlsHandshakeMessageDeserializer.of();
     }
 
     static List<TlsMessageDeserializer> values() {

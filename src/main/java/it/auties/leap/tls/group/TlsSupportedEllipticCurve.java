@@ -1,12 +1,7 @@
 package it.auties.leap.tls.group;
 
-import it.auties.leap.tls.alert.TlsAlert;
-import it.auties.leap.tls.alert.TlsAlertLevel;
-import it.auties.leap.tls.alert.TlsAlertType;
-import it.auties.leap.tls.ec.TlsEcParameters;
+import it.auties.leap.tls.ec.TlsEcCurveType;
 import it.auties.leap.tls.ec.TlsEcParametersDeserializer;
-import it.auties.leap.tls.ec.implementation.ExplicitChar2Parameters;
-import it.auties.leap.tls.ec.implementation.ExplicitPrimeParameters;
 import it.auties.leap.tls.group.implementation.ExplicitChar2EllipticCurve;
 import it.auties.leap.tls.group.implementation.ExplicitPrimeEllipticCurve;
 import it.auties.leap.tls.group.implementation.NamedEllipticCurve;
@@ -192,23 +187,15 @@ public non-sealed interface TlsSupportedEllipticCurve extends TlsSupportedGroup 
         return NamedEllipticCurve.brainpoolp512r1Tls13();
     }
 
-    static TlsSupportedEllipticCurve explicitPrime(TlsEcParameters parameters) {
-        if (!(parameters instanceof ExplicitPrimeParameters primeParameters)) {
-            throw new TlsAlert("Parameters mismatch", TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR);
-        }
-
-        return new ExplicitPrimeEllipticCurve(primeParameters);
+    static TlsSupportedEllipticCurve explicitPrime(TlsEcCurveType.ExplicitPrime parameters) {
+        return new ExplicitPrimeEllipticCurve(parameters);
     }
 
-    static TlsSupportedEllipticCurve explicitChar2(TlsEcParameters parameters) {
-        if (!(parameters instanceof ExplicitChar2Parameters char2Parameters)) {
-            throw new TlsAlert("Parameters mismatch", TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR);
-        }
-
-        return new ExplicitChar2EllipticCurve(char2Parameters);
+    static TlsSupportedEllipticCurve explicitChar2(TlsEcCurveType.ExplicitChar2 parameters) {
+        return new ExplicitChar2EllipticCurve(parameters);
     }
 
-    TlsEcParameters toParameters();
+    TlsEcCurveType toParameters();
 
     TlsEcParametersDeserializer parametersDeserializer();
 

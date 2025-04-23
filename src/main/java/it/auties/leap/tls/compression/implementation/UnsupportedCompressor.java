@@ -7,10 +7,10 @@ import it.auties.leap.tls.compression.TlsCompressor;
 
 import java.nio.ByteBuffer;
 
-public final class StubCompressor implements TlsCompressor {
-    private static final StubCompressor INSTANCE = new StubCompressor();
+public final class UnsupportedCompressor implements TlsCompressor {
+    private static final UnsupportedCompressor INSTANCE = new UnsupportedCompressor();
 
-    private StubCompressor() {
+    private UnsupportedCompressor() {
 
     }
 
@@ -20,6 +20,6 @@ public final class StubCompressor implements TlsCompressor {
 
     @Override
     public void accept(ByteBuffer input, ByteBuffer output, boolean forCompression) {
-        throw new TlsAlert("Stub compressor should not be selected", TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR);
+        throw new TlsAlert("Unsupported compressor should not be selected", TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR);
     }
 }

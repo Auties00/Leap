@@ -139,7 +139,7 @@ public class TlsContext {
     public <I, O> TlsContext addNegotiatedProperty(TlsProperty<I, O> property, O propertyValue) {
         var value = (PropertyValue<I, O>) properties.get(property);
         if(value == null) {
-            throw new TlsAlert("Missing negotiable property: " + property.id(), TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR);
+            throw new TlsAlert("Missing negotiable property", TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR);
         }
 
         value.setNegotiated(propertyValue);

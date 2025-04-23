@@ -10,12 +10,12 @@ import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
 
 import static it.auties.leap.tls.util.BufferUtils.*;
 
 public sealed interface TlsCertificateStatus extends TlsIdentifiableProperty<Byte>, TlsSerializableProperty {
     Type type();
-    TlsCertificateStatus deserialize(ByteBuffer buffer);
 
     sealed interface Request extends TlsCertificateStatus {
         static Ocsp ocsp(List<byte[]> responderId, List<byte[]> requestExtensions) {
@@ -49,10 +49,18 @@ public sealed interface TlsCertificateStatus extends TlsIdentifiableProperty<Byt
                     .sum();
         }
 
-        @Override
-        Response deserialize(ByteBuffer buffer);
+        static Optional<? extends Request> of(ByteBuffer buffer) {
+            var type = readBigEndianInt8(buffer);
+            return switch(type) {
+                case Ocsp.ID -> Optional.of(Ocsp.of(buffer));
+                case OcspMulti.ID -> Optional.of(OcspMulti.of(buffer));
+                default -> Optional.empty();
+            };
+        }
 
         final class Ocsp implements Request {
+            private static final int ID = 1;
+
             private final List<byte[]> responderIdList;
             private final int responderIdListLength;
             private final List<byte[]> requestExtensions;
@@ -63,6 +71,24 @@ public sealed interface TlsCertificateStatus extends TlsIdentifiableProperty<Byt
                 this.responderIdListLength = responderIdListLength;
                 this.requestExtensions = requestExtensions;
                 this.requestExtensionsLength = requestExtensionsLength;
+            }
+
+            public static Ocsp of(ByteBuffer buffer) {
+                var responderIdLength = readBigEndianInt16(buffer);
+                var responderIdList = new ArrayList<byte[]>();
+                try(var _ = scopedRead(buffer, responderIdLength)) {
+                    var responderId = readBytesBigEndian16(buffer);
+                    responderIdList.add(responderId);
+                }
+
+                var requestExtensionsLength = readBigEndianInt16(buffer);
+                var requestExtensions = new ArrayList<byte[]>();
+                try(var _ = scopedRead(buffer, requestExtensionsLength)) {
+                    var requestExtension = readBytesBigEndian16(buffer);
+                    requestExtensions.add(requestExtension);
+                }
+
+                return new Ocsp(responderIdList, responderIdLength, requestExtensions, requestExtensionsLength);
             }
 
             @Override
@@ -80,7 +106,7 @@ public sealed interface TlsCertificateStatus extends TlsIdentifiableProperty<Byt
 
             @Override
             public Byte id() {
-                return 1;
+                return ID;
             }
 
             @SuppressWarnings("DuplicatedCode")
@@ -107,15 +133,11 @@ public sealed interface TlsCertificateStatus extends TlsIdentifiableProperty<Byt
                         + (responderIdListLength > 0 ? INT16_LENGTH + requestExtensionsLength : 0)
                         + (requestExtensionsLength > 0 ? INT16_LENGTH + requestExtensionsLength : 0);
             }
-
-            @Override
-            public Response deserialize(ByteBuffer buffer) {
-                var data = readBytesBigEndian24(buffer);
-                return new Response.Ocsp(data);
-            }
         }
 
         final class OcspMulti implements Request {
+            private static final int ID = 2;
+
             private final List<byte[]> responderIdList;
             private final int responderIdListLength;
             private final List<byte[]> requestExtensions;
@@ -126,6 +148,24 @@ public sealed interface TlsCertificateStatus extends TlsIdentifiableProperty<Byt
                 this.responderIdListLength = responderIdListLength;
                 this.requestExtensions = requestExtensions;
                 this.requestExtensionsLength = requestExtensionsLength;
+            }
+
+            public static OcspMulti of(ByteBuffer buffer) {
+                var responderIdLength = readBigEndianInt16(buffer);
+                var responderIdList = new ArrayList<byte[]>();
+                try(var _ = scopedRead(buffer, responderIdLength)) {
+                    var responderId = readBytesBigEndian16(buffer);
+                    responderIdList.add(responderId);
+                }
+
+                var requestExtensionsLength = readBigEndianInt16(buffer);
+                var requestExtensions = new ArrayList<byte[]>();
+                try(var _ = scopedRead(buffer, requestExtensionsLength)) {
+                    var requestExtension = readBytesBigEndian16(buffer);
+                    requestExtensions.add(requestExtension);
+                }
+
+                return new OcspMulti(responderIdList, responderIdLength, requestExtensions, requestExtensionsLength);
             }
 
             @Override
@@ -143,7 +183,7 @@ public sealed interface TlsCertificateStatus extends TlsIdentifiableProperty<Byt
 
             @Override
             public Byte id() {
-                return 2;
+                return ID;
             }
 
             @SuppressWarnings("DuplicatedCode")
@@ -169,19 +209,6 @@ public sealed interface TlsCertificateStatus extends TlsIdentifiableProperty<Byt
                 return INT8_LENGTH
                         + (responderIdListLength > 0 ? INT16_LENGTH + requestExtensionsLength : 0)
                         + (requestExtensionsLength > 0 ? INT16_LENGTH + requestExtensionsLength : 0);
-            }
-
-            @Override
-            public Response deserialize(ByteBuffer buffer) {
-                var length  = readBigEndianInt24(buffer);
-                var data = new ArrayList<byte[]>();
-                try(var _ = scopedRead(buffer, length)) {
-                    while (buffer.hasRemaining()) {
-                        var entry = readBytesBigEndian24(buffer);
-                        data.add(entry);
-                    }
-                }
-                return new Response.OcspMulti(data, length);
             }
         }
     }
@@ -205,14 +232,25 @@ public sealed interface TlsCertificateStatus extends TlsIdentifiableProperty<Byt
             return new OcspMulti(data, length);
         }
 
-        @Override
-        Request deserialize(ByteBuffer buffer);
+        static Optional<? extends Response> of(ByteBuffer buffer) {
+            var type = readBigEndianInt8(buffer);
+            return switch(type) {
+                case Request.Ocsp.ID -> Optional.of(Ocsp.of(buffer));
+                case Request.OcspMulti.ID -> Optional.of(OcspMulti.of(buffer));
+                default -> Optional.empty();
+            };
+        }
 
         final class Ocsp implements Response {
             private final byte[] data;
 
             Ocsp(byte[] data) {
                 this.data = data;
+            }
+
+            public static Ocsp of(ByteBuffer buffer) {
+                var data = readBytesBigEndian24(buffer);
+                return new Response.Ocsp(data);
             }
 
             @Override
@@ -240,26 +278,6 @@ public sealed interface TlsCertificateStatus extends TlsIdentifiableProperty<Byt
                 return INT8_LENGTH
                         + INT24_LENGTH + data.length;
             }
-
-            @SuppressWarnings("DuplicatedCode")
-            @Override
-            public Request deserialize(ByteBuffer buffer) {
-                var responderIdLength = readBigEndianInt16(buffer);
-                var responderIdList = new ArrayList<byte[]>();
-                try(var _ = scopedRead(buffer, responderIdLength)) {
-                    var responderId = readBytesBigEndian16(buffer);
-                    responderIdList.add(responderId);
-                }
-
-                var requestExtensionsLength = readBigEndianInt16(buffer);
-                var requestExtensions = new ArrayList<byte[]>();
-                try(var _ = scopedRead(buffer, requestExtensionsLength)) {
-                    var requestExtension = readBytesBigEndian16(buffer);
-                    requestExtensions.add(requestExtension);
-                }
-
-                return new Request.Ocsp(responderIdList, responderIdLength, requestExtensions, requestExtensionsLength);
-            }
         }
 
         final class OcspMulti implements Response {
@@ -269,6 +287,18 @@ public sealed interface TlsCertificateStatus extends TlsIdentifiableProperty<Byt
             OcspMulti(List<byte[]> data, int length) {
                 this.data = data;
                 this.length = length;
+            }
+
+            public static OcspMulti of(ByteBuffer buffer) {
+                var length  = readBigEndianInt24(buffer);
+                var data = new ArrayList<byte[]>();
+                try(var _ = scopedRead(buffer, length)) {
+                    while (buffer.hasRemaining()) {
+                        var entry = readBytesBigEndian24(buffer);
+                        data.add(entry);
+                    }
+                }
+                return new Response.OcspMulti(data, length);
             }
 
             @Override
@@ -298,26 +328,6 @@ public sealed interface TlsCertificateStatus extends TlsIdentifiableProperty<Byt
             public int length() {
                 return INT8_LENGTH
                         + length;
-            }
-
-            @SuppressWarnings("DuplicatedCode")
-            @Override
-            public Request deserialize(ByteBuffer buffer) {
-                var responderIdLength = readBigEndianInt16(buffer);
-                var responderIdList = new ArrayList<byte[]>();
-                try(var _ = scopedRead(buffer, responderIdLength)) {
-                    var responderId = readBytesBigEndian16(buffer);
-                    responderIdList.add(responderId);
-                }
-
-                var requestExtensionsLength = readBigEndianInt16(buffer);
-                var requestExtensions = new ArrayList<byte[]>();
-                try(var _ = scopedRead(buffer, requestExtensionsLength)) {
-                    var requestExtension = readBytesBigEndian16(buffer);
-                    requestExtensions.add(requestExtension);
-                }
-
-                return new Request.OcspMulti(responderIdList, responderIdLength, requestExtensions, requestExtensionsLength);
             }
         }
     }

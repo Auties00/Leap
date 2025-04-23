@@ -4,7 +4,7 @@ import it.auties.leap.tls.cipher.exchange.TlsKeyExchange;
 import it.auties.leap.tls.cipher.exchange.TlsKeyExchangeFactory;
 import it.auties.leap.tls.cipher.exchange.TlsKeyExchangeType;
 import it.auties.leap.tls.context.TlsContext;
-import it.auties.leap.tls.ec.TlsEcParameters;
+import it.auties.leap.tls.ec.TlsEcCurveType;
 import it.auties.leap.tls.ec.TlsEcParametersDeserializer;
 import it.auties.leap.tls.secret.preMaster.TlsPreMasterSecretGenerator;
 
@@ -73,11 +73,11 @@ public sealed abstract class ECCPWDKeyExchange implements TlsKeyExchange {
 
     private static final class Server extends ECCPWDKeyExchange {
         private final byte[] salt;
-        private final TlsEcParameters params;
+        private final TlsEcCurveType params;
         private final byte[] publicKey;
         private final byte[] password;
 
-        private Server(byte[] salt, TlsEcParameters params, byte[] publicKey, byte[] password) {
+        private Server(byte[] salt, TlsEcCurveType params, byte[] publicKey, byte[] password) {
             this.salt = salt;
             this.params = params;
             this.publicKey = publicKey;

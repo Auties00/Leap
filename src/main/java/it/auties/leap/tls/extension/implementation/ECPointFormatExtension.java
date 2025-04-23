@@ -60,22 +60,22 @@ public record ECPointFormatExtension(
     @Override
     public Optional<ECPointFormatExtension> deserialize(TlsContext context, int type, ByteBuffer buffer) {
         var ecPointFormatsLength = readBigEndianInt8(buffer);
-        var ecPointFormats = new ArrayList<TlsEcPointFormat>();
-        var knownFormats = context.getNegotiableValue(TlsProperty.ecPointsFormats())
-                .orElseThrow(() -> new TlsAlert("Missing negotiable property: " + TlsProperty.ecPointsFormats().id(), TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR))
+        var remoteEcPointFormats = new ArrayList<TlsEcPointFormat>();
+        var localEcPointFormats = context.getNegotiableValue(TlsProperty.ecPointsFormats())
+                .orElseThrow(() -> new TlsAlert("Missing negotiable property: ecPointsFormats", TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR))
                 .stream()
                 .collect(Collectors.toUnmodifiableMap(TlsIdentifiableProperty::id, Function.identity()));
         var mode = context.localConnectionState().type();
         for(var i = 0; i < ecPointFormatsLength; i++) {
             var ecPointFormatId = readBigEndianInt8(buffer);
-            var ecPointFormat = knownFormats.get(ecPointFormatId);
+            var ecPointFormat = localEcPointFormats.get(ecPointFormatId);
             if(ecPointFormat != null) {
-                ecPointFormats.add(ecPointFormat);
+                remoteEcPointFormats.add(ecPointFormat);
             }else if(mode == TlsConnectionType.CLIENT) {
                 throw new TlsAlert("Remote tried to negotiate an ec point that wasn't advertised", TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR);
             }
         }
-        var extension = new ECPointFormatExtension(ecPointFormats);
+        var extension = new ECPointFormatExtension(remoteEcPointFormats);
         return Optional.of(extension);
     }
 

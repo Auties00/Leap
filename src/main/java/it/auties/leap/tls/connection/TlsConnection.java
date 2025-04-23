@@ -4,7 +4,7 @@ import it.auties.leap.tls.certificate.TlsCertificate;
 import it.auties.leap.tls.cipher.exchange.TlsKeyExchange;
 import it.auties.leap.tls.cipher.exchange.TlsKeyExchangeType;
 import it.auties.leap.tls.cipher.mode.TlsCipher;
-import it.auties.leap.tls.group.TlsKeyPair;
+import it.auties.leap.tls.group.TlsSupportedGroupKeys;
 import it.auties.leap.tls.group.TlsSupportedGroup;
 
 import java.util.*;
@@ -17,7 +17,7 @@ public final class TlsConnection {
     private final byte[] dtlsCookie;
     private final List<TlsCertificate> certificates;
 
-    private final Map<Integer, TlsKeyPair> ephemeralKeyPairs;
+    private final Map<Integer, TlsSupportedGroupKeys> ephemeralKeyPairs;
     private volatile Integer selectedEphemeralKeyPair;
     private volatile TlsCertificate selectedStaticCertificate;
 
@@ -36,11 +36,11 @@ public final class TlsConnection {
         this.certificates = certificates;
     }
 
-    public static TlsConnection newConnection(TlsConnectionType type, byte[] randomData, byte[] sessionId, byte[] dtlsCookie) {
-        return new TlsConnection(type, randomData, sessionId, dtlsCookie, new ArrayList<>());
+    public static TlsConnection of(TlsConnectionType type, byte[] randomData, byte[] sessionId, byte[] dtlsCookie) {
+        return of(type, randomData, sessionId, dtlsCookie, new ArrayList<>());
     }
 
-    public static TlsConnection newConnection(TlsConnectionType type, byte[] randomData, byte[] sessionId, byte[] dtlsCookie, List<TlsCertificate> certificates) {
+    public static TlsConnection of(TlsConnectionType type, byte[] randomData, byte[] sessionId, byte[] dtlsCookie, List<TlsCertificate> certificates) {
         if(type == null) {
             throw new NullPointerException("type");
         }
@@ -80,7 +80,7 @@ public final class TlsConnection {
         return Optional.ofNullable(cipher);
     }
 
-    public Optional<TlsKeyPair> ephemeralKeyPair() {
+    public Optional<TlsSupportedGroupKeys> ephemeralKeyPair() {
         if(selectedEphemeralKeyPair == null) {
             return Optional.empty();
         }
@@ -92,7 +92,7 @@ public final class TlsConnection {
         return handshakeStatus;
     }
 
-    public TlsConnection addEphemeralKeyPair(TlsKeyPair keyPair) {
+    public TlsConnection addEphemeralKeyPair(TlsSupportedGroupKeys keyPair) {
         ephemeralKeyPairs.put(keyPair.group().id(), keyPair);
         return this;
     }
@@ -113,9 +113,11 @@ public final class TlsConnection {
     }
 
     public boolean chooseEphemeralKeyPair(TlsSupportedGroup group) {
-        if(keyExchange == null || keyExchange.type() != TlsKeyExchangeType.EPHEMERAL || selectedEphemeralKeyPair != null) {
-            return false;
-        }
+        //  TODO: Should we sanity check this?
+        //  Also handle the return type
+        //  if(keyExchange == null || keyExchange.type() != TlsKeyExchangeType.EPHEMERAL || selectedEphemeralKeyPair != null) {
+        //            return false;
+        //        }
 
         if(!ephemeralKeyPairs.containsKey(group.id())) {
             return false;

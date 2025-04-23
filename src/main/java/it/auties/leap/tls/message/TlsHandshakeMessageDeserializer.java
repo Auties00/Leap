@@ -99,7 +99,7 @@ public interface TlsHandshakeMessageDeserializer extends TlsMessageDeserializer 
         return SupplementalDataMessage.deserializer();
     }
 
-    static TlsMessageDeserializer any() {
+    static TlsMessageDeserializer of() {
         return HandshakeMessageDeserializer.instance();
     }
 

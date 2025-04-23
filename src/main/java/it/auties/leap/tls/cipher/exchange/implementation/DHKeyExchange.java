@@ -7,7 +7,7 @@ import it.auties.leap.tls.cipher.exchange.TlsKeyExchange;
 import it.auties.leap.tls.cipher.exchange.TlsKeyExchangeFactory;
 import it.auties.leap.tls.cipher.exchange.TlsKeyExchangeType;
 import it.auties.leap.tls.context.TlsContext;
-import it.auties.leap.tls.group.TlsKeyPair;
+import it.auties.leap.tls.group.TlsSupportedGroupKeys;
 import it.auties.leap.tls.group.TlsSupportedFiniteField;
 import it.auties.leap.tls.property.TlsProperty;
 import it.auties.leap.tls.secret.preMaster.TlsPreMasterSecretGenerator;
@@ -152,7 +152,7 @@ public abstract sealed class DHKeyExchange implements TlsKeyExchange {
                                 .orElseThrow(() -> new TlsAlert("No supported group is a finite field", TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR));
                         var keyPair = group.generateKeyPair(context);
                         var publicKey = (DHPublicKey) keyPair.getPublic();
-                        localConnectionState.addEphemeralKeyPair(TlsKeyPair.of(group, keyPair))
+                        localConnectionState.addEphemeralKeyPair(TlsSupportedGroupKeys.of(group, keyPair))
                                 .chooseEphemeralKeyPair(group);
                         yield new Client(type, publicKey.getParams().getP(), publicKey.getParams().getG(), publicKey.getY().toByteArray());
                     }
@@ -166,7 +166,7 @@ public abstract sealed class DHKeyExchange implements TlsKeyExchange {
                                 .orElseThrow(() -> new TlsAlert("No supported group is a finite field", TlsAlertLevel.FATAL, TlsAlertType.ILLEGAL_PARAMETER));
                         var keyPair = group.generateKeyPair(context);
                         var publicKey = (DHPublicKey) keyPair.getPublic();
-                        localConnectionState.addEphemeralKeyPair(TlsKeyPair.of(group, keyPair))
+                        localConnectionState.addEphemeralKeyPair(TlsSupportedGroupKeys.of(group, keyPair))
                                 .chooseEphemeralKeyPair(group);
                         yield new Server(type, publicKey.getParams().getP(), publicKey.getParams().getG(), publicKey.getY().toByteArray());
                     }

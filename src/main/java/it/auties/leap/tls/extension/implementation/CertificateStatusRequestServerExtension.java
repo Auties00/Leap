@@ -1,5 +1,8 @@
 package it.auties.leap.tls.extension.implementation;
 
+import it.auties.leap.tls.alert.TlsAlert;
+import it.auties.leap.tls.alert.TlsAlertLevel;
+import it.auties.leap.tls.alert.TlsAlertType;
 import it.auties.leap.tls.certificate.TlsCertificateStatus;
 import it.auties.leap.tls.context.TlsContext;
 import it.auties.leap.tls.context.TlsSource;
@@ -11,17 +14,25 @@ import java.nio.ByteBuffer;
 import java.util.List;
 import java.util.Optional;
 
-public record CertificateStatusRequestServerExtension(
-        TlsCertificateStatus.Response response
-) implements TlsExtension.Configured.Server {
+public final class CertificateStatusRequestServerExtension implements TlsExtension.Configured.Server {
+    private static final CertificateStatusRequestServerExtension INSTANCE = new CertificateStatusRequestServerExtension();
+
+    private CertificateStatusRequestServerExtension() {
+
+    }
+
+    public static CertificateStatusRequestServerExtension instance() {
+        return INSTANCE;
+    }
+
     @Override
     public void serializePayload(ByteBuffer buffer) {
-        response.serialize(buffer);
+
     }
 
     @Override
     public int payloadLength() {
-        return response.length();
+        return 0;
     }
 
     @Override
@@ -32,7 +43,7 @@ public record CertificateStatusRequestServerExtension(
     @Override
     public Optional<CertificateStatusRequestClientExtension> deserialize(TlsContext context, int type, ByteBuffer buffer) {
         var request = TlsCertificateStatus.Request.of(buffer)
-                .orElseThrow(() -> new IllegalArgumentException("Invalid request"));
+                .orElseThrow(() -> new TlsAlert("Invalid certificate status request", TlsAlertLevel.FATAL, TlsAlertType.ILLEGAL_PARAMETER));
         var extension = new CertificateStatusRequestClientExtension(request);
         return Optional.of(extension);
     }
@@ -50,5 +61,15 @@ public record CertificateStatusRequestServerExtension(
     @Override
     public TlsExtensionDependencies dependencies() {
         return TlsExtensionDependencies.none();
+    }
+
+    @Override
+    public int hashCode() {
+        return type();
+    }
+
+    @Override
+    public String toString() {
+        return "CertificateStatusRequestServerExtension[]";
     }
 }

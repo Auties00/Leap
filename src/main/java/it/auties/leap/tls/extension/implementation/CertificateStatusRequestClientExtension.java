@@ -31,10 +31,8 @@ public record CertificateStatusRequestClientExtension(
 
     @Override
     public Optional<CertificateStatusRequestServerExtension> deserialize(TlsContext context, int type, ByteBuffer buffer) {
-        var response = TlsCertificateStatus.Response.of(buffer)
-                .orElseThrow(() -> new IllegalArgumentException("Invalid response"));
-        var extension = new CertificateStatusRequestServerExtension(response);
-        return Optional.of(extension);
+        buffer.position(buffer.limit());
+        return Optional.of(CertificateStatusRequestServerExtension.instance());
     }
 
     @Override

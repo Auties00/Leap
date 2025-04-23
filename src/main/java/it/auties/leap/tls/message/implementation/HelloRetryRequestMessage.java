@@ -147,12 +147,12 @@ public record HelloRetryRequestMessage(
                     .setHandshakeStatus(TlsHandshakeStatus.HANDSHAKE_STARTED);
 
             case REMOTE -> {
-                var credentials = TlsConnection.newConnection(TlsConnectionType.SERVER, randomData, sessionId, null);
+                var credentials = TlsConnection.of(TlsConnectionType.SERVER, randomData, sessionId, null);
                 credentials.setHandshakeStatus(TlsHandshakeStatus.HANDSHAKE_STARTED);
                 context.setRemoteConnectionState(credentials);
 
                 var negotiatedCipher = context.getNegotiableValue(TlsProperty.cipher())
-                        .orElseThrow(() -> new TlsAlert("Missing negotiable property: " + TlsProperty.cipher().id(), TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR))
+                        .orElseThrow(() -> new TlsAlert("Missing negotiable property: cipher", TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR))
                         .stream()
                         .filter(entry -> entry.id() == cipher)
                         .findFirst()
@@ -160,7 +160,7 @@ public record HelloRetryRequestMessage(
                 context.addNegotiatedProperty(TlsProperty.cipher(), negotiatedCipher);
 
                 var negotiatedCompression = context.getNegotiableValue(TlsProperty.compression())
-                        .orElseThrow(() -> new TlsAlert("Missing negotiable property: " + TlsProperty.compression().id(), TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR))
+                        .orElseThrow(() -> new TlsAlert("Missing negotiable property: compression", TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR))
                         .stream()
                         .filter(entry -> entry.id() == compression)
                         .findFirst()

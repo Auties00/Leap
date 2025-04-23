@@ -15,7 +15,7 @@ import static it.auties.leap.tls.util.BufferUtils.*;
 
 public sealed interface TlsName extends TlsIdentifiableProperty<Byte>, TlsSerializableProperty {
     static HostName hostName(String name) {
-        if(IPAddressUtil.isHostName(name)) {
+        if(!IPAddressUtil.isHostName(name)) {
             throw new TlsAlert("Invalid host name: " + name, TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR);
         }
 

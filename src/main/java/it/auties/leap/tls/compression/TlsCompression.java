@@ -41,7 +41,7 @@ public final class TlsCompression implements TlsIdentifiableProperty<Byte> {
             throw new TlsAlert("Only values from 224-255 (decimal) inclusive are reserved for Private Use", TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR);
         }
 
-        return new TlsCompression(id, Type.RESERVED_FOR_PRIVATE_USE, Objects.requireNonNullElse(compressor, TlsCompressor.stub()));
+        return new TlsCompression(id, Type.RESERVED_FOR_PRIVATE_USE, Objects.requireNonNullElse(compressor, TlsCompressor.unsupported()));
     }
 
     public static List<TlsCompression> values() {

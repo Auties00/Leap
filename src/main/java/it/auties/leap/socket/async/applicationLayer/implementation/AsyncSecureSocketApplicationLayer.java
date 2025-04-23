@@ -57,24 +57,26 @@ public class AsyncSecureSocketApplicationLayer extends AsyncSocketApplicationLay
             tlsContext.setAddress(address);
             this.tlsBuffer = ByteBuffer.allocate(FRAGMENT_LENGTH);
             return sendClientHello()
-                    .thenCompose(_ -> readUntilServerHello())
-                    .thenCompose(this::continueHandshake);
+                    .thenCompose(_ -> readUntil(TlsHandshakeStatus.HANDSHAKE_STARTED))
+                    .thenCompose(_ -> continueHandshake());
         } catch (Throwable throwable) {
             return CompletableFuture.failedFuture(throwable);
         }
     }
 
-    private CompletionStage<Void> continueHandshake(TlsVersion version) {
+    private CompletionStage<Void> continueHandshake() {
+        var version = tlsContext.getNegotiatedValue(TlsProperty.version())
+                .orElseThrow(() -> new TlsAlert("Missing negotiated property: version", TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR));
         return switch (version) {
-            case TLS11, TLS12 -> readUntilServerDone()
+            case TLS11, TLS12 -> readUntil(TlsHandshakeStatus.HANDSHAKE_DONE)
                     .thenCompose(_ -> sendClientCertificate())
                     .thenCompose(_ -> sendClientKeyExchange())
                     .thenCompose(_ -> sendClientCertificateVerify())
                     .thenCompose(_ -> sendClientChangeCipher())
                     .thenCompose(_ -> sendClientFinish())
-                    .thenCompose(_ -> readUntilHandshakeCompleted());
+                    .thenCompose(_ -> readUntil(TlsHandshakeStatus.HANDSHAKE_FINISHED));
 
-            case TLS13 -> readUntilHandshakeCompleted();
+            case TLS13 -> readUntil(TlsHandshakeStatus.HANDSHAKE_FINISHED);
 
             default -> throw new UnsupportedOperationException();
         };
@@ -82,14 +84,14 @@ public class AsyncSecureSocketApplicationLayer extends AsyncSocketApplicationLay
 
     private CompletableFuture<Void> sendClientHello() {
         var versions1 = tlsContext.getNegotiableValue(TlsProperty.version())
-                .orElseThrow(() -> new TlsAlert("Missing negotiable property: " + TlsProperty.version().id(), TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR));
+                .orElseThrow(() -> new TlsAlert("Missing negotiable property: version", TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR));
         var versionsSet = new HashSet<>(versions1);
         var legacyVersion = versions1.stream()
                 .reduce((first, second) -> first.id().value() > second.id().value() ? first : second)
                 .orElseThrow(() -> new TlsAlert("No version was set in the tls config", TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR))
                 .toLegacyVersion();
         var availableCiphers = tlsContext.getNegotiableValue(TlsProperty.cipher())
-                .orElseThrow(() -> new TlsAlert("Missing negotiable property: " + TlsProperty.cipher().id(), TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR))
+                .orElseThrow(() -> new TlsAlert("Missing negotiable property: cipher", TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR))
                 .stream()
                 .filter(cipher -> cipher.versions().stream().anyMatch(versionsSet::contains))
                 .toList();
@@ -97,16 +99,16 @@ public class AsyncSecureSocketApplicationLayer extends AsyncSocketApplicationLay
                 .map(TlsCipherSuite::id)
                 .toList();
         var availableCompressions = tlsContext.getNegotiableValue(TlsProperty.compression())
-                .orElseThrow(() -> new TlsAlert("Missing negotiable property: " + TlsProperty.compression().id(), TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR));
+                .orElseThrow(() -> new TlsAlert("Missing negotiable property: compression", TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR));
         var availableCompressionsIds = availableCompressions.stream()
                 .map(TlsCompression::id)
                 .toList();
 
         var extensions = tlsContext.getNegotiableValue(TlsProperty.clientExtensions())
-                .orElseThrow(() -> new TlsAlert("Missing negotiable property: " + TlsProperty.clientExtensions().id(), TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR));
+                .orElseThrow(() -> new TlsAlert("Missing negotiable property: clientExtensions", TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR));
         var supportedVersions = tlsContext.getNegotiableValue(TlsProperty.version())
                 .map(HashSet::new)
-                .orElseThrow(() -> new TlsAlert("Missing negotiable property: " + TlsProperty.version().id(), TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR));
+                .orElseThrow(() -> new TlsAlert("Missing negotiable property: version", TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR));
 
         var dependenciesTree = new LinkedHashMap<Integer, TlsExtensionOwner.Client>();
         for (var extension : extensions) {
@@ -306,10 +308,6 @@ public class AsyncSecureSocketApplicationLayer extends AsyncSocketApplicationLay
 
     private CompletableFuture<Void> sendClientCertificateVerify() {
         /*
-        f (true) { // !tlsEngine.hasProcessedHandshakeMessage(TlsMessage.Type.CLIENT_CERTIFICATE)
-            return CompletableFuture.completedFuture(null);
-        }
-
         var version = tlsContext.getNegotiatedValue(TlsProperty.version())
                 .orElseThrow(() -> new TlsAlert("Missing negotiated property: version", TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR));
         var clientVerifyCertificate = new CertificateVerifyMessage(
@@ -347,26 +345,11 @@ public class AsyncSecureSocketApplicationLayer extends AsyncSocketApplicationLay
                 .thenCompose(_ -> handleOrClose(finishedMessage));
     }
 
-    private CompletableFuture<TlsVersion> readUntilServerHello() {
-        return tlsContext.getNegotiatedValue(TlsProperty.version())
-                .map(CompletableFuture::completedFuture)
-                .orElseGet(() -> readAndHandleMessage()
-                        .thenCompose(_ -> readUntilServerHello()));
-    }
-
-
-    private CompletableFuture<Void> readUntilServerDone() {
+    private CompletableFuture<Void> readUntil(TlsHandshakeStatus status) {
         return tlsContext.remoteConnectionState()
-                .filter(state -> state.handshakeStatus() == TlsHandshakeStatus.HANDSHAKE_STARTED)
+                .filter(state -> state.handshakeStatus() == status)
                 .map(_ -> CompletableFuture.<Void>completedFuture(null))
-                .orElseGet(() -> readAndHandleMessage().thenCompose(_ -> readUntilServerDone()));
-    }
-
-    private CompletableFuture<Void> readUntilHandshakeCompleted() {
-        return tlsContext.remoteConnectionState()
-                .filter(state -> state.handshakeStatus() == TlsHandshakeStatus.HANDSHAKE_FINISHED)
-                .map(_ -> CompletableFuture.<Void>completedFuture(null))
-                .orElseGet(() -> readAndHandleMessage().thenCompose(_ -> readUntilHandshakeCompleted()));
+                .orElseGet(() -> readAndHandleMessage().thenCompose(_ -> readUntil(status)));
     }
 
     @Override
@@ -443,6 +426,7 @@ public class AsyncSecureSocketApplicationLayer extends AsyncSocketApplicationLay
             var message = plaintextMetadata.contentType()
                     .deserializer()
                     .deserialize(tlsContext, plaintext, plaintextMetadata);
+            System.out.println("Read message: " + message.getClass().getName());
             var result = handleOrClose(message);
             if(message instanceof TlsHandshakeMessage) {
                 updateHandshakeHash(plaintext.position(position));

@@ -14,10 +14,12 @@ import java.nio.ByteBuffer;
 import java.util.List;
 import java.util.Optional;
 
-public record PostHandshakeAuthExtension(
-
-) implements TlsExtension.Configured.Agnostic {
+public final class PostHandshakeAuthExtension implements TlsExtension.Configured.Agnostic {
     private static final PostHandshakeAuthExtension INSTANCE = new PostHandshakeAuthExtension();
+
+    private PostHandshakeAuthExtension() {
+
+    }
 
     public static PostHandshakeAuthExtension instance() {
         return INSTANCE;
@@ -66,4 +68,15 @@ public record PostHandshakeAuthExtension(
     public TlsExtensionDependencies dependencies() {
         return TlsExtensionDependencies.none();
     }
+
+    @Override
+    public int hashCode() {
+        return type();
+    }
+
+    @Override
+    public String toString() {
+        return "PostHandshakeAuthExtension[]";
+    }
+
 }

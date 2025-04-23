@@ -47,4 +47,5 @@ module it.auties.leap {
     exports it.auties.leap.tls.psk.implementation;
     exports it.auties.leap.tls.secret.preMaster;
     exports it.auties.leap.tls.secret.master;
+    exports it.auties.leap.tls.supplemental;
 }

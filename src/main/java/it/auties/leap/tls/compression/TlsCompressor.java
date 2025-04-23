@@ -25,8 +25,8 @@ public interface TlsCompressor {
         return ZstdCompressor.instance();
     }
 
-    static TlsCompressor stub() {
-        return StubCompressor.instance();
+    static TlsCompressor unsupported() {
+        return UnsupportedCompressor.instance();
     }
 
     void accept(ByteBuffer input, ByteBuffer output, boolean forCompression);

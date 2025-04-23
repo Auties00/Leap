@@ -14,10 +14,12 @@ import java.nio.ByteBuffer;
 import java.util.List;
 import java.util.Optional;
 
-public record ClientCertificateUrlExtension(
-
-) implements TlsExtension.Configured.Agnostic {
+public final class ClientCertificateUrlExtension implements TlsExtension.Configured.Agnostic {
     private static final ClientCertificateUrlExtension INSTANCE = new ClientCertificateUrlExtension();
+
+    private ClientCertificateUrlExtension() {
+
+    }
 
     public static ClientCertificateUrlExtension instance() {
         return INSTANCE;
@@ -65,5 +67,15 @@ public record ClientCertificateUrlExtension(
     @Override
     public TlsExtensionDependencies dependencies() {
         return TlsExtensionDependencies.none();
+    }
+
+    @Override
+    public int hashCode() {
+        return type();
+    }
+
+    @Override
+    public String toString() {
+        return "ClientCertificateUrlExtension[]";
     }
 }

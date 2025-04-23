@@ -7,8 +7,9 @@ import it.auties.leap.tls.cipher.exchange.TlsKeyExchange;
 import it.auties.leap.tls.cipher.exchange.TlsKeyExchangeFactory;
 import it.auties.leap.tls.cipher.exchange.TlsKeyExchangeType;
 import it.auties.leap.tls.context.TlsContext;
-import it.auties.leap.tls.ec.TlsEcParameters;
-import it.auties.leap.tls.group.TlsKeyPair;
+import it.auties.leap.tls.ec.TlsEcCurveType;
+import it.auties.leap.tls.ec.TlsEcParametersDeserializer;
+import it.auties.leap.tls.group.TlsSupportedGroupKeys;
 import it.auties.leap.tls.group.TlsSupportedEllipticCurve;
 import it.auties.leap.tls.property.TlsProperty;
 import it.auties.leap.tls.secret.preMaster.TlsPreMasterSecretGenerator;
@@ -49,7 +50,7 @@ public sealed abstract class ECDHKeyExchange implements TlsKeyExchange {
     }
 
 
-    public abstract Optional<TlsEcParameters> parameters();
+    public abstract Optional<TlsEcCurveType> parameters();
 
     private static final class Client extends ECDHKeyExchange {
         private final byte[] publicKey;
@@ -70,16 +71,16 @@ public sealed abstract class ECDHKeyExchange implements TlsKeyExchange {
         }
 
         @Override
-        public Optional<TlsEcParameters> parameters() {
+        public Optional<TlsEcCurveType> parameters() {
             return Optional.empty();
         }
     }
 
     private static final class Server extends ECDHKeyExchange {
-        private final TlsEcParameters parameters;
+        private final TlsEcCurveType parameters;
         private final byte[] publicKey;
 
-        private Server(TlsKeyExchangeType type, TlsEcParameters parameters, byte[] publicKey) {
+        private Server(TlsKeyExchangeType type, TlsEcCurveType parameters, byte[] publicKey) {
             super(type);
             this.parameters = parameters;
             this.publicKey = publicKey;
@@ -97,7 +98,7 @@ public sealed abstract class ECDHKeyExchange implements TlsKeyExchange {
         }
 
         @Override
-        public Optional<TlsEcParameters> parameters() {
+        public Optional<TlsEcCurveType> parameters() {
             return Optional.ofNullable(parameters);
         }
     }
@@ -142,7 +143,7 @@ public sealed abstract class ECDHKeyExchange implements TlsKeyExchange {
                         var group = getRemoteECGroup(context);
                         var keyPair = group.generateKeyPair(context);
                         context.localConnectionState()
-                                .addEphemeralKeyPair(TlsKeyPair.of(group, keyPair))
+                                .addEphemeralKeyPair(TlsSupportedGroupKeys.of(group, keyPair))
                                 .chooseEphemeralKeyPair(group);
                         var publicKey = group.dumpPublicKey(keyPair.getPublic());
                         yield new Client(type, publicKey);
@@ -157,7 +158,7 @@ public sealed abstract class ECDHKeyExchange implements TlsKeyExchange {
                                 .orElseThrow(() -> new TlsAlert("No supported group is an elliptic curve", TlsAlertLevel.FATAL, TlsAlertType.ILLEGAL_PARAMETER));
                         var keyPair = group.generateKeyPair(context);
                         context.localConnectionState()
-                                .addEphemeralKeyPair(TlsKeyPair.of(group, keyPair))
+                                .addEphemeralKeyPair(TlsSupportedGroupKeys.of(group, keyPair))
                                 .chooseEphemeralKeyPair(group);
                         var parameters = group.toParameters();
                         var publicKey = group.dumpPublicKey(keyPair.getPublic());
@@ -193,8 +194,11 @@ public sealed abstract class ECDHKeyExchange implements TlsKeyExchange {
                             .orElseThrow(() -> new TlsAlert("Missing negotiated property: supportedGroups", TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR));
                     var ecType = readBigEndianInt8(ephemeralKeyExchangeSource);
                     var parameters = supportedGroups.stream()
-                            .filter(group -> group instanceof TlsSupportedEllipticCurve supportedEllipticCurve
-                                    && supportedEllipticCurve.parametersDeserializer().accepts(ecType))
+                            .filter(group -> {
+                                if (!(group instanceof TlsSupportedEllipticCurve supportedEllipticCurve)) return false;
+                                TlsEcParametersDeserializer tlsEcParametersDeserializer = supportedEllipticCurve.parametersDeserializer();
+                                return ecType == tlsEcParametersDeserializer.id();
+                            })
                             .findFirst()
                             .map(group -> (TlsSupportedEllipticCurve) group)
                             .orElseThrow(() -> new TlsAlert("No supported group is an elliptic curve", TlsAlertLevel.FATAL, TlsAlertType.ILLEGAL_PARAMETER))

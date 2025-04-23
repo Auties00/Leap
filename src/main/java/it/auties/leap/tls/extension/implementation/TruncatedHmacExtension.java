@@ -14,10 +14,12 @@ import java.nio.ByteBuffer;
 import java.util.List;
 import java.util.Optional;
 
-public record TruncatedHmacExtension(
-
-) implements TlsExtension.Configured.Agnostic {
+public final class TruncatedHmacExtension implements TlsExtension.Configured.Agnostic {
     private static final TruncatedHmacExtension INSTANCE = new TruncatedHmacExtension();
+
+    private TruncatedHmacExtension() {
+
+    }
 
     public static Agnostic instance() {
         return INSTANCE;
@@ -65,5 +67,15 @@ public record TruncatedHmacExtension(
     @Override
     public TlsExtensionDependencies dependencies() {
         return TlsExtensionDependencies.none();
+    }
+
+    @Override
+    public int hashCode() {
+        return type();
+    }
+
+    @Override
+    public String toString() {
+        return "TruncatedHmacExtension[]";
     }
 }

@@ -25,7 +25,7 @@ public class TLS13_SocketTest {
                 TlsCipherSuite.aes256GcmSha384()
         );
         var extensions = List.of(
-                TlsExtension.serverNameIndication(TlsName.HOST_NAME),
+                TlsExtension.serverNameIndication(TlsName.Type.HOST_NAME),
                 TlsExtension.ecPointFormats(),
                 TlsExtension.supportedGroups(),
                 TlsExtension.nextProtocolNegotiation(),
@@ -46,7 +46,7 @@ public class TLS13_SocketTest {
                 .ciphers(ciphers)
                 .extensions(extensions)
                 .compressions(compressions)
-                .certificatesHandler(TlsCertificateValidator.discard())
+                .certificateValidator(TlsCertificateValidator.discard())
                 .build();
         try (
                 var socket = SocketClient.newBuilder()

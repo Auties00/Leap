@@ -17,7 +17,7 @@ public final class TlsClientContextBuilder extends TlsContextBuilder<TlsClientCo
 
     public TlsContext build() {
         var versions = buildVersions();
-        var credentials = buildLocalConnection(versions);
+        var credentials = buildLocalConnection(TlsConnectionType.CLIENT, versions);
         var ciphers = Objects.requireNonNullElse(this.ciphers, TlsCipherSuite.recommended());
         var compressions = Objects.requireNonNullElse(this.compressions, TlsCompression.recommended());
         var masterSecretGenerator = Objects.requireNonNullElse(this.masterSecretGenerator, TlsMasterSecretGenerator.builtin());

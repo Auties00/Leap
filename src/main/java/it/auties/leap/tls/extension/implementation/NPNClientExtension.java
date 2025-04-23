@@ -13,10 +13,12 @@ import java.util.Optional;
 
 import static it.auties.leap.tls.util.BufferUtils.readBytesBigEndian8;
 
-public record NPNClientExtension(
-        
-) implements TlsExtension.Configured.Client {
+public final class NPNClientExtension implements TlsExtension.Configured.Client {
     private static final NPNClientExtension INSTANCE = new NPNClientExtension();
+
+    private NPNClientExtension() {
+
+    }
 
     public static NPNClientExtension instance() {
         return INSTANCE;
@@ -60,5 +62,15 @@ public record NPNClientExtension(
     @Override
     public TlsExtensionDependencies dependencies() {
         return TlsExtensionDependencies.none();
+    }
+
+    @Override
+    public int hashCode() {
+        return type();
+    }
+
+    @Override
+    public String toString() {
+        return "NPNClientExtension[]";
     }
 }

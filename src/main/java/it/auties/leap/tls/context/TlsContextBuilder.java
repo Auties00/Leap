@@ -118,12 +118,12 @@ abstract sealed class TlsContextBuilder<S extends TlsContextBuilder<S, E>, E ext
         return TlsVersion.recommended(SocketProtocol.TCP);
     }
     
-    TlsConnection buildLocalConnection(List<TlsVersion> versions) {
+    TlsConnection buildLocalConnection(TlsConnectionType type, List<TlsVersion> versions) {
         var randomData = Objects.requireNonNullElseGet(this.randomData, TlsKeyUtils::randomData);
         var sessionId = Objects.requireNonNullElseGet(this.sessionId, TlsKeyUtils::randomData);
         var protocol = versions.getFirst().protocol();
         var dtlsCookie = protocol == SocketProtocol.UDP ? Objects.requireNonNullElseGet(this.dtlsCookie, TlsKeyUtils::randomData) : null;
-        return TlsConnection.newConnection(TlsConnectionType.SERVER, randomData, sessionId, dtlsCookie, certificates);
+        return TlsConnection.of(type, randomData, sessionId, dtlsCookie, certificates);
     }
 
     List<? extends E> buildExtensions(List<TlsVersion> versions) {

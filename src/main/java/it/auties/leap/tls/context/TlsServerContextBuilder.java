@@ -21,7 +21,7 @@ public final class TlsServerContextBuilder extends TlsContextBuilder<TlsServerCo
         if(certificates.isEmpty() && ciphers.stream().noneMatch(cipher -> cipher.authFactory().isAnonymous())) {
             throw new IllegalArgumentException("No certificates provided: either provide a certificate or allow the negotiation of an anonymous cipher");
         }
-        var credentials = buildLocalConnection(versions);
+        var credentials = buildLocalConnection(TlsConnectionType.SERVER, versions);
         var extensions = buildExtensions(versions);
         var compressions = Objects.requireNonNullElse(this.compressions, TlsCompression.recommended());
         var masterSecretGenerator = Objects.requireNonNullElse(this.masterSecretGenerator, TlsMasterSecretGenerator.builtin());

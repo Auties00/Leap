@@ -14,12 +14,14 @@ import java.nio.ByteBuffer;
 import java.util.List;
 import java.util.Optional;
 
-public record ExtendedMasterSecretExtension(
-
-) implements TlsExtension.Configured.Agnostic {
+public final class ExtendedMasterSecretExtension implements TlsExtension.Configured.Agnostic {
     private static final ExtendedMasterSecretExtension INSTANCE = new ExtendedMasterSecretExtension();
 
-    public static TlsExtension.Configured.Agnostic instance() {
+    private ExtendedMasterSecretExtension() {
+
+    }
+
+    public static Agnostic instance() {
         return INSTANCE;
     }
 
@@ -65,5 +67,15 @@ public record ExtendedMasterSecretExtension(
     @Override
     public TlsExtensionDependencies dependencies() {
         return TlsExtensionDependencies.none();
+    }
+
+    @Override
+    public int hashCode() {
+        return type();
+    }
+
+    @Override
+    public String toString() {
+        return "ExtendedMasterSecretExtension[]";
     }
 }

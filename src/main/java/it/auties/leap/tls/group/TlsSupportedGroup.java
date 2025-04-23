@@ -6,6 +6,9 @@ import it.auties.leap.tls.secret.TlsSecret;
 
 import java.security.KeyPair;
 import java.security.PublicKey;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 
 // Includes ECCurveType
 // https://www.iana.org/assignments/tls-parameters/tls-parameters-8.csv

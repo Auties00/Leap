@@ -87,7 +87,7 @@ public record SignatureAlgorithmsExtension(
         var algorithmsSize = readBigEndianInt16(buffer);
         var algorithms = new ArrayList<TlsSignature>(algorithmsSize);
         var knownAlgorithms = context.getNegotiableValue(TlsProperty.signatureAlgorithms())
-                .orElseThrow(() -> new TlsAlert("Missing negotiable property: " + TlsProperty.signatureAlgorithms().id(), TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR))
+                .orElseThrow(() -> new TlsAlert("Missing negotiable property: signatureAlgorithms", TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR))
                 .stream()
                 .collect(Collectors.toUnmodifiableMap(TlsIdentifiableProperty::id, Function.identity()));
         var mode = context.localConnectionState().type();
