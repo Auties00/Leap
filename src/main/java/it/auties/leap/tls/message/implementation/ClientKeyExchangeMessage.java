@@ -33,7 +33,7 @@ public record ClientKeyExchangeMessage(
             var messageLength = readBigEndianInt24(buffer);
             try (var _ = scopedRead(buffer, messageLength)) {
                 var remoteParameters = context.getNegotiatedValue(TlsProperty.cipher())
-                        .orElseThrow(() -> new TlsAlert("No cipher was negotiated", TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR))
+                        .orElseThrow(() -> new TlsAlert("Missing negotiated property: cipher", TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR))
                         .keyExchangeFactory()
                         .newRemoteKeyExchange(context, buffer);
                 return new ClientKeyExchangeMessage(metadata.version(), metadata.source(), remoteParameters);
@@ -68,7 +68,7 @@ public record ClientKeyExchangeMessage(
     @Override
     public void apply(TlsContext context) {
         var negotiatedCipher = context.getNegotiatedValue(TlsProperty.cipher())
-                .orElseThrow(() -> new TlsAlert("No cipher was negotiated", TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR));
+                .orElseThrow(() -> new TlsAlert("Missing negotiated property: cipher", TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR));
         if (negotiatedCipher.keyExchangeFactory().type() != TlsKeyExchangeType.EPHEMERAL) {
             throw new TlsAlert("Unexpected client key exchange message for static key exchange", TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR);
         }

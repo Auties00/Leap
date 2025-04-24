@@ -4,6 +4,7 @@ import it.auties.leap.tls.hash.implementation.*;
 
 import java.nio.ByteBuffer;
 
+// TODO: Optimization: if digest() is called with no updates, we can return a static EMPTY_HASH value which varies based on the hash
 public interface TlsHash {
     static TlsHash none() {
         return NoneHash.instance();

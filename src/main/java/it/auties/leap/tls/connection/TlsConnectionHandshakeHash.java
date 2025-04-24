@@ -25,7 +25,9 @@ public final class TlsConnectionHandshakeHash extends ByteArrayOutputStream {
         }
 
         this.delegate = ConnectionHandshakeHashDelegate.of(version, factory);
-        delegate.update(buf, 0, buf.length);
+        var buffered = this.toByteArray();
+        this.reset();
+        delegate.update(buffered, 0, buffered.length);
     }
 
     public void update(ByteBuffer input) {
@@ -33,7 +35,7 @@ public final class TlsConnectionHandshakeHash extends ByteArrayOutputStream {
             delegate.update(input);
         }else {
             while (input.hasRemaining()) {
-                write(input.get());
+                this.write(input.get());
             }
         }
     }

@@ -58,7 +58,7 @@ public final class CbcCipher extends TlsCipher.Block {
     }
 
     @Override
-    public void encrypt(byte contentType, ByteBuffer output, ByteBuffer input) {
+    public void encrypt(byte contentType, ByteBuffer input, ByteBuffer output) {
         switch (authenticator.version()) {
             case TLS10, DTLS10 -> throw new UnsupportedOperationException();
             case TLS11, TLS12, DTLS12 -> tls11Encrypt(contentType, input, output);

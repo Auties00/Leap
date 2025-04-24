@@ -26,7 +26,7 @@ public final class AsyncSocketClient implements SocketClient, AsyncSocketIO {
                 .thenCompose(_ -> applicationLayer.handshake())
                 .exceptionallyCompose(throwable -> {
                     try {
-                        close();
+                        applicationLayer.close(true);
                     }catch (IOException closeError) {
                         throwable.addSuppressed(closeError);
                     }

@@ -2,7 +2,7 @@ package it.auties.leap.tls.cipher.exchange;
 
 import it.auties.leap.tls.certificate.TlsCertificate;
 import it.auties.leap.tls.context.TlsContext;
-import it.auties.leap.tls.secret.preMaster.TlsPreMasterSecretGenerator;
+import it.auties.leap.tls.secret.TlsPreMasterSecretGenerator;
 import it.auties.leap.tls.secret.TlsSecret;
 import it.auties.leap.tls.util.CertificateUtils;
 

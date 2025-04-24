@@ -1,4 +1,4 @@
-package it.auties.leap.tls.secret.preMaster.implementation;
+package it.auties.leap.tls.secret.implementation;
 
 import it.auties.leap.tls.alert.TlsAlertLevel;
 import it.auties.leap.tls.alert.TlsAlertType;
@@ -6,7 +6,7 @@ import it.auties.leap.tls.context.TlsContext;
 import it.auties.leap.tls.alert.TlsAlert;
 import it.auties.leap.tls.connection.TlsConnection;
 import it.auties.leap.tls.group.TlsSupportedGroupKeys;
-import it.auties.leap.tls.secret.preMaster.TlsPreMasterSecretGenerator;
+import it.auties.leap.tls.secret.TlsPreMasterSecretGenerator;
 import it.auties.leap.tls.property.TlsProperty;
 import it.auties.leap.tls.secret.TlsSecret;
 

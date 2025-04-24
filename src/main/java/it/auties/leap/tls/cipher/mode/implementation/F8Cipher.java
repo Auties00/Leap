@@ -51,7 +51,7 @@ public final class F8Cipher extends TlsCipher.Block {
     }
 
     @Override
-    public void encrypt(byte contentType, ByteBuffer output, ByteBuffer input) {
+    public void encrypt(byte contentType, ByteBuffer input, ByteBuffer output) {
         throw new UnsupportedOperationException();
     }
 

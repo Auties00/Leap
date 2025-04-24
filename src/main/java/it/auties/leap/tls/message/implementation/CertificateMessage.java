@@ -77,7 +77,7 @@ public record CertificateMessage(
     @Override
     public void apply(TlsContext context) {
         var negotiatedCipher = context.getNegotiatedValue(TlsProperty.cipher())
-                .orElseThrow(() -> new TlsAlert("No cipher was negotiated", TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR));
+                .orElseThrow(() -> new TlsAlert("Missing negotiated property: cipher", TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR));
         if(negotiatedCipher.authFactory().isAnonymous()) {
             throw new TlsAlert("Anonymous cipher don't support certificate message", TlsAlertLevel.FATAL, TlsAlertType.UNEXPECTED_MESSAGE);
         }

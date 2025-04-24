@@ -44,8 +44,12 @@ public final class TlsHmac {
 
     public static TlsHmac of(TlsHash hash) {
         return new TlsHmac(hash);
-    } 
-    
+    }
+
+    public static TlsHmac of(TlsHashFactory hash) {
+        return new TlsHmac(hash.newHash());
+    }
+
     private final TlsHash hash;
     private byte[] inputPad;
     private byte[] outputBuf;
@@ -66,14 +70,9 @@ public final class TlsHmac {
     }
 
     public void init(byte[] key) {
-        if(inputPad != null || outputBuf != null) {
-            throw new IllegalStateException("Already initialized");
-        }
-
+        hash.reset();
         this.inputPad = new byte[hash.blockLength()];
         this.outputBuf = new byte[hash.blockLength() + hash.length()];
-
-        hash.reset();
 
         var keyLength = key.length;
         if (keyLength <= hash.blockLength()) {

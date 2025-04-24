@@ -1,7 +1,7 @@
-package it.auties.leap.tls.secret.preMaster.implementation;
+package it.auties.leap.tls.secret.implementation;
 
 import it.auties.leap.tls.context.TlsContext;
-import it.auties.leap.tls.secret.preMaster.TlsPreMasterSecretGenerator;
+import it.auties.leap.tls.secret.TlsPreMasterSecretGenerator;
 import it.auties.leap.tls.secret.TlsSecret;
 
 // https://www.ietf.org/archive/id/draft-smyshlyaev-tls12-gost-suites-18.html

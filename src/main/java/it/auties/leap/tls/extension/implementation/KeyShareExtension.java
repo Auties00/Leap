@@ -176,28 +176,25 @@ public final class KeyShareExtension implements TlsExtension.Configurable {
 
         @Override
         public Optional<ConfiguredServer> deserialize(TlsContext context, int type, ByteBuffer buffer) {
-            var entryLength = readBigEndianInt16(buffer);
-            try(var _ = scopedRead(buffer, entryLength)) {
-                var supportedGroups = context.getNegotiableValue(TlsProperty.supportedGroups())
-                        .orElseThrow(() -> new TlsAlert("Missing negotiable property: supportedGroups", TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR))
-                        .stream()
-                        .collect(Collectors.toUnmodifiableMap(TlsIdentifiableProperty::id, Function.identity()));
-                var namedGroupId = readBigEndianInt16(buffer);
-                var namedGroup = supportedGroups.get(namedGroupId);
-                if (namedGroup == null) {
-                    throw new TlsAlert("Remote tried to negotiate a key from a named group that wasn't advertised", TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR);
-                }
-                var rawPublicKey = readBytesBigEndian16(buffer);
-                var publicKey = namedGroup.parsePublicKey(rawPublicKey);
-                var entry = new KeyShareEntry(
-                        namedGroup,
-                        publicKey,
-                        null,
-                        rawPublicKey
-                );
-                var extension = new ConfiguredServer(entry);
-                return Optional.of(extension);
+            var supportedGroups = context.getNegotiableValue(TlsProperty.supportedGroups())
+                    .orElseThrow(() -> new TlsAlert("Missing negotiable property: supportedGroups", TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR))
+                    .stream()
+                    .collect(Collectors.toUnmodifiableMap(TlsIdentifiableProperty::id, Function.identity()));
+            var namedGroupId = readBigEndianInt16(buffer);
+            var namedGroup = supportedGroups.get(namedGroupId);
+            if (namedGroup == null) {
+                throw new TlsAlert("Remote tried to negotiate a key from a named group that wasn't advertised", TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR);
             }
+            var rawPublicKey = readBytesBigEndian16(buffer);
+            var publicKey = namedGroup.parsePublicKey(rawPublicKey);
+            var entry = new KeyShareEntry(
+                    namedGroup,
+                    publicKey,
+                    null,
+                    rawPublicKey
+            );
+            var extension = new ConfiguredServer(entry);
+            return Optional.of(extension);
         }
 
         @Override
@@ -270,30 +267,32 @@ public final class KeyShareExtension implements TlsExtension.Configurable {
         @Override
         public Optional<ConfiguredClient> deserialize(TlsContext context, int type, ByteBuffer buffer) {
             var entries = new ArrayList<KeyShareEntry>();
-            var entriesSize = buffer.remaining();
+            var entriesLength = buffer.remaining();
             var supportedGroups = context.getNegotiableValue(TlsProperty.supportedGroups())
                     .orElseThrow(() -> new TlsAlert("Missing negotiable property: supportedGroups", TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR))
                     .stream()
                     .collect(Collectors.toUnmodifiableMap(TlsIdentifiableProperty::id, Function.identity()));
-            while (buffer.hasRemaining()) {
-                var namedGroupId = readBigEndianInt16(buffer);
-                var namedGroup = supportedGroups.get(namedGroupId);
-                if (namedGroup == null) {
-                    continue;
-                }
+            try(var _ = scopedRead(buffer, entriesLength)) {
+                while (buffer.hasRemaining()) {
+                    var namedGroupId = readBigEndianInt16(buffer);
+                    var namedGroup = supportedGroups.get(namedGroupId);
+                    if (namedGroup == null) {
+                        continue;
+                    }
 
-                var rawPublicKey = readBytesBigEndian16(buffer);
-                var publicKey = namedGroup.parsePublicKey(rawPublicKey);
-                var entry = new KeyShareEntry(
-                        namedGroup,
-                        publicKey,
-                        null,
-                        rawPublicKey
-                );
-                entries.add(entry);
+                    var rawPublicKey = readBytesBigEndian16(buffer);
+                    var publicKey = namedGroup.parsePublicKey(rawPublicKey);
+                    var entry = new KeyShareEntry(
+                            namedGroup,
+                            publicKey,
+                            null,
+                            rawPublicKey
+                    );
+                    entries.add(entry);
+                }
+                var extension = new ConfiguredClient(entries, entriesLength);
+                return Optional.of(extension);
             }
-            var extension = new ConfiguredClient(entries, entriesSize);
-            return Optional.of(extension);
         }
 
         @Override

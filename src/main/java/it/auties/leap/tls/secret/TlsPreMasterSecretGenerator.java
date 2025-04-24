@@ -1,14 +1,13 @@
-package it.auties.leap.tls.secret.preMaster;
+package it.auties.leap.tls.secret;
 
 import it.auties.leap.tls.context.TlsContext;
-import it.auties.leap.tls.secret.TlsSecret;
-import it.auties.leap.tls.secret.preMaster.implementation.*;
+import it.auties.leap.tls.secret.implementation.*;
 
 public interface TlsPreMasterSecretGenerator {
     TlsSecret generatePreMasterSecret(TlsContext context);
 
     static TlsPreMasterSecretGenerator dh() {
-        return GroupPreMasterSecretGenerator.instance();
+        return SupportedGroupPreMasterSecretGenerator.instance();
     }
 
     static TlsPreMasterSecretGenerator eccpwd() {
@@ -16,7 +15,7 @@ public interface TlsPreMasterSecretGenerator {
     }
 
     static TlsPreMasterSecretGenerator ecdh() {
-        return GroupPreMasterSecretGenerator.instance();
+        return SupportedGroupPreMasterSecretGenerator.instance();
     }
 
     static TlsPreMasterSecretGenerator gostr256() {
@@ -28,7 +27,7 @@ public interface TlsPreMasterSecretGenerator {
     }
 
     static TlsPreMasterSecretGenerator contextual() {
-        return GroupPreMasterSecretGenerator.instance();
+        return SupportedGroupPreMasterSecretGenerator.instance();
     }
 
     static TlsPreMasterSecretGenerator psk() {

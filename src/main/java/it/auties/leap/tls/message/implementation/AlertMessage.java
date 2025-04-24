@@ -71,6 +71,6 @@ public record AlertMessage(
             throw SocketException.closed();
         }
 
-        throw new TlsAlert("Received alert: " + alertType + "(" + alertLevel + ")", alertLevel, alertType);
+        throw new TlsAlert("(" + alertLevel.description() + ") " + alertType.description(), alertLevel, alertType);
     }
 }

@@ -53,7 +53,7 @@ public final class CcmCipher extends TlsCipher.Block {
     }
 
     @Override
-    public void encrypt(byte contentType, ByteBuffer output, ByteBuffer input) {
+    public void encrypt(byte contentType, ByteBuffer input, ByteBuffer output) {
         var iv = new byte[ivLength()];
         System.arraycopy(fixedIv, 0, iv, 0, fixedIv.length);
         var nonce = authenticator.sequenceNumber();

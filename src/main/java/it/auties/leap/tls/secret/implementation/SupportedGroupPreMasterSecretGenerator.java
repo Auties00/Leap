@@ -1,19 +1,19 @@
-package it.auties.leap.tls.secret.preMaster.implementation;
+package it.auties.leap.tls.secret.implementation;
 
 import it.auties.leap.tls.alert.TlsAlert;
 import it.auties.leap.tls.alert.TlsAlertLevel;
 import it.auties.leap.tls.alert.TlsAlertType;
 import it.auties.leap.tls.context.TlsContext;
-import it.auties.leap.tls.secret.preMaster.TlsPreMasterSecretGenerator;
 import it.auties.leap.tls.secret.TlsSecret;
+import it.auties.leap.tls.secret.TlsPreMasterSecretGenerator;
 
-public final class GroupPreMasterSecretGenerator implements TlsPreMasterSecretGenerator {
-    private static final GroupPreMasterSecretGenerator INSTANCE = new GroupPreMasterSecretGenerator();
-    private GroupPreMasterSecretGenerator() {
+public final class SupportedGroupPreMasterSecretGenerator implements TlsPreMasterSecretGenerator {
+    private static final SupportedGroupPreMasterSecretGenerator INSTANCE = new SupportedGroupPreMasterSecretGenerator();
+    private SupportedGroupPreMasterSecretGenerator() {
 
     }
 
-    public static GroupPreMasterSecretGenerator instance() {
+    public static SupportedGroupPreMasterSecretGenerator instance() {
         return INSTANCE;
     }
 

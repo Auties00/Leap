@@ -41,7 +41,7 @@ public final class NoneCipher extends TlsCipher.Block {
     }
 
     @Override
-    public void encrypt(byte contentType, ByteBuffer output, ByteBuffer input) {
+    public void encrypt(byte contentType, ByteBuffer input, ByteBuffer output) {
 
 
         addMac(input, contentType);

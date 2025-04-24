@@ -158,6 +158,8 @@ public record ServerHelloMessage(
                         .findFirst()
                         .orElseThrow(() -> new TlsAlert("Remote negotiated a cipher that wasn't available", TlsAlertLevel.FATAL, TlsAlertType.ILLEGAL_PARAMETER));
                 context.addNegotiatedProperty(TlsProperty.cipher(), negotiatedCipher);
+                context.connectionHandshakeHash()
+                        .init(version, negotiatedCipher.hashFactory());
 
                 var negotiatedCompression = context.getNegotiableValue(TlsProperty.compression())
                         .orElseThrow(() -> new TlsAlert("Missing negotiable property: compression", TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR))
@@ -178,6 +180,7 @@ public record ServerHelloMessage(
                     return this.version;
                 });
 
+
                 if(version == TlsVersion.TLS13 || version == TlsVersion.DTLS13) {
                     if(negotiatedCipher.keyExchangeFactory().type() == TlsKeyExchangeType.STATIC) {
                         throw new TlsAlert("Static key exchange not supported", TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR);
@@ -188,7 +191,7 @@ public record ServerHelloMessage(
                     context.localConnectionState()
                             .setKeyExchange(localKeyExchange);
                     var remoteKeyExchange = negotiatedCipher.keyExchangeFactory()
-                            .newRemoteKeyExchange(context, ByteBuffer.allocate(0));
+                            .newRemoteKeyExchange(context, null);
                     context.remoteConnectionState()
                             .orElseThrow(() -> new TlsAlert("No remote connection state was created", TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR))
                             .setKeyExchange(remoteKeyExchange);
@@ -201,9 +204,6 @@ public record ServerHelloMessage(
                             .filter(entry -> !seen.contains(entry.type()))
                             .forEach(entry -> entry.apply(context, source));
                 }
-
-                context.connectionIntegrity()
-                        .init(version, negotiatedCipher.hashFactory());
             }
         }
     }

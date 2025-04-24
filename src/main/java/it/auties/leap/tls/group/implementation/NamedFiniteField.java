@@ -89,7 +89,7 @@ public final class NamedFiniteField implements TlsSupportedFiniteField {
                 .privateKey()
                 .orElseThrow(() -> new TlsAlert("Missing local ephemeral private key", TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR));
         var keyExchangeType = context.getNegotiatedValue(TlsProperty.cipher())
-                .orElseThrow(() -> new TlsAlert("No cipher was negotiated", TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR))
+                .orElseThrow(() -> new TlsAlert("Missing negotiated property: cipher", TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR))
                 .keyExchangeFactory()
                 .type();
         var publicKey = switch (keyExchangeType) {
@@ -111,7 +111,6 @@ public final class NamedFiniteField implements TlsSupportedFiniteField {
             keyAgreement.doPhase(publicKey, true);
             var result = keyAgreement.generateSecret();
             System.out.println("Remote public key: " + Arrays.toString(((DHPublicKey) publicKey).getY().toByteArray()));
-            System.out.println("Pre master secret: " + Arrays.toString(result));
             return TlsSecret.of(result);
         }catch (GeneralSecurityException exception) {
             throw new TlsAlert("Cannot compute shared secret: " + exception.getMessage(), TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR);

@@ -26,7 +26,7 @@ public final class DiscardCertificatesValidator implements TlsCertificateValidat
     @Override
     public TlsCertificate validate(TlsContext context, TlsSource source, List<TlsCertificate> certificates) {
         var cipher = context.getNegotiatedValue(TlsProperty.cipher())
-                .orElseThrow(() -> new TlsAlert("No cipher was negotiated", TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR));
+                .orElseThrow(() -> new TlsAlert("Missing negotiated property: cipher", TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR));
         var certificate = certificates == null || certificates.isEmpty() ? null : certificates.getFirst();
         if (!cipher.authFactory().isAnonymous() && certificate == null) {
             throw new TlsAlert("Missing remote certificate with non-anonymous cipher(0x" + HexFormat.of().toHexDigits(cipher.id()) + ")", TlsAlertLevel.FATAL, TlsAlertType.NO_CERTIFICATE);

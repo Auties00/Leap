@@ -202,7 +202,7 @@ public record HelloRetryRequestMessage(
                             .forEach(entry -> entry.apply(context, source));
                 }
 
-                context.connectionIntegrity()
+                context.connectionHandshakeHash()
                         .init(version, negotiatedCipher.hashFactory());
             }
         }

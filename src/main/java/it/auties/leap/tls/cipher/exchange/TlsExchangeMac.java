@@ -16,9 +16,9 @@ public abstract sealed class TlsExchangeMac {
     public static TlsExchangeMac of(TlsVersion version, TlsHashFactory hashFactory, byte[] macKey) {
         return switch (version) {
             case TLS13 -> new TLS13();
-            case TLS12, TLS11, TLS10 -> new TLS10(version, hashFactory == null ? null : TlsHmac.of(hashFactory.newHash()), macKey);
+            case TLS12, TLS11, TLS10 -> new TLS10(version, hashFactory == null ? null : TlsHmac.of(hashFactory), macKey);
             case DTLS13 -> new DTLS13();
-            case DTLS12, DTLS10 -> new DTLS10(version, hashFactory == null ? null : TlsHmac.of(hashFactory.newHash()), macKey);
+            case DTLS12, DTLS10 -> new DTLS10(version, hashFactory == null ? null : TlsHmac.of(hashFactory), macKey);
         };
     }
 

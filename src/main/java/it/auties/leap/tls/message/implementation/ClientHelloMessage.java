@@ -203,7 +203,7 @@ public record ClientHelloMessage(
                     extension.apply(context, source);
                 }
 
-                context.connectionIntegrity()
+                context.connectionHandshakeHash()
                         .init(version, negotiatedCipher.hashFactory());
             }
         }

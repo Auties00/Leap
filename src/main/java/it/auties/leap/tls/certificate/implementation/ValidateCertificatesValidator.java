@@ -21,7 +21,7 @@ public final class ValidateCertificatesValidator implements TlsCertificateValida
     @Override
     public TlsCertificate validate(TlsContext context, TlsSource source, List<TlsCertificate> certificates) {
         return context.getNegotiatedValue(TlsProperty.cipher())
-                .orElseThrow(() -> new TlsAlert("No cipher was negotiated", TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR))
+                .orElseThrow(() -> new TlsAlert("Missing negotiated property: cipher", TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR))
                 .authFactory()
                 .newAuth()
                 .validate(context, certificates, trustAnchors);

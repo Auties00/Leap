@@ -79,7 +79,7 @@ public class Poly1305Cipher extends TlsCipher.Stream {
     }
 
     @Override
-    public void encrypt(byte contentType, ByteBuffer output, ByteBuffer input) {
+    public void encrypt(byte contentType, ByteBuffer input, ByteBuffer output) {
         var initialPosition = output.position();
         this.state = engine.forEncryption() ? State.ENC_INIT : State.DEC_INIT;
         byte[] sn = authenticator.sequenceNumber();

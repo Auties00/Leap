@@ -7,6 +7,7 @@ import it.auties.leap.tls.cipher.auth.TlsAuthFactory;
 import it.auties.leap.tls.cipher.engine.TlsCipherEngineFactory;
 import it.auties.leap.tls.cipher.exchange.TlsKeyExchangeFactory;
 import it.auties.leap.tls.cipher.mode.TlsCipherFactory;
+import it.auties.leap.tls.cipher.mode.TlsCipherWithEngineFactory;
 import it.auties.leap.tls.hash.TlsHashFactory;
 import it.auties.leap.tls.property.TlsIdentifiableProperty;
 import it.auties.leap.tls.srtp.SrtpCipherSuite;
@@ -2209,8 +2210,8 @@ public sealed class TlsCipherSuite implements TlsIdentifiableProperty<Integer> p
         return cipherEngine;
     }
 
-    public TlsCipherFactory cipherFactory() {
-        return cipherMode;
+    public TlsCipherWithEngineFactory cipherFactory() {
+        return cipherMode.with(cipherEngine);
     }
 
     public TlsHashFactory hashFactory() {

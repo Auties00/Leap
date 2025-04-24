@@ -13,7 +13,7 @@ import it.auties.leap.tls.connection.TlsConnectionInitializer;
 import it.auties.leap.tls.connection.TlsConnectionType;
 import it.auties.leap.tls.extension.TlsExtension;
 import it.auties.leap.tls.extension.TlsExtensionOwner;
-import it.auties.leap.tls.secret.master.TlsMasterSecretGenerator;
+import it.auties.leap.tls.secret.TlsMasterSecretGenerator;
 import it.auties.leap.tls.util.TlsKeyUtils;
 import it.auties.leap.tls.version.TlsVersion;
 

@@ -29,7 +29,7 @@ public sealed abstract class TlsCipher {
         this.enabled = false;
     }
 
-    public abstract void encrypt(byte contentType, ByteBuffer output, ByteBuffer input);
+    public abstract void encrypt(byte contentType, ByteBuffer input, ByteBuffer output);
 
     public abstract ByteBuffer decrypt(TlsContext context, TlsMessageMetadata metadata, ByteBuffer input);
 

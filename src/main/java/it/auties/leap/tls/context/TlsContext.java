@@ -13,7 +13,7 @@ import it.auties.leap.tls.extension.TlsExtensionOwner;
 import it.auties.leap.tls.message.TlsHandshakeMessageDeserializer;
 import it.auties.leap.tls.message.TlsMessageDeserializer;
 import it.auties.leap.tls.property.TlsProperty;
-import it.auties.leap.tls.secret.master.TlsMasterSecretGenerator;
+import it.auties.leap.tls.secret.TlsMasterSecretGenerator;
 import it.auties.leap.tls.secret.TlsSecret;
 import it.auties.leap.tls.version.TlsVersion;
 
@@ -190,7 +190,7 @@ public class TlsContext {
         return this;
     }
 
-    public TlsConnectionHandshakeHash connectionIntegrity() {
+    public TlsConnectionHandshakeHash connectionHandshakeHash() {
         return connectionIntegrity;
     }
 

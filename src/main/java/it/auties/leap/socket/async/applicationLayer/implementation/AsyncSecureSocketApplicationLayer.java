@@ -22,7 +22,6 @@ import it.auties.leap.tls.message.TlsMessage;
 import it.auties.leap.tls.message.TlsMessageMetadata;
 import it.auties.leap.tls.message.implementation.*;
 import it.auties.leap.tls.property.TlsProperty;
-import it.auties.leap.tls.version.TlsVersion;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
@@ -334,7 +333,7 @@ public class AsyncSecureSocketApplicationLayer extends AsyncSocketApplicationLay
     private CompletableFuture<Void> sendClientFinish() {
         var version = tlsContext.getNegotiatedValue(TlsProperty.version())
                 .orElseThrow(() -> new TlsAlert("Missing negotiated property: version", TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR));
-        var handshakeHash = tlsContext.connectionIntegrity()
+        var handshakeHash = tlsContext.connectionHandshakeHash()
                 .finish(tlsContext, TlsSource.LOCAL);
         var finishedMessage = new FinishedMessage(
                 version,
@@ -427,11 +426,10 @@ public class AsyncSecureSocketApplicationLayer extends AsyncSocketApplicationLay
                     .deserializer()
                     .deserialize(tlsContext, plaintext, plaintextMetadata);
             System.out.println("Read message: " + message.getClass().getName());
-            var result = handleOrClose(message);
             if(message instanceof TlsHandshakeMessage) {
                 updateHandshakeHash(plaintext.position(position));
             }
-            return result;
+            return handleOrClose(message);
         }
     }
 
@@ -491,9 +489,10 @@ public class AsyncSecureSocketApplicationLayer extends AsyncSocketApplicationLay
                         updateHandshakeHash(plaintext.position(position + recordLength()));
                         plaintext.position(position);
                     }
-                    var ciphertext = plaintext.duplicate();
+                    var ciphertext = plaintext.duplicate()
+                            .limit(plaintext.capacity());
                     // Encrypt message in-place
-                    cipher.encrypt(message.contentType().id(), ciphertext, plaintext);
+                    cipher.encrypt(message.contentType().id(), plaintext, ciphertext);
 
                     // Add record header
                     var messageLength = ciphertext.remaining();
@@ -577,10 +576,10 @@ public class AsyncSecureSocketApplicationLayer extends AsyncSocketApplicationLay
     }
 
     public void updateHandshakeHash(ByteBuffer buffer) {
-        tlsContext.connectionIntegrity()
+        tlsContext.connectionHandshakeHash()
                 .update(buffer);
         try {
-            System.out.println("CURRENT: " + Arrays.toString(tlsContext.connectionIntegrity().finish(tlsContext, TlsSource.REMOTE)));
+            System.out.println("CURRENT: " + Arrays.toString(tlsContext.connectionHandshakeHash().finish(tlsContext, TlsSource.REMOTE)));
         }catch (Throwable _) {
 
         }
