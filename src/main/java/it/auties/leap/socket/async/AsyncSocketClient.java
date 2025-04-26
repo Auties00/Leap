@@ -57,6 +57,7 @@ public final class AsyncSocketClient implements SocketClient, AsyncSocketIO {
 
     @Override
     public void close() throws IOException {
+        // TODO: Await all operations
         applicationLayer.close(false);
     }
 

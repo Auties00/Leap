@@ -1,11 +1,12 @@
 package it.auties.leap.tls.connection;
 
 import it.auties.leap.tls.certificate.TlsCertificate;
-import it.auties.leap.tls.cipher.exchange.TlsKeyExchange;
-import it.auties.leap.tls.cipher.exchange.TlsKeyExchangeType;
-import it.auties.leap.tls.cipher.mode.TlsCipher;
+import it.auties.leap.tls.ciphersuite.exchange.TlsKeyExchange;
+import it.auties.leap.tls.ciphersuite.exchange.TlsKeyExchangeType;
+import it.auties.leap.tls.ciphersuite.cipher.TlsCipher;
 import it.auties.leap.tls.group.TlsSupportedGroupKeys;
 import it.auties.leap.tls.group.TlsSupportedGroup;
+import it.auties.leap.tls.secret.TlsSecret;
 
 import java.util.*;
 
@@ -25,6 +26,7 @@ public final class TlsConnection {
 
     private volatile TlsCipher cipher;
     private volatile TlsHandshakeStatus handshakeStatus;
+    private volatile TlsSecret handshakeSecret;
 
     private TlsConnection(TlsConnectionType type, byte[] randomData, byte[] sessionId, byte[] dtlsCookie, List<TlsCertificate> certificates) {
         this.type = type;
@@ -155,5 +157,14 @@ public final class TlsConnection {
 
         this.selectedStaticCertificate = certificate;
         return true;
+    }
+
+    public TlsConnection setHandshakeSecret(TlsSecret handshakeSecret) {
+        this.handshakeSecret = handshakeSecret;
+        return this;
+    }
+
+    public Optional<TlsSecret> handshakeSecret() {
+        return Optional.ofNullable(handshakeSecret);
     }
 }

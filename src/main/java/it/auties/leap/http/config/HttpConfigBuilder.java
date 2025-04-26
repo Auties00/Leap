@@ -2,7 +2,7 @@ package it.auties.leap.http.config;
 
 import it.auties.leap.http.HttpVersion;
 import it.auties.leap.tls.context.TlsContext;
-import it.auties.leap.tls.cipher.TlsCipherSuite;
+import it.auties.leap.tls.ciphersuite.TlsCipherSuite;
 import it.auties.leap.tls.compression.TlsCompression;
 import it.auties.leap.tls.extension.TlsExtension;
 import it.auties.leap.tls.name.TlsName;

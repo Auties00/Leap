@@ -3,7 +3,7 @@ package it.auties.leap.tls.extension.implementation;
 import it.auties.leap.tls.alert.TlsAlert;
 import it.auties.leap.tls.alert.TlsAlertLevel;
 import it.auties.leap.tls.alert.TlsAlertType;
-import it.auties.leap.tls.cipher.TlsGrease;
+import it.auties.leap.tls.ciphersuite.TlsGrease;
 import it.auties.leap.tls.context.TlsContext;
 import it.auties.leap.tls.context.TlsSource;
 import it.auties.leap.tls.extension.TlsExtension;

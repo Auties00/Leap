@@ -3,20 +3,22 @@ package it.auties.leap.tls.message.implementation;
 import it.auties.leap.tls.alert.TlsAlert;
 import it.auties.leap.tls.alert.TlsAlertLevel;
 import it.auties.leap.tls.alert.TlsAlertType;
-import it.auties.leap.tls.cipher.exchange.TlsKeyExchangeType;
+import it.auties.leap.tls.ciphersuite.exchange.TlsKeyExchangeType;
 import it.auties.leap.tls.connection.TlsConnection;
 import it.auties.leap.tls.connection.TlsConnectionType;
 import it.auties.leap.tls.connection.TlsHandshakeStatus;
 import it.auties.leap.tls.context.TlsContext;
 import it.auties.leap.tls.context.TlsSource;
 import it.auties.leap.tls.extension.TlsExtension;
-import it.auties.leap.tls.message.*;
+import it.auties.leap.tls.message.TlsHandshakeMessage;
+import it.auties.leap.tls.message.TlsHandshakeMessageDeserializer;
+import it.auties.leap.tls.message.TlsMessageContentType;
+import it.auties.leap.tls.message.TlsMessageMetadata;
 import it.auties.leap.tls.property.TlsProperty;
 import it.auties.leap.tls.version.TlsVersion;
 
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.List;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -158,8 +160,6 @@ public record ServerHelloMessage(
                         .findFirst()
                         .orElseThrow(() -> new TlsAlert("Remote negotiated a cipher that wasn't available", TlsAlertLevel.FATAL, TlsAlertType.ILLEGAL_PARAMETER));
                 context.addNegotiatedProperty(TlsProperty.cipher(), negotiatedCipher);
-                context.connectionHandshakeHash()
-                        .init(version, negotiatedCipher.hashFactory());
 
                 var negotiatedCompression = context.getNegotiableValue(TlsProperty.compression())
                         .orElseThrow(() -> new TlsAlert("Missing negotiable property: compression", TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR))
@@ -169,9 +169,8 @@ public record ServerHelloMessage(
                         .orElseThrow(() -> new TlsAlert("Remote negotiated a compression that wasn't available", TlsAlertLevel.FATAL, TlsAlertType.ILLEGAL_PARAMETER));
                 context.addNegotiatedProperty(TlsProperty.compression(), negotiatedCompression);
 
-                var seen = new HashSet<Integer>();
                 for (var extension : extensions) {
-                    seen.add(extension.type());
+                    context.addProcessedExtension(extension.type());
                     extension.apply(context, source);
                 }
 
@@ -180,6 +179,8 @@ public record ServerHelloMessage(
                     return this.version;
                 });
 
+                context.connectionHandshakeHash()
+                        .init(version, negotiatedCipher.hashFactory());
 
                 if(version == TlsVersion.TLS13 || version == TlsVersion.DTLS13) {
                     if(negotiatedCipher.keyExchangeFactory().type() == TlsKeyExchangeType.STATIC) {
@@ -201,7 +202,7 @@ public record ServerHelloMessage(
                     context.getNegotiatedValue(TlsProperty.clientExtensions())
                             .orElseThrow(() -> new TlsAlert("Missing negotiated property: clientExtensions", TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR))
                             .stream()
-                            .filter(entry -> !seen.contains(entry.type()))
+                            .filter(entry -> !context.hasProcessedExtension(entry.type()))
                             .forEach(entry -> entry.apply(context, source));
                 }
             }

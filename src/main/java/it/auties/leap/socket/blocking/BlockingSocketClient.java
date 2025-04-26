@@ -66,6 +66,7 @@ public final class BlockingSocketClient implements SocketClient, BlockingSocketI
 
     @Override
     public void close() throws IOException {
+        // TODO: Await all operations
         applicationLayer.close(false);
     }
 

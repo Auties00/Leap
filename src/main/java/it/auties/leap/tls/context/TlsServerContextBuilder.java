@@ -1,9 +1,9 @@
 package it.auties.leap.tls.context;
 
 import it.auties.leap.tls.certificate.TlsCertificateValidator;
-import it.auties.leap.tls.cipher.TlsCipherSuite;
+import it.auties.leap.tls.ciphersuite.TlsCipherSuite;
 import it.auties.leap.tls.compression.TlsCompression;
-import it.auties.leap.tls.connection.TlsConnectionInitializer;
+import it.auties.leap.tls.connection.TlsConnectionHandler;
 import it.auties.leap.tls.connection.TlsConnectionType;
 import it.auties.leap.tls.extension.TlsExtensionOwner;
 import it.auties.leap.tls.secret.TlsMasterSecretGenerator;
@@ -25,7 +25,7 @@ public final class TlsServerContextBuilder extends TlsContextBuilder<TlsServerCo
         var extensions = buildExtensions(versions);
         var compressions = Objects.requireNonNullElse(this.compressions, TlsCompression.recommended());
         var masterSecretGenerator = Objects.requireNonNullElse(this.masterSecretGenerator, TlsMasterSecretGenerator.builtin());
-        var connectionInitializer = Objects.requireNonNullElse(this.connectionInitializer, TlsConnectionInitializer.builtin());
+        var connectionInitializer = Objects.requireNonNullElse(this.connectionInitializer, TlsConnectionHandler.builtin());
         var certificateValidator = Objects.requireNonNullElseGet(this.certificateValidator, TlsCertificateValidator::validate);
         return TlsContext.ofServer(versions, extensions, ciphers, compressions, credentials, certificateValidator, masterSecretGenerator, connectionInitializer);
     }

@@ -90,6 +90,15 @@ public record EncryptedExtensionsMessage(
 
     @Override
     public void apply(TlsContext context) {
+        for (var extension : extensions) {
+            context.addProcessedExtension(extension.type());
+            extension.apply(context, source);
+        }
 
+        context.getNegotiatedValue(TlsProperty.clientExtensions())
+                .orElseThrow(() -> new TlsAlert("Missing negotiated property: clientExtensions", TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR))
+                .stream()
+                .filter(entry -> !context.hasProcessedExtension(entry.type()))
+                .forEach(entry -> entry.apply(context, source));
     }
 }

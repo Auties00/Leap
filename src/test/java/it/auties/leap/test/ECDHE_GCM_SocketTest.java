@@ -4,7 +4,7 @@ package it.auties.leap.test;
 import it.auties.leap.socket.SocketClient;
 import it.auties.leap.socket.SocketProtocol;
 import it.auties.leap.tls.certificate.TlsCertificateValidator;
-import it.auties.leap.tls.cipher.TlsCipherSuite;
+import it.auties.leap.tls.ciphersuite.TlsCipherSuite;
 import it.auties.leap.tls.compression.TlsCompression;
 import it.auties.leap.tls.context.TlsContext;
 import it.auties.leap.tls.extension.TlsExtension;

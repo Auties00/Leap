@@ -6,10 +6,10 @@ import it.auties.leap.tls.alert.TlsAlertLevel;
 import it.auties.leap.tls.alert.TlsAlertType;
 import it.auties.leap.tls.certificate.TlsCertificate;
 import it.auties.leap.tls.certificate.TlsCertificateValidator;
-import it.auties.leap.tls.cipher.TlsCipherSuite;
+import it.auties.leap.tls.ciphersuite.TlsCipherSuite;
 import it.auties.leap.tls.compression.TlsCompression;
 import it.auties.leap.tls.connection.TlsConnection;
-import it.auties.leap.tls.connection.TlsConnectionInitializer;
+import it.auties.leap.tls.connection.TlsConnectionHandler;
 import it.auties.leap.tls.connection.TlsConnectionType;
 import it.auties.leap.tls.extension.TlsExtension;
 import it.auties.leap.tls.extension.TlsExtensionOwner;
@@ -29,7 +29,7 @@ abstract sealed class TlsContextBuilder<S extends TlsContextBuilder<S, E>, E ext
     List<TlsCipherSuite> ciphers;
     List<TlsCompression> compressions;
     TlsMasterSecretGenerator masterSecretGenerator;
-    TlsConnectionInitializer connectionInitializer;
+    TlsConnectionHandler connectionInitializer;
     TlsCertificateValidator certificateValidator;
     byte[] randomData;
     byte[] sessionId;
@@ -84,7 +84,7 @@ abstract sealed class TlsContextBuilder<S extends TlsContextBuilder<S, E>, E ext
         return (S) this;
     }
 
-    public S connectionInitializer(TlsConnectionInitializer connectionInitializer) {
+    public S connectionInitializer(TlsConnectionHandler connectionInitializer) {
         this.connectionInitializer = connectionInitializer;
         return (S) this;
     }

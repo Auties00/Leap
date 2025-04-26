@@ -4,10 +4,10 @@ import it.auties.leap.tls.alert.TlsAlert;
 import it.auties.leap.tls.alert.TlsAlertLevel;
 import it.auties.leap.tls.alert.TlsAlertType;
 import it.auties.leap.tls.certificate.TlsCertificateValidator;
-import it.auties.leap.tls.cipher.TlsCipherSuite;
+import it.auties.leap.tls.ciphersuite.TlsCipherSuite;
 import it.auties.leap.tls.compression.TlsCompression;
 import it.auties.leap.tls.connection.TlsConnection;
-import it.auties.leap.tls.connection.TlsConnectionInitializer;
+import it.auties.leap.tls.connection.TlsConnectionHandler;
 import it.auties.leap.tls.connection.TlsConnectionHandshakeHash;
 import it.auties.leap.tls.extension.TlsExtensionOwner;
 import it.auties.leap.tls.message.TlsHandshakeMessageDeserializer;
@@ -27,10 +27,11 @@ public class TlsContext {
     private final TlsCertificateValidator certificateValidator;
     private final Map<Integer, TlsMessageDeserializer> handshakeMessageDeserializer;
     private final TlsMasterSecretGenerator masterSecretGenerator;
-    private final TlsConnectionInitializer connectionInitializer;
+    private final TlsConnectionHandler connectionInitializer;
     private final Map<TlsProperty<?, ?>, PropertyValue<?, ?>> properties;
     private final Queue<ByteBuffer> bufferedMessages;
     private final TlsConnectionHandshakeHash connectionIntegrity;
+    private final Set<Integer> processedHandshakeExtensions;
     private volatile InetSocketAddress address;
     private volatile TlsConnection remoteConnectionState;
     private volatile TlsSecret masterSecretKey;
@@ -39,7 +40,7 @@ public class TlsContext {
             TlsConnection localConnectionState,
             TlsCertificateValidator certificateValidator,
             TlsMasterSecretGenerator masterSecretGenerator,
-            TlsConnectionInitializer connectionInitializer
+            TlsConnectionHandler connectionInitializer
     ) {
         this.localConnectionState = localConnectionState;
         this.certificateValidator = certificateValidator;
@@ -52,6 +53,7 @@ public class TlsContext {
         }
         this.bufferedMessages = new LinkedList<>();
         this.connectionIntegrity = new TlsConnectionHandshakeHash();
+        this.processedHandshakeExtensions = new HashSet<>();
     }
 
     static TlsContext ofClient(
@@ -62,7 +64,7 @@ public class TlsContext {
             TlsConnection localConnectionState,
             TlsCertificateValidator certificateValidator,
             TlsMasterSecretGenerator masterSecretGenerator,
-            TlsConnectionInitializer connectionInitializer
+            TlsConnectionHandler connectionInitializer
     ) {
         return new TlsContext(localConnectionState, certificateValidator, masterSecretGenerator, connectionInitializer)
                 .addNegotiableProperty(TlsProperty.version(), versions)
@@ -79,7 +81,7 @@ public class TlsContext {
             TlsConnection localConnectionState,
             TlsCertificateValidator certificateValidator,
             TlsMasterSecretGenerator masterSecretGenerator,
-            TlsConnectionInitializer connectionInitializer
+            TlsConnectionHandler connectionInitializer
     ) {
         return new TlsContext(localConnectionState, certificateValidator, masterSecretGenerator, connectionInitializer)
                 .addNegotiableProperty(TlsProperty.version(), versions)
@@ -108,7 +110,7 @@ public class TlsContext {
         return masterSecretGenerator;
     }
 
-    public TlsConnectionInitializer connectionInitializer() {
+    public TlsConnectionHandler connectionInitializer() {
         return connectionInitializer;
     }
 
@@ -205,6 +207,15 @@ public class TlsContext {
 
     public Optional<TlsMessageDeserializer> findHandshakeMessageDeserializer(int id) {
         return Optional.ofNullable(handshakeMessageDeserializer.get(id));
+    }
+
+    public boolean hasProcessedExtension(int type) {
+        return processedHandshakeExtensions.contains(type);
+    }
+
+    public TlsContext addProcessedExtension(int type) {
+        processedHandshakeExtensions.add(type);
+        return this;
     }
 
     private static final class PropertyValue<I, O> {

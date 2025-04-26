@@ -75,15 +75,6 @@ public enum TlsVersion implements TlsIdentifiableProperty<TlsVersionId> {
         return protocol;
     }
 
-    // TODO: Is this a method to have?
-    public TlsVersion toLegacyVersion() {
-        return switch (this) {
-            case TLS13 -> TLS12;
-            case DTLS13 -> DTLS12;
-            default -> this;
-        };
-    }
-
     public void serialize(ByteBuffer payload) {
         id.serialize(payload);
     }

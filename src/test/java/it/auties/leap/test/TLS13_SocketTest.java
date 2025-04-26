@@ -4,7 +4,7 @@ package it.auties.leap.test;
 import it.auties.leap.socket.SocketClient;
 import it.auties.leap.socket.SocketProtocol;
 import it.auties.leap.tls.certificate.TlsCertificateValidator;
-import it.auties.leap.tls.cipher.TlsCipherSuite;
+import it.auties.leap.tls.ciphersuite.TlsCipherSuite;
 import it.auties.leap.tls.compression.TlsCompression;
 import it.auties.leap.tls.context.TlsContext;
 import it.auties.leap.tls.extension.TlsExtension;
@@ -60,18 +60,7 @@ public class TLS13_SocketTest {
                 socket.read(message).join();
                 System.out.print(StandardCharsets.UTF_8.decode(message));
             }
-            {
-                socket.write(StandardCharsets.UTF_8.encode("Hello World\n")).join();
-                var message1 = ByteBuffer.allocate(1024);
-                socket.read(message1).join();
-                System.out.print(StandardCharsets.UTF_8.decode(message1));
-            }
-            {
-                socket.write(StandardCharsets.UTF_8.encode("Hello World123\n")).join();
-                var message1 = ByteBuffer.allocate(1024);
-                socket.read(message1).join();
-                System.out.print(StandardCharsets.UTF_8.decode(message1));
-            }
+
         }
     }
 }

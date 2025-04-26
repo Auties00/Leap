@@ -6,6 +6,7 @@ import it.auties.leap.tls.alert.TlsAlertType;
 import it.auties.leap.tls.context.TlsContext;
 import it.auties.leap.tls.context.TlsSource;
 import it.auties.leap.tls.message.*;
+import it.auties.leap.tls.property.TlsProperty;
 import it.auties.leap.tls.version.TlsVersion;
 
 import java.nio.ByteBuffer;
@@ -52,20 +53,22 @@ public record ChangeCipherSpecMessage(
 
     @Override
     public void apply(TlsContext context) {
-        try {
-            switch (source) {
-                case LOCAL -> context.localConnectionState()
-                        .cipher()
-                        .orElseThrow(() -> new TlsAlert("No local cipher", TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR))
-                        .setEnabled(true);
-                case REMOTE -> context.remoteConnectionState()
-                        .orElseThrow(() -> new TlsAlert("No remote connection state was created", TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR))
-                        .cipher()
-                        .orElseThrow(() -> new TlsAlert("No remote cipher", TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR))
-                        .setEnabled(true);
-            }
-        }catch (Exception e) {
-            e.printStackTrace(); // TODO: Remove, used for testing
+        var version = context.getNegotiatedValue(TlsProperty.version())
+                .orElseThrow(() -> new TlsAlert("Missing negotiated property: version", TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR));
+        if(version == TlsVersion.TLS13 || version == TlsVersion.DTLS13) {
+            return;
+        }
+
+        switch (source) {
+            case LOCAL -> context.localConnectionState()
+                    .cipher()
+                    .orElseThrow(() -> new TlsAlert("No local cipher", TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR))
+                    .setEnabled(true);
+            case REMOTE -> context.remoteConnectionState()
+                    .orElseThrow(() -> new TlsAlert("No remote connection state was created", TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR))
+                    .cipher()
+                    .orElseThrow(() -> new TlsAlert("No remote cipher", TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR))
+                    .setEnabled(true);
         }
     }
 }

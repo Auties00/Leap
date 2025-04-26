@@ -5,7 +5,7 @@ import it.auties.leap.tls.alert.TlsAlert;
 import it.auties.leap.tls.alert.TlsAlertLevel;
 import it.auties.leap.tls.alert.TlsAlertType;
 import it.auties.leap.tls.certificate.TlsCertificate;
-import it.auties.leap.tls.cipher.exchange.TlsKeyExchangeType;
+import it.auties.leap.tls.ciphersuite.exchange.TlsKeyExchangeType;
 import it.auties.leap.tls.connection.TlsConnectionType;
 import it.auties.leap.tls.util.sun.HostnameChecker;
 

@@ -3,7 +3,7 @@ package it.auties.leap.tls.message.implementation;
 import it.auties.leap.tls.alert.TlsAlert;
 import it.auties.leap.tls.alert.TlsAlertLevel;
 import it.auties.leap.tls.alert.TlsAlertType;
-import it.auties.leap.tls.cipher.exchange.TlsKeyExchangeType;
+import it.auties.leap.tls.ciphersuite.exchange.TlsKeyExchangeType;
 import it.auties.leap.tls.connection.TlsConnection;
 import it.auties.leap.tls.connection.TlsConnectionType;
 import it.auties.leap.tls.connection.TlsHandshakeStatus;

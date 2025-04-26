@@ -4,7 +4,7 @@ import it.auties.leap.tls.alert.TlsAlert;
 import it.auties.leap.tls.alert.TlsAlertLevel;
 import it.auties.leap.tls.alert.TlsAlertType;
 import it.auties.leap.tls.certificate.TlsCertificate;
-import it.auties.leap.tls.cipher.exchange.TlsKeyExchangeType;
+import it.auties.leap.tls.ciphersuite.exchange.TlsKeyExchangeType;
 import it.auties.leap.tls.connection.TlsConnectionType;
 import it.auties.leap.tls.context.TlsContext;
 import it.auties.leap.tls.context.TlsSource;
@@ -33,14 +33,30 @@ public record CertificateMessage(
 
         @Override
         public TlsHandshakeMessage deserialize(TlsContext context, ByteBuffer buffer, TlsMessageMetadata metadata) {
-            var certificatesLength = readBigEndianInt24(buffer);
-            try(var _ = scopedRead(buffer, certificatesLength)) {
-                var certificates = new ArrayList<TlsCertificate>();
-                while (buffer.hasRemaining()) {
-                    var certificate = readStreamBigEndian24(buffer);
-                    certificates.add(TlsCertificate.of(certificate));
+            var version = context.getNegotiatedValue(TlsProperty.version())
+                    .orElseThrow(() -> new TlsAlert("Missing negotiated property: version", TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR));
+            if(version == TlsVersion.TLS13 || version == TlsVersion.DTLS13) {
+                var certificateRequestContext = readBytesBigEndian8(buffer);
+                var certificatesLength = readBigEndianInt24(buffer);
+                try (var _ = scopedRead(buffer, certificatesLength)) {
+                    var certificates = new ArrayList<TlsCertificate>();
+                    while (buffer.hasRemaining()) {
+                        var certificate = readStreamBigEndian24(buffer);
+                        var extensions = readBytesBigEndian16(buffer);
+                        certificates.add(TlsCertificate.of(certificate));
+                    }
+                    return new CertificateMessage(metadata.version(), metadata.source(), certificates, certificatesLength);
                 }
-                return new CertificateMessage(metadata.version(), metadata.source(), certificates, certificatesLength);
+            } else {
+                var certificatesLength = readBigEndianInt24(buffer);
+                try (var _ = scopedRead(buffer, certificatesLength)) {
+                    var certificates = new ArrayList<TlsCertificate>();
+                    while (buffer.hasRemaining()) {
+                        var certificate = readStreamBigEndian24(buffer);
+                        certificates.add(TlsCertificate.of(certificate));
+                    }
+                    return new CertificateMessage(metadata.version(), metadata.source(), certificates, certificatesLength);
+                }
             }
         }
     };

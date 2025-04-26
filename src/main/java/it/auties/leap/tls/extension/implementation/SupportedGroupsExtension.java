@@ -4,7 +4,6 @@ import it.auties.leap.tls.alert.TlsAlert;
 import it.auties.leap.tls.alert.TlsAlertLevel;
 import it.auties.leap.tls.alert.TlsAlertType;
 import it.auties.leap.tls.context.TlsContext;
-import it.auties.leap.tls.connection.TlsConnectionType;
 import it.auties.leap.tls.context.TlsSource;
 import it.auties.leap.tls.extension.TlsExtension;
 import it.auties.leap.tls.extension.TlsExtensionDependencies;
@@ -23,7 +22,6 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import static it.auties.leap.tls.util.BufferUtils.*;
-import static it.auties.leap.tls.util.BufferUtils.readBigEndianInt16;
 
 public record SupportedGroupsExtension(
         List<TlsSupportedGroup> groups
@@ -72,19 +70,18 @@ public record SupportedGroupsExtension(
     @Override
     public Optional<SupportedGroupsExtension> deserialize(TlsContext context, int type, ByteBuffer buffer) {
         var groupsSize = readBigEndianInt16(buffer);
-        var groups = new ArrayList<TlsSupportedGroup>(groupsSize);
         var knownGroups = context.getNegotiableValue(TlsProperty.supportedGroups())
-                .orElseThrow(() -> new TlsAlert("Missing negotiable property: ecPointsFormats", TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR))
+                .orElseThrow(() -> new TlsAlert("Missing negotiable property: supportedGroups", TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR))
                 .stream()
                 .collect(Collectors.toUnmodifiableMap(TlsIdentifiableProperty::id, Function.identity()));
-        var mode = context.localConnectionState().type();
-        for (var i = 0; i < groupsSize; i++) {
-            var groupId = readBigEndianInt16(buffer);
-            var group = knownGroups.get(groupId);
-            if(group != null) {
-                groups.add(group);
-            }else if(mode == TlsConnectionType.CLIENT) {
-                throw new TlsAlert("Remote tried to negotiate a supported group that wasn't advertised", TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR);
+        var groups = new ArrayList<TlsSupportedGroup>(groupsSize);
+        try(var _ = scopedRead(buffer, groupsSize)) {
+            while(buffer.hasRemaining()) {
+                var groupId = readBigEndianInt16(buffer);
+                var group = knownGroups.get(groupId);
+                if(group != null) {
+                    groups.add(group);
+                }
             }
         }
         var extension = new SupportedGroupsExtension(groups);

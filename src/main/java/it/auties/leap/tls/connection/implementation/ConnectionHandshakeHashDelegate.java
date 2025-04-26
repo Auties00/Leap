@@ -3,15 +3,19 @@ package it.auties.leap.tls.connection.implementation;
 import it.auties.leap.tls.alert.TlsAlert;
 import it.auties.leap.tls.alert.TlsAlertLevel;
 import it.auties.leap.tls.alert.TlsAlertType;
-import it.auties.leap.tls.context.TlsContext;
 import it.auties.leap.tls.connection.TlsConnectionType;
+import it.auties.leap.tls.context.TlsContext;
 import it.auties.leap.tls.context.TlsSource;
 import it.auties.leap.tls.hash.TlsHash;
 import it.auties.leap.tls.hash.TlsHashFactory;
+import it.auties.leap.tls.hash.TlsHmac;
 import it.auties.leap.tls.hash.TlsPrf;
+import it.auties.leap.tls.property.TlsProperty;
+import it.auties.leap.tls.secret.TlsSecret;
 import it.auties.leap.tls.version.TlsVersion;
 
 import java.nio.ByteBuffer;
+import java.util.Arrays;
 
 public sealed abstract class ConnectionHandshakeHashDelegate {
     public static ConnectionHandshakeHashDelegate of(TlsVersion version, TlsHashFactory hash) {
@@ -68,8 +72,7 @@ public sealed abstract class ConnectionHandshakeHashDelegate {
 
         @Override
         public byte[] finish(TlsContext context, TlsSource source) {
-            var mode = context.localConnectionState().type()
-                    ;
+            var mode = context.localConnectionState().type();
             var masterSecret = context.masterSecretKey()
                     .orElseThrow(() -> new TlsAlert("Master secret key is not available yet", TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR));
             var useClientLabel = useClientLabel(source, mode);
@@ -116,10 +119,9 @@ public sealed abstract class ConnectionHandshakeHashDelegate {
 
         @Override
         public byte[] finish(TlsContext context, TlsSource source) {
-            var mode = context.localConnectionState().type();
             var masterSecret = context.masterSecretKey()
                     .orElseThrow(() -> new TlsAlert("Master secret key is not available yet", TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR));
-            var useClientLabel = useClientLabel(source, mode);
+            var useClientLabel = useClientLabel(source, context.localConnectionState().type());
             var tlsLabel = useClientLabel ? "client finished" : "server finished";
             var result = TlsPrf.tls12Prf(
                     masterSecret.data(),
@@ -136,9 +138,6 @@ public sealed abstract class ConnectionHandshakeHashDelegate {
     }
 
     private static final class TLS13 extends ConnectionHandshakeHashDelegate {
-        private static final byte[] HKDF_LABEL = "tls13 finished".getBytes();
-        private static final byte[] HKDF_CONTEXT = new byte[0];
-
         private final TlsHash hash;
 
         public TLS13(TlsHash hash) {
@@ -162,33 +161,28 @@ public sealed abstract class ConnectionHandshakeHashDelegate {
 
         @Override
         public byte[] finish(TlsContext context, TlsSource source) {
-            /*
-            sun.security.ssl.Finished
-                 var hash = context.getNegotiatedValue(TlsProperty.ciphers())
-                    .orElseThrow(() -> TlsException.noNegotiatedProperty(TlsProperty.ciphers()))
-                    .hashFactory()
-                    .newHash();
-
-            var hkdf = TlsHkdf.of(TlsHmac.of(hash));
-            hkdf.expand()
-
-            var hmac = TlsHmac.of(hash);
-            hmac.init(finishedSecret);
-            hmac.update(handshakeHash);
-            return hmac.doFinal();
-
-            CipherSuite.HashAlg hashAlg = context.negotiatedCipherSuite.hashAlg;
-            SecretKey secret = isValidation ? context.baseReadSecret : context.baseWriteSecret;
-            SSLBasicKeyDerivation kdf = new SSLBasicKeyDerivation(secret, hashAlg.name, hkdfLabel, hkdfContext, hashAlg.hashLength);
-            AlgorithmParameterSpec keySpec = new SSLBasicKeyDerivation.SecretSizeSpec(hashAlg.hashLength);
-            SecretKey finishedSecret = kdf.deriveKey("TlsFinishedSecret", keySpec);
-
-            String hmacAlg = "Hmac" + hashAlg.name.replace("-", "");
-            Mac hmac = Mac.getInstance(hmacAlg);
-            hmac.init(finishedSecret);
-            return hmac.doFinal(context.handshakeHash.digest());
-             */
-            throw new UnsupportedOperationException();
+            var cipher = context.getNegotiatedValue(TlsProperty.cipher())
+                    .orElseThrow(() -> new TlsAlert("Missing negotiated property: cipher", TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR));
+            var hashFactory = cipher.hashFactory();
+            var connection = switch (source) {
+                case LOCAL -> context.localConnectionState();
+                case REMOTE -> context.remoteConnectionState()
+                        .orElseThrow(() -> new TlsAlert("No remote connection state was created", TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR));
+            };
+            var secret = connection.handshakeSecret()
+                    .orElseThrow(() -> new TlsAlert("No connection handshake secret was set", TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR));
+            System.out.println("Finished secret key: " + Arrays.toString(secret.data()));
+            var finishedSecret = TlsSecret.of(hashFactory, "tls13 finished", new byte[0], secret.data(), hashFactory.length());
+            secret.destroy();
+            var hmac = TlsHmac.of(hashFactory);
+            System.out.println("Finished secret: " + Arrays.toString(finishedSecret.data()));
+            hmac.init(finishedSecret.data());
+            System.out.println("Data: " + Arrays.toString(hash.digest(false)));
+            hmac.update(hash.digest(false));
+            var result = hmac.doFinal();
+            finishedSecret.destroy();
+            System.out.println("Finished: " + Arrays.toString(result));
+            return result;
         }
     }
 }
