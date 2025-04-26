@@ -87,7 +87,7 @@ public record ClientKeyExchangeMessage(
             }
         }
 
-        context.connectionInitializer()
+        context.connectionHandler()
                 .initialize(context);
     }
 }

@@ -6,7 +6,7 @@ import it.auties.leap.tls.alert.TlsAlertType;
 import it.auties.leap.tls.ciphersuite.exchange.TlsKeyExchangeType;
 import it.auties.leap.tls.connection.TlsConnection;
 import it.auties.leap.tls.connection.TlsConnectionType;
-import it.auties.leap.tls.connection.TlsHandshakeStatus;
+import it.auties.leap.tls.connection.TlsConnectionHandshakeStatus;
 import it.auties.leap.tls.context.TlsContext;
 import it.auties.leap.tls.context.TlsSource;
 import it.auties.leap.tls.extension.TlsExtension;
@@ -144,11 +144,11 @@ public record HelloRetryRequestMessage(
     public void apply(TlsContext context) {
         switch (source) {
             case LOCAL -> context.localConnectionState()
-                    .setHandshakeStatus(TlsHandshakeStatus.HANDSHAKE_STARTED);
+                    .setHandshakeStatus(TlsConnectionHandshakeStatus.HANDSHAKE_STARTED);
 
             case REMOTE -> {
                 var credentials = TlsConnection.of(TlsConnectionType.SERVER, randomData, sessionId, null);
-                credentials.setHandshakeStatus(TlsHandshakeStatus.HANDSHAKE_STARTED);
+                credentials.setHandshakeStatus(TlsConnectionHandshakeStatus.HANDSHAKE_STARTED);
                 context.setRemoteConnectionState(credentials);
 
                 var negotiatedCipher = context.getNegotiableValue(TlsProperty.cipher())
@@ -192,7 +192,7 @@ public record HelloRetryRequestMessage(
                     context.remoteConnectionState()
                             .orElseThrow(() -> new TlsAlert("No remote connection state was created", TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR))
                             .setKeyExchange(remoteKeyExchange);
-                    context.connectionInitializer()
+                    context.connectionHandler()
                             .initialize(context);
                 }else {
                     context.getNegotiatedValue(TlsProperty.clientExtensions())

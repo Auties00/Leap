@@ -13,8 +13,7 @@ import it.auties.leap.tls.extension.TlsExtensionOwner;
 import it.auties.leap.tls.message.TlsHandshakeMessageDeserializer;
 import it.auties.leap.tls.message.TlsMessageDeserializer;
 import it.auties.leap.tls.property.TlsProperty;
-import it.auties.leap.tls.secret.TlsMasterSecretGenerator;
-import it.auties.leap.tls.secret.TlsSecret;
+import it.auties.leap.tls.connection.TlsConnectionSecret;
 import it.auties.leap.tls.version.TlsVersion;
 
 import java.net.InetSocketAddress;
@@ -26,27 +25,24 @@ public class TlsContext {
     private final TlsConnection localConnectionState;
     private final TlsCertificateValidator certificateValidator;
     private final Map<Integer, TlsMessageDeserializer> handshakeMessageDeserializer;
-    private final TlsMasterSecretGenerator masterSecretGenerator;
-    private final TlsConnectionHandler connectionInitializer;
+    private final TlsConnectionHandler connectionHandler;
     private final Map<TlsProperty<?, ?>, PropertyValue<?, ?>> properties;
     private final Queue<ByteBuffer> bufferedMessages;
     private final TlsConnectionHandshakeHash connectionIntegrity;
     private final Set<Integer> processedHandshakeExtensions;
     private volatile InetSocketAddress address;
     private volatile TlsConnection remoteConnectionState;
-    private volatile TlsSecret masterSecretKey;
+    private volatile TlsConnectionSecret masterSecretKey;
 
     TlsContext(
             TlsConnection localConnectionState,
             TlsCertificateValidator certificateValidator,
-            TlsMasterSecretGenerator masterSecretGenerator,
-            TlsConnectionHandler connectionInitializer
+            TlsConnectionHandler connectionHandler
     ) {
         this.localConnectionState = localConnectionState;
         this.certificateValidator = certificateValidator;
         this.handshakeMessageDeserializer = new HashMap<>();
-        this.masterSecretGenerator = masterSecretGenerator;
-        this.connectionInitializer = connectionInitializer;
+        this.connectionHandler = connectionHandler;
         this.properties = new HashMap<>();
         for(var deserializer : TlsHandshakeMessageDeserializer.values()) {
             addHandshakeMessageDeserializer(deserializer);
@@ -63,10 +59,9 @@ public class TlsContext {
             List<TlsCompression> compressions,
             TlsConnection localConnectionState,
             TlsCertificateValidator certificateValidator,
-            TlsMasterSecretGenerator masterSecretGenerator,
-            TlsConnectionHandler connectionInitializer
+            TlsConnectionHandler connectionHandler
     ) {
-        return new TlsContext(localConnectionState, certificateValidator, masterSecretGenerator, connectionInitializer)
+        return new TlsContext(localConnectionState, certificateValidator, connectionHandler)
                 .addNegotiableProperty(TlsProperty.version(), versions)
                 .addNegotiableProperty(TlsProperty.clientExtensions(), extensions)
                 .addNegotiableProperty(TlsProperty.cipher(), ciphers)
@@ -80,10 +75,9 @@ public class TlsContext {
             List<TlsCompression> compressions,
             TlsConnection localConnectionState,
             TlsCertificateValidator certificateValidator,
-            TlsMasterSecretGenerator masterSecretGenerator,
-            TlsConnectionHandler connectionInitializer
+            TlsConnectionHandler connectionHandler
     ) {
-        return new TlsContext(localConnectionState, certificateValidator, masterSecretGenerator, connectionInitializer)
+        return new TlsContext(localConnectionState, certificateValidator, connectionHandler)
                 .addNegotiableProperty(TlsProperty.version(), versions)
                 .addNegotiableProperty(TlsProperty.serverExtensions(), extensions)
                 .addNegotiableProperty(TlsProperty.cipher(), ciphers)
@@ -106,12 +100,8 @@ public class TlsContext {
         return Optional.ofNullable(remoteConnectionState);
     }
 
-    public TlsMasterSecretGenerator masterSecretGenerator() {
-        return masterSecretGenerator;
-    }
-
-    public TlsConnectionHandler connectionInitializer() {
-        return connectionInitializer;
+    public TlsConnectionHandler connectionHandler() {
+        return connectionHandler;
     }
 
     public Optional<InetSocketAddress> address() {
@@ -183,11 +173,11 @@ public class TlsContext {
         bufferedMessages.poll();
     }
 
-    public Optional<TlsSecret> masterSecretKey() {
+    public Optional<TlsConnectionSecret> masterSecretKey() {
         return Optional.ofNullable(masterSecretKey);
     }
 
-    public TlsContext setMasterSecretKey(TlsSecret masterSecretKey) {
+    public TlsContext setMasterSecretKey(TlsConnectionSecret masterSecretKey) {
         this.masterSecretKey = masterSecretKey;
         return this;
     }

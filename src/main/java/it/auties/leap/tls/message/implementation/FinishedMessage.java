@@ -3,10 +3,13 @@ package it.auties.leap.tls.message.implementation;
 import it.auties.leap.tls.alert.TlsAlert;
 import it.auties.leap.tls.alert.TlsAlertLevel;
 import it.auties.leap.tls.alert.TlsAlertType;
-import it.auties.leap.tls.connection.TlsHandshakeStatus;
+import it.auties.leap.tls.connection.TlsConnectionHandshakeStatus;
 import it.auties.leap.tls.context.TlsContext;
 import it.auties.leap.tls.context.TlsSource;
-import it.auties.leap.tls.message.*;
+import it.auties.leap.tls.message.TlsHandshakeMessage;
+import it.auties.leap.tls.message.TlsHandshakeMessageDeserializer;
+import it.auties.leap.tls.message.TlsMessageContentType;
+import it.auties.leap.tls.message.TlsMessageMetadata;
 import it.auties.leap.tls.version.TlsVersion;
 
 import java.nio.ByteBuffer;
@@ -67,13 +70,24 @@ public record FinishedMessage(
 
     @Override
     public void apply(TlsContext context) {
-        System.out.println("Hash from " + source + " " + Arrays.toString(hash));
         switch (source) {
             case LOCAL -> context.localConnectionState()
-                    .setHandshakeStatus(TlsHandshakeStatus.HANDSHAKE_FINISHED);
-            case REMOTE -> context.remoteConnectionState()
-                    .orElseThrow(() -> new TlsAlert("No remote connection state was created", TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR))
-                    .setHandshakeStatus(TlsHandshakeStatus.HANDSHAKE_FINISHED);
+                    .setHandshakeStatus(TlsConnectionHandshakeStatus.HANDSHAKE_FINISHED);
+
+            case REMOTE -> {
+                context.remoteConnectionState()
+                                .orElseThrow(() -> new TlsAlert("No remote connection state was created", TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR))
+                        .setHandshakeStatus(TlsConnectionHandshakeStatus.HANDSHAKE_FINISHED);
+                var expectedHash = context.connectionHandshakeHash()
+                        .finish(context, TlsSource.REMOTE);
+                if(!Arrays.equals(expectedHash, hash)) {
+                    // throw new TlsAlert("Cannot validate hash", TlsAlertLevel.FATAL, TlsAlertType.HANDSHAKE_FAILURE);
+                    System.out.println("Remote hash doesn't match expected value");
+                }
+            }
         }
+
+        context.connectionHandler()
+                .finalize(context, source);
     }
 }

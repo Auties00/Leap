@@ -6,7 +6,6 @@ import it.auties.leap.tls.compression.TlsCompression;
 import it.auties.leap.tls.connection.TlsConnectionHandler;
 import it.auties.leap.tls.connection.TlsConnectionType;
 import it.auties.leap.tls.extension.TlsExtensionOwner;
-import it.auties.leap.tls.secret.TlsMasterSecretGenerator;
 
 import java.util.Objects;
 
@@ -24,9 +23,8 @@ public final class TlsServerContextBuilder extends TlsContextBuilder<TlsServerCo
         var credentials = buildLocalConnection(TlsConnectionType.SERVER, versions);
         var extensions = buildExtensions(versions);
         var compressions = Objects.requireNonNullElse(this.compressions, TlsCompression.recommended());
-        var masterSecretGenerator = Objects.requireNonNullElse(this.masterSecretGenerator, TlsMasterSecretGenerator.builtin());
-        var connectionInitializer = Objects.requireNonNullElse(this.connectionInitializer, TlsConnectionHandler.builtin());
+        var connectionHandler = Objects.requireNonNullElse(this.connectionHandler, TlsConnectionHandler.instance());
         var certificateValidator = Objects.requireNonNullElseGet(this.certificateValidator, TlsCertificateValidator::validate);
-        return TlsContext.ofServer(versions, extensions, ciphers, compressions, credentials, certificateValidator, masterSecretGenerator, connectionInitializer);
+        return TlsContext.ofServer(versions, extensions, ciphers, compressions, credentials, certificateValidator, connectionHandler);
     }
 }

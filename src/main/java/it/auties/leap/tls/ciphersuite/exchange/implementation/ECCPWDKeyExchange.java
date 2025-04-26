@@ -3,12 +3,13 @@ package it.auties.leap.tls.ciphersuite.exchange.implementation;
 import it.auties.leap.tls.ciphersuite.exchange.TlsKeyExchange;
 import it.auties.leap.tls.ciphersuite.exchange.TlsKeyExchangeFactory;
 import it.auties.leap.tls.ciphersuite.exchange.TlsKeyExchangeType;
+import it.auties.leap.tls.connection.TlsConnectionSecret;
 import it.auties.leap.tls.context.TlsContext;
 import it.auties.leap.tls.ec.TlsEcCurveType;
 import it.auties.leap.tls.ec.TlsEcParametersDeserializer;
-import it.auties.leap.tls.secret.TlsPreMasterSecretGenerator;
 
 import java.nio.ByteBuffer;
+import java.util.Optional;
 
 import static it.auties.leap.tls.util.BufferUtils.*;
 
@@ -20,7 +21,7 @@ public sealed abstract class ECCPWDKeyExchange implements TlsKeyExchange {
         }
 
         @Override
-        public TlsKeyExchange newRemoteKeyExchange(TlsContext context, ByteBuffer ephemeralKeyExchangeSource) {
+        public TlsKeyExchange newRemoteKeyExchange(TlsContext context, ByteBuffer source) {
             throw new UnsupportedOperationException();
         }
 
@@ -40,8 +41,8 @@ public sealed abstract class ECCPWDKeyExchange implements TlsKeyExchange {
     }
 
     @Override
-    public TlsPreMasterSecretGenerator preMasterSecretGenerator() {
-        return TlsPreMasterSecretGenerator.eccpwd();
+    public Optional<TlsConnectionSecret> generatePreSharedSecret(TlsContext context) {
+        throw new UnsupportedOperationException();
     }
 
     private static final class Client extends ECCPWDKeyExchange {

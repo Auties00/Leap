@@ -8,7 +8,7 @@ import it.auties.leap.tls.ciphersuite.TlsCipherSuite;
 import it.auties.leap.tls.compression.TlsCompression;
 import it.auties.leap.tls.connection.TlsConnection;
 import it.auties.leap.tls.connection.TlsConnectionType;
-import it.auties.leap.tls.connection.TlsHandshakeStatus;
+import it.auties.leap.tls.connection.TlsConnectionHandshakeStatus;
 import it.auties.leap.tls.context.TlsContext;
 import it.auties.leap.tls.context.TlsSource;
 import it.auties.leap.tls.extension.TlsExtension;
@@ -189,10 +189,10 @@ public record ClientHelloMessage(
     public void apply(TlsContext context) {
         switch (source) {
             case LOCAL -> context.localConnectionState()
-                    .setHandshakeStatus(TlsHandshakeStatus.HANDSHAKE_DONE);
+                    .setHandshakeStatus(TlsConnectionHandshakeStatus.HANDSHAKE_DONE);
             case REMOTE -> {
                 var credentials = TlsConnection.of(TlsConnectionType.CLIENT, randomData, sessionId, cookie);
-                credentials.setHandshakeStatus(TlsHandshakeStatus.HANDSHAKE_DONE);
+                credentials.setHandshakeStatus(TlsConnectionHandshakeStatus.HANDSHAKE_DONE);
                 context.setRemoteConnectionState(credentials);
 
                 var negotiatedCipher = chooseCipher(context);

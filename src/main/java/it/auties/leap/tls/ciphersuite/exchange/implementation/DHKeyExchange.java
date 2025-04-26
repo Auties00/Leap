@@ -7,16 +7,17 @@ import it.auties.leap.tls.ciphersuite.exchange.TlsKeyExchange;
 import it.auties.leap.tls.ciphersuite.exchange.TlsKeyExchangeFactory;
 import it.auties.leap.tls.ciphersuite.exchange.TlsKeyExchangeType;
 import it.auties.leap.tls.connection.TlsConnection;
+import it.auties.leap.tls.connection.TlsConnectionSecret;
 import it.auties.leap.tls.context.TlsContext;
+import it.auties.leap.tls.group.TlsSupportedFiniteField;
 import it.auties.leap.tls.group.TlsSupportedGroup;
 import it.auties.leap.tls.group.TlsSupportedGroupKeys;
-import it.auties.leap.tls.group.TlsSupportedFiniteField;
 import it.auties.leap.tls.property.TlsProperty;
-import it.auties.leap.tls.secret.TlsPreMasterSecretGenerator;
 
 import javax.crypto.interfaces.DHPublicKey;
 import java.math.BigInteger;
 import java.nio.ByteBuffer;
+import java.util.Optional;
 
 import static it.auties.leap.tls.util.BufferUtils.*;
 
@@ -43,8 +44,16 @@ public abstract sealed class DHKeyExchange implements TlsKeyExchange {
     }
 
     @Override
-    public TlsPreMasterSecretGenerator preMasterSecretGenerator() {
-        return TlsPreMasterSecretGenerator.dh();
+    public Optional<TlsConnectionSecret> generatePreSharedSecret(TlsContext context) {
+        var group = context.localConnectionState()
+                .ephemeralKeyPair()
+                .orElseThrow(() -> new TlsAlert("No ephemeral key pair was generated for local connection", TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR))
+                .group();
+        if(!(group instanceof TlsSupportedFiniteField)) {
+            throw new TlsAlert("Unsupported supported group: expected finite field", TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR);
+        }
+        var secret = group.computeSharedSecret(context);
+        return Optional.of(secret);
     }
 
     public abstract BigInteger p();
@@ -160,12 +169,12 @@ public abstract sealed class DHKeyExchange implements TlsKeyExchange {
         }
 
         @Override
-        public TlsKeyExchange newRemoteKeyExchange(TlsContext context, ByteBuffer ephemeralKeyExchangeSource) {
+        public TlsKeyExchange newRemoteKeyExchange(TlsContext context, ByteBuffer source) {
             var remoteConnectionState = context.remoteConnectionState()
                     .orElseThrow(() -> new TlsAlert("No remote connection state was created", TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR));
             return switch (type) {
                 case STATIC -> {
-                    if(ephemeralKeyExchangeSource != null) {
+                    if(source != null) {
                         throw new TlsAlert("Static key exchange should not receive an ephemeral key exchange source", TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR);
                     }
 
@@ -177,7 +186,7 @@ public abstract sealed class DHKeyExchange implements TlsKeyExchange {
                 }
 
                 case EPHEMERAL -> {
-                    if(ephemeralKeyExchangeSource == null) {
+                    if(source == null) {
                         throw new TlsAlert("Ephemeral key exchange should receive an ephemeral key exchange source", TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR);
                     }
 
@@ -186,7 +195,7 @@ public abstract sealed class DHKeyExchange implements TlsKeyExchange {
                             var localPublicKey = getEphemeralPublicKey(context);
                             var p = localPublicKey.getParams().getP();
                             var g = localPublicKey.getParams().getG();
-                            var y = readBytesBigEndian16(ephemeralKeyExchangeSource);
+                            var y = readBytesBigEndian16(source);
                             var group = getPreferredGroup(context);
                             var publicKey = group.parsePublicKey(y);
                             var keys = TlsSupportedGroupKeys.of(group, publicKey);
@@ -196,9 +205,9 @@ public abstract sealed class DHKeyExchange implements TlsKeyExchange {
                         }
 
                         case SERVER -> {
-                            var p = new BigInteger(1, readBytesBigEndian16(ephemeralKeyExchangeSource));
-                            var g = new BigInteger(1, readBytesBigEndian16(ephemeralKeyExchangeSource));
-                            var y = readBytesBigEndian16(ephemeralKeyExchangeSource);
+                            var p = new BigInteger(1, readBytesBigEndian16(source));
+                            var g = new BigInteger(1, readBytesBigEndian16(source));
+                            var y = readBytesBigEndian16(source);
                             var remoteKeyExchange = new Server(type, p, g, y);
                             var group = getNegotiatedGroup(context, remoteKeyExchange);
                             var publicKey = group.parsePublicKey(y);

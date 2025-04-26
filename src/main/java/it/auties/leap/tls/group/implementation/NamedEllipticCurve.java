@@ -8,7 +8,7 @@ import it.auties.leap.tls.ec.TlsEcCurveType;
 import it.auties.leap.tls.ec.TlsEcParametersDeserializer;
 import it.auties.leap.tls.group.TlsSupportedEllipticCurve;
 import it.auties.leap.tls.property.TlsProperty;
-import it.auties.leap.tls.secret.TlsSecret;
+import it.auties.leap.tls.connection.TlsConnectionSecret;
 import it.auties.leap.tls.util.EcKeyUtils;
 import org.bouncycastle.jce.ECNamedCurveTable;
 import org.bouncycastle.jce.interfaces.ECPublicKey;
@@ -337,7 +337,7 @@ public final class NamedEllipticCurve implements TlsSupportedEllipticCurve {
     }
 
     @Override
-    public TlsSecret computeSharedSecret(TlsContext context) {
+    public TlsConnectionSecret computeSharedSecret(TlsContext context) {
         var privateKey = context.localConnectionState()
                 .ephemeralKeyPair()
                 .orElseThrow(() -> new TlsAlert("Missing local ephemeral key pair", TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR))
@@ -364,7 +364,7 @@ public final class NamedEllipticCurve implements TlsSupportedEllipticCurve {
             var keyAgreement = KeyAgreement.getInstance(algorithm);
             keyAgreement.init(privateKey, spec);
             keyAgreement.doPhase(publicKey, true);
-            return TlsSecret.of(keyAgreement.generateSecret());
+            return TlsConnectionSecret.of(keyAgreement.generateSecret());
         }catch (GeneralSecurityException exception) {
             throw new TlsAlert("Cannot compute shared secret: " + exception.getMessage(), TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR);
         }

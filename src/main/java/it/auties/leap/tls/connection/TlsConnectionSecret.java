@@ -1,4 +1,4 @@
-package it.auties.leap.tls.secret;
+package it.auties.leap.tls.connection;
 
 import it.auties.leap.tls.hash.TlsHashFactory;
 import it.auties.leap.tls.hash.TlsHkdf;
@@ -11,15 +11,15 @@ import static it.auties.leap.tls.util.BufferUtils.*;
 
 // TODO: Enforce secret destruction
 // Currently I'm not enforcing it because during testing it can be annoying
-public final class TlsSecret {
+public final class TlsConnectionSecret {
     private final byte[] data;
     private boolean destroyed;
 
-    public static TlsSecret of(byte[] data) {
-        return new TlsSecret(data);
+    public static TlsConnectionSecret of(byte[] data) {
+        return new TlsConnectionSecret(data);
     }
 
-    public static TlsSecret of(TlsHashFactory hashFactory, String label, byte[] context, byte[] key, int length) {
+    public static TlsConnectionSecret of(TlsHashFactory hashFactory, String label, byte[] context, byte[] key, int length) {
         var info = createHkdfInfo(label.getBytes(), context, length);
         var hkdf = TlsHkdf.of(TlsHmac.of(hashFactory));
         var data = hkdf.expand(key, info, length);
@@ -29,7 +29,7 @@ public final class TlsSecret {
         System.out.println("Info: " + Arrays.toString(info));
         System.out.println("Result: " + Arrays.toString(data));
         System.out.println("______________________________");
-        return TlsSecret.of(data);
+        return TlsConnectionSecret.of(data);
     }
 
     private static byte[] createHkdfInfo(byte[] label, byte[] context, int length) {
@@ -47,7 +47,7 @@ public final class TlsSecret {
         return output.array();
     }
 
-    private TlsSecret(byte[] data) {
+    private TlsConnectionSecret(byte[] data) {
         this.data = data;
     }
 

@@ -3,7 +3,7 @@ package it.auties.leap.tls.message.implementation;
 import it.auties.leap.tls.alert.TlsAlert;
 import it.auties.leap.tls.alert.TlsAlertLevel;
 import it.auties.leap.tls.alert.TlsAlertType;
-import it.auties.leap.tls.connection.TlsHandshakeStatus;
+import it.auties.leap.tls.connection.TlsConnectionHandshakeStatus;
 import it.auties.leap.tls.context.TlsContext;
 import it.auties.leap.tls.context.TlsSource;
 import it.auties.leap.tls.message.*;
@@ -62,9 +62,9 @@ public record ServerHelloDoneMessage(
         switch (context.localConnectionState().type()) {
             case CLIENT -> context.remoteConnectionState()
                     .orElseThrow(() -> new TlsAlert("No remote connection state was created", TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR))
-                    .setHandshakeStatus(TlsHandshakeStatus.HANDSHAKE_DONE);
+                    .setHandshakeStatus(TlsConnectionHandshakeStatus.HANDSHAKE_DONE);
             case SERVER -> context.localConnectionState()
-                    .setHandshakeStatus(TlsHandshakeStatus.HANDSHAKE_DONE);
+                    .setHandshakeStatus(TlsConnectionHandshakeStatus.HANDSHAKE_DONE);
         }
     }
 }

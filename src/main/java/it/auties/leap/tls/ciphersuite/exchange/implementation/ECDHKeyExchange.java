@@ -7,12 +7,12 @@ import it.auties.leap.tls.ciphersuite.exchange.TlsKeyExchange;
 import it.auties.leap.tls.ciphersuite.exchange.TlsKeyExchangeFactory;
 import it.auties.leap.tls.ciphersuite.exchange.TlsKeyExchangeType;
 import it.auties.leap.tls.connection.TlsConnection;
+import it.auties.leap.tls.connection.TlsConnectionSecret;
 import it.auties.leap.tls.context.TlsContext;
 import it.auties.leap.tls.ec.TlsEcCurveType;
-import it.auties.leap.tls.group.TlsSupportedGroupKeys;
 import it.auties.leap.tls.group.TlsSupportedEllipticCurve;
+import it.auties.leap.tls.group.TlsSupportedGroupKeys;
 import it.auties.leap.tls.property.TlsProperty;
-import it.auties.leap.tls.secret.TlsPreMasterSecretGenerator;
 import org.bouncycastle.jcajce.interfaces.XDHPublicKey;
 import org.bouncycastle.jce.interfaces.ECPublicKey;
 
@@ -46,10 +46,17 @@ public sealed abstract class ECDHKeyExchange implements TlsKeyExchange {
     }
 
     @Override
-    public TlsPreMasterSecretGenerator preMasterSecretGenerator() {
-        return TlsPreMasterSecretGenerator.ecdh();
+    public Optional<TlsConnectionSecret> generatePreSharedSecret(TlsContext context) {
+        var group = context.localConnectionState()
+                .ephemeralKeyPair()
+                .orElseThrow(() -> new TlsAlert("No ephemeral key pair was generated for local connection", TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR))
+                .group();
+        if(!(group instanceof TlsSupportedEllipticCurve)) {
+            throw new TlsAlert("Unsupported supported group: expected elliptic curve", TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR);
+        }
+        var secret = group.computeSharedSecret(context);
+        return Optional.of(secret);
     }
-
 
     public abstract Optional<TlsEcCurveType> parameters();
 
@@ -150,12 +157,12 @@ public sealed abstract class ECDHKeyExchange implements TlsKeyExchange {
         }
 
         @Override
-        public TlsKeyExchange newRemoteKeyExchange(TlsContext context, ByteBuffer ephemeralKeyExchangeSource) {
+        public TlsKeyExchange newRemoteKeyExchange(TlsContext context, ByteBuffer source) {
             var connectionState = context.remoteConnectionState()
                     .orElseThrow(() -> new TlsAlert("No remote connection state was created", TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR));
             return switch (type) {
                 case STATIC -> {
-                    if(ephemeralKeyExchangeSource != null) {
+                    if(source != null) {
                         throw new TlsAlert("Static key exchange should not receive an ephemeral key exchange source", TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR);
                     }
 
@@ -167,13 +174,13 @@ public sealed abstract class ECDHKeyExchange implements TlsKeyExchange {
                 }
 
                 case EPHEMERAL -> {
-                    if(ephemeralKeyExchangeSource == null) {
+                    if(source == null) {
                         throw new TlsAlert("Ephemeral key exchange should receive an ephemeral key exchange source", TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR);
                     }
 
                     yield switch (connectionState.type()) {
                         case CLIENT -> {
-                            var y = readBytesBigEndian8(ephemeralKeyExchangeSource);
+                            var y = readBytesBigEndian8(source);
                             var group = getPreferredGroup(context, null);
                             var remotePublicKey = group.parsePublicKey(y);
                             connectionState.addEphemeralKeyPair(TlsSupportedGroupKeys.of(group, remotePublicKey))
@@ -181,11 +188,11 @@ public sealed abstract class ECDHKeyExchange implements TlsKeyExchange {
                             yield new Client(type, y);
                         }
                         case SERVER -> {
-                            var ecType = readBigEndianInt8(ephemeralKeyExchangeSource);
+                            var ecType = readBigEndianInt8(source);
                             var group = getPreferredGroup(context, ecType);
                             var parameters = group.parametersDeserializer()
-                                    .deserialize(ephemeralKeyExchangeSource);
-                            var y = readBytesBigEndian8(ephemeralKeyExchangeSource);
+                                    .deserialize(source);
+                            var y = readBytesBigEndian8(source);
                             var publicKey = group.parsePublicKey(y);
                             connectionState.addEphemeralKeyPair(TlsSupportedGroupKeys.of(group, publicKey))
                                     .chooseEphemeralKeyPair(group);

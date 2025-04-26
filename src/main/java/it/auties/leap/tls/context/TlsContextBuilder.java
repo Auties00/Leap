@@ -13,7 +13,6 @@ import it.auties.leap.tls.connection.TlsConnectionHandler;
 import it.auties.leap.tls.connection.TlsConnectionType;
 import it.auties.leap.tls.extension.TlsExtension;
 import it.auties.leap.tls.extension.TlsExtensionOwner;
-import it.auties.leap.tls.secret.TlsMasterSecretGenerator;
 import it.auties.leap.tls.util.TlsKeyUtils;
 import it.auties.leap.tls.version.TlsVersion;
 
@@ -28,8 +27,7 @@ abstract sealed class TlsContextBuilder<S extends TlsContextBuilder<S, E>, E ext
     List<TlsVersion> versions;
     List<TlsCipherSuite> ciphers;
     List<TlsCompression> compressions;
-    TlsMasterSecretGenerator masterSecretGenerator;
-    TlsConnectionHandler connectionInitializer;
+    TlsConnectionHandler connectionHandler;
     TlsCertificateValidator certificateValidator;
     byte[] randomData;
     byte[] sessionId;
@@ -79,13 +77,8 @@ abstract sealed class TlsContextBuilder<S extends TlsContextBuilder<S, E>, E ext
         return (S) this;
     }
 
-    public S masterSecretGenerator(TlsMasterSecretGenerator masterSecretGenerator) {
-        this.masterSecretGenerator = masterSecretGenerator;
-        return (S) this;
-    }
-
-    public S connectionInitializer(TlsConnectionHandler connectionInitializer) {
-        this.connectionInitializer = connectionInitializer;
+    public S connectionHandler(TlsConnectionHandler connectionHandler) {
+        this.connectionHandler = connectionHandler;
         return (S) this;
     }
 
@@ -104,7 +97,7 @@ abstract sealed class TlsContextBuilder<S extends TlsContextBuilder<S, E>, E ext
         this.certificateValidator = certificateValidator;
         return (S) this;
     }
-    
+
     public S extensions(List<? extends E> extensions) {
         this.extensions = extensions;
         return (S) this;
@@ -117,7 +110,7 @@ abstract sealed class TlsContextBuilder<S extends TlsContextBuilder<S, E>, E ext
 
         return TlsVersion.recommended(SocketProtocol.TCP);
     }
-    
+
     TlsConnection buildLocalConnection(TlsConnectionType type, List<TlsVersion> versions) {
         var randomData = Objects.requireNonNullElseGet(this.randomData, TlsKeyUtils::randomData);
         var sessionId = Objects.requireNonNullElseGet(this.sessionId, TlsKeyUtils::randomData);

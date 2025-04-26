@@ -6,7 +6,6 @@ import it.auties.leap.tls.ciphersuite.exchange.TlsKeyExchangeType;
 import it.auties.leap.tls.ciphersuite.cipher.TlsCipher;
 import it.auties.leap.tls.group.TlsSupportedGroupKeys;
 import it.auties.leap.tls.group.TlsSupportedGroup;
-import it.auties.leap.tls.secret.TlsSecret;
 
 import java.util.*;
 
@@ -25,8 +24,8 @@ public final class TlsConnection {
     private volatile TlsKeyExchange keyExchange;
 
     private volatile TlsCipher cipher;
-    private volatile TlsHandshakeStatus handshakeStatus;
-    private volatile TlsSecret handshakeSecret;
+    private volatile TlsConnectionHandshakeStatus handshakeStatus;
+    private volatile TlsConnectionSecret handshakeSecret;
 
     private TlsConnection(TlsConnectionType type, byte[] randomData, byte[] sessionId, byte[] dtlsCookie, List<TlsCertificate> certificates) {
         this.type = type;
@@ -34,7 +33,7 @@ public final class TlsConnection {
         this.sessionId = sessionId;
         this.dtlsCookie = dtlsCookie;
         this.ephemeralKeyPairs = new HashMap<>();
-        this.handshakeStatus = TlsHandshakeStatus.HANDSHAKE_WAIT;
+        this.handshakeStatus = TlsConnectionHandshakeStatus.HANDSHAKE_WAIT;
         this.certificates = certificates;
     }
 
@@ -90,7 +89,7 @@ public final class TlsConnection {
         return Optional.ofNullable(ephemeralKeyPairs.get(selectedEphemeralKeyPair));
     }
 
-    public TlsHandshakeStatus handshakeStatus() {
+    public TlsConnectionHandshakeStatus handshakeStatus() {
         return handshakeStatus;
     }
 
@@ -109,7 +108,7 @@ public final class TlsConnection {
         return this;
     }
 
-    public TlsConnection setHandshakeStatus(TlsHandshakeStatus handshakeStatus) {
+    public TlsConnection setHandshakeStatus(TlsConnectionHandshakeStatus handshakeStatus) {
         this.handshakeStatus = handshakeStatus;
         return this;
     }
@@ -159,12 +158,12 @@ public final class TlsConnection {
         return true;
     }
 
-    public TlsConnection setHandshakeSecret(TlsSecret handshakeSecret) {
+    public TlsConnection setHandshakeSecret(TlsConnectionSecret handshakeSecret) {
         this.handshakeSecret = handshakeSecret;
         return this;
     }
 
-    public Optional<TlsSecret> handshakeSecret() {
+    public Optional<TlsConnectionSecret> handshakeSecret() {
         return Optional.ofNullable(handshakeSecret);
     }
 }

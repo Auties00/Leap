@@ -108,7 +108,7 @@ public record CertificateMessage(
                     context.localConnectionState()
                             .setKeyExchange(keyExchange);
                     if(context.localConnectionState().type() == TlsConnectionType.SERVER) {
-                        context.connectionInitializer()
+                        context.connectionHandler()
                                 .initialize(context);
                     }
                 }
@@ -123,7 +123,7 @@ public record CertificateMessage(
                             .newRemoteKeyExchange(context, null);
                     remoteConnectionState.setKeyExchange(keyExchange);
                     if(remoteConnectionState.type() == TlsConnectionType.SERVER) {
-                        context.connectionInitializer()
+                        context.connectionHandler()
                                 .initialize(context);
                     }
                 }

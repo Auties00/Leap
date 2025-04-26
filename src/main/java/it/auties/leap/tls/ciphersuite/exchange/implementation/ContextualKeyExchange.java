@@ -6,12 +6,12 @@ import it.auties.leap.tls.alert.TlsAlertType;
 import it.auties.leap.tls.ciphersuite.exchange.TlsKeyExchange;
 import it.auties.leap.tls.ciphersuite.exchange.TlsKeyExchangeFactory;
 import it.auties.leap.tls.ciphersuite.exchange.TlsKeyExchangeType;
+import it.auties.leap.tls.connection.TlsConnectionSecret;
 import it.auties.leap.tls.context.TlsContext;
-import it.auties.leap.tls.secret.TlsPreMasterSecretGenerator;
 
 import java.nio.ByteBuffer;
+import java.util.Optional;
 
-// TODO: Implement contextual TLS 1.3 key exchange
 public final class ContextualKeyExchange implements TlsKeyExchange {
     private static final TlsKeyExchangeFactory EPHEMERAL_FACTORY = new TlsKeyExchangeFactory() {
         @Override
@@ -20,8 +20,8 @@ public final class ContextualKeyExchange implements TlsKeyExchange {
         }
 
         @Override
-        public TlsKeyExchange newRemoteKeyExchange(TlsContext context, ByteBuffer ephemeralKeyExchangeSource) {
-            if(ephemeralKeyExchangeSource != null) {
+        public TlsKeyExchange newRemoteKeyExchange(TlsContext context, ByteBuffer source) {
+            if(source != null) {
                 throw new TlsAlert("Contextual key exchange doesn't take an ephemeral key exchange source", TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR);
             }
 
@@ -48,9 +48,10 @@ public final class ContextualKeyExchange implements TlsKeyExchange {
         return TlsKeyExchangeType.EPHEMERAL;
     }
 
+    // TLS 1.3 doesn't use a pre shared secret
     @Override
-    public TlsPreMasterSecretGenerator preMasterSecretGenerator() {
-        return TlsPreMasterSecretGenerator.contextual();
+    public Optional<TlsConnectionSecret> generatePreSharedSecret(TlsContext context) {
+        return Optional.empty();
     }
 
     @Override

@@ -4,7 +4,7 @@ import it.auties.leap.tls.context.TlsContext;
 import it.auties.leap.tls.ec.TlsEcCurveType;
 import it.auties.leap.tls.ec.TlsEcParametersDeserializer;
 import it.auties.leap.tls.group.TlsSupportedEllipticCurve;
-import it.auties.leap.tls.secret.TlsSecret;
+import it.auties.leap.tls.connection.TlsConnectionSecret;
 
 import java.security.KeyPair;
 import java.security.PublicKey;
@@ -57,7 +57,7 @@ public final class ExplicitChar2EllipticCurve implements TlsSupportedEllipticCur
     }
 
     @Override
-    public TlsSecret computeSharedSecret(TlsContext context) {
+    public TlsConnectionSecret computeSharedSecret(TlsContext context) {
         throw new UnsupportedOperationException();
     }
 }

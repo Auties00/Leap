@@ -8,7 +8,7 @@ import it.auties.leap.tls.ciphersuite.exchange.implementation.DHKeyExchange;
 import it.auties.leap.tls.context.TlsContext;
 import it.auties.leap.tls.group.TlsSupportedFiniteField;
 import it.auties.leap.tls.property.TlsProperty;
-import it.auties.leap.tls.secret.TlsSecret;
+import it.auties.leap.tls.connection.TlsConnectionSecret;
 
 import javax.crypto.KeyAgreement;
 import javax.crypto.interfaces.DHPublicKey;
@@ -82,7 +82,7 @@ public final class NamedFiniteField implements TlsSupportedFiniteField {
     }
 
     @Override
-    public TlsSecret computeSharedSecret(TlsContext context) {
+    public TlsConnectionSecret computeSharedSecret(TlsContext context) {
         var privateKey = context.localConnectionState()
                 .ephemeralKeyPair()
                 .orElseThrow(() -> new TlsAlert("Missing local ephemeral key pair", TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR))
@@ -111,7 +111,7 @@ public final class NamedFiniteField implements TlsSupportedFiniteField {
             keyAgreement.doPhase(publicKey, true);
             var result = keyAgreement.generateSecret();
             System.out.println("Remote public key: " + Arrays.toString(((DHPublicKey) publicKey).getY().toByteArray()));
-            return TlsSecret.of(result);
+            return TlsConnectionSecret.of(result);
         }catch (GeneralSecurityException exception) {
             throw new TlsAlert("Cannot compute shared secret: " + exception.getMessage(), TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR);
         }

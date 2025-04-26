@@ -1,6 +1,6 @@
 package it.auties.leap.tls.connection;
 
-public enum TlsHandshakeStatus {
+public enum TlsConnectionHandshakeStatus {
     HANDSHAKE_WAIT,
     HANDSHAKE_STARTED,
     HANDSHAKE_DONE,

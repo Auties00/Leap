@@ -11,7 +11,7 @@ import it.auties.leap.tls.ciphersuite.TlsCipherSuite;
 import it.auties.leap.tls.ciphersuite.cipher.TlsCipher;
 import it.auties.leap.tls.compression.TlsCompression;
 import it.auties.leap.tls.connection.TlsConnection;
-import it.auties.leap.tls.connection.TlsHandshakeStatus;
+import it.auties.leap.tls.connection.TlsConnectionHandshakeStatus;
 import it.auties.leap.tls.context.TlsContext;
 import it.auties.leap.tls.context.TlsSource;
 import it.auties.leap.tls.extension.TlsExtension;
@@ -58,7 +58,7 @@ public class AsyncSecureSocketApplicationLayer extends AsyncSocketApplicationLay
             tlsContext.setAddress(address);
             this.tlsBuffer = ByteBuffer.allocate(FRAGMENT_LENGTH);
             return sendClientHello()
-                    .thenCompose(_ -> readUntil(TlsHandshakeStatus.HANDSHAKE_STARTED))
+                    .thenCompose(_ -> readUntil(TlsConnectionHandshakeStatus.HANDSHAKE_STARTED))
                     .thenCompose(_ -> continueHandshake());
         } catch (Throwable throwable) {
             return CompletableFuture.failedFuture(throwable);
@@ -69,15 +69,15 @@ public class AsyncSecureSocketApplicationLayer extends AsyncSocketApplicationLay
         var version = tlsContext.getNegotiatedValue(TlsProperty.version())
                 .orElseThrow(() -> new TlsAlert("Missing negotiated property: version", TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR));
         return switch (version) {
-            case TLS11, TLS12 -> readUntil(TlsHandshakeStatus.HANDSHAKE_DONE)
+            case TLS11, TLS12 -> readUntil(TlsConnectionHandshakeStatus.HANDSHAKE_DONE)
                     .thenCompose(_ -> sendClientCertificate())
                     .thenCompose(_ -> sendClientKeyExchange())
                     .thenCompose(_ -> sendClientCertificateVerify())
                     .thenCompose(_ -> sendClientChangeCipher())
                     .thenCompose(_ -> sendClientFinish())
-                    .thenCompose(_ -> readUntil(TlsHandshakeStatus.HANDSHAKE_FINISHED));
+                    .thenCompose(_ -> readUntil(TlsConnectionHandshakeStatus.HANDSHAKE_FINISHED));
 
-            case TLS13 -> readUntil(TlsHandshakeStatus.HANDSHAKE_FINISHED)
+            case TLS13 -> readUntil(TlsConnectionHandshakeStatus.HANDSHAKE_FINISHED)
                     .thenCompose(_ -> sendClientFinish());
 
             default -> throw new UnsupportedOperationException();
@@ -351,7 +351,7 @@ public class AsyncSecureSocketApplicationLayer extends AsyncSocketApplicationLay
                 .thenCompose(_ -> handleOrClose(finishedMessage));
     }
 
-    private CompletableFuture<Void> readUntil(TlsHandshakeStatus status) {
+    private CompletableFuture<Void> readUntil(TlsConnectionHandshakeStatus status) {
         System.out.println("Reading until " + status);
         return tlsContext.remoteConnectionState()
                 .filter(state -> state.handshakeStatus() == status)

@@ -26,16 +26,17 @@ public final class HandshakeMessageDeserializer implements TlsMessageDeserialize
     @Override
     public TlsMessage deserialize(TlsContext context, ByteBuffer buffer, TlsMessageMetadata metadata) {
         var position = buffer.position();
-        context.connectionHandshakeHash()
-                .update(buffer);
-        buffer.position(position);
-
         var id = readBigEndianInt8(buffer);
         var handshakePayloadLength = readBigEndianInt24(buffer);
         try (var _ = scopedRead(buffer, handshakePayloadLength)) {
-            return context.findHandshakeMessageDeserializer(id)
+            var result = context.findHandshakeMessageDeserializer(id)
                     .map(deserializer -> deserializer.deserialize(context, buffer, metadata.withLength(handshakePayloadLength)))
                     .orElseThrow(() -> new TlsAlert("Unknown message type: " + id, TlsAlertLevel.FATAL, TlsAlertType.ILLEGAL_PARAMETER));
+            var nextPosition = buffer.position();
+            context.connectionHandshakeHash()
+                    .update(buffer.position(position));
+            buffer.position(nextPosition);
+            return result;
         }
     }
 }
