@@ -24,7 +24,7 @@ public record ServerHelloDoneMessage(
         }
 
         @Override
-        public TlsHandshakeMessage deserialize(TlsContext context, ByteBuffer buffer, TlsMessageMetadata metadata) {
+        public TlsMessage deserialize(TlsContext context, ByteBuffer buffer, TlsMessageMetadata metadata) {
             if(buffer.hasRemaining()) {
                 throw new TlsAlert("Expected server hello done message to have an empty payload", URI.create("https://datatracker.ietf.org/doc/html/rfc5246"), "7.4.5", TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR);
             }

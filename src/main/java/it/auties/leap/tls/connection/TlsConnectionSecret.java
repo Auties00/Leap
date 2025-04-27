@@ -1,5 +1,8 @@
 package it.auties.leap.tls.connection;
 
+import it.auties.leap.tls.alert.TlsAlert;
+import it.auties.leap.tls.alert.TlsAlertLevel;
+import it.auties.leap.tls.alert.TlsAlertType;
 import it.auties.leap.tls.hash.TlsHashFactory;
 import it.auties.leap.tls.hash.TlsHkdf;
 import it.auties.leap.tls.hash.TlsHmac;
@@ -8,9 +11,9 @@ import java.nio.ByteBuffer;
 import java.util.Arrays;
 
 import static it.auties.leap.tls.util.BufferUtils.*;
+import static it.auties.leap.tls.util.BufferUtils.writeBigEndianInt8;
+import static it.auties.leap.tls.util.BufferUtils.writeBytesBigEndian8;
 
-// TODO: Enforce secret destruction
-// Currently I'm not enforcing it because during testing it can be annoying
 public final class TlsConnectionSecret {
     private final byte[] data;
     private boolean destroyed;
@@ -52,10 +55,12 @@ public final class TlsConnectionSecret {
     }
 
     public byte[] data() {
+        checkAvailability();
         return data;
     }
 
     public int length() {
+        checkAvailability();
         return data.length;
     }
 
@@ -64,4 +69,9 @@ public final class TlsConnectionSecret {
         Arrays.fill(data, (byte) 0);
     }
 
+    private void checkAvailability() {
+        if(destroyed) {
+            throw new TlsAlert("Cannot access a destroyed secret", TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR);
+        }
+    }
 }

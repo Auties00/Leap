@@ -29,7 +29,7 @@ public record ClientKeyExchangeMessage(
         }
 
         @Override
-        public TlsHandshakeMessage deserialize(TlsContext context, ByteBuffer buffer, TlsMessageMetadata metadata) {
+        public TlsMessage deserialize(TlsContext context, ByteBuffer buffer, TlsMessageMetadata metadata) {
             var messageLength = readBigEndianInt24(buffer);
             try (var _ = scopedRead(buffer, messageLength)) {
                 var remoteParameters = context.getNegotiatedValue(TlsProperty.cipher())

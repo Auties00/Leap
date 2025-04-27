@@ -43,7 +43,7 @@ public record HelloRetryRequestMessage(
         }
 
         @Override
-        public TlsHandshakeMessage deserialize(TlsContext context, ByteBuffer buffer, TlsMessageMetadata metadata) {
+        public TlsMessage deserialize(TlsContext context, ByteBuffer buffer, TlsMessageMetadata metadata) {
             var tlsVersionId = readBigEndianInt16(buffer);
             var tlsVersion = TlsVersion.of(tlsVersionId)
                     .orElseThrow(() -> new IllegalArgumentException("Cannot decode TLS message, unknown protocol version: " + tlsVersionId));

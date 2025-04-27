@@ -32,7 +32,7 @@ public record CertificateMessage(
         }
 
         @Override
-        public TlsHandshakeMessage deserialize(TlsContext context, ByteBuffer buffer, TlsMessageMetadata metadata) {
+        public TlsMessage deserialize(TlsContext context, ByteBuffer buffer, TlsMessageMetadata metadata) {
             var version = context.getNegotiatedValue(TlsProperty.version())
                     .orElseThrow(() -> new TlsAlert("Missing negotiated property: version", TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR));
             if(version == TlsVersion.TLS13 || version == TlsVersion.DTLS13) {

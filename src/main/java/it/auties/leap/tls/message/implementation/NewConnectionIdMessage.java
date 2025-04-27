@@ -27,7 +27,7 @@ public record NewConnectionIdMessage(
         }
 
         @Override
-        public TlsHandshakeMessage deserialize(TlsContext context, ByteBuffer buffer, TlsMessageMetadata metadata) {
+        public TlsMessage deserialize(TlsContext context, ByteBuffer buffer, TlsMessageMetadata metadata) {
             var ids = new ArrayList<byte[]>();
             var idsLength = readBigEndianInt16(buffer);
             try(var _ = scopedRead(buffer, idsLength)) {

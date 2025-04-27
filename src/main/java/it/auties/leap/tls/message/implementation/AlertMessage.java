@@ -6,10 +6,13 @@ import it.auties.leap.tls.alert.TlsAlertLevel;
 import it.auties.leap.tls.alert.TlsAlertType;
 import it.auties.leap.tls.context.TlsContext;
 import it.auties.leap.tls.context.TlsSource;
-import it.auties.leap.tls.message.*;
+import it.auties.leap.tls.message.TlsMessage;
+import it.auties.leap.tls.message.TlsMessageContentType;
+import it.auties.leap.tls.message.TlsMessageDeserializer;
 import it.auties.leap.tls.version.TlsVersion;
 
 import java.nio.ByteBuffer;
+import java.util.Optional;
 
 import static it.auties.leap.tls.util.BufferUtils.*;
 
@@ -27,7 +30,8 @@ public record AlertMessage(
         var typeId = readBigEndianInt8(buffer);
         var type = TlsAlertType.of(typeId)
                 .orElseThrow(() -> new IllegalArgumentException("Cannot decode TLS message, unknown alert type: " + typeId));
-        return new AlertMessage(metadata.version(), metadata.source(), level, type);
+        var message =  new AlertMessage(metadata.version(), metadata.source(), level, type);
+        return Optional.of(message);
     };
 
     public static TlsMessageDeserializer deserializer() {

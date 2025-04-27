@@ -1,14 +1,12 @@
 package it.auties.leap.tls.message.implementation;
 
-import it.auties.leap.tls.alert.TlsAlert;
-import it.auties.leap.tls.alert.TlsAlertLevel;
-import it.auties.leap.tls.alert.TlsAlertType;
 import it.auties.leap.tls.context.TlsContext;
 import it.auties.leap.tls.message.TlsMessage;
 import it.auties.leap.tls.message.TlsMessageDeserializer;
 import it.auties.leap.tls.message.TlsMessageMetadata;
 
 import java.nio.ByteBuffer;
+import java.util.Optional;
 
 import static it.auties.leap.tls.util.BufferUtils.*;
 
@@ -24,18 +22,19 @@ public final class HandshakeMessageDeserializer implements TlsMessageDeserialize
     }
 
     @Override
-    public TlsMessage deserialize(TlsContext context, ByteBuffer buffer, TlsMessageMetadata metadata) {
+    public Optional<TlsMessage> deserialize(TlsContext context, ByteBuffer buffer, TlsMessageMetadata metadata) {
         var position = buffer.position();
         var id = readBigEndianInt8(buffer);
         var handshakePayloadLength = readBigEndianInt24(buffer);
         try (var _ = scopedRead(buffer, handshakePayloadLength)) {
             var result = context.findHandshakeMessageDeserializer(id)
-                    .map(deserializer -> deserializer.deserialize(context, buffer, metadata.withLength(handshakePayloadLength)))
-                    .orElseThrow(() -> new TlsAlert("Unknown message type: " + id, TlsAlertLevel.FATAL, TlsAlertType.ILLEGAL_PARAMETER));
-            var nextPosition = buffer.position();
-            context.connectionHandshakeHash()
-                    .update(buffer.position(position));
-            buffer.position(nextPosition);
+                    .map(deserializer -> deserializer.deserialize(context, buffer, metadata.withLength(handshakePayloadLength)));
+            if(result.isPresent()) {
+                var nextPosition = buffer.position();
+                context.connectionHandshakeHash()
+                        .update(buffer.position(position));
+                buffer.position(nextPosition);
+            }
             return result;
         }
     }

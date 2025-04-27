@@ -5,10 +5,7 @@ import it.auties.leap.tls.alert.TlsAlertLevel;
 import it.auties.leap.tls.alert.TlsAlertType;
 import it.auties.leap.tls.context.TlsContext;
 import it.auties.leap.tls.context.TlsSource;
-import it.auties.leap.tls.message.TlsHandshakeMessage;
-import it.auties.leap.tls.message.TlsHandshakeMessageDeserializer;
-import it.auties.leap.tls.message.TlsMessageContentType;
-import it.auties.leap.tls.message.TlsMessageMetadata;
+import it.auties.leap.tls.message.*;
 import it.auties.leap.tls.property.TlsIdentifiableProperty;
 import it.auties.leap.tls.property.TlsProperty;
 import it.auties.leap.tls.signature.TlsSignature;
@@ -35,7 +32,7 @@ public record CertificateVerifyMessage(
         }
 
         @Override
-        public TlsHandshakeMessage deserialize(TlsContext context, ByteBuffer buffer, TlsMessageMetadata metadata) {
+        public TlsMessage deserialize(TlsContext context, ByteBuffer buffer, TlsMessageMetadata metadata) {
             var signatureAlgorithms = context.getNegotiatedValue(TlsProperty.signatureAlgorithms())
                     .orElseThrow(() -> new TlsAlert("Missing negotiated property: signatureAlgorithms", TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR))
                     .stream()

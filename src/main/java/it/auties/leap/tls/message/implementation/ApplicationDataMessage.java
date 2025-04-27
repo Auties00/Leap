@@ -10,6 +10,7 @@ import it.auties.leap.tls.property.TlsProperty;
 import it.auties.leap.tls.version.TlsVersion;
 
 import java.nio.ByteBuffer;
+import java.util.Optional;
 
 import static it.auties.leap.tls.util.BufferUtils.*;
 
@@ -24,22 +25,28 @@ public record ApplicationDataMessage(
         var message = new ApplicationDataMessage(metadata.version(), metadata.source(), payload);
         var version = context.getNegotiatedValue(TlsProperty.version());
         if(version.isEmpty() || (version.get() != TlsVersion.TLS13 && version.get() != TlsVersion.DTLS13)) {
-            return message;
+            return Optional.of(message);
         }
 
-        while (payload.hasRemaining()) {
-            var contentTypeIdPosition = payload.limit() - 1;
-            var contentTypeId = payload.get(contentTypeIdPosition);
-            payload.limit(contentTypeIdPosition);
+        var position = payload.position();
+        var limit = payload.limit();
+        while (limit > position) {
+            var contentTypeId = payload.get(--limit);
             if(contentTypeId == 0) {
                 continue;
             }
 
-            var innerMessageContentType = TlsMessageContentType.of(contentTypeId)
-                    .orElseThrow(() -> new TlsAlert("Unknown content type id", TlsAlertLevel.FATAL, TlsAlertType.DECODE_ERROR));
-            var innerMessageMetadata = TlsMessageMetadata.of(innerMessageContentType, message.version(), payload.remaining(), message.source());
-            return innerMessageContentType.deserializer()
-                    .deserialize(context, payload, innerMessageMetadata);
+            var innerMessageContentType = TlsMessageContentType.of(contentTypeId);
+            if(innerMessageContentType.isEmpty()) {
+                return Optional.of(message);
+            }
+
+            payload.limit(limit);
+            var innerMessageMetadata = TlsMessageMetadata.of(innerMessageContentType.get(), message.version(), payload.remaining(), message.source());
+            return innerMessageContentType.get()
+                    .deserializer()
+                    .deserialize(context, payload, innerMessageMetadata)
+                    .or(() -> Optional.of(message));
         }
 
         throw new TlsAlert("Missing content type id", TlsAlertLevel.FATAL, TlsAlertType.DECODE_ERROR);

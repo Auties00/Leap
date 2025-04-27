@@ -28,7 +28,7 @@ public record ClientCertificateRequestMessage(
         }
 
         @Override
-        public TlsHandshakeMessage deserialize(TlsContext context, ByteBuffer buffer, TlsMessageMetadata metadata) {
+        public TlsMessage deserialize(TlsContext context, ByteBuffer buffer, TlsMessageMetadata metadata) {
             var certificatesLength = readBigEndianInt8(buffer);
             var certificateTypes = new ArrayList<Byte>();
             try(var _ = scopedRead(buffer, certificatesLength)) {

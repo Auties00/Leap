@@ -27,9 +27,11 @@ import it.auties.leap.tls.version.TlsVersion;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.HexFormat;
+import java.util.LinkedHashMap;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.CompletionStage;
 import java.util.stream.Collectors;
 
 import static it.auties.leap.tls.util.BufferUtils.*;
@@ -65,7 +67,7 @@ public class AsyncSecureSocketApplicationLayer extends AsyncSocketApplicationLay
         }
     }
 
-    private CompletionStage<Void> continueHandshake() {
+    private CompletableFuture<Void> continueHandshake() {
         var version = tlsContext.getNegotiatedValue(TlsProperty.version())
                 .orElseThrow(() -> new TlsAlert("Missing negotiated property: version", TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR));
         return switch (version) {
@@ -248,7 +250,7 @@ public class AsyncSecureSocketApplicationLayer extends AsyncSocketApplicationLay
                 length
         );
         return write(helloMessage)
-                .thenAccept(_ -> helloMessage.apply(tlsContext));
+                .thenAccept(_ -> handleOrClose(helloMessage));
     }
 
     private static String extensionCyclicDependencyError(TlsExtensionOwner.Client extension, TlsExtensionOwner.Client cyclicLink) {
@@ -441,7 +443,8 @@ public class AsyncSecureSocketApplicationLayer extends AsyncSocketApplicationLay
         try(var _ = scopedRead(plaintext, plaintextMetadata.length())) {
             var message = plaintextMetadata.contentType()
                     .deserializer()
-                    .deserialize(tlsContext, plaintext, plaintextMetadata);
+                    .deserialize(tlsContext, plaintext, plaintextMetadata)
+                    .orElseThrow(() -> new TlsAlert("Malformed TLS message: possible plaintext", TlsAlertLevel.FATAL, TlsAlertType.DECODE_ERROR));
             System.out.println("Read message: " + message.getClass().getName());
             return handleOrClose(message);
         }catch(Throwable throwable) {
@@ -506,7 +509,7 @@ public class AsyncSecureSocketApplicationLayer extends AsyncSocketApplicationLay
                             plaintext.put(message.contentType().id());
                         }
                     }
-                    if(message instanceof TlsHandshakeMessage) {
+                    if(message instanceof TlsHandshakeMessage && !(message instanceof FinishedMessage)) {
                         var position = plaintext.position();
                         var limit = plaintext.limit();
                         plaintext.position(position + recordLength)
@@ -538,7 +541,7 @@ public class AsyncSecureSocketApplicationLayer extends AsyncSocketApplicationLay
                         serializeRecord(message, buffer, length);
                         message.serialize(buffer);
                     }
-                    if(message instanceof TlsHandshakeMessage) {
+                    if(message instanceof TlsHandshakeMessage && !(message instanceof FinishedMessage)) {
                         var position = buffer.position();
                         buffer.position(position + recordLength());
                         tlsContext.connectionHandshakeHash()

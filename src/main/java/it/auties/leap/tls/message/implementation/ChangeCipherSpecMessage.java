@@ -10,6 +10,7 @@ import it.auties.leap.tls.property.TlsProperty;
 import it.auties.leap.tls.version.TlsVersion;
 
 import java.nio.ByteBuffer;
+import java.util.Optional;
 
 import static it.auties.leap.tls.util.BufferUtils.*;
 
@@ -24,7 +25,8 @@ public record ChangeCipherSpecMessage(
             throw new TlsAlert("Invalid cipher spec", TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR);
         }
 
-        return new ChangeCipherSpecMessage(metadata.version(), metadata.source());
+        var message = new ChangeCipherSpecMessage(metadata.version(), metadata.source());
+        return Optional.of(message);
     };
 
     public static TlsMessageDeserializer deserializer() {

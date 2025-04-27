@@ -32,7 +32,7 @@ public record CompressedCertificateMessage(
         }
 
         @Override
-        public TlsHandshakeMessage deserialize(TlsContext context, ByteBuffer buffer, TlsMessageMetadata metadata) {
+        public TlsMessage deserialize(TlsContext context, ByteBuffer buffer, TlsMessageMetadata metadata) {
             var negotiatedAlgorithms = context.getNegotiatedValue(TlsProperty.certificateCompressionAlgorithms())
                     .orElseThrow(() -> new TlsAlert("Missing negotiated property: certificateCompressionAlgorithms", TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR))
                     .stream()

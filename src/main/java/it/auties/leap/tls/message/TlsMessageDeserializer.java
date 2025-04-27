@@ -7,6 +7,7 @@ import it.auties.leap.tls.message.implementation.ChangeCipherSpecMessage;
 
 import java.nio.ByteBuffer;
 import java.util.List;
+import java.util.Optional;
 
 public interface TlsMessageDeserializer {
     static TlsMessageDeserializer alert() {
@@ -36,5 +37,5 @@ public interface TlsMessageDeserializer {
         return Deserializers.DESERIALIZERS;
     }
 
-    TlsMessage deserialize(TlsContext context, ByteBuffer buffer, TlsMessageMetadata metadata);
+    Optional<TlsMessage> deserialize(TlsContext context, ByteBuffer buffer, TlsMessageMetadata metadata);
 }

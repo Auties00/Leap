@@ -88,7 +88,6 @@ public class TlsConnectionHandler {
                         .orElseThrow(() -> new TlsAlert("Missing negotiated property: cipher", TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR));
                 var hashFactory = cipher.hashFactory();
                 var hkdf = TlsHkdf.of(TlsHmac.of(hashFactory));
-                // TODO: Handle PreSharedKey case: sun.security.ssl.KAKeyDerivation:115
                 var zeros = new byte[hashFactory.length()];
                 var earlySecret = hkdf.extract(zeros, zeros);
                 var saltSecretContext = hashFactory
@@ -313,94 +312,42 @@ public class TlsConnectionHandler {
             return;
         }
 
-        var cipher = context.getNegotiatedValue(TlsProperty.cipher())
+        var negotiatedCipher = context.getNegotiatedValue(TlsProperty.cipher())
                 .orElseThrow(() -> new TlsAlert("Missing negotiated property: cipher", TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR));
-        var hashFactory = cipher.hashFactory();
-        var cipherFactory = cipher.cipherFactory();
-        var engineFactory = cipher.cipherEngineFactory();
+        var handshakeHash = context.connectionHandshakeHash().digest();
+        var hashFactory = negotiatedCipher.hashFactory();
+        var cipherFactory = negotiatedCipher.cipherFactory();
+        var engineFactory = negotiatedCipher.cipherEngineFactory();
+        var saltSecretContext = hashFactory.newHash()
+                .digest(false);
+        var saltSecret = TlsConnectionSecret.of(hashFactory, "tls13 derived", saltSecretContext, context.masterSecretKey()
+                .orElseThrow().data(), hashFactory.length());
 
-        var masterSecret = context.masterSecretKey()
-                .orElseThrow(() -> new TlsAlert("Missing master secret", TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR));
+        var hkdf = TlsHkdf.of(TlsHmac.of(hashFactory));
+        var zeros = new byte[hashFactory.length()];
+        var masterSecret = hkdf.extract(saltSecret.data(), zeros);
 
-        var localConnectionState = context.localConnectionState();
-        var remoteConnectionState = context.remoteConnectionState()
-                .orElseThrow(() -> new TlsAlert("No remote connection state was created", TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR));
-
-        TlsConnectionSecret previousClientSecret = null;
-        TlsConnectionSecret previousServerSecret = null;
-        switch(localConnectionState.type()) {
-            case CLIENT -> {
-                previousClientSecret = localConnectionState.handshakeSecret()
-                        .orElseThrow();
-                previousServerSecret = remoteConnectionState.handshakeSecret()
-                        .orElseThrow();
-            }
-
-            case SERVER -> {
-                previousServerSecret = localConnectionState.handshakeSecret()
-                        .orElseThrow();
-                previousClientSecret = remoteConnectionState.handshakeSecret()
-                        .orElseThrow();
-            }
-        }
-
-        var clientSecret = TlsConnectionSecret.of(hashFactory, "tls13 c ap traffic", previousClientSecret.data(), masterSecret.data(), hashFactory.length());
-        System.out.println("Client secret for tls 1.3 key derivation: " + Arrays.toString(clientSecret.data()));
-        var clientKey = TlsConnectionSecret.of(hashFactory, "tls13 key", null, clientSecret.data(), engineFactory.keyLength());
-        System.out.println("Read key for tls 1.3 key derivation: " + Arrays.toString(clientKey.data()));
-        var clientIv = TlsConnectionSecret.of(hashFactory, "tls13 iv", null, clientSecret.data(), cipherFactory.ivLength());
-        System.out.println("Read iv for tls 1.3 key derivation: " + Arrays.toString(clientIv.data()));
-
-        var serverSecret = TlsConnectionSecret.of(hashFactory, "tls13 s ap traffic", previousServerSecret.data(), masterSecret.data(), hashFactory.length());
-        System.out.println("Server secret for tls 1.3 key derivation: " + Arrays.toString(serverSecret.data()));
-        var serverKey = TlsConnectionSecret.of(hashFactory, "tls13 key", null, serverSecret.data(), engineFactory.keyLength());
-        System.out.println("Write key for tls 1.3 key derivation: " + Arrays.toString(serverKey.data()));
-        var serverIv = TlsConnectionSecret.of(hashFactory, "tls13 iv", null, serverSecret.data(), cipherFactory.ivLength());
-        System.out.println("Write iv for tls 1.3 key derivation: " + Arrays.toString(serverIv.data()));
-
-        System.out.printf(
-                """
-                        ______________________________
-                        Client mac: %s
-                        Server mac: %s
-                        Client IV: %s
-                        Server IV: %s
-                        Client Key: %s
-                        Server Key: %s
-                        ______________________________
-                        %n""",
-                "none",
-                "none",
-                Arrays.toString(clientIv.data()),
-                Arrays.toString(serverIv.data()),
-                Arrays.toString(clientKey.data()),
-                Arrays.toString(serverKey.data())
-        );
-
-
-        switch (source) {
-            case LOCAL -> {
-                var localKey = getConnectionValue(localConnectionState, clientKey, serverKey);
-                var localIv = getConnectionValue(localConnectionState, clientIv, serverIv);
-                var localSecret = getConnectionValue(localConnectionState, clientSecret, serverSecret);
-                var localAuthenticator = TlsExchangeMac.of(negotiatedVersion, null, null);
-                var localCipher = cipherFactory.newCipher(true, localKey.data(), localIv.data(), localAuthenticator);
-                localCipher.setEnabled(true);
-                localConnectionState.setCipher(localCipher);
-                localConnectionState.setHandshakeSecret(localSecret);
-            }
-
-            case REMOTE -> {
-                var remoteKey = getConnectionValue(remoteConnectionState, clientKey, serverKey);
-                var remoteIv = getConnectionValue(remoteConnectionState, clientIv, serverIv);
-                var remoteSecret = getConnectionValue(remoteConnectionState, clientSecret, serverSecret);
-                var remoteAuthenticator = TlsExchangeMac.of(negotiatedVersion, null, null);
-                var remoteCipher = cipherFactory.newCipher(false, remoteKey.data(), remoteIv.data(), remoteAuthenticator);
-                remoteCipher.setEnabled(true);
-                remoteConnectionState.setCipher(remoteCipher);
-                remoteConnectionState.setHandshakeSecret(remoteSecret);
-            }
-        }
+        var forEncryption = source == TlsSource.LOCAL;
+        var state = switch (source) {
+            case LOCAL -> context.localConnectionState();
+            case REMOTE -> context.remoteConnectionState()
+                    .orElseThrow();
+        };
+        var secretLabel = switch(state.type()) {
+            case CLIENT -> "tls13 c ap traffic";
+            case SERVER -> "tls13 s ap traffic";
+        };
+        var secret = TlsConnectionSecret.of(hashFactory, secretLabel, handshakeHash, masterSecret, hashFactory.length());
+        System.out.println("Server secret for tls 1.3 key derivation: " + Arrays.toString(secret.data()));
+        var key = TlsConnectionSecret.of(hashFactory, "tls13 key", null, secret.data(), engineFactory.keyLength());
+        System.out.println("Write key for tls 1.3 key derivation: " + Arrays.toString(key.data()));
+        var iv = TlsConnectionSecret.of(hashFactory, "tls13 iv", null, secret.data(), cipherFactory.ivLength());
+        System.out.println("Write iv for tls 1.3 key derivation: " + Arrays.toString(iv.data()));
+        var authenticator = TlsExchangeMac.of(negotiatedVersion, null, null);
+        var cipher = cipherFactory.newCipher(forEncryption, key.data(), iv.data(), authenticator);
+        cipher.setEnabled(true);
+        state.setCipher(cipher);
+        state.setHandshakeSecret(secret);
     }
 
     protected final <T> T getConnectionValue(TlsConnection connection, T client, T server) {

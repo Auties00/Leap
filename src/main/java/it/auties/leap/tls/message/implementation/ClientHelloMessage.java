@@ -47,7 +47,7 @@ public record ClientHelloMessage(
         }
 
         @Override
-        public TlsHandshakeMessage deserialize(TlsContext context, ByteBuffer buffer, TlsMessageMetadata metadata) {
+        public TlsMessage deserialize(TlsContext context, ByteBuffer buffer, TlsMessageMetadata metadata) {
             var versionId = TlsVersionId.of(readBigEndianInt16(buffer));
             var tlsVersion = TlsVersion.of(versionId)
                     .orElseThrow(() -> new IllegalArgumentException("Unknown version: " + versionId));

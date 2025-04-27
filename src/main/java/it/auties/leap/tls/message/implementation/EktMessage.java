@@ -21,7 +21,7 @@ public record EktMessage(
         }
 
         @Override
-        public TlsHandshakeMessage deserialize(TlsContext context, ByteBuffer buffer, TlsMessageMetadata metadata) {
+        public TlsMessage deserialize(TlsContext context, ByteBuffer buffer, TlsMessageMetadata metadata) {
             var key = SrtpEktKey.of(buffer);
             return new EktMessage(metadata.version(), metadata.source(), key);
         }

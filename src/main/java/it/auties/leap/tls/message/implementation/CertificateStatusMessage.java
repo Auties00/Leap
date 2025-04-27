@@ -21,7 +21,7 @@ public record CertificateStatusMessage(
         }
 
         @Override
-        public TlsHandshakeMessage deserialize(TlsContext context, ByteBuffer buffer, TlsMessageMetadata metadata) {
+        public TlsMessage deserialize(TlsContext context, ByteBuffer buffer, TlsMessageMetadata metadata) {
             var request = TlsCertificateStatus.Request.of(buffer)
                     .orElseThrow(() -> new IllegalArgumentException("Invalid certificate request"));
             return new CertificateStatusMessage(metadata.version(), metadata.source(), request);

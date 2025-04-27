@@ -28,7 +28,7 @@ public record CertificateURLMessage(
         }
 
         @Override
-        public TlsHandshakeMessage deserialize(TlsContext context, ByteBuffer buffer, TlsMessageMetadata metadata) {
+        public TlsMessage deserialize(TlsContext context, ByteBuffer buffer, TlsMessageMetadata metadata) {
             var typeId = readBigEndianInt8(buffer);
             var type = TlsCertificateUrl.IdentifierType.of(typeId)
                     .orElseThrow(() -> new IllegalArgumentException("Invalid certificate chain type: " + typeId));

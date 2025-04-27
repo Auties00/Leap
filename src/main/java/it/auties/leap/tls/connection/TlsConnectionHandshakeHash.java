@@ -160,23 +160,20 @@ public final class TlsConnectionHandshakeHash extends ByteArrayOutputStream {
                 return hash.digest(false);
             }
 
+            // TODO: When should we destroy the master secret?
             @Override
             public byte[] finish(TlsContext context, TlsSource source) {
                 var masterSecret = context.masterSecretKey()
                         .orElseThrow(() -> new TlsAlert("Master secret key is not available yet", TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR));
                 var useClientLabel = useClientLabel(source, context.localConnectionState().type());
                 var tlsLabel = useClientLabel ? "client finished" : "server finished";
-                var result = TlsPrf.tls12Prf(
+                return TlsPrf.tls12Prf(
                         masterSecret.data(),
                         tlsLabel.getBytes(),
                         hash.digest(false),
                         12,
                         hash.duplicate()
                 );
-                if(useClientLabel) {
-                    masterSecret.destroy();
-                }
-                return result;
             }
         }
 
@@ -216,7 +213,6 @@ public final class TlsConnectionHandshakeHash extends ByteArrayOutputStream {
                         .orElseThrow(() -> new TlsAlert("No connection handshake secret was set", TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR));
                 System.out.println("Finished secret key: " + Arrays.toString(secret.data()));
                 var finishedSecret = TlsConnectionSecret.of(hashFactory, "tls13 finished", new byte[0], secret.data(), hashFactory.length());
-                secret.destroy();
                 var hmac = TlsHmac.of(hashFactory);
                 System.out.println("Finished secret: " + Arrays.toString(finishedSecret.data()));
                 hmac.init(finishedSecret.data());

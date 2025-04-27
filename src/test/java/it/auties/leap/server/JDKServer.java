@@ -52,12 +52,16 @@ public class JDKServer {
 
     private static void handleClient(SSLSocket clientSocket) throws IOException {
         try (
-                BufferedReader in = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()))
+                BufferedReader in = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
+                PrintWriter out = new PrintWriter(clientSocket.getOutputStream(), true)
         ) {
+            System.out.println("Sending message...");
+            out.println("Welcome to the server!");
+
             String clientMessage;
             while ((clientMessage = in.readLine()) != null) {
                 System.out.println("Received: " + clientMessage);
-
+                out.println("Echo: " + clientMessage);
             }
         }
     }

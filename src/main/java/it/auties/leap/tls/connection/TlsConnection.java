@@ -24,6 +24,7 @@ public final class TlsConnection {
     private volatile TlsKeyExchange keyExchange;
 
     private volatile TlsCipher cipher;
+
     private volatile TlsConnectionHandshakeStatus handshakeStatus;
     private volatile TlsConnectionSecret handshakeSecret;
 

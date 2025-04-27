@@ -23,7 +23,7 @@ public record MessageHashMessage(
         }
 
         @Override
-        public TlsHandshakeMessage deserialize(TlsContext context, ByteBuffer buffer, TlsMessageMetadata metadata) {
+        public TlsMessage deserialize(TlsContext context, ByteBuffer buffer, TlsMessageMetadata metadata) {
             var key = readBytes(buffer, buffer.remaining());
             return new MessageHashMessage(metadata.version(), metadata.source(), key);
         }

@@ -9,11 +9,10 @@ import it.auties.leap.tls.compression.TlsCompression;
 import it.auties.leap.tls.connection.TlsConnection;
 import it.auties.leap.tls.connection.TlsConnectionHandler;
 import it.auties.leap.tls.connection.TlsConnectionHandshakeHash;
+import it.auties.leap.tls.connection.TlsConnectionSecret;
 import it.auties.leap.tls.extension.TlsExtensionOwner;
 import it.auties.leap.tls.message.TlsHandshakeMessageDeserializer;
-import it.auties.leap.tls.message.TlsMessageDeserializer;
 import it.auties.leap.tls.property.TlsProperty;
-import it.auties.leap.tls.connection.TlsConnectionSecret;
 import it.auties.leap.tls.version.TlsVersion;
 
 import java.net.InetSocketAddress;
@@ -24,7 +23,7 @@ import java.util.*;
 public class TlsContext {
     private final TlsConnection localConnectionState;
     private final TlsCertificateValidator certificateValidator;
-    private final Map<Integer, TlsMessageDeserializer> handshakeMessageDeserializer;
+    private final Map<Integer, TlsHandshakeMessageDeserializer> handshakeMessageDeserializer;
     private final TlsConnectionHandler connectionHandler;
     private final Map<TlsProperty<?, ?>, PropertyValue<?, ?>> properties;
     private final Queue<ByteBuffer> bufferedMessages;
@@ -195,7 +194,7 @@ public class TlsContext {
         return handshakeMessageDeserializer.remove(deserializer.id()) != null;
     }
 
-    public Optional<TlsMessageDeserializer> findHandshakeMessageDeserializer(int id) {
+    public Optional<? extends TlsHandshakeMessageDeserializer> findHandshakeMessageDeserializer(int id) {
         return Optional.ofNullable(handshakeMessageDeserializer.get(id));
     }
 

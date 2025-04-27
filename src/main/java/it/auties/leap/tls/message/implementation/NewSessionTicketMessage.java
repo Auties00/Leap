@@ -1,8 +1,12 @@
 package it.auties.leap.tls.message.implementation;
 
+import it.auties.leap.tls.alert.TlsAlert;
+import it.auties.leap.tls.alert.TlsAlertLevel;
+import it.auties.leap.tls.alert.TlsAlertType;
 import it.auties.leap.tls.context.TlsContext;
 import it.auties.leap.tls.context.TlsSource;
 import it.auties.leap.tls.message.*;
+import it.auties.leap.tls.property.TlsProperty;
 import it.auties.leap.tls.version.TlsVersion;
 
 import java.nio.ByteBuffer;
@@ -23,10 +27,21 @@ public record NewSessionTicketMessage(
         }
 
         @Override
-        public TlsHandshakeMessage deserialize(TlsContext context, ByteBuffer buffer, TlsMessageMetadata metadata) {
-            var ticketLifetimeHint = readBigEndianInt32(buffer);
-            var ticket = readBytesBigEndian16(buffer);
-            return new NewSessionTicketMessage(metadata.version(), metadata.source(), ticketLifetimeHint, ticket);
+        public TlsMessage deserialize(TlsContext context, ByteBuffer buffer, TlsMessageMetadata metadata) {
+            var negotiatedVersion = context.getNegotiatedValue(TlsProperty.version())
+                    .orElseThrow(() -> new TlsAlert("Missing negotiated property: version", TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR));
+            if(negotiatedVersion == TlsVersion.TLS13 || negotiatedVersion == TlsVersion.DTLS13) {
+                var ticketLifetime = readBigEndianInt32(buffer);
+                var tickedAgeAdd = readBigEndianInt32(buffer);
+                var ticketNonce = readBytesBigEndian8(buffer);
+                var ticket = readBytesBigEndian16(buffer);
+                var extensions = readBytesBigEndian16(buffer);
+                return new NewSessionTicketMessage(metadata.version(), metadata.source(), ticketLifetime, ticket);
+            }else {
+                var ticketLifetimeHint = readBigEndianInt32(buffer);
+                var ticket = readBytesBigEndian16(buffer);
+                return new NewSessionTicketMessage(metadata.version(), metadata.source(), ticketLifetimeHint, ticket);
+            }
         }
     };
 

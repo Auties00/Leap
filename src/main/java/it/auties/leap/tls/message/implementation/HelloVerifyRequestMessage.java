@@ -22,7 +22,7 @@ public record HelloVerifyRequestMessage(
         }
 
         @Override
-        public TlsHandshakeMessage deserialize(TlsContext context, ByteBuffer buffer, TlsMessageMetadata metadata) {
+        public TlsMessage deserialize(TlsContext context, ByteBuffer buffer, TlsMessageMetadata metadata) {
             var cookie = readBytesBigEndian8(buffer);
             return new HelloVerifyRequestMessage(metadata.version(), metadata.source(), cookie);
         }
