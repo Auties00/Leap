@@ -60,7 +60,7 @@ public final class HttpConfig {
         return redirectPolicy;
     }
 
-    public HttpConfig withTlsConfig(TlsContext tlsContext) {
+    public HttpConfig withTlsContext(TlsContext tlsContext) {
         return new HttpConfig(
                 tlsContext,
                 this.cookieHandler,

@@ -1,12 +1,14 @@
 package it.auties.leap.tls.version;
 
+import it.auties.leap.tls.property.TlsSerializableProperty;
+
 import java.nio.ByteBuffer;
 import java.util.Objects;
 
 import static it.auties.leap.tls.util.BufferUtils.INT16_LENGTH;
 import static it.auties.leap.tls.util.BufferUtils.writeBigEndianInt8;
 
-public final class TlsVersionId {
+public final class TlsVersionId implements TlsSerializableProperty, Comparable<TlsVersionId> {
     public static TlsVersionId of(int value) {
         return new TlsVersionId(value);
     }
@@ -74,12 +76,19 @@ public final class TlsVersionId {
                 "minor=" + minor + ']';
     }
 
+    @Override
     public void serialize(ByteBuffer payload) {
         writeBigEndianInt8(payload, major);
         writeBigEndianInt8(payload, minor);
     }
 
+    @Override
     public int length() {
         return INT16_LENGTH;
+    }
+
+    @Override
+    public int compareTo(TlsVersionId other) {
+        return Integer.compare(value, other.value);
     }
 }

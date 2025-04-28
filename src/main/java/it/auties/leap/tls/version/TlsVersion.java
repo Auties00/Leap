@@ -2,6 +2,7 @@ package it.auties.leap.tls.version;
 
 import it.auties.leap.socket.SocketProtocol;
 import it.auties.leap.tls.property.TlsIdentifiableProperty;
+import it.auties.leap.tls.property.TlsSerializableProperty;
 
 import java.nio.ByteBuffer;
 import java.util.Arrays;
@@ -12,15 +13,16 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 
 // Implementing a new version is not a supported use case: this is why this class is implemented as an enum
-public enum TlsVersion implements TlsIdentifiableProperty<TlsVersionId> {
-    TLS13(0x0304, "TLS1.3", SocketProtocol.TCP),
-    TLS12(0x0303, "TLS1.2", SocketProtocol.TCP),
-    TLS11(0x0302, "TLS1.1", SocketProtocol.TCP),
+public enum TlsVersion implements TlsIdentifiableProperty<TlsVersionId>, TlsSerializableProperty {
     TLS10(0x0301, "TLS1.0", SocketProtocol.TCP),
-    DTLS13(0xFEFC, "DTLS1.3", SocketProtocol.UDP),
-    DTLS12(0xFEFD, "DTLS1.2", SocketProtocol.UDP),
+    TLS11(0x0302, "TLS1.1", SocketProtocol.TCP),
+    TLS12(0x0303, "TLS1.2", SocketProtocol.TCP),
+    TLS13(0x0304, "TLS1.3", SocketProtocol.TCP),
+
+    DTLS10(0xFEFF, "DTLS1.0", SocketProtocol.UDP),
     // "There is no DTLS 1.1 because this version-number was skipped in order to harmonize version numbers with TLS"
-    DTLS10(0xFEFF, "DTLS1.0", SocketProtocol.UDP);
+    DTLS12(0xFEFD, "DTLS1.2", SocketProtocol.UDP),
+    DTLS13(0xFEFC, "DTLS1.3", SocketProtocol.UDP);
 
     private static final Map<String, TlsVersion> NAMES = Arrays.stream(values())
             .collect(Collectors.toUnmodifiableMap(TlsVersion::specName, Function.identity()));
@@ -75,10 +77,12 @@ public enum TlsVersion implements TlsIdentifiableProperty<TlsVersionId> {
         return protocol;
     }
 
+    @Override
     public void serialize(ByteBuffer payload) {
         id.serialize(payload);
     }
 
+    @Override
     public int length() {
         return id.length();
     }

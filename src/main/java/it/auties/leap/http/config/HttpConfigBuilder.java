@@ -1,6 +1,7 @@
 package it.auties.leap.http.config;
 
 import it.auties.leap.http.HttpVersion;
+import it.auties.leap.tls.context.TlsClientContextBuilder;
 import it.auties.leap.tls.context.TlsContext;
 import it.auties.leap.tls.ciphersuite.TlsCipherSuite;
 import it.auties.leap.tls.compression.TlsCompression;
@@ -18,7 +19,7 @@ import java.util.Objects;
 public final class HttpConfigBuilder {
     private static final Duration DEFAULT_KEEP_ALIVE = Duration.ofSeconds(10);
     private static final Duration NO_KEEP_ALIVE = Duration.ofSeconds(-1);
-    private static final TlsContext DEFAULT_TLS_CONTEXT;
+    private static final TlsClientContextBuilder DEFAULT_TLS_CONTEXT;
 
     static {
         var ciphers = List.of(
@@ -72,11 +73,10 @@ public final class HttpConfigBuilder {
                 TlsCompression.none()
         );
         DEFAULT_TLS_CONTEXT = TlsContext.newClientBuilder()
-                .versions(List.of(TlsVersion.TLS12))
+                .versions(List.of(TlsVersion.TLS13, TlsVersion.TLS12))
                 .ciphers(ciphers)
                 .extensions(extensions)
-                .compressions(compressions)
-                .build();
+                .compressions(compressions);
     }
 
     private TlsContext tlsContext;
@@ -127,7 +127,7 @@ public final class HttpConfigBuilder {
 
     public HttpConfig build() {
         return new HttpConfig(
-                Objects.requireNonNullElse(tlsContext, DEFAULT_TLS_CONTEXT),
+                Objects.requireNonNullElseGet(tlsContext, DEFAULT_TLS_CONTEXT::build),
                 cookieHandler,
                 Objects.requireNonNullElse(keepAlive, DEFAULT_KEEP_ALIVE),
                 proxy,

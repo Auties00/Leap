@@ -25,8 +25,9 @@ import it.auties.leap.tls.version.TlsVersion;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
-import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.concurrent.CompletableFuture;
+import java.util.stream.Collectors;
 
 import static it.auties.leap.tls.util.BufferUtils.*;
 
@@ -89,42 +90,57 @@ public class AsyncSecureSocketApplicationLayer extends AsyncSocketApplicationLay
 
     private CompletableFuture<Void> sendClientHello() {
         var versions = tlsContext.getNegotiableValue(TlsProperty.version())
-                .orElseThrow(() -> new TlsAlert("Missing negotiable property: version", TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR));
-        var versionsSet = new HashSet<>(versions);
-
-        var highestVersion = versions.stream()
-                .reduce((first, second) -> first.id().value() > second.id().value() ? first : second)
-                .orElseThrow(() -> new TlsAlert("No version was set in the tls config", TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR));
-        var legacyVersion = switch (highestVersion) {
-            case TLS13 -> TlsVersion.TLS12;
-            case DTLS13 -> TlsVersion.DTLS12;
-            default -> highestVersion;
-        };
-        var ciphers = tlsContext.getNegotiableValue(TlsProperty.cipher())
-                .orElseThrow(() -> new TlsAlert("Missing negotiable property: cipher", TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR))
+                .orElseThrow(() -> new TlsAlert("Missing negotiable property: version", TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR))
                 .stream()
-                .filter(cipher -> cipher.versions().stream().anyMatch(versionsSet::contains))
-                .map(TlsCipherSuite::id)
-                .toList();
-        var compressions = tlsContext.getNegotiableValue(TlsProperty.compression())
-                .orElseThrow(() -> new TlsAlert("Missing negotiable property: compression", TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR))
-                .stream()
-                .map(TlsCompression::id)
-                .toList();
-        var extensions = TlsExtensionProcessor.ofClient(tlsContext);
+                .sorted()
+                .collect(Collectors.toCollection(LinkedHashSet::new));
+        while (!versions.isEmpty()) {
+            var highestVersion = versions.removeLast();
+            var legacyVersion = switch (highestVersion) {
+                case TLS13 -> TlsVersion.TLS12;
+                case DTLS13 -> TlsVersion.DTLS12;
+                default -> highestVersion;
+            };
+            var ciphers = tlsContext.getNegotiableValue(TlsProperty.cipher())
+                    .orElseThrow(() -> new TlsAlert("Missing negotiable property: cipher", TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR))
+                    .stream()
+                    .filter(cipher -> cipher.versions().contains(highestVersion))
+                    .map(TlsCipherSuite::id)
+                    .toList();
+            if(ciphers.isEmpty()) {
+                continue;
+            }
 
-        var helloMessage = new ClientHelloMessage(
-                legacyVersion,
-                TlsSource.LOCAL,
-                tlsContext.localConnectionState().randomData(),
-                tlsContext.localConnectionState().sessionId(),
-                tlsContext.localConnectionState().dtlsCookie().orElse(null),
-                ciphers,
-                compressions,
-                extensions.values(),
-                extensions.length()
-        );
-        return write(helloMessage);
+            var compressions = tlsContext.getNegotiableValue(TlsProperty.compression())
+                    .orElseThrow(() -> new TlsAlert("Missing negotiable property: compression", TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR))
+                    .stream()
+                    .filter(compression -> compression.versions().contains(highestVersion))
+                    .map(TlsCompression::id)
+                    .toList();
+            if(compressions.isEmpty()) {
+                continue;
+            }
+
+            var extensions = TlsExtensionProcessor.ofClient(tlsContext);
+
+            var helloMessage = new ClientHelloMessage(
+                    legacyVersion,
+                    TlsSource.LOCAL,
+                    tlsContext.localConnectionState().randomData(),
+                    tlsContext.localConnectionState().sessionId(),
+                    tlsContext.localConnectionState().dtlsCookie().orElse(null),
+                    ciphers,
+                    compressions,
+                    extensions.values(),
+                    extensions.length()
+            );
+            return write(helloMessage);
+        }
+        return CompletableFuture.failedFuture(new TlsAlert(
+                "Cannot start handshake: no TLS version produces a valid hello message",
+                TlsAlertLevel.FATAL,
+                TlsAlertType.HANDSHAKE_FAILURE
+        ));
     }
 
     private CompletableFuture<Void> sendClientCertificate() {
