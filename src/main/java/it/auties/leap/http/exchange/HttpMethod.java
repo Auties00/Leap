@@ -42,7 +42,7 @@ public final class HttpMethod {
         return PUT;
     }
 
-    public static HttpMethod from(String token) {
+    public static HttpMethod of(String token) {
         var encoded = new char[token.length()];
         for (int i = 0; i < encoded.length; i++) {
             var c = token.charAt(i);

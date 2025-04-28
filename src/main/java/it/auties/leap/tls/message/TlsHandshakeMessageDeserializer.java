@@ -4,9 +4,12 @@ import it.auties.leap.tls.context.TlsContext;
 import it.auties.leap.tls.message.implementation.*;
 
 import java.nio.ByteBuffer;
-import java.util.List;
 
 public interface TlsHandshakeMessageDeserializer {
+    static TlsMessageDeserializer of() {
+        return HandshakeMessageDeserializer.instance();
+    }
+
     static TlsHandshakeMessageDeserializer certificate() {
         return CertificateMessage.deserializer();
     }
@@ -15,8 +18,8 @@ public interface TlsHandshakeMessageDeserializer {
         return CertificateStatusMessage.deserializer();
     }
 
-    static TlsHandshakeMessageDeserializer certificateURL() {
-        return CertificateURLMessage.deserializer();
+    static TlsHandshakeMessageDeserializer certificateUrl() {
+        return CertificateUrlMessage.deserializer();
     }
 
     static TlsHandshakeMessageDeserializer certificateVerify() {
@@ -97,41 +100,6 @@ public interface TlsHandshakeMessageDeserializer {
 
     static TlsHandshakeMessageDeserializer supplementalData() {
         return SupplementalDataMessage.deserializer();
-    }
-
-    static TlsMessageDeserializer of() {
-        return HandshakeMessageDeserializer.instance();
-    }
-
-    static List<TlsHandshakeMessageDeserializer> values() {
-        final class Deserializers {
-            private static final List<TlsHandshakeMessageDeserializer> DESERIALIZERS = List.of(
-                    CertificateMessage.deserializer(),
-                    CertificateStatusMessage.deserializer(),
-                    CertificateURLMessage.deserializer(),
-                    CertificateVerifyMessage.deserializer(),
-                    ClientCertificateRequestMessage.deserializer(),
-                    ClientHelloMessage.deserializer(),
-                    ClientKeyExchangeMessage.deserializer(),
-                    CompressedCertificateMessage.deserializer(),
-                    EktMessage.deserializer(),
-                    EncryptedExtensionsMessage.deserializer(),
-                    EndOfEarlyDataMessage.deserializer(),
-                    FinishedMessage.deserializer(),
-                    HelloRequestMessage.deserializer(),
-                    HelloRetryRequestMessage.deserializer(),
-                    HelloVerifyRequestMessage.deserializer(),
-                    KeyUpdateRequestMessage.deserializer(),
-                    MessageHashMessage.deserializer(),
-                    NewConnectionIdMessage.deserializer(),
-                    NewSessionTicketMessage.deserializer(),
-                    ServerHelloDoneMessage.deserializer(),
-                    ServerHelloMessage.deserializer(),
-                    ServerKeyExchangeMessage.deserializer(),
-                    SupplementalDataMessage.deserializer()
-            );
-        }
-        return Deserializers.DESERIALIZERS;
     }
 
     int id();

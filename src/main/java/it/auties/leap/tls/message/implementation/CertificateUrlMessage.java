@@ -13,7 +13,7 @@ import java.util.List;
 
 import static it.auties.leap.tls.util.BufferUtils.*;
 
-public record CertificateURLMessage(
+public record CertificateUrlMessage(
         TlsVersion version,
         TlsSource source,
         TlsCertificateUrl.IdentifierType type,
@@ -40,7 +40,7 @@ public record CertificateURLMessage(
                     urlAndHashList.add(urlAndHash);
                 }
             }
-            return new CertificateURLMessage(metadata.version(), metadata.source(), type, urlAndHashList, urlAndHashListLength);
+            return new CertificateUrlMessage(metadata.version(), metadata.source(), type, urlAndHashList, urlAndHashListLength);
         }
     };
 

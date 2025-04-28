@@ -3,6 +3,7 @@ package it.auties.leap.http.exchange.headers;
 import java.util.*;
 import java.util.function.BiConsumer;
 
+// TODO: Parse known headers into builtin types(enums, dates,...)
 public sealed class HttpHeaders permits HttpMutableHeaders {
     private static final HttpHeaders EMPTY = new HttpHeaders();
     protected final Map<String, List<String>> backing;

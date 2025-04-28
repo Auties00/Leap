@@ -191,7 +191,6 @@ public final class AsyncHttpSerializer<T> {
 
     private CompletableFuture<HttpResponse<T>> parseHeaderValue() {
         var start = reader.position();
-        var end = start;
         var limit = reader.limit();
         if(start < limit && canSkipSpace) {
             if(reader.get(start) == SPACE) {
@@ -200,22 +199,19 @@ public final class AsyncHttpSerializer<T> {
             canSkipSpace = false;
         }
 
+        var end = start;
         while (end < limit) {
             var current = reader.get(end);
-            if(canSkipSpace && current == SPACE) {
-                canSkipSpace = false;
-            }else if(current == CARRIAGE_RETURN) {
+            if(current == CARRIAGE_RETURN) {
                 crlf = CARRIAGE_RETURN;
-            }else if(current == LINE_FEED) {
-                if(crlf == CARRIAGE_RETURN) {
-                    reader.position(end + 1);
-                    var value = headerValue + StandardCharsets.US_ASCII.decode(reader.slice(start, end - start - 1));
-                    headers.put(headerKey, value);
-                    headerKey = "";
-                    headerValue = "";
-                    canSkipSpace = true;
-                    return parseHeaderKey();
-                }
+            }else if(current == LINE_FEED && crlf == CARRIAGE_RETURN) {
+                reader.position(end + 1);
+                var value = headerValue + StandardCharsets.US_ASCII.decode(reader.slice(start, end - start - 1));
+                headers.put(headerKey, value);
+                headerKey = "";
+                headerValue = "";
+                canSkipSpace = true;
+                return parseHeaderKey();
             }
 
             end++;

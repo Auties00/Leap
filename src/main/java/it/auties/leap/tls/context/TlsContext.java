@@ -23,15 +23,16 @@ import java.util.*;
 public class TlsContext {
     private final TlsConnection localConnectionState;
     private final TlsCertificateValidator certificateValidator;
-    private final Map<Integer, TlsHandshakeMessageDeserializer> handshakeMessageDeserializer;
+    private final Map<Integer, TlsHandshakeMessageDeserializer> handshakeMessageDeserializers;
     private final TlsConnectionHandler connectionHandler;
     private final Map<TlsProperty<?, ?>, PropertyValue<?, ?>> properties;
     private final Queue<ByteBuffer> bufferedMessages;
     private final TlsConnectionHandshakeHash connectionIntegrity;
-    private final Set<Integer> processedHandshakeExtensions;
     private volatile InetSocketAddress address;
     private volatile TlsConnection remoteConnectionState;
     private volatile TlsConnectionSecret masterSecretKey;
+
+    private final Set<Integer> processedHandshakeExtensions;
 
     TlsContext(
             TlsConnection localConnectionState,
@@ -40,7 +41,7 @@ public class TlsContext {
     ) {
         this.localConnectionState = localConnectionState;
         this.certificateValidator = certificateValidator;
-        this.handshakeMessageDeserializer = new HashMap<>();
+        this.handshakeMessageDeserializers = new HashMap<>();
         this.connectionHandler = connectionHandler;
         this.properties = new HashMap<>();
         for(var deserializer : TlsHandshakeMessageDeserializer.values()) {
@@ -186,16 +187,16 @@ public class TlsContext {
     }
 
     public TlsContext addHandshakeMessageDeserializer(TlsHandshakeMessageDeserializer deserializer) {
-        handshakeMessageDeserializer.put(deserializer.id(), deserializer);
+        handshakeMessageDeserializers.put(deserializer.id(), deserializer);
         return this;
     }
 
     public boolean removeHandshakeMessageDeserializer(TlsHandshakeMessageDeserializer deserializer) {
-        return handshakeMessageDeserializer.remove(deserializer.id()) != null;
+        return handshakeMessageDeserializers.remove(deserializer.id()) != null;
     }
 
     public Optional<? extends TlsHandshakeMessageDeserializer> findHandshakeMessageDeserializer(int id) {
-        return Optional.ofNullable(handshakeMessageDeserializer.get(id));
+        return Optional.ofNullable(handshakeMessageDeserializers.get(id));
     }
 
     public boolean hasProcessedExtension(int type) {
