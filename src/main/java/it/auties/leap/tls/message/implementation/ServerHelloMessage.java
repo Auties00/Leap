@@ -205,4 +205,9 @@ public record ServerHelloMessage(
             }
         }
     }
+
+    @Override
+    public boolean hashable() {
+        return true;
+    }
 }

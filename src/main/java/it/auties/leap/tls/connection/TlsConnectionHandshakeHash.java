@@ -12,35 +12,73 @@ import it.auties.leap.tls.hash.TlsPrf;
 import it.auties.leap.tls.property.TlsProperty;
 import it.auties.leap.tls.version.TlsVersion;
 
-import java.io.ByteArrayOutputStream;
 import java.nio.ByteBuffer;
 import java.util.Arrays;
 
-public final class TlsConnectionHandshakeHash extends ByteArrayOutputStream {
+// TODO: This implementation can be optimized based on traits like:
+//    - Which TLS version are we using? (ie (d)tls 1.3 needs to buffer a very large ClientHello)
+//    - Certificates to send (can we pre compute it from the TlsContext?)
+public final class TlsConnectionHandshakeHash {
+    private static final int SOFT_MAX_ARRAY_LENGTH = Integer.MAX_VALUE - 8;
+
     private Delegate delegate;
+    private byte[] buffer;
+    private int bufferPosition;
 
     public TlsConnectionHandshakeHash() {
 
     }
 
-    public void init(TlsVersion version, TlsHashFactory factory) {
+    public TlsConnectionHandshakeHash init(TlsVersion version, TlsHashFactory factory) {
         if(delegate != null) {
             throw new TlsAlert("Already initialized", TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR);
         }
 
         this.delegate = Delegate.of(version, factory);
-        var buffered = this.toByteArray();
-        this.reset();
-        delegate.update(buffered, 0, buffered.length);
+        delegate.init(buffer, 0, bufferPosition);
+        this.buffer = null;
+        this.bufferPosition = 0;
+        return this;
     }
 
     public void update(ByteBuffer input) {
         if(delegate != null) {
             delegate.update(input);
-        }else {
-            while (input.hasRemaining()) {
-                this.write(input.get());
+        } else {
+            var inputLength = input.remaining();
+            if (buffer == null) {
+                buffer = new byte[inputLength + inputLength / 5];
+            } else {
+                var minGrowth = bufferPosition + inputLength - buffer.length;
+                if (minGrowth > 0) {
+                    buffer = Arrays.copyOf(
+                            buffer,
+                            newBufferLength(buffer.length, minGrowth, buffer.length)
+                    );
+                }
             }
+            input.get(buffer, bufferPosition, inputLength);
+            bufferPosition += inputLength;
+        }
+    }
+
+    private static int newBufferLength(int oldLength, int minGrowth, int prefGrowth) {
+        var prefLength = oldLength + Math.max(minGrowth, prefGrowth);
+        if (0 < prefLength && prefLength <= SOFT_MAX_ARRAY_LENGTH) {
+            return prefLength;
+        }
+
+        var minLength = oldLength + minGrowth;
+        if (minLength < 0) {
+            throw new OutOfMemoryError("Required array length " + oldLength + " + " + minGrowth + " is too large");
+        }
+
+        return Math.max(minLength, SOFT_MAX_ARRAY_LENGTH);
+    }
+
+    public void commit() {
+        if(delegate != null) {
+            delegate.commit();
         }
     }
 
@@ -60,8 +98,8 @@ public final class TlsConnectionHandshakeHash extends ByteArrayOutputStream {
         return delegate.finish(context, source);
     }
 
-    private sealed interface Delegate {
-        static Delegate of(TlsVersion version, TlsHashFactory hash) {
+    private sealed abstract static class Delegate {
+        public static Delegate of(TlsVersion version, TlsHashFactory hash) {
             return switch (version) {
                 case TLS13, DTLS13 -> new TLS13(hash.newHash());
                 case TLS12, DTLS12 -> new TLS12(hash.newHash());
@@ -69,20 +107,35 @@ public final class TlsConnectionHandshakeHash extends ByteArrayOutputStream {
             };
         }
 
-        void update(byte[] input, int offset, int length);
+        private byte[] committedHash;
+        private Delegate() {
 
-        void update(ByteBuffer buffer);
+        }
 
-        byte[] digest();
+        abstract void init(byte[] input, int offset, int length);
 
-        byte[] finish(TlsContext context, TlsSource source);
+        public void update(ByteBuffer buffer) {
+            if(committedHash == null) {
+                committedHash = digest();
+            }
+        }
 
-        default boolean useClientLabel(TlsSource source, TlsConnectionType mode) {
+        public void commit() {
+            this.committedHash = null;
+        }
+
+        public byte[] digest() {
+            return committedHash;
+        }
+
+        public abstract byte[] finish(TlsContext context, TlsSource source);
+
+        boolean useClientLabel(TlsSource source, TlsConnectionType mode) {
             return (mode == TlsConnectionType.CLIENT && source == TlsSource.LOCAL)
                     || (mode == TlsConnectionType.SERVER && source == TlsSource.REMOTE);
         }
 
-        final class TLS10 implements Delegate {
+        private static final class TLS10 extends Delegate {
             private final TlsHash md5;
             private final TlsHash sha1;
 
@@ -92,13 +145,14 @@ public final class TlsConnectionHandshakeHash extends ByteArrayOutputStream {
             }
 
             @Override
-            public void update(byte[] input, int offset, int length) {
+            public void init(byte[] input, int offset, int length) {
                 md5.update(input, offset, length);
                 sha1.update(input, offset, length);
             }
 
             @Override
             public void update(ByteBuffer input) {
+                super.update(input);
                 var position = input.position();
                 md5.update(input);
                 input.position(position);
@@ -107,6 +161,11 @@ public final class TlsConnectionHandshakeHash extends ByteArrayOutputStream {
 
             @Override
             public byte[] digest() {
+                var commitedHash = super.digest();
+                if(commitedHash != null) {
+                    return commitedHash;
+                }
+
                 var digest = new byte[36];
                 var offset = md5.digest(digest, 0, md5.length(), false);
                 sha1.digest(digest, offset, sha1.length(), false);
@@ -138,7 +197,7 @@ public final class TlsConnectionHandshakeHash extends ByteArrayOutputStream {
             }
         }
 
-        final class TLS12 implements Delegate {
+        public static final class TLS12 extends Delegate {
             private final TlsHash hash;
 
             public TLS12(TlsHash hash) {
@@ -146,17 +205,23 @@ public final class TlsConnectionHandshakeHash extends ByteArrayOutputStream {
             }
 
             @Override
-            public void update(byte[] input, int offset, int length) {
+            public void init(byte[] input, int offset, int length) {
                 hash.update(input, offset, length);
             }
 
             @Override
             public void update(ByteBuffer input) {
+                super.update(input);
                 hash.update(input);
             }
 
             @Override
             public byte[] digest() {
+                var commitedHash = super.digest();
+                if(commitedHash != null) {
+                    return commitedHash;
+                }
+
                 return hash.digest(false);
             }
 
@@ -177,7 +242,7 @@ public final class TlsConnectionHandshakeHash extends ByteArrayOutputStream {
             }
         }
 
-        final class TLS13 implements Delegate {
+        public static final class TLS13 extends Delegate {
             private final TlsHash hash;
 
             public TLS13(TlsHash hash) {
@@ -185,17 +250,23 @@ public final class TlsConnectionHandshakeHash extends ByteArrayOutputStream {
             }
 
             @Override
-            public void update(byte[] input, int offset, int length) {
+            public void init(byte[] input, int offset, int length) {
                 hash.update(input, offset, length);
             }
 
             @Override
             public void update(ByteBuffer input) {
+                super.update(input);
                 hash.update(input);
             }
 
             @Override
             public byte[] digest() {
+                var commitedHash = super.digest();
+                if(commitedHash != null) {
+                    return commitedHash;
+                }
+
                 return hash.digest(false);
             }
 

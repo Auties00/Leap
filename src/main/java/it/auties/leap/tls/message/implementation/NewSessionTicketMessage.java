@@ -76,4 +76,9 @@ public record NewSessionTicketMessage(
     public void apply(TlsContext context) {
 
     }
+
+    @Override
+    public boolean hashable() {
+        return true;
+    }
 }

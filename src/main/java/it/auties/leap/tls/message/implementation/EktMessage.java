@@ -55,4 +55,9 @@ public record EktMessage(
     public void apply(TlsContext context) {
 
     }
+
+    @Override
+    public boolean hashable() {
+        return true;
+    }
 }

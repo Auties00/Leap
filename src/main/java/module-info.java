@@ -38,7 +38,6 @@ module it.auties.leap {
     exports it.auties.leap.tls.property;
     exports it.auties.leap.tls.alert;
     exports it.auties.leap.tls.context;
-    exports it.auties.leap.tls.name;
     exports it.auties.leap.tls.srtp;
     exports it.auties.leap.tls.record;
     exports it.auties.leap.tls.supplemental;

@@ -135,4 +135,9 @@ public record CertificateMessage(
     public int payloadLength() {
         return INT24_LENGTH + certificatesLength;
     }
+
+    @Override
+    public boolean hashable() {
+        return true;
+    }
 }

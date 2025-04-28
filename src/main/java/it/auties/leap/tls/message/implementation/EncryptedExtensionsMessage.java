@@ -101,4 +101,9 @@ public record EncryptedExtensionsMessage(
                 .filter(entry -> !context.hasProcessedExtension(entry.type()))
                 .forEach(entry -> entry.apply(context, source));
     }
+
+    @Override
+    public boolean hashable() {
+        return true;
+    }
 }

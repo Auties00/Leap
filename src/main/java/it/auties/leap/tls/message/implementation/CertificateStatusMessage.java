@@ -56,4 +56,9 @@ public record CertificateStatusMessage(
     public void apply(TlsContext context) {
 
     }
+
+    @Override
+    public boolean hashable() {
+        return true;
+    }
 }

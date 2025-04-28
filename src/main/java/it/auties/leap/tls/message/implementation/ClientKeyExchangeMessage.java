@@ -90,4 +90,9 @@ public record ClientKeyExchangeMessage(
         context.connectionHandler()
                 .initialize(context);
     }
+
+    @Override
+    public boolean hashable() {
+        return true;
+    }
 }

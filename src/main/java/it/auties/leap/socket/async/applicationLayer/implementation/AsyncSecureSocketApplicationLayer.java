@@ -14,9 +14,7 @@ import it.auties.leap.tls.connection.TlsConnection;
 import it.auties.leap.tls.connection.TlsConnectionHandshakeStatus;
 import it.auties.leap.tls.context.TlsContext;
 import it.auties.leap.tls.context.TlsSource;
-import it.auties.leap.tls.extension.TlsExtension;
-import it.auties.leap.tls.extension.TlsExtensionDependencies;
-import it.auties.leap.tls.extension.TlsExtensionOwner;
+import it.auties.leap.tls.extension.TlsExtensionProcessor;
 import it.auties.leap.tls.message.TlsHandshakeMessage;
 import it.auties.leap.tls.message.TlsMessage;
 import it.auties.leap.tls.message.TlsMessageContentType;
@@ -27,12 +25,8 @@ import it.auties.leap.tls.version.TlsVersion;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
-import java.util.ArrayList;
 import java.util.HashSet;
-import java.util.HexFormat;
-import java.util.LinkedHashMap;
 import java.util.concurrent.CompletableFuture;
-import java.util.stream.Collectors;
 
 import static it.auties.leap.tls.util.BufferUtils.*;
 
@@ -54,42 +48,50 @@ public class AsyncSecureSocketApplicationLayer extends AsyncSocketApplicationLay
 
     @Override
     public CompletableFuture<Void> handshake() {
-        try {
-            var address = transportLayer.address()
-                    .orElseThrow(() -> new TlsAlert("Cannot start handshake: no address was set during connection", TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR));
-            tlsContext.setAddress(address);
-            this.tlsBuffer = ByteBuffer.allocate(FRAGMENT_LENGTH);
-            return sendClientHello()
-                    .thenCompose(_ -> readUntil(TlsConnectionHandshakeStatus.HANDSHAKE_STARTED))
-                    .thenCompose(_ -> continueHandshake());
-        } catch (Throwable throwable) {
-            return CompletableFuture.failedFuture(throwable);
+        var address = transportLayer.address();
+        if(address.isEmpty()) {
+            return CompletableFuture.failedFuture(new TlsAlert(
+                    "Cannot start handshake: no address was set by the tunnel layer",
+                    TlsAlertLevel.FATAL,
+                    TlsAlertType.HANDSHAKE_FAILURE
+            ));
         }
+
+        tlsContext.setAddress(address.get());
+        this.tlsBuffer = ByteBuffer.allocate(FRAGMENT_LENGTH);
+        return sendClientHello()
+                .thenCompose(_ -> readUntil(TlsConnectionHandshakeStatus.HANDSHAKE_STARTED))
+                .thenCompose(_ -> continueHandshake());
     }
 
     private CompletableFuture<Void> continueHandshake() {
-        var version = tlsContext.getNegotiatedValue(TlsProperty.version())
-                .orElseThrow(() -> new TlsAlert("Missing negotiated property: version", TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR));
-        return switch (version) {
-            case TLS11, TLS12 -> readUntil(TlsConnectionHandshakeStatus.HANDSHAKE_DONE)
-                    .thenCompose(_ -> sendClientCertificate())
-                    .thenCompose(_ -> sendClientKeyExchange())
-                    .thenCompose(_ -> sendClientCertificateVerify())
-                    .thenCompose(_ -> sendClientChangeCipher())
-                    .thenCompose(_ -> sendClientFinish())
-                    .thenCompose(_ -> readUntil(TlsConnectionHandshakeStatus.HANDSHAKE_FINISHED));
+        return tlsContext.getNegotiatedValue(TlsProperty.version())
+                .map(tlsVersion -> switch (tlsVersion) {
+                    case TLS11, TLS12 -> readUntil(TlsConnectionHandshakeStatus.HANDSHAKE_DONE)
+                            .thenCompose(_ -> sendClientCertificate())
+                            .thenCompose(_ -> sendClientKeyExchange())
+                            .thenCompose(_ -> sendClientCertificateVerify())
+                            .thenCompose(_ -> sendClientChangeCipher())
+                            .thenCompose(_ -> sendClientFinish())
+                            .thenCompose(_ -> readUntil(TlsConnectionHandshakeStatus.HANDSHAKE_FINISHED));
 
-            case TLS13 -> readUntil(TlsConnectionHandshakeStatus.HANDSHAKE_FINISHED)
-                    .thenCompose(_ -> sendClientFinish());
+                    case TLS13 -> readUntil(TlsConnectionHandshakeStatus.HANDSHAKE_FINISHED)
+                            .thenCompose(_ -> sendClientFinish());
 
-            default -> throw new UnsupportedOperationException();
-        };
+                    default -> throw new UnsupportedOperationException();
+                })
+                .orElseGet(() -> CompletableFuture.failedFuture(new TlsAlert(
+                        "Cannot continue handshake: no TLS version was negotiated even though the handshake started",
+                        TlsAlertLevel.FATAL,
+                        TlsAlertType.HANDSHAKE_FAILURE
+                )));
     }
 
     private CompletableFuture<Void> sendClientHello() {
         var versions = tlsContext.getNegotiableValue(TlsProperty.version())
                 .orElseThrow(() -> new TlsAlert("Missing negotiable property: version", TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR));
         var versionsSet = new HashSet<>(versions);
+
         var highestVersion = versions.stream()
                 .reduce((first, second) -> first.id().value() > second.id().value() ? first : second)
                 .orElseThrow(() -> new TlsAlert("No version was set in the tls config", TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR));
@@ -98,145 +100,18 @@ public class AsyncSecureSocketApplicationLayer extends AsyncSocketApplicationLay
             case DTLS13 -> TlsVersion.DTLS12;
             default -> highestVersion;
         };
-        var availableCiphers = tlsContext.getNegotiableValue(TlsProperty.cipher())
+        var ciphers = tlsContext.getNegotiableValue(TlsProperty.cipher())
                 .orElseThrow(() -> new TlsAlert("Missing negotiable property: cipher", TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR))
                 .stream()
                 .filter(cipher -> cipher.versions().stream().anyMatch(versionsSet::contains))
-                .toList();
-        var availableCiphersIds = availableCiphers.stream()
                 .map(TlsCipherSuite::id)
                 .toList();
-        var availableCompressions = tlsContext.getNegotiableValue(TlsProperty.compression())
-                .orElseThrow(() -> new TlsAlert("Missing negotiable property: compression", TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR));
-        var availableCompressionsIds = availableCompressions.stream()
+        var compressions = tlsContext.getNegotiableValue(TlsProperty.compression())
+                .orElseThrow(() -> new TlsAlert("Missing negotiable property: compression", TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR))
+                .stream()
                 .map(TlsCompression::id)
                 .toList();
-
-        var extensions = tlsContext.getNegotiableValue(TlsProperty.clientExtensions())
-                .orElseThrow(() -> new TlsAlert("Missing negotiable property: clientExtensions", TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR));
-        var supportedVersions = tlsContext.getNegotiableValue(TlsProperty.version())
-                .map(HashSet::new)
-                .orElseThrow(() -> new TlsAlert("Missing negotiable property: version", TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR));
-
-        var dependenciesTree = new LinkedHashMap<Integer, TlsExtensionOwner.Client>();
-        for (var extension : extensions) {
-            if (supportedVersions.stream().noneMatch(version -> extension.versions().contains(version))) {
-                continue;
-            }
-
-            var conflict = dependenciesTree.put(extension.type(), extension);
-            if (conflict != null) {
-                throw new IllegalArgumentException(extensionConflictError(extension, conflict));
-            }
-
-            if (!(extension.dependencies() instanceof TlsExtensionDependencies.Some someExtensionDependencies)) {
-                continue;
-            }
-
-            var cyclicLinks = someExtensionDependencies.includedTypes()
-                    .stream()
-                    .map(dependenciesTree::get)
-                    .filter(linked -> hasDependency(extension, linked))
-                    .toList();
-            if (cyclicLinks.isEmpty()) {
-                continue;
-            }
-
-            var message = cyclicLinks.stream()
-                    .map(cyclicLink -> extensionCyclicDependencyError(extension, cyclicLink))
-                    .collect(Collectors.joining("\n"));
-            throw new IllegalArgumentException(message);
-        }
-
-        var results = new ArrayList<TlsExtension.Configured.Client>(dependenciesTree.size());
-        var length = 0;
-        var deferred = new ArrayList<TlsExtensionOwner.Client>();
-        while (!dependenciesTree.isEmpty()) {
-            var entry = dependenciesTree.pollFirstEntry();
-            var extension = entry.getValue();
-            switch (extension) {
-                case TlsExtension.Configurable configurable -> {
-                    switch (configurable.dependencies()) {
-                        case TlsExtensionDependencies.All _ -> deferred.add(configurable);
-                        case TlsExtensionDependencies.None _ -> {
-                            var configured = configurable.configureClient(tlsContext, length);
-                            if(configured.isPresent()) {
-                                results.add(configured.get());
-                                configured.get().apply(tlsContext, TlsSource.LOCAL);
-                                length += configured.get().length();
-                            }
-                        }
-                        case TlsExtensionDependencies.Some some -> {
-                            var conflict = false;
-                            for (var dependency : some.includedTypes()) {
-                                if (dependenciesTree.containsKey(dependency)) {
-                                    conflict = true;
-                                    break;
-                                }
-                            }
-                            if (conflict) {
-                                dependenciesTree.putLast(entry.getKey(), entry.getValue());
-                            } else {
-                                var configured = configurable.configureClient(tlsContext, length);
-                                if(configured.isPresent()) {
-                                    results.add(configured.get());
-                                    configured.get().apply(tlsContext, TlsSource.LOCAL);
-                                    length += configured.get().length();
-                                }
-                            }
-                        }
-                    }
-                }
-
-                case TlsExtension.Configured.Client configured -> {
-                    switch (configured.dependencies()) {
-                        case TlsExtensionDependencies.All _ -> deferred.add(configured);
-                        case TlsExtensionDependencies.None _ -> {
-                            results.add(configured);
-                            configured.apply(tlsContext, TlsSource.LOCAL);
-                            length += configured.length();
-                        }
-                        case TlsExtensionDependencies.Some some -> {
-                            var conflict = false;
-                            for (var dependency : some.includedTypes()) {
-                                if (dependenciesTree.containsKey(dependency)) {
-                                    conflict = true;
-                                    break;
-                                }
-                            }
-                            if (conflict) {
-                                dependenciesTree.putLast(entry.getKey(), entry.getValue());
-                            } else {
-                                results.add(configured);
-                                configured.apply(tlsContext, TlsSource.LOCAL);
-                                length += configured.length();
-                            }
-                        }
-                    }
-                }
-            }
-        }
-
-        for(var extension : deferred) {
-            switch (extension) {
-                case TlsExtension.Configurable configurable -> {
-                    var configured = configurable.configureClient(tlsContext, length);
-                    if(configured.isPresent()) {
-                        results.add(configured.get());
-                        configured.get().apply(tlsContext, TlsSource.LOCAL);
-                        length += configured.get().length();
-                    }
-                }
-
-                case TlsExtension.Configured.Client configured -> {
-                    results.add(configured);
-                    configured.apply(tlsContext, TlsSource.LOCAL);
-                    length += configured.length();
-                }
-            }
-        }
-
-        tlsContext.addNegotiatedProperty(TlsProperty.clientExtensions(), results);
+        var extensions = TlsExtensionProcessor.ofClient(tlsContext);
 
         var helloMessage = new ClientHelloMessage(
                 legacyVersion,
@@ -244,37 +119,12 @@ public class AsyncSecureSocketApplicationLayer extends AsyncSocketApplicationLay
                 tlsContext.localConnectionState().randomData(),
                 tlsContext.localConnectionState().sessionId(),
                 tlsContext.localConnectionState().dtlsCookie().orElse(null),
-                availableCiphersIds,
-                availableCompressionsIds,
-                results,
-                length
+                ciphers,
+                compressions,
+                extensions.values(),
+                extensions.length()
         );
-        return write(helloMessage)
-                .thenAccept(_ -> handleOrClose(helloMessage));
-    }
-
-    private static String extensionCyclicDependencyError(TlsExtensionOwner.Client extension, TlsExtensionOwner.Client cyclicLink) {
-        return "Extension with type %s defined by <%s> depends cyclically on an extension with type %s defined by <%s>".formatted(
-                extension.type(),
-                extension.getClass().getName(),
-                extension.type(),
-                cyclicLink.getClass().getName()
-        );
-    }
-
-    private static String extensionConflictError(TlsExtensionOwner.Client extension, TlsExtensionOwner.Client conflict) {
-        return "Extension with type %s defined by <%s> conflicts with an extension processed previously with type %s defined by <%s>".formatted(
-                extension.type(),
-                extension.getClass().getName(),
-                extension.type(),
-                conflict.getClass().getName()
-        );
-    }
-
-    private boolean hasDependency(TlsExtensionOwner.Client extension, TlsExtensionOwner.Client linked) {
-        return linked != null
-                && linked.dependencies() instanceof TlsExtensionDependencies.Some nestedSome
-                && nestedSome.includedTypes().contains(extension.type());
+        return write(helloMessage);
     }
 
     private CompletableFuture<Void> sendClientCertificate() {
@@ -293,8 +143,7 @@ public class AsyncSecureSocketApplicationLayer extends AsyncSocketApplicationLay
                 TlsSource.LOCAL,
                 certificatesProvider.get(tlsContext)
         );
-        return write(certificatesMessage)
-                .thenCompose(_ -> handleOrClose(certificatesMessage));
+        return write(certificatesMessage);
          */
         return CompletableFuture.completedFuture(null);
     }
@@ -310,8 +159,7 @@ public class AsyncSecureSocketApplicationLayer extends AsyncSocketApplicationLay
                 TlsSource.LOCAL,
                 parameters
         );
-        return write(keyExchangeMessage)
-                .thenCompose(_ -> handleOrClose(keyExchangeMessage));
+        return write(keyExchangeMessage);
     }
 
     private CompletableFuture<Void> sendClientCertificateVerify() {
@@ -322,8 +170,7 @@ public class AsyncSecureSocketApplicationLayer extends AsyncSocketApplicationLay
                 version,
                 TlsSource.LOCAL
         );
-        return write(clientVerifyCertificate)
-                .thenCompose(_ -> handleOrClose(clientVerifyCertificate));
+        return write(clientVerifyCertificate);
          */
         return CompletableFuture.completedFuture(null);
     }
@@ -335,8 +182,7 @@ public class AsyncSecureSocketApplicationLayer extends AsyncSocketApplicationLay
                 version,
                 TlsSource.LOCAL
         );
-        return write(changeCipherSpec)
-                .thenCompose(_ -> handleOrClose(changeCipherSpec));
+        return write(changeCipherSpec);
     }
 
     private CompletableFuture<Void> sendClientFinish() {
@@ -349,8 +195,7 @@ public class AsyncSecureSocketApplicationLayer extends AsyncSocketApplicationLay
                 TlsSource.LOCAL,
                 handshakeHash
         );
-        return write(finishedMessage)
-                .thenCompose(_ -> handleOrClose(finishedMessage));
+        return write(finishedMessage);
     }
 
     private CompletableFuture<Void> readUntil(TlsConnectionHandshakeStatus status) {
@@ -413,30 +258,22 @@ public class AsyncSecureSocketApplicationLayer extends AsyncSocketApplicationLay
     private CompletableFuture<Void> readAndHandleMessage() {
         var buffer = readBuffer(TlsMessageMetadata.structureLength());
         return transportLayer.readFully(buffer)
-                .thenApply(_ -> {
-                    System.out.print("Received message: " + HexFormat.of().formatHex(buffer.array(), buffer.position(), buffer.remaining()));
-                    return TlsMessageMetadata.of(buffer, TlsSource.REMOTE);
-                })
+                .thenApply(_ -> TlsMessageMetadata.of(buffer, TlsSource.REMOTE))
                 .thenCompose(this::decodeMessage);
     }
 
     private CompletableFuture<Void> decodeMessage(TlsMessageMetadata metadata) {
         var buffer = readBuffer(metadata.length());
         return transportLayer.readFully(buffer)
-                .thenCompose(_ -> {
-                    System.out.println(HexFormat.of().formatHex(buffer.array(), buffer.position(), buffer.remaining()));
-                    return decodeMessage(metadata, buffer);
-                });
+                .thenCompose(_ -> decodeMessage(metadata, buffer));
     }
 
+    // TODO: Rewrite this method
     private CompletableFuture<Void> decodeMessage(TlsMessageMetadata ciphertextMetadata, ByteBuffer ciphertext) {
-        var tls13 = tlsContext.getNegotiatedValue(TlsProperty.version())
-                .filter(version -> version == TlsVersion.TLS13 || version == TlsVersion.DTLS13)
-                .isPresent();
         System.out.println("Handling message: " + ciphertextMetadata);
         var plaintext = tlsContext.remoteConnectionState()
                 .flatMap(TlsConnection::cipher)
-                .filter(cipher -> cipher.enabled() && (!tls13 || ciphertextMetadata.contentType() == TlsMessageContentType.APPLICATION_DATA))
+                .filter(cipher -> cipher.enabled() && (!hasNegotiatedTls13() || ciphertextMetadata.contentType() == TlsMessageContentType.APPLICATION_DATA))
                 .map(cipher -> cipher.decrypt(tlsContext, ciphertextMetadata, ciphertext))
                 .orElse(ciphertext);
         var plaintextMetadata = ciphertextMetadata.withLength(plaintext.remaining());
@@ -447,8 +284,6 @@ public class AsyncSecureSocketApplicationLayer extends AsyncSocketApplicationLay
                     .orElseThrow(() -> new TlsAlert("Malformed TLS message: possible plaintext", TlsAlertLevel.FATAL, TlsAlertType.DECODE_ERROR));
             System.out.println("Read message: " + message.getClass().getName());
             return handleOrClose(message);
-        }catch(Throwable throwable) {
-            return CompletableFuture.failedFuture(throwable);
         }
     }
 
@@ -487,69 +322,76 @@ public class AsyncSecureSocketApplicationLayer extends AsyncSocketApplicationLay
         return transportLayer.write(buffer);
     }
 
-    private CompletableFuture<Void> write(TlsMessage message){
+    private CompletableFuture<Void> write(TlsMessage message) {
         System.err.println("Sending " + message.getClass().getName());
-        return tlsContext.localConnectionState()
-                .cipher()
-                .filter(TlsCipher::enabled)
-                .map(cipher -> {
-                    // Calculate space requirements
-                    var recordLength = recordLength();
-                    var innerContentTypeLength = tlsContext.getNegotiatedValue(TlsProperty.version())
-                            .filter(version -> version == TlsVersion.TLS13 || version == TlsVersion.DTLS13)
-                            .map(_ -> 1)
-                            .orElse(0);
-
-                    // Allocate buffers
-                    var plaintext = writeBuffer()
-                            .position(recordLength + cipher.ivLength());
-                    try(var _ = scopedWrite(plaintext, message.length() + innerContentTypeLength, true)) {
-                        message.serialize(plaintext);
-                        if(innerContentTypeLength != 0) {
-                            plaintext.put(message.contentType().id());
+        var hashable = message instanceof TlsHandshakeMessage handshakeMessage
+                && handshakeMessage.hashable();
+        var cipher = tlsContext.localConnectionState().cipher();
+        if(cipher.isEmpty() || !cipher.get().enabled()) {
+            var buffer = writeBuffer();
+            var length = message.length();
+            try(var _ = scopedWrite(buffer, recordLength() + length, true)) {
+                serializeRecord(message, buffer, length);
+                message.serialize(buffer);
+            }
+            if(hashable) {
+                var position = buffer.position();
+                buffer.position(position + recordLength());
+                tlsContext.connectionHandshakeHash().update(buffer);
+                buffer.position(position);
+            }
+            return transportLayer.write(buffer)
+                    .thenCompose(_ -> handleOrClose(message))
+                    .thenAccept(_ -> {
+                        if(hashable) {
+                            tlsContext.connectionHandshakeHash().commit();
                         }
-                    }
-                    if(message instanceof TlsHandshakeMessage && !(message instanceof FinishedMessage)) {
-                        var position = plaintext.position();
-                        var limit = plaintext.limit();
-                        plaintext.position(position + recordLength)
-                                .limit(limit - innerContentTypeLength);
-                        tlsContext.connectionHandshakeHash()
-                                .update(plaintext);
-                        plaintext.position(position)
-                                .limit(limit);
-                    }
-                    var ciphertext = plaintext.duplicate()
-                            .limit(plaintext.capacity());
-                    // Encrypt message in-place
-                    cipher.encrypt(message.contentType().id(), plaintext, ciphertext);
+                    });
+        }
 
-                    // Add record header
-                    var messageLength = ciphertext.remaining();
-                    var newReadPosition = ciphertext.position() - recordLength;
-                    ciphertext.position(newReadPosition);
-                    serializeRecord(message, ciphertext, messageLength);
-                    ciphertext.position(newReadPosition);
+        // Calculate space requirements
+        var recordLength = recordLength();
+        var negotiatedTls13 = hasNegotiatedTls13();
+        var innerContentTypeLength = negotiatedTls13 ? 1 : 0;
 
-                    // Send the message
-                    return transportLayer.write(ciphertext);
-                })
-                .orElseGet(() -> {
-                    var buffer = writeBuffer();
-                    var length = message.length();
-                    try(var _ = scopedWrite(buffer, recordLength() + length, true)) {
-                        serializeRecord(message, buffer, length);
-                        message.serialize(buffer);
-                    }
-                    if(message instanceof TlsHandshakeMessage && !(message instanceof FinishedMessage)) {
-                        var position = buffer.position();
-                        buffer.position(position + recordLength());
-                        tlsContext.connectionHandshakeHash()
-                                .update(buffer);
-                        buffer.position(position);
-                    }
+        // Allocate buffers
+        var plaintext = writeBuffer()
+                .position(recordLength + cipher.get().ivLength());
+        try(var _ = scopedWrite(plaintext, message.length() + innerContentTypeLength, true)) {
+            message.serialize(plaintext);
+            if(negotiatedTls13) {
+                plaintext.put(message.contentType().id());
+            }
+        }
+        if(hashable) {
+            var position = plaintext.position();
+            var limit = plaintext.limit();
+            plaintext.position(position + recordLength)
+                    .limit(limit - innerContentTypeLength);
+            tlsContext.connectionHandshakeHash().update(plaintext);
+            plaintext.position(position)
+                    .limit(limit);
+        }
+        var ciphertext = plaintext.duplicate()
+                .limit(plaintext.capacity());
+        // Encrypt message in-place
+        cipher.get()
+                .encrypt(message.contentType().id(), plaintext, ciphertext);
 
-                    return transportLayer.write(buffer);
+        // Add record header
+        var messageLength = ciphertext.remaining();
+        var newReadPosition = ciphertext.position() - recordLength;
+        ciphertext.position(newReadPosition);
+        serializeRecord(message, ciphertext, messageLength);
+        ciphertext.position(newReadPosition);
+
+        // Send the message
+        return transportLayer.write(ciphertext)
+                .thenCompose(_ -> handleOrClose(message))
+                .thenAccept(_ -> {
+                    if(hashable) {
+                        tlsContext.connectionHandshakeHash().commit();
+                    }
                 });
     }
 
@@ -570,24 +412,18 @@ public class AsyncSecureSocketApplicationLayer extends AsyncSocketApplicationLay
 
     @Override
     public void close(boolean error) throws IOException {
-        if (error || tlsContext == null || !isLocalCipherEnabled()) {
-            transportLayer.close();
-            return;
+        if (!error && tlsContext != null && isLocalCipherEnabled()) {
+            var version = tlsContext.getNegotiatedValue(TlsProperty.version())
+                    .orElse(TlsVersion.TLS10);
+            var alertMessage = new AlertMessage(
+                    version,
+                    TlsSource.LOCAL,
+                    TlsAlertLevel.WARNING,
+                    TlsAlertType.CLOSE_NOTIFY
+            );
+            write(alertMessage);
         }
 
-        var version = tlsContext.getNegotiatedValue(TlsProperty.version());
-        if(version.isEmpty()) {
-            transportLayer.close();
-            return;
-        }
-
-        var alertMessage = new AlertMessage(
-                version.get(),
-                TlsSource.LOCAL,
-                TlsAlertLevel.WARNING,
-                TlsAlertType.CLOSE_NOTIFY
-        );
-        write(alertMessage);
         transportLayer.close();
     }
 
@@ -602,6 +438,12 @@ public class AsyncSecureSocketApplicationLayer extends AsyncSocketApplicationLay
         return tlsContext.remoteConnectionState()
                 .flatMap(TlsConnection::cipher)
                 .filter(TlsCipher::enabled)
+                .isPresent();
+    }
+
+    private boolean hasNegotiatedTls13() {
+        return tlsContext.getNegotiatedValue(TlsProperty.version())
+                .filter(version -> version == TlsVersion.TLS13 || version == TlsVersion.DTLS13)
                 .isPresent();
     }
 

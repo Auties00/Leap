@@ -6,7 +6,7 @@ import it.auties.leap.tls.context.TlsContext;
 import it.auties.leap.tls.ec.TlsEcPointFormat;
 import it.auties.leap.tls.extension.implementation.*;
 import it.auties.leap.tls.group.TlsSupportedGroup;
-import it.auties.leap.tls.name.TlsName;
+import it.auties.leap.tls.supplemental.TlsName;
 import it.auties.leap.tls.psk.TlsPskExchangeMode;
 import it.auties.leap.tls.record.TlsMaxFragmentLength;
 import it.auties.leap.tls.signature.TlsSignature;

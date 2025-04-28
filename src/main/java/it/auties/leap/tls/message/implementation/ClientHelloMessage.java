@@ -238,4 +238,9 @@ public record ClientHelloMessage(
         }
         throw new TlsAlert("None of the advertised compressions are supported or enabled", TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR);
     }
+
+    @Override
+    public boolean hashable() {
+        return true;
+    }
 }

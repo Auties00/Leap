@@ -87,4 +87,9 @@ public record FinishedMessage(
         context.connectionHandler()
                 .finalize(context, source);
     }
+
+    @Override
+    public boolean hashable() {
+        return true;
+    }
 }

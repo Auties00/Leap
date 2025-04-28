@@ -39,12 +39,9 @@ public class TlsConnectionHandler {
                 .orElseThrow(() -> new TlsAlert("Missing negotiated property: version", TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR));
         return switch (version) {
             case TLS10, TLS11, DTLS10 -> {
-                var extendedMasterSecret = context.getNegotiatedValue(TlsProperty.extendedMasterSecret())
-                        .orElse(false);
-                var clientRandom = getClientRandom(context);
-                var serverRandom = getServerRandom(context);
+                var extendedMasterSecret = context.getNegotiatedValue(TlsProperty.extendedMasterSecret()).orElse(false);
                 var label = extendedMasterSecret ? LABEL_EXTENDED_MASTER_SECRET : LABEL_MASTER_SECRET;
-                var seed = extendedMasterSecret ? context.connectionHandshakeHash().digest() : TlsPrf.seed(clientRandom, serverRandom);
+                var seed = extendedMasterSecret ? getExtendedMasterSecretSeed(context) : getMasterSecretSeed(context);
                 var preMasterSecret = generatePreMasterSecret(context);
                 var masterSecret = TlsPrf.tls10Prf(
                         preMasterSecret.data(),
@@ -57,14 +54,11 @@ public class TlsConnectionHandler {
             }
 
             case TLS12, DTLS12 -> {
-                var extendedMasterSecret = context.getNegotiatedValue(TlsProperty.extendedMasterSecret())
-                        .orElse(false);
-                var clientRandom = getClientRandom(context);
-                var serverRandom = getServerRandom(context);
                 var negotiatedCipher = context.getNegotiatedValue(TlsProperty.cipher())
                         .orElseThrow(() -> new TlsAlert("Missing negotiated property: cipher", TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR));
+                var extendedMasterSecret = context.getNegotiatedValue(TlsProperty.extendedMasterSecret()).orElse(false);
                 var label = extendedMasterSecret ? LABEL_EXTENDED_MASTER_SECRET : LABEL_MASTER_SECRET;
-                var seed = extendedMasterSecret ? context.connectionHandshakeHash().digest() : TlsPrf.seed(clientRandom, serverRandom);
+                var seed = extendedMasterSecret ? getExtendedMasterSecretSeed(context) : getMasterSecretSeed(context);
                 var preMasterSecret = generatePreMasterSecret(context);
                 var masterSecret = TlsPrf.tls12Prf(
                         preMasterSecret.data(),
@@ -100,6 +94,18 @@ public class TlsConnectionHandler {
                 yield TlsConnectionSecret.of(masterSecret);
             }
         };
+    }
+
+    private byte[] getMasterSecretSeed(TlsContext context) {
+        var clientRandom = getClientRandom(context);
+        var serverRandom = getServerRandom(context);
+        return TlsPrf.seed(clientRandom, serverRandom);
+    }
+
+    private byte[] getExtendedMasterSecretSeed(TlsContext context) {
+        var hash = context.connectionHandshakeHash();
+        hash.commit(); // FIXME: Is this the correct way?
+        return hash.digest();
     }
 
     protected final byte[] getServerRandom(TlsContext context) {
@@ -146,8 +152,8 @@ public class TlsConnectionHandler {
         System.out.println("Master secret: " + Arrays.toString(masterSecret.data()));
         if(negotiatedVersion == TlsVersion.TLS13 || negotiatedVersion == TlsVersion.DTLS13) {
             var handshakeHash = context.connectionHandshakeHash().digest();
-
             System.out.println("Handshake hash for tls 1.3 key derivation: " + Arrays.toString(handshakeHash));
+
             var clientSecret = TlsConnectionSecret.of(hashFactory, "tls13 c hs traffic", handshakeHash, masterSecret.data(), hashFactory.length());
             System.out.println("Client secret for tls 1.3 key derivation: " + Arrays.toString(clientSecret.data()));
             var clientKey = TlsConnectionSecret.of(hashFactory, "tls13 key", null, clientSecret.data(), engineFactory.keyLength());

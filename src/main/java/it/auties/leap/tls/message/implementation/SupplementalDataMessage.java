@@ -59,4 +59,9 @@ public record SupplementalDataMessage(
     public void apply(TlsContext context) {
 
     }
+
+    @Override
+    public boolean hashable() {
+        return true;
+    }
 }

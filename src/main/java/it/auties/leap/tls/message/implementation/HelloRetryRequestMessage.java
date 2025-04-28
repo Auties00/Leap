@@ -207,4 +207,9 @@ public record HelloRetryRequestMessage(
             }
         }
     }
+
+    @Override
+    public boolean hashable() {
+        return true;
+    }
 }

@@ -1,4 +1,4 @@
-package it.auties.leap.tls.name;
+package it.auties.leap.tls.supplemental;
 
 import it.auties.leap.tls.alert.TlsAlert;
 import it.auties.leap.tls.alert.TlsAlertLevel;

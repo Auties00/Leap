@@ -5,7 +5,7 @@ import it.auties.leap.tls.context.TlsContext;
 import it.auties.leap.tls.ciphersuite.TlsCipherSuite;
 import it.auties.leap.tls.compression.TlsCompression;
 import it.auties.leap.tls.extension.TlsExtension;
-import it.auties.leap.tls.name.TlsName;
+import it.auties.leap.tls.supplemental.TlsName;
 import it.auties.leap.tls.psk.TlsPskExchangeMode;
 import it.auties.leap.tls.version.TlsVersion;
 

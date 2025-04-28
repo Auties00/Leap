@@ -7,6 +7,7 @@ import static it.auties.leap.tls.util.BufferUtils.*;
 public interface TlsHandshakeMessage extends TlsMessage {
     int payloadLength();
     void serializePayload(ByteBuffer buffer);
+    boolean hashable();
 
     @Override
     default void serialize(ByteBuffer buffer) {

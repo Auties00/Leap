@@ -67,4 +67,9 @@ public record ServerHelloDoneMessage(
                     .setHandshakeStatus(TlsConnectionHandshakeStatus.HANDSHAKE_DONE);
         }
     }
+
+    @Override
+    public boolean hashable() {
+        return true;
+    }
 }

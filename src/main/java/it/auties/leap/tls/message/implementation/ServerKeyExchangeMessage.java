@@ -92,4 +92,9 @@ public record ServerKeyExchangeMessage(
             }
         }
     }
+
+    @Override
+    public boolean hashable() {
+        return true;
+    }
 }

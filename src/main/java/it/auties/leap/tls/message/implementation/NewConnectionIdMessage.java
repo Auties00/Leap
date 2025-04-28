@@ -78,4 +78,9 @@ public record NewConnectionIdMessage(
     public void apply(TlsContext context) {
 
     }
+
+    @Override
+    public boolean hashable() {
+        return true;
+    }
 }

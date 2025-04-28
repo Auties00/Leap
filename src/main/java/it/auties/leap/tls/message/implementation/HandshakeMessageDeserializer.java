@@ -31,8 +31,9 @@ public final class HandshakeMessageDeserializer implements TlsMessageDeserialize
                     .map(deserializer -> deserializer.deserialize(context, buffer, metadata.withLength(handshakePayloadLength)));
             if(result.isPresent()) {
                 var nextPosition = buffer.position();
-                context.connectionHandshakeHash()
-                        .update(buffer.position(position));
+                var hash = context.connectionHandshakeHash();
+                hash.update(buffer.position(position));
+                hash.commit();
                 buffer.position(nextPosition);
             }
             return result;

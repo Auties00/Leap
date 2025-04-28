@@ -88,4 +88,9 @@ public record ClientCertificateRequestMessage(
     public int payloadLength() {
         return 0;
     }
+
+    @Override
+    public boolean hashable() {
+        return true;
+    }
 }
