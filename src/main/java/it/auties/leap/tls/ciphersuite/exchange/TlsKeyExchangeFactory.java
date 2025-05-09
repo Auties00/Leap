@@ -4,10 +4,11 @@ import it.auties.leap.tls.ciphersuite.exchange.implementation.*;
 import it.auties.leap.tls.context.TlsContext;
 
 import java.nio.ByteBuffer;
+import java.util.Optional;
 
 public interface TlsKeyExchangeFactory {
-    static TlsKeyExchangeFactory contextual() {
-        return ContextualKeyExchange.ephemeralFactory();
+    static TlsKeyExchangeFactory none() {
+        return DHKeyExchange.staticFactory();
     }
 
     static TlsKeyExchangeFactory dh() {
@@ -50,7 +51,7 @@ public interface TlsKeyExchangeFactory {
         return SRPKeyExchange.ephemeralFactory();
     }
     
-    TlsKeyExchange newLocalKeyExchange(TlsContext context);
-    TlsKeyExchange newRemoteKeyExchange(TlsContext context, ByteBuffer source);
+    Optional<TlsKeyExchange> newLocalKeyExchange(TlsContext context);
+    Optional<TlsKeyExchange> newRemoteKeyExchange(TlsContext context, ByteBuffer source);
     TlsKeyExchangeType type();
 }

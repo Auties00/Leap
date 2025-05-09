@@ -10,7 +10,7 @@ import it.auties.leap.tls.hash.TlsHashFactory;
 import it.auties.leap.tls.hash.TlsHkdf;
 import it.auties.leap.tls.hash.TlsHmac;
 import it.auties.leap.tls.hash.TlsPrf;
-import it.auties.leap.tls.property.TlsProperty;
+import it.auties.leap.tls.context.TlsContextualProperty;
 import it.auties.leap.tls.version.TlsVersion;
 
 import java.nio.ByteBuffer;
@@ -35,11 +35,11 @@ public class TlsConnectionHandler {
     }
 
     public TlsConnectionSecret generateMasterSecret(TlsContext context) {
-        var version = context.getNegotiatedValue(TlsProperty.version())
+        var version = context.getNegotiatedValue(TlsContextualProperty.version())
                 .orElseThrow(() -> new TlsAlert("Missing negotiated property: version", TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR));
         return switch (version) {
             case TLS10, TLS11, DTLS10 -> {
-                var extendedMasterSecret = context.getNegotiatedValue(TlsProperty.extendedMasterSecret()).orElse(false);
+                var extendedMasterSecret = context.getNegotiatedValue(TlsContextualProperty.extendedMasterSecret()).orElse(false);
                 var label = extendedMasterSecret ? LABEL_EXTENDED_MASTER_SECRET : LABEL_MASTER_SECRET;
                 var seed = extendedMasterSecret ? getExtendedMasterSecretSeed(context) : getMasterSecretSeed(context);
                 var preMasterSecret = generatePreMasterSecret(context);
@@ -54,9 +54,9 @@ public class TlsConnectionHandler {
             }
 
             case TLS12, DTLS12 -> {
-                var negotiatedCipher = context.getNegotiatedValue(TlsProperty.cipher())
+                var negotiatedCipher = context.getNegotiatedValue(TlsContextualProperty.cipher())
                         .orElseThrow(() -> new TlsAlert("Missing negotiated property: cipher", TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR));
-                var extendedMasterSecret = context.getNegotiatedValue(TlsProperty.extendedMasterSecret()).orElse(false);
+                var extendedMasterSecret = context.getNegotiatedValue(TlsContextualProperty.extendedMasterSecret()).orElse(false);
                 var label = extendedMasterSecret ? LABEL_EXTENDED_MASTER_SECRET : LABEL_MASTER_SECRET;
                 var seed = extendedMasterSecret ? getExtendedMasterSecretSeed(context) : getMasterSecretSeed(context);
                 var preMasterSecret = generatePreMasterSecret(context);
@@ -78,7 +78,7 @@ public class TlsConnectionHandler {
                         .group()
                         .computeSharedSecret(context);
                 System.out.println("Pre master secret: " + Arrays.toString(sharedSecret.data()));
-                var cipher = context.getNegotiatedValue(TlsProperty.cipher())
+                var cipher = context.getNegotiatedValue(TlsContextualProperty.cipher())
                         .orElseThrow(() -> new TlsAlert("Missing negotiated property: cipher", TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR));
                 var hashFactory = cipher.hashFactory();
                 var hkdf = TlsHkdf.of(TlsHmac.of(hashFactory));
@@ -132,14 +132,13 @@ public class TlsConnectionHandler {
         return context.localConnectionState()
                 .keyExchange()
                 .orElseThrow(() -> new TlsAlert("No local key exchange", TlsAlertLevel.FATAL, TlsAlertType.ILLEGAL_PARAMETER))
-                .generatePreSharedSecret(context)
-                .orElseThrow(() -> new TlsAlert("Pre master secret generation is not supported by local key exchange", TlsAlertLevel.FATAL, TlsAlertType.ILLEGAL_PARAMETER));
+                .generatePreSharedSecret(context);
     }
 
     public void initialize(TlsContext context) {
-        var negotiatedVersion = context.getNegotiatedValue(TlsProperty.version())
+        var negotiatedVersion = context.getNegotiatedValue(TlsContextualProperty.version())
                 .orElseThrow(() -> new TlsAlert("Missing negotiated property: version", TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR));
-        var negotiatedCipher = context.getNegotiatedValue(TlsProperty.cipher())
+        var negotiatedCipher = context.getNegotiatedValue(TlsContextualProperty.cipher())
                 .orElseThrow(() -> new TlsAlert("Missing negotiated property: cipher", TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR));
         var cipherFactory = negotiatedCipher.cipherFactory();
         var engineFactory = negotiatedCipher.cipherEngineFactory();
@@ -312,13 +311,13 @@ public class TlsConnectionHandler {
     }
 
     public void finalize(TlsContext context, TlsSource source) {
-        var negotiatedVersion = context.getNegotiatedValue(TlsProperty.version())
+        var negotiatedVersion = context.getNegotiatedValue(TlsContextualProperty.version())
                 .orElseThrow(() -> new TlsAlert("Missing negotiated property: version", TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR));
         if (negotiatedVersion != TlsVersion.TLS13 && negotiatedVersion != TlsVersion.DTLS13) {
             return;
         }
 
-        var negotiatedCipher = context.getNegotiatedValue(TlsProperty.cipher())
+        var negotiatedCipher = context.getNegotiatedValue(TlsContextualProperty.cipher())
                 .orElseThrow(() -> new TlsAlert("Missing negotiated property: cipher", TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR));
         var handshakeHash = context.connectionHandshakeHash().digest();
         var hashFactory = negotiatedCipher.hashFactory();

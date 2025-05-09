@@ -39,7 +39,7 @@ public final class CertificateUtils {
 
     private static void checkAlgorithm(String expectedAlgorithm, TlsCertificate leafCert) {
         var sigAlgName = leafCert.value().getSigAlgName();
-        if (sigAlgName == null || !sigAlgName.toUpperCase().contains(expectedAlgorithm.toUpperCase())) {
+        if (sigAlgName == null || (expectedAlgorithm != null && !sigAlgName.toUpperCase().contains(expectedAlgorithm.toUpperCase()))) {
             throw new TlsAlert("Certificate signature algorithm (%s) does not match expected algorithm (%s).".formatted(sigAlgName, expectedAlgorithm), TlsAlertLevel.FATAL, TlsAlertType.UNSUPPORTED_CERTIFICATE);
         }
     }
@@ -138,7 +138,7 @@ public final class CertificateUtils {
         return DEFAULT_TRUST_ANCHORS.orElseSet(() -> {
             var file = new File(CertificateUtils.DEFAULT_KEY_STORE_PATH);
             if (!file.isFile() || !file.canRead()) {
-                throw new TlsAlert("Cannot load default trust anchors: " + file + " is not a file or cannot be read", TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR);
+                throw new RuntimeException("Cannot load default trust anchors: " + file + " is not a file or cannot be read");
             }
 
             try {
@@ -161,12 +161,12 @@ public final class CertificateUtils {
                         trustAnchors.add(TlsCertificate.of(x509Certificate));
                     }
                     if(trustAnchors.isEmpty()) {
-                        throw new TlsAlert("No trust anchors found", TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR);
+                        throw new RuntimeException("No trust anchors found");
                     }
                     return trustAnchors;
                 }
             } catch (Throwable throwable) {
-                throw new TlsAlert("Cannot load default trust anchors: " + throwable.getMessage(), TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR);
+                throw new RuntimeException("Cannot load default trust anchors: " + throwable.getMessage(), throwable);
             }
         });
     }

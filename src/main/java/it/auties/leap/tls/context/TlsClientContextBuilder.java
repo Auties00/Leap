@@ -5,11 +5,11 @@ import it.auties.leap.tls.ciphersuite.TlsCipherSuite;
 import it.auties.leap.tls.compression.TlsCompression;
 import it.auties.leap.tls.connection.TlsConnectionHandler;
 import it.auties.leap.tls.connection.TlsConnectionType;
-import it.auties.leap.tls.extension.TlsExtensionOwner;
+import it.auties.leap.tls.extension.TlsExtension;
 
 import java.util.Objects;
 
-public final class TlsClientContextBuilder extends TlsContextBuilder<TlsClientContextBuilder, TlsExtensionOwner.Client> {
+public final class TlsClientContextBuilder extends TlsContextBuilder<TlsClientContextBuilder, TlsExtension.Client> {
     TlsClientContextBuilder() {
         super(TlsConnectionType.SERVER);
     }
@@ -22,6 +22,9 @@ public final class TlsClientContextBuilder extends TlsContextBuilder<TlsClientCo
         var connectionHandler = Objects.requireNonNullElse(this.connectionHandler, TlsConnectionHandler.instance());
         var extensions = buildExtensions(versions);
         var certificateValidator = Objects.requireNonNullElseGet(this.certificateValidator, TlsCertificateValidator::validate);
-        return TlsContext.ofClient(versions, extensions, ciphers, compressions, credentials, certificateValidator, connectionHandler);
+        return new TlsContext(credentials, extensions, certificateValidator, connectionHandler)
+                .addAdvertisedValue(TlsContextualProperty.version(), versions)
+                .addAdvertisedValue(TlsContextualProperty.cipher(), ciphers)
+                .addAdvertisedValue(TlsContextualProperty.compression(), compressions);
     }
 }

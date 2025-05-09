@@ -59,7 +59,7 @@ public final class HttpConfigBuilder {
                 TlsExtension.ecPointFormats(),
                 TlsExtension.supportedGroups(),
                 TlsExtension.nextProtocolNegotiation(),
-                TlsExtension.alpn(List.of("http/1.1")),
+                TlsExtension.applicationLayerProtocolNegotiation(List.of("http/1.1")),
                 TlsExtension.encryptThenMac(),
                 TlsExtension.extendedMasterSecret(),
                 // TlsExtension.postHandshakeAuth(),
@@ -72,7 +72,7 @@ public final class HttpConfigBuilder {
         var compressions = List.of(
                 TlsCompression.none()
         );
-        DEFAULT_TLS_CONTEXT = TlsContext.newClientBuilder()
+        DEFAULT_TLS_CONTEXT = TlsContext.clientBuilder()
                 .versions(List.of(TlsVersion.TLS13, TlsVersion.TLS12))
                 .ciphers(ciphers)
                 .extensions(extensions)

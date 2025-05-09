@@ -42,7 +42,7 @@ public final class HttpRequest<T> implements HttpExchange<T> {
         throw new UnsupportedOperationException();
     }
 
-    public static <T> HttpRequestBuilder<T> newBuilder() {
+    public static <T> HttpRequestBuilder<T> builder() {
         return new HttpRequestBuilder<>();
     }
 

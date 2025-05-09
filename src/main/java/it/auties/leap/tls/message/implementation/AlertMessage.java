@@ -9,15 +9,14 @@ import it.auties.leap.tls.context.TlsSource;
 import it.auties.leap.tls.message.TlsMessage;
 import it.auties.leap.tls.message.TlsMessageContentType;
 import it.auties.leap.tls.message.TlsMessageDeserializer;
-import it.auties.leap.tls.version.TlsVersion;
 
 import java.nio.ByteBuffer;
+import java.util.Objects;
 import java.util.Optional;
 
 import static it.auties.leap.tls.util.BufferUtils.*;
 
 public record AlertMessage(
-        TlsVersion tlsVersion,
         TlsSource source,
         TlsAlertLevel alertLevel,
         TlsAlertType alertType
@@ -25,14 +24,26 @@ public record AlertMessage(
     private static final int ID = 0x00;
     private static final TlsMessageDeserializer DESERIALIZER = (_, buffer, metadata) -> {
         var levelId = readBigEndianInt8(buffer);
-        var level = TlsAlertLevel.of(levelId)
-                .orElseThrow(() -> new IllegalArgumentException("Cannot decode TLS message, unknown alert level: " + levelId));
+        var level = TlsAlertLevel.of(levelId).orElseThrow(() -> new TlsAlert(
+                "Cannot decode AlertMessage: unknown alert level " + levelId,
+                TlsAlertLevel.FATAL,
+                TlsAlertType.DECODE_ERROR
+        ));
         var typeId = readBigEndianInt8(buffer);
-        var type = TlsAlertType.of(typeId)
-                .orElseThrow(() -> new IllegalArgumentException("Cannot decode TLS message, unknown alert type: " + typeId));
-        var message =  new AlertMessage(metadata.version(), metadata.source(), level, type);
+        var type = TlsAlertType.of(typeId).orElseThrow(() -> new TlsAlert(
+                "Cannot decode AlertMessage: unknown alert type " + typeId,
+                TlsAlertLevel.FATAL,
+                TlsAlertType.DECODE_ERROR
+        ));
+        var message = new AlertMessage(metadata.source(), level, type);
         return Optional.of(message);
     };
+
+    public AlertMessage {
+        Objects.requireNonNull(source, "Invalid source");
+        Objects.requireNonNull(alertLevel, "Invalid alert level");
+        Objects.requireNonNull(alertType, "Invalid alert type");
+    }
 
     public static TlsMessageDeserializer deserializer() {
         return DESERIALIZER;
@@ -41,11 +52,6 @@ public record AlertMessage(
     @Override
     public byte id() {
         return ID;
-    }
-
-    @Override
-    public TlsVersion version() {
-        return tlsVersion;
     }
 
     @Override
@@ -75,6 +81,15 @@ public record AlertMessage(
             throw SocketException.closed();
         }
 
-        throw new TlsAlert("(" + alertLevel.description() + ") " + alertType.description(), alertLevel, alertType);
+        throw new TlsAlert(
+                "(" + alertLevel.name().toLowerCase() + ") " + alertType.name().toLowerCase(),
+                alertLevel,
+                alertType
+        );
+    }
+
+    @Override
+    public void validate(TlsContext context) {
+
     }
 }

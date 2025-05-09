@@ -71,4 +71,8 @@ public record KeyUpdateRequestMessage(
     public boolean hashable() {
         return true;
     }
+
+    public void validate(TlsContext context) {
+
+    }
 }

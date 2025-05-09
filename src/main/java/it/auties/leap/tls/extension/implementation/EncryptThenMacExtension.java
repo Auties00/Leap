@@ -7,14 +7,15 @@ import it.auties.leap.tls.context.TlsContext;
 import it.auties.leap.tls.context.TlsSource;
 import it.auties.leap.tls.extension.TlsExtension;
 import it.auties.leap.tls.extension.TlsExtensionDependencies;
-import it.auties.leap.tls.property.TlsProperty;
+import it.auties.leap.tls.context.TlsContextualProperty;
+import it.auties.leap.tls.extension.TlsExtensionPayload;
 import it.auties.leap.tls.version.TlsVersion;
 
 import java.nio.ByteBuffer;
 import java.util.List;
 import java.util.Optional;
 
-public final class EncryptThenMacExtension implements TlsExtension.Configured.Agnostic {
+public final class EncryptThenMacExtension implements TlsExtension.Agnostic, TlsExtensionPayload {
     private static final EncryptThenMacExtension INSTANCE = new EncryptThenMacExtension();
 
     private EncryptThenMacExtension() {
@@ -36,6 +37,11 @@ public final class EncryptThenMacExtension implements TlsExtension.Configured.Ag
     }
 
     @Override
+    public TlsExtensionPayload toPayload(TlsContext context) {
+        return this;
+    }
+
+    @Override
     public void apply(TlsContext context, TlsSource source) {
         var connection = switch (source) {
             case LOCAL -> context.localConnectionState();
@@ -43,17 +49,23 @@ public final class EncryptThenMacExtension implements TlsExtension.Configured.Ag
                     .orElseThrow(() -> new TlsAlert("No remote connection state was created", TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR));
         };
         switch (connection.type()) {
-            case CLIENT -> context.addNegotiableProperty(TlsProperty.encryptThenMac(), true);
-            case SERVER -> context.addNegotiatedProperty(TlsProperty.encryptThenMac(), true);
+            case CLIENT -> context.addAdvertisedValue(TlsContextualProperty.encryptThenMac(), true);
+            case SERVER -> context.addNegotiatedValue(TlsContextualProperty.encryptThenMac(), true);
         }
     }
 
     @Override
-    public Optional<EncryptThenMacExtension> deserialize(TlsContext context, int type, ByteBuffer buffer) {
-        if (buffer.hasRemaining()) {
-            throw new TlsAlert("Unexpected extension payload", TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR);
-        }
+    public Optional<EncryptThenMacExtension> deserializeClient(TlsContext context, int type, ByteBuffer source) {
+        return deserialize(source);
+    }
 
+    @Override
+    public Optional<? extends Client> deserializeServer(TlsContext context, int type, ByteBuffer source) {
+        return deserialize(source);
+    }
+
+    private Optional<EncryptThenMacExtension> deserialize(ByteBuffer response) {
+        response.position(response.limit());
         return Optional.of(INSTANCE);
     }
 

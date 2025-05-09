@@ -2,31 +2,19 @@ package it.auties.leap.tls.ciphersuite.auth.implementation;
 
 import it.auties.leap.tls.certificate.TlsCertificate;
 import it.auties.leap.tls.ciphersuite.auth.TlsAuth;
-import it.auties.leap.tls.ciphersuite.auth.TlsAuthFactory;
 import it.auties.leap.tls.context.TlsContext;
 
 import java.util.List;
 
 public final class KRB5Auth implements TlsAuth {
     private static final TlsAuth INSTANCE = new KRB5Auth();
-    private static final TlsAuthFactory FACTORY = new TlsAuthFactory() {
-        @Override
-        public TlsAuth newAuth() {
-            return INSTANCE;
-        }
-
-        @Override
-        public boolean isAnonymous() {
-            return false;
-        }
-    };
 
     private KRB5Auth() {
 
     }
 
-    public static TlsAuthFactory factory() {
-        return FACTORY;
+    public static TlsAuth instance() {
+        return INSTANCE;
     }
 
     @Override

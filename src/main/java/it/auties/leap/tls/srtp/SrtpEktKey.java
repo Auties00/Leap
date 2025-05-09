@@ -3,13 +3,13 @@ package it.auties.leap.tls.srtp;
 import it.auties.leap.tls.alert.TlsAlert;
 import it.auties.leap.tls.alert.TlsAlertLevel;
 import it.auties.leap.tls.alert.TlsAlertType;
-import it.auties.leap.tls.property.TlsSerializableProperty;
 
 import java.nio.ByteBuffer;
+import java.util.Objects;
 
 import static it.auties.leap.tls.util.BufferUtils.*;
 
-public final class SrtpEktKey implements TlsSerializableProperty {
+public final class SrtpEktKey {
     private final byte[] ektKeyValue;
     private final byte[] srtpMasterSalt;
     private final int ektSpi;
@@ -22,23 +22,15 @@ public final class SrtpEktKey implements TlsSerializableProperty {
         this.ektTtl = ektTtl;
     }
 
-    public static SrtpEktKey newEktKey(byte[] ektKeyValue, byte[] srtpMasterSalt, int ektSpi, int ektTtl) {
-        if(ektKeyValue == null) {
-            throw new TlsAlert("ektKeyValue", TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR);
-        }
-
-        if(srtpMasterSalt == null) {
-            throw new TlsAlert("srtpMasterSalt", TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR);
-        }
-
+    public static SrtpEktKey of(byte[] ektKeyValue, byte[] srtpMasterSalt, int ektSpi, int ektTtl) {
+        Objects.requireNonNull(ektKeyValue, "ektKeyValue must not be null");
+        Objects.requireNonNull(srtpMasterSalt, "srtpMasterSalt must not be null");
         if(ektSpi < 0) {
-            throw new TlsAlert("ektSpi", TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR);
+            throw new IllegalArgumentException("ektSpi must not be negative");
         }
-
         if(ektTtl < 0) {
-            throw new TlsAlert("ektTtl", TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR);
+            throw new IllegalArgumentException("ektTtl must not be negative");
         }
-
         return new SrtpEktKey(ektKeyValue, srtpMasterSalt, ektSpi, ektTtl);
     }
 
@@ -47,14 +39,12 @@ public final class SrtpEktKey implements TlsSerializableProperty {
         var srtpMasterSalt = readBytesBigEndian8(buffer);
         var ektSpi = readBigEndianInt16(buffer);
         if(ektSpi < 0) {
-            throw new TlsAlert("ektSpi", TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR);
+            throw new TlsAlert("ektSpi must not be negative", TlsAlertLevel.FATAL, TlsAlertType.HANDSHAKE_FAILURE);
         }
-
         var ektTtl = readBigEndianInt24(buffer);
         if(ektTtl < 0) {
-            throw new TlsAlert("ektTtl", TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR);
+            throw new TlsAlert("ektTtl must not be negative", TlsAlertLevel.FATAL, TlsAlertType.HANDSHAKE_FAILURE);
         }
-
         return new SrtpEktKey(ektKeyValue, srtpMasterSalt, ektSpi, ektTtl);
     }
 
@@ -74,7 +64,6 @@ public final class SrtpEktKey implements TlsSerializableProperty {
         return ektTtl;
     }
 
-    @Override
     public void serialize(ByteBuffer buffer) {
         writeBytesBigEndian8(buffer, ektKeyValue);
         writeBytesBigEndian8(buffer, srtpMasterSalt);
@@ -82,7 +71,6 @@ public final class SrtpEktKey implements TlsSerializableProperty {
         writeBigEndianInt24(buffer, ektTtl);
     }
 
-    @Override
     public int length() {
         return INT8_LENGTH + ektKeyValue.length
                 + INT8_LENGTH + srtpMasterSalt.length

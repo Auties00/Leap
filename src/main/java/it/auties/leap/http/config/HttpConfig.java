@@ -9,7 +9,7 @@ import java.time.Duration;
 import java.util.Optional;
 
 public final class HttpConfig {
-    public static final HttpConfig DEFAULTS = HttpConfig.newBuilder()
+    public static final HttpConfig DEFAULTS = HttpConfig.builder()
             .build();
 
     private final TlsContext tlsContext;
@@ -28,7 +28,7 @@ public final class HttpConfig {
         this.redirectPolicy = redirectPolicy;
     }
 
-    public static HttpConfigBuilder newBuilder() {
+    public static HttpConfigBuilder builder() {
         return new HttpConfigBuilder();
     }
 

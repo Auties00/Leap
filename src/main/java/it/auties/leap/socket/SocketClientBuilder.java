@@ -17,10 +17,10 @@ public sealed class SocketClientBuilder permits AsyncSocketClientBuilder, Blocki
     }
 
     public AsyncSocketClientBuilder async(SocketProtocol protocol) {
-        return AsyncSocketClient.newBuilder(protocol);
+        return AsyncSocketClient.builder(protocol);
     }
 
     public BlockingSocketClientBuilder blocking(SocketProtocol protocol) {
-        return BlockingSocketClient.newBuilder(protocol);
+        return BlockingSocketClient.builder(protocol);
     }
 }

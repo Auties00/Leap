@@ -9,7 +9,7 @@ import it.auties.leap.tls.hash.TlsHash;
 import it.auties.leap.tls.hash.TlsHashFactory;
 import it.auties.leap.tls.hash.TlsHmac;
 import it.auties.leap.tls.hash.TlsPrf;
-import it.auties.leap.tls.property.TlsProperty;
+import it.auties.leap.tls.context.TlsContextualProperty;
 import it.auties.leap.tls.version.TlsVersion;
 
 import java.nio.ByteBuffer;
@@ -35,7 +35,7 @@ public final class TlsConnectionHandshakeHash {
         }
 
         this.delegate = Delegate.of(version, factory);
-        delegate.init(buffer, 0, bufferPosition);
+        delegate.init(buffer, bufferPosition);
         this.buffer = null;
         this.bufferPosition = 0;
         return this;
@@ -112,7 +112,7 @@ public final class TlsConnectionHandshakeHash {
 
         }
 
-        abstract void init(byte[] input, int offset, int length);
+        abstract void init(byte[] input, int length);
 
         public void update(ByteBuffer buffer) {
             if(committedHash == null) {
@@ -145,9 +145,9 @@ public final class TlsConnectionHandshakeHash {
             }
 
             @Override
-            public void init(byte[] input, int offset, int length) {
-                md5.update(input, offset, length);
-                sha1.update(input, offset, length);
+            public void init(byte[] input, int length) {
+                md5.update(input, 0, length);
+                sha1.update(input, 0, length);
             }
 
             @Override
@@ -205,8 +205,8 @@ public final class TlsConnectionHandshakeHash {
             }
 
             @Override
-            public void init(byte[] input, int offset, int length) {
-                hash.update(input, offset, length);
+            public void init(byte[] input, int length) {
+                hash.update(input, 0, length);
             }
 
             @Override
@@ -250,8 +250,8 @@ public final class TlsConnectionHandshakeHash {
             }
 
             @Override
-            public void init(byte[] input, int offset, int length) {
-                hash.update(input, offset, length);
+            public void init(byte[] input, int length) {
+                hash.update(input, 0, length);
             }
 
             @Override
@@ -272,7 +272,7 @@ public final class TlsConnectionHandshakeHash {
 
             @Override
             public byte[] finish(TlsContext context, TlsSource source) {
-                var cipher = context.getNegotiatedValue(TlsProperty.cipher())
+                var cipher = context.getNegotiatedValue(TlsContextualProperty.cipher())
                         .orElseThrow(() -> new TlsAlert("Missing negotiated property: cipher", TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR));
                 var hashFactory = cipher.hashFactory();
                 var connection = switch (source) {

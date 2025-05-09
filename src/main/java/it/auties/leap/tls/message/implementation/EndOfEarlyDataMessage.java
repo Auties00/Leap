@@ -65,4 +65,8 @@ public record EndOfEarlyDataMessage(
     public boolean hashable() {
         return true;
     }
+
+    public void validate(TlsContext context) {
+
+    }
 }

@@ -13,7 +13,7 @@ import it.auties.leap.tls.context.TlsContext;
 import it.auties.leap.tls.context.TlsSource;
 import it.auties.leap.tls.extension.TlsExtension;
 import it.auties.leap.tls.message.*;
-import it.auties.leap.tls.property.TlsProperty;
+import it.auties.leap.tls.context.TlsContextualProperty;
 import it.auties.leap.tls.version.TlsVersion;
 import it.auties.leap.tls.version.TlsVersionId;
 
@@ -33,7 +33,7 @@ public record ClientHelloMessage(
         byte[] cookie,
         List<Integer> ciphers,
         List<Byte> compressions,
-        List<TlsExtension.Configured.Client> extensions,
+        List<TlsExtension.Client> extensions,
         int extensionsLength
 ) implements TlsHandshakeMessage {
     private static final int ID = 0x01;
@@ -73,12 +73,12 @@ public record ClientHelloMessage(
                     compressions.add(compressionId);
                 }
             }
-            var extensions = new ArrayList<TlsExtension.Configured.Client>();
+            var extensions = new ArrayList<TlsExtension.Client>();
             var extensionsLength = buffer.remaining() >= INT16_LENGTH ? readBigEndianInt16(buffer) : 0;
             try (var _ = scopedRead(buffer, extensionsLength)) {
-                var extensionTypeToDecoder = context.getNegotiatedValue(TlsProperty.serverExtensions())
-                        .orElseThrow(() -> new TlsAlert("Missing negotiated property: serverExtensions", TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR))
+                var extensionTypeToDecoder = context.extensions()
                         .stream()
+                        .map(extension -> (TlsExtension.Server) extension)
                         .collect(Collectors.toUnmodifiableMap(TlsExtension::type, Function.identity()));
                 while (buffer.hasRemaining()) {
                     var extensionType = readBigEndianInt16(buffer);
@@ -93,7 +93,7 @@ public record ClientHelloMessage(
                     }
 
                     try(var _ = scopedRead(buffer, extensionLength)) {
-                        extensionDecoder.deserialize(context, extensionType, buffer)
+                        extensionDecoder.deserializeServer(context, extensionType, buffer)
                                 .ifPresent(extensions::add);
                     }
                 }
@@ -169,7 +169,8 @@ public record ClientHelloMessage(
         if (!extensions.isEmpty()) {
             writeBigEndianInt16(payload, extensionsLength);
             for (var extension : extensions) {
-                extension.serialize(payload);
+                extension.toSerializer()
+                        .serialize(payload);
             }
         }
     }
@@ -210,14 +211,14 @@ public record ClientHelloMessage(
     }
 
     private TlsCipherSuite chooseCipher(TlsContext context) {
-        var negotiableCiphers = context.getNegotiableValue(TlsProperty.cipher())
+        var negotiableCiphers = context.getAdvertisedValue(TlsContextualProperty.cipher())
                 .orElseThrow(() -> new TlsAlert("Missing negotiable property: cipher", TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR))
                 .stream()
                 .collect(Collectors.toUnmodifiableMap(TlsCipherSuite::id, Function.identity()));
         for(var advertisedCipherId : ciphers) {
             var advertisedCipher = negotiableCiphers.get(advertisedCipherId);
             if(advertisedCipher != null) {
-                context.addNegotiatedProperty(TlsProperty.cipher(), advertisedCipher);
+                context.addNegotiatedValue(TlsContextualProperty.cipher(), advertisedCipher);
                 return advertisedCipher;
             }
         }
@@ -225,14 +226,14 @@ public record ClientHelloMessage(
     }
 
     private void chooseCompression(TlsContext context) {
-        var negotiableCompressions = context.getNegotiableValue(TlsProperty.compression())
+        var negotiableCompressions = context.getAdvertisedValue(TlsContextualProperty.compression())
                 .orElseThrow(() -> new TlsAlert("Missing negotiable property: compression", TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR))
                 .stream()
                 .collect(Collectors.toUnmodifiableMap(TlsCompression::id, Function.identity()));
         for(var advertisedCompressionId : compressions) {
             var advertisedCompression = negotiableCompressions.get(advertisedCompressionId);
             if(advertisedCompression != null) {
-                context.addNegotiatedProperty(TlsProperty.compression(), advertisedCompression);
+                context.addNegotiatedValue(TlsContextualProperty.compression(), advertisedCompression);
                 return;
             }
         }
@@ -242,5 +243,9 @@ public record ClientHelloMessage(
     @Override
     public boolean hashable() {
         return true;
+    }
+
+    public void validate(TlsContext context) {
+
     }
 }

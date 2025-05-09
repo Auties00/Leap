@@ -6,8 +6,7 @@ import it.auties.leap.tls.alert.TlsAlertType;
 import it.auties.leap.tls.context.TlsContext;
 import it.auties.leap.tls.context.TlsSource;
 import it.auties.leap.tls.message.*;
-import it.auties.leap.tls.property.TlsIdentifiableProperty;
-import it.auties.leap.tls.property.TlsProperty;
+import it.auties.leap.tls.context.TlsContextualProperty;
 import it.auties.leap.tls.signature.TlsSignature;
 import it.auties.leap.tls.version.TlsVersion;
 
@@ -33,14 +32,22 @@ public record CertificateVerifyMessage(
 
         @Override
         public TlsMessage deserialize(TlsContext context, ByteBuffer buffer, TlsMessageMetadata metadata) {
-            var signatureAlgorithms = context.getNegotiatedValue(TlsProperty.signatureAlgorithms())
-                    .orElseThrow(() -> new TlsAlert("Missing negotiated property: signatureAlgorithms", TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR))
+            var signatureAlgorithms = context.getNegotiatedValue(TlsContextualProperty.signatureAlgorithms())
+                    .orElseThrow(() -> new TlsAlert(
+                            "Cannot decode CertificateVerifyMessage: no signature algorithms were negotiated",
+                            TlsAlertLevel.FATAL,
+                            TlsAlertType.DECODE_ERROR
+                    ))
                     .stream()
-                    .collect(Collectors.toUnmodifiableMap(TlsIdentifiableProperty::id, Function.identity()));
+                    .collect(Collectors.toUnmodifiableMap(TlsSignature::id, Function.identity()));
             var algorithmId = readBigEndianInt16(buffer);
             var algorithm = signatureAlgorithms.get(algorithmId);
             if(algorithm == null) {
-                throw new TlsAlert("Certificate verify uses a signature algorithm that wasn't advertised: " + algorithmId, TlsAlertLevel.FATAL, TlsAlertType.UNSUPPORTED_CERTIFICATE);
+                throw new TlsAlert(
+                        "Certificate verify uses a signature algorithm that wasn't negotiated: " + algorithmId,
+                        TlsAlertLevel.FATAL,
+                        TlsAlertType.UNSUPPORTED_CERTIFICATE
+                );
             }
             var signature = readBytesBigEndian16(buffer);
             return new CertificateVerifyMessage(metadata.version(), metadata.source(), algorithm, signature);
@@ -79,5 +86,9 @@ public record CertificateVerifyMessage(
     @Override
     public boolean hashable() {
         return true;
+    }
+
+    public void validate(TlsContext context) {
+
     }
 }

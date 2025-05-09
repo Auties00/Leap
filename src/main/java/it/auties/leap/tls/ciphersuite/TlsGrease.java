@@ -3,14 +3,13 @@ package it.auties.leap.tls.ciphersuite;
 import it.auties.leap.tls.alert.TlsAlert;
 import it.auties.leap.tls.alert.TlsAlertLevel;
 import it.auties.leap.tls.alert.TlsAlertType;
-import it.auties.leap.tls.ciphersuite.auth.TlsAuthFactory;
 import it.auties.leap.tls.ciphersuite.engine.TlsCipherEngine;
 import it.auties.leap.tls.ciphersuite.engine.TlsCipherEngineFactory;
-import it.auties.leap.tls.ciphersuite.exchange.TlsKeyExchangeFactory;
 import it.auties.leap.tls.ciphersuite.cipher.TlsCipherFactory;
 import it.auties.leap.tls.hash.TlsHashFactory;
 import it.auties.leap.tls.version.TlsVersion;
 import it.auties.leap.tls.version.TlsVersionId;
+import it.auties.leap.tls.version.TlsVersions;
 
 import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
@@ -64,11 +63,10 @@ public final class TlsGrease {
                 id,
                 ENGINE_FACTORY,
                 MODE_FACTORY,
-                TlsKeyExchangeFactory.contextual(),
-                TlsAuthFactory.contextual(),
+                null,
+                null,
                 TlsHashFactory.none(),
-                List.of(TlsVersion.TLS12, TlsVersion.TLS13),
-                false
+                TlsVersions.range(TlsVersion.TLS12, TlsVersion.TLS13)
         );
     }
 
@@ -143,8 +141,8 @@ public final class TlsGrease {
                     .nextInt(0, values.size());
             return values.get(index)
                     .versionId();
-        }catch (NoSuchAlgorithmException _) {
-            throw new TlsAlert("No secure RNG algorithm", TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR);
+        }catch (NoSuchAlgorithmException throwable) {
+            throw new RuntimeException("No secure RNG algorithm", throwable);
         }
     }
 

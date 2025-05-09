@@ -9,13 +9,14 @@ import it.auties.leap.tls.ciphersuite.exchange.TlsKeyExchangeType;
 import it.auties.leap.tls.connection.TlsConnectionSecret;
 import it.auties.leap.tls.connection.TlsConnectionType;
 import it.auties.leap.tls.context.TlsContext;
-import it.auties.leap.tls.property.TlsProperty;
+import it.auties.leap.tls.context.TlsContextualProperty;
 
 import javax.crypto.Cipher;
 import javax.crypto.spec.SecretKeySpec;
 import java.nio.ByteBuffer;
 import java.security.GeneralSecurityException;
 import java.security.SecureRandom;
+import java.security.interfaces.RSAPublicKey;
 import java.util.Optional;
 
 import static it.auties.leap.tls.util.BufferUtils.*;
@@ -23,46 +24,78 @@ import static it.auties.leap.tls.util.BufferUtils.*;
 public sealed abstract class RSAKeyExchange implements TlsKeyExchange {
     private static final TlsKeyExchangeFactory STATIC_FACTORY = new TlsKeyExchangeFactory() {
         @Override
-        public TlsKeyExchange newLocalKeyExchange(TlsContext context) {
-            var mode = context.localConnectionState().type();
-            if (mode == TlsConnectionType.SERVER) {
-                throw new TlsAlert("Unsupported RSA key exchange", TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR);
-            }
+        public Optional<TlsKeyExchange> newLocalKeyExchange(TlsContext context) {
+            return switch (context.localConnectionState().type()) {
+                case CLIENT -> {
+                    try {
+                        var preMasterSecret = new byte[48];
+                        SecureRandom.getInstanceStrong()
+                                .nextBytes(preMasterSecret);
+                        var version = context.getNegotiatedValue(TlsContextualProperty.version()).orElseThrow(() -> new TlsAlert(
+                                "Cannot generate static client key exchange: no tls version was negotiated",
+                                TlsAlertLevel.FATAL,
+                                TlsAlertType.HANDSHAKE_FAILURE
+                        ));
+                        preMasterSecret[0] = version.id().minor();
+                        preMasterSecret[1] = version.id().major();
+                        var cipher = Cipher.getInstance("RSA/ECB/PKCS1Padding");
+                        var remoteCertificate = context.remoteConnectionState()
+                                .orElseThrow(() -> new TlsAlert(
+                                        "Cannot generate static key exchange: no remote server connection state was created",
+                                        TlsAlertLevel.FATAL,
+                                        TlsAlertType.HANDSHAKE_FAILURE
+                                ))
+                                .certificates()
+                                .stream()
+                                .filter(entry -> entry.publicKey() instanceof RSAPublicKey)
+                                .findFirst()
+                                .orElseThrow(() -> new TlsAlert(
+                                        "Cannot generate static key exchange: no remote RSA certificated was received",
+                                        TlsAlertLevel.FATAL,
+                                        TlsAlertType.HANDSHAKE_FAILURE
+                                ));
+                        cipher.init(Cipher.WRAP_MODE, remoteCertificate.value());
+                        var encryptedPreMasterSecret = TlsConnectionSecret.of(cipher.wrap(new SecretKeySpec(preMasterSecret, "raw")));
+                        var localKeyExchange = new Client(encryptedPreMasterSecret);
+                        yield Optional.of(localKeyExchange);
+                    }catch (GeneralSecurityException exception) {
+                        throw new TlsAlert(
+                                "Cannot generate RSA pre master secret: " + exception.getMessage(),
+                                exception,
+                                TlsAlertLevel.FATAL,
+                                TlsAlertType.HANDSHAKE_FAILURE
+                        );
+                    }
+                }
 
-            try {
-                var preMasterSecret = new byte[48];
-                SecureRandom.getInstanceStrong()
-                        .nextBytes(preMasterSecret);
-                var version = context.getNegotiatedValue(TlsProperty.version())
-                        .orElseThrow(() -> new TlsAlert("Missing negotiable property: version", TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR));
-                preMasterSecret[0] = version.id().minor();
-                preMasterSecret[1] = version.id().major();
-                var cipher = Cipher.getInstance("RSA/ECB/PKCS1Padding");
-                var remoteCertificate = context.remoteConnectionState()
-                        .orElseThrow(() -> new TlsAlert("No remote connection state was created", TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR))
-                        .staticCertificate()
-                        .orElseThrow(() -> new TlsAlert("Expected at least one static certificate", TlsAlertLevel.FATAL, TlsAlertType.CERTIFICATE_UNOBTAINABLE));
-                cipher.init(Cipher.WRAP_MODE, remoteCertificate.value());
-                var encryptedPreMasterSecret = TlsConnectionSecret.of(cipher.wrap(new SecretKeySpec(preMasterSecret, "raw")));
-                return new Client(encryptedPreMasterSecret);
-            }catch (GeneralSecurityException exception) {
-                throw new TlsAlert("Cannot generate pre master secret: " + exception.getMessage(), TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR);
-            }
+                case SERVER -> Optional.empty();
+            };
         }
 
         @Override
-        public TlsKeyExchange newRemoteKeyExchange(TlsContext context, ByteBuffer source) {
-            var mode = context.localConnectionState().type();
-            if (mode == TlsConnectionType.SERVER) {
-                throw new TlsAlert("Unsupported RSA key exchange", TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR);
-            }
+        public Optional<TlsKeyExchange> newRemoteKeyExchange(TlsContext context, ByteBuffer source) {
+            var connectionState = context.remoteConnectionState().orElseThrow(() -> new TlsAlert(
+                            "Cannot generate static key exchange: no remote connection state was created",
+                            TlsAlertLevel.FATAL,
+                            TlsAlertType.HANDSHAKE_FAILURE
+                    ));
+            return switch (connectionState.type()) {
+                case CLIENT -> {
+                    if(source == null) {
+                        throw new TlsAlert(
+                                "Cannot generate static key exchange: received null key exchange source",
+                                TlsAlertLevel.FATAL,
+                                TlsAlertType.INTERNAL_ERROR
+                        );
+                    }
 
-            if(source == null) {
-                throw new TlsAlert("Expected a valid payload for remote RSA key exchange", TlsAlertLevel.FATAL, TlsAlertType.DECODE_ERROR);
-            }
+                    var preMasterSecret = TlsConnectionSecret.of(readBytesBigEndian16(source));
+                    var remoteKeyExchange = new RSAKeyExchange.Client(preMasterSecret);
+                    yield Optional.of(remoteKeyExchange);
+                }
 
-            var preMasterSecret = TlsConnectionSecret.of(readBytesBigEndian16(source));
-            return new RSAKeyExchange.Client(preMasterSecret);
+                case SERVER -> Optional.empty();
+            };
         }
 
         @Override
@@ -98,8 +131,8 @@ public sealed abstract class RSAKeyExchange implements TlsKeyExchange {
         }
 
         @Override
-        public Optional<TlsConnectionSecret> generatePreSharedSecret(TlsContext context) {
-            return Optional.of(preMasterSecret);
+        public TlsConnectionSecret generatePreSharedSecret(TlsContext context) {
+            return preMasterSecret;
         }
     }
 }

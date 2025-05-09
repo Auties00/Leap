@@ -40,7 +40,7 @@ public class ECDHE_CHACHA20POLY1305_SocketTest {
         var compressions = List.of(
                 TlsCompression.none()
         );
-        var tlsConfig = TlsContext.newClientBuilder()
+        var tlsConfig = TlsContext.clientBuilder()
                 .versions(List.of(TlsVersion.TLS12))
                 .ciphers(ciphers)
                 .extensions(extensions)
@@ -48,7 +48,7 @@ public class ECDHE_CHACHA20POLY1305_SocketTest {
                 .certificateValidator(TlsCertificateValidator.discard())
                 .build();
         try (
-                var socket = SocketClient.newBuilder()
+                var socket = SocketClient.builder()
                         .async(SocketProtocol.TCP)
                         .secure(tlsConfig)
                         .build()

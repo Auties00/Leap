@@ -4,18 +4,15 @@ import it.auties.leap.tls.alert.TlsAlert;
 import it.auties.leap.tls.alert.TlsAlertLevel;
 import it.auties.leap.tls.alert.TlsAlertType;
 import it.auties.leap.tls.context.TlsContext;
+import it.auties.leap.tls.context.TlsContextualProperty;
 import it.auties.leap.tls.group.TlsSupportedEllipticCurve;
-import it.auties.leap.tls.property.TlsIdentifiableProperty;
-import it.auties.leap.tls.property.TlsProperty;
-import it.auties.leap.tls.property.TlsSerializableProperty;
 
 import java.math.BigInteger;
 import java.nio.ByteBuffer;
-import java.util.function.Function;
 
 import static it.auties.leap.tls.util.BufferUtils.*;
 
-public sealed interface TlsEcCurveType extends TlsIdentifiableProperty<Byte>, TlsSerializableProperty {
+public sealed interface TlsEcCurveType {
     static TlsEcCurveType explicitChar2(int m, byte basis, int k, byte[] a, byte[] b, byte[] encoding, byte[] order, byte[] cofactor) {
         return new ExplicitChar2(m, basis, k, a, b, encoding, order, cofactor);
     }
@@ -32,54 +29,17 @@ public sealed interface TlsEcCurveType extends TlsIdentifiableProperty<Byte>, Tl
         return new NamedCurve(id);
     }
 
-    static TlsEcCurveType reservedForPrivateUse(byte id) {
-        if (id < -8 || id > -1) {
-            throw new TlsAlert(
-                    "Only values from 248-255 (decimal) inclusive are reserved for Private Use",
-                    TlsAlertLevel.FATAL,
-                    TlsAlertType.INTERNAL_ERROR
-            );
-        }
-
-        return new Reserved(id, null, null, null);
-    }
-
-    static TlsEcCurveType reservedForPrivateUse(byte id, TlsEcParametersDeserializer deserializer, TlsSerializableProperty payload, Function<TlsContext, TlsSupportedEllipticCurve> converter) {
-        if (id < -8 || id > -1) {
-            throw new TlsAlert(
-                    "Only values from 248-255 (decimal) inclusive are reserved for Private Use",
-                    TlsAlertLevel.FATAL,
-                    TlsAlertType.INTERNAL_ERROR
-            );
-        }
-
-        if(deserializer == null) {
-            throw new TlsAlert(
-                    "deserializer is null (use TlsEcCurveType.reservedForPrivateUse(id) if the curve should only be advertisable)",
-                    TlsAlertLevel.FATAL,
-                    TlsAlertType.INTERNAL_ERROR
-            );
-        }
-
-        if(converter == null) {
-            throw new TlsAlert(
-                    "converter is null (use TlsEcCurveType.reservedForPrivateUse(id) if the curve should only be advertisable)",
-                    TlsAlertLevel.FATAL,
-                    TlsAlertType.INTERNAL_ERROR
-            );
-        }
-
-        return new Reserved(id, deserializer, payload, converter);
-    }
-
+    byte id();
     TlsEcParametersDeserializer deserializer();
     TlsSupportedEllipticCurve toGroup(TlsContext context);
+    void serialize(ByteBuffer buffer);
+    int length();
 
     final class ExplicitPrime implements TlsEcCurveType {
         private static final byte ID = 1;
         static final TlsEcParametersDeserializer DESERIALIZER = new TlsEcParametersDeserializer() {
             @Override
-            public Byte id() {
+            public byte id() {
                 return ID;
             }
 
@@ -112,7 +72,7 @@ public sealed interface TlsEcCurveType extends TlsIdentifiableProperty<Byte>, Tl
         }
 
         @Override
-        public Byte id() {
+        public byte id() {
             return ID;
         }
 
@@ -178,7 +138,7 @@ public sealed interface TlsEcCurveType extends TlsIdentifiableProperty<Byte>, Tl
 
         static final TlsEcParametersDeserializer DESERIALIZER = new TlsEcParametersDeserializer() {
             @Override
-            public Byte id() {
+            public byte id() {
                 return ID;
             }
 
@@ -245,7 +205,7 @@ public sealed interface TlsEcCurveType extends TlsIdentifiableProperty<Byte>, Tl
         }
 
         @Override
-        public Byte id() {
+        public byte id() {
             return ID;
         }
 
@@ -344,7 +304,7 @@ public sealed interface TlsEcCurveType extends TlsIdentifiableProperty<Byte>, Tl
         private static final byte ID = 3;
         static final TlsEcParametersDeserializer DESERIALIZER = new TlsEcParametersDeserializer() {
             @Override
-            public Byte id() {
+            public byte id() {
                 return ID;
             }
 
@@ -362,7 +322,7 @@ public sealed interface TlsEcCurveType extends TlsIdentifiableProperty<Byte>, Tl
         }
 
         @Override
-        public Byte id() {
+        public byte id() {
             return ID;
         }
 
@@ -387,7 +347,7 @@ public sealed interface TlsEcCurveType extends TlsIdentifiableProperty<Byte>, Tl
 
         @Override
         public TlsSupportedEllipticCurve toGroup(TlsContext context) {
-            return context.getNegotiatedValue(TlsProperty.supportedGroups())
+            return context.getNegotiatedValue(TlsContextualProperty.supportedGroups())
                     .orElseThrow(() -> new TlsAlert("Missing negotiated property: supportedGroups", TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR))
                     .stream()
                     .filter(entry -> entry instanceof TlsSupportedEllipticCurve supportedCurve && supportedCurve.accepts(namedGroup))
@@ -397,64 +357,20 @@ public sealed interface TlsEcCurveType extends TlsIdentifiableProperty<Byte>, Tl
         }
     }
 
-    final class Reserved implements TlsEcCurveType {
+    non-sealed abstract class Reserved implements TlsEcCurveType {
         private final byte id;
-        private final TlsEcParametersDeserializer deserializer;
-        private final TlsSerializableProperty payload;
-        private final Function<TlsContext, TlsSupportedEllipticCurve> converter;
 
-        private Reserved(byte id, TlsEcParametersDeserializer deserializer, TlsSerializableProperty payload, Function<TlsContext, TlsSupportedEllipticCurve> converter) {
+        protected Reserved(byte id) {
+            if (id < -8 || id > -1) {
+                throw new IllegalArgumentException("Only values from 248-255 (decimal) inclusive are reserved for Private Use");
+            }
+
             this.id = id;
-            this.deserializer = deserializer;
-            this.payload = payload;
-            this.converter = converter;
         }
 
         @Override
-        public Byte id() {
+        public final byte id() {
             return id;
-        }
-
-        @Override
-        public TlsEcParametersDeserializer deserializer() {
-            if(deserializer == null) {
-                throw new TlsAlert(
-                        "Negotiated a fake EC curve type",
-                        TlsAlertLevel.FATAL,
-                        TlsAlertType.INTERNAL_ERROR
-                );
-            }else {
-                return deserializer;
-            }
-        }
-
-        @Override
-        public TlsSupportedEllipticCurve toGroup(TlsContext context) {
-            if(converter == null) {
-                throw new TlsAlert(
-                        "Negotiated a fake EC curve type",
-                        TlsAlertLevel.FATAL,
-                        TlsAlertType.INTERNAL_ERROR
-                );
-            }else {
-                return converter.apply(context);
-            }
-        }
-
-        @Override
-        public void serialize(ByteBuffer buffer) {
-            if(payload != null) {
-                payload.serialize(buffer);
-            }
-        }
-
-        @Override
-        public int length() {
-            if(payload == null) {
-                return 0;
-            }else {
-                return payload.length();
-            }
         }
     }
 }

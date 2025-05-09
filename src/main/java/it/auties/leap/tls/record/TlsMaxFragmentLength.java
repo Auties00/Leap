@@ -1,14 +1,12 @@
 package it.auties.leap.tls.record;
 
-import it.auties.leap.tls.property.TlsIdentifiableProperty;
-
 import java.util.Arrays;
 import java.util.Map;
 import java.util.Optional;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
-public enum TlsMaxFragmentLength implements TlsIdentifiableProperty<Byte> {
+public enum TlsMaxFragmentLength {
     TWO_TO_THE_NINTH((byte) 1),
     TWO_TO_THE_TENTH((byte) 2),
     TWO_TO_THE_ELEVENTH((byte) 3),
@@ -27,8 +25,7 @@ public enum TlsMaxFragmentLength implements TlsIdentifiableProperty<Byte> {
         return Optional.ofNullable(VALUES.get(id));
     }
 
-    @Override
-    public Byte id() {
+    public byte id() {
         return id;
     }
 }

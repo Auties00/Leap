@@ -237,7 +237,7 @@ public final class AsyncHttpSerializer<T> {
     }
 
     private HttpResponse<T> buildResponse(HttpVersion version, HttpResponseStatus status, HttpMutableHeaders headers, ByteBuffer buffer) {
-        return HttpResponse.<T>newBuilder()
+        return HttpResponse.<T>builder()
                 .version(version)
                 .status(status)
                 .headers(headers.toImmutableHeaders())

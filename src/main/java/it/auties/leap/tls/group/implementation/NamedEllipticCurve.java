@@ -3,18 +3,16 @@ package it.auties.leap.tls.group.implementation;
 import it.auties.leap.tls.alert.TlsAlert;
 import it.auties.leap.tls.alert.TlsAlertLevel;
 import it.auties.leap.tls.alert.TlsAlertType;
+import it.auties.leap.tls.connection.TlsConnectionSecret;
 import it.auties.leap.tls.context.TlsContext;
 import it.auties.leap.tls.ec.TlsEcCurveType;
 import it.auties.leap.tls.ec.TlsEcParametersDeserializer;
 import it.auties.leap.tls.group.TlsSupportedEllipticCurve;
-import it.auties.leap.tls.property.TlsProperty;
-import it.auties.leap.tls.connection.TlsConnectionSecret;
 import it.auties.leap.tls.util.EcKeyUtils;
 import org.bouncycastle.jce.ECNamedCurveTable;
 import org.bouncycastle.jce.interfaces.ECPublicKey;
 import org.bouncycastle.jce.spec.ECNamedCurveParameterSpec;
 
-import javax.crypto.KeyAgreement;
 import javax.crypto.interfaces.DHPublicKey;
 import java.security.*;
 import java.security.interfaces.XECPublicKey;
@@ -266,7 +264,7 @@ public final class NamedEllipticCurve implements TlsSupportedEllipticCurve {
     }
 
     @Override
-    public Integer id() {
+    public int id() {
         return id;
     }
 
@@ -291,7 +289,12 @@ public final class NamedEllipticCurve implements TlsSupportedEllipticCurve {
             keyPairGenerator.initialize(spec);
             return keyPairGenerator.generateKeyPair();
         } catch (GeneralSecurityException exception) {
-            throw new TlsAlert("Cannot generate EC keypair: " + exception.getMessage(), TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR);
+            throw new TlsAlert(
+                    "Cannot generate keypair: " + exception.getMessage(),
+                    exception,
+                    TlsAlertLevel.FATAL,
+                    TlsAlertType.HANDSHAKE_FAILURE
+            );
         }
     }
 
@@ -319,10 +322,13 @@ public final class NamedEllipticCurve implements TlsSupportedEllipticCurve {
                 }
                 default -> throw new TlsAlert("Unsupported spec", TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR);
             };
-        } catch (NoSuchAlgorithmException exception) {
-            throw new TlsAlert("Missing DH implementation: " + exception.getMessage(), TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR);
         } catch (GeneralSecurityException exception) {
-            throw new TlsAlert("Cannot parse public DH key: " +exception.getMessage(), TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR);
+            throw new TlsAlert(
+                    "Cannot parse public key: " + exception.getMessage(),
+                    exception,
+                    TlsAlertLevel.FATAL,
+                    TlsAlertType.HANDSHAKE_FAILURE
+            );
         }
     }
 
@@ -332,41 +338,16 @@ public final class NamedEllipticCurve implements TlsSupportedEllipticCurve {
             case XECPublicKey publicKey -> EcKeyUtils.toUnsignedLittleEndianBytes(publicKey.getU());
             case DHPublicKey publicKey -> EcKeyUtils.toUnsignedLittleEndianBytes(publicKey.getY());
             case ECPublicKey publicKey -> publicKey.getQ().getEncoded(false);
-            default -> throw new TlsAlert("Unsupported key type", TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR);
+            default -> throw new TlsAlert(
+                    "Cannot dump public key: unsupported key type",
+                    TlsAlertLevel.FATAL,
+                    TlsAlertType.HANDSHAKE_FAILURE
+            );
         };
     }
 
     @Override
     public TlsConnectionSecret computeSharedSecret(TlsContext context) {
-        var privateKey = context.localConnectionState()
-                .ephemeralKeyPair()
-                .orElseThrow(() -> new TlsAlert("Missing local ephemeral key pair", TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR))
-                .privateKey()
-                .orElseThrow(() -> new TlsAlert("Missing local ephemeral private key", TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR));
-        var keyExchangeType = context.getNegotiatedValue(TlsProperty.cipher())
-                .orElseThrow(() -> new TlsAlert("Missing negotiated property: cipher", TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR))
-                .keyExchangeFactory()
-                .type();
-        var publicKey = switch (keyExchangeType) {
-            case STATIC -> context.remoteConnectionState()
-                    .orElseThrow(() -> new TlsAlert("No remote connection state was created", TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR))
-                    .staticCertificate()
-                    .orElseThrow(() -> new TlsAlert("Expected at least one static DH certificate", TlsAlertLevel.FATAL, TlsAlertType.CERTIFICATE_UNOBTAINABLE))
-                    .value()
-                    .getPublicKey();
-            case EPHEMERAL -> context.remoteConnectionState()
-                    .orElseThrow(() -> new TlsAlert("No remote connection state was created", TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR))
-                    .ephemeralKeyPair()
-                    .orElseThrow(() -> new TlsAlert("Missing remote public key for ephemeral pre master secret generation", TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR))
-                    .publicKey();
-        };
-        try {
-            var keyAgreement = KeyAgreement.getInstance(algorithm);
-            keyAgreement.init(privateKey, spec);
-            keyAgreement.doPhase(publicKey, true);
-            return TlsConnectionSecret.of(keyAgreement.generateSecret());
-        }catch (GeneralSecurityException exception) {
-            throw new TlsAlert("Cannot compute shared secret: " + exception.getMessage(), TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR);
-        }
+        return JcaSharedSecret.compute(context, algorithm, spec);
     }
 }

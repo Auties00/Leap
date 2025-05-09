@@ -4,6 +4,7 @@ import it.auties.leap.tls.context.TlsContext;
 import it.auties.leap.tls.context.TlsSource;
 import it.auties.leap.tls.extension.TlsExtension;
 import it.auties.leap.tls.extension.TlsExtensionDependencies;
+import it.auties.leap.tls.extension.TlsExtensionPayload;
 import it.auties.leap.tls.version.TlsVersion;
 
 import java.nio.ByteBuffer;
@@ -16,7 +17,7 @@ import static it.auties.leap.tls.util.BufferUtils.writeBytes;
 public record GREASEExtension(
         int type,
         byte[] data
-) implements TlsExtension.Configured.Agnostic {
+) implements TlsExtension.Agnostic, TlsExtensionPayload {
     @Override
     public void serializePayload(ByteBuffer buffer) {
         if(data != null) {
@@ -26,7 +27,12 @@ public record GREASEExtension(
 
     @Override
     public int payloadLength() {
-        return 0;
+        return data == null ? 0 : data.length;
+    }
+
+    @Override
+    public TlsExtensionPayload toPayload(TlsContext context) {
+        return this;
     }
 
     @Override
@@ -40,9 +46,18 @@ public record GREASEExtension(
     }
 
     @Override
-    public Optional<GREASEExtension> deserialize(TlsContext context, int type, ByteBuffer buffer) {
-        var payload = buffer.hasRemaining() ? readBytes(buffer, buffer.remaining()) : null;
-        var extension = new GREASEExtension(type, payload);
+    public Optional<GREASEExtension> deserializeClient(TlsContext context, int type, ByteBuffer source) {
+        return deserialize(type, source);
+    }
+
+    @Override
+    public Optional<? extends Client> deserializeServer(TlsContext context, int type, ByteBuffer source) {
+        return deserialize(type, source);
+    }
+
+    private Optional<GREASEExtension> deserialize(int responseType, ByteBuffer response) {
+        var payload = response.hasRemaining() ? readBytes(response, response.remaining()) : null;
+        var extension = new GREASEExtension(responseType, payload);
         return Optional.of(extension);
     }
 

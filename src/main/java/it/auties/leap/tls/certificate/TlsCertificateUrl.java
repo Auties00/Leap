@@ -3,8 +3,6 @@ package it.auties.leap.tls.certificate;
 import it.auties.leap.tls.alert.TlsAlert;
 import it.auties.leap.tls.alert.TlsAlertLevel;
 import it.auties.leap.tls.alert.TlsAlertType;
-import it.auties.leap.tls.property.TlsIdentifiableProperty;
-import it.auties.leap.tls.property.TlsSerializableProperty;
 
 import java.nio.ByteBuffer;
 import java.util.*;
@@ -13,7 +11,7 @@ import java.util.stream.Collectors;
 
 import static it.auties.leap.tls.util.BufferUtils.*;
 
-public final class TlsCertificateUrl implements TlsSerializableProperty {
+public final class TlsCertificateUrl {
     private final IdentifierType type;
     private final List<TlsCertificateUrlAndHash> urlAndHashList;
     private final int urlAndHashListLength;
@@ -25,14 +23,8 @@ public final class TlsCertificateUrl implements TlsSerializableProperty {
     }
 
     public static TlsCertificateUrl of(IdentifierType type, List<TlsCertificateUrlAndHash> urlAndHashList) {
-        if (type == null) {
-            throw new TlsAlert("Type cannot be null", TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR);
-        }
-
-        if (urlAndHashList == null) {
-            throw new TlsAlert("Url and hash list cannot be null", TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR);
-        }
-
+        Objects.requireNonNull(type, "Type cannot be null");
+        Objects.requireNonNull(urlAndHashList, "Url and hash list cannot be null");
         var length = urlAndHashList.stream()
                 .mapToInt(TlsCertificateUrlAndHash::length)
                 .sum();
@@ -62,7 +54,6 @@ public final class TlsCertificateUrl implements TlsSerializableProperty {
         return urlAndHashList;
     }
 
-    @Override
     public void serialize(ByteBuffer buffer) {
         writeBigEndianInt8(buffer, type().id());
         if(urlAndHashListLength > 0) {
@@ -73,7 +64,6 @@ public final class TlsCertificateUrl implements TlsSerializableProperty {
         }
     }
 
-    @Override
     public int length() {
         if(urlAndHashListLength > 0) {
             return INT8_LENGTH
@@ -83,7 +73,7 @@ public final class TlsCertificateUrl implements TlsSerializableProperty {
         }
     }
 
-    public enum IdentifierType implements TlsIdentifiableProperty<Byte> {
+    public enum IdentifierType {
         INDIVIDUAL_CERTS((byte) 0),
         PKIPATH((byte) 1);
 
@@ -99,8 +89,7 @@ public final class TlsCertificateUrl implements TlsSerializableProperty {
             return Optional.ofNullable(VALUES.get(value));
         }
 
-        @Override
-        public Byte id() {
+        public byte id() {
             return id;
         }
     }

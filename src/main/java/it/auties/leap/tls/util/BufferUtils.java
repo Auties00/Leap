@@ -174,6 +174,21 @@ public final class BufferUtils {
         return sliced;
     }
 
+    public static ByteBuffer readBufferBigEndian8(ByteBuffer buffer) {
+        var length = readBigEndianInt8(buffer);
+        return readBuffer(buffer, length);
+    }
+
+    public static ByteBuffer readBufferBigEndian16(ByteBuffer buffer) {
+        var length = readBigEndianInt16(buffer);
+        return readBuffer(buffer, length);
+    }
+
+    public static ByteBuffer readBufferBigEndian24(ByteBuffer buffer) {
+        var length = readBigEndianInt24(buffer);
+        return readBuffer(buffer, length);
+    }
+
     public static ByteBuffer readBufferLittleEndian8(ByteBuffer buffer) {
         var length = readLittleEndianInt8(buffer);
         return readBuffer(buffer, length);

@@ -1,14 +1,12 @@
 package it.auties.leap.tls.message;
 
-import it.auties.leap.tls.property.TlsIdentifiableProperty;
-
 import java.util.Arrays;
 import java.util.Map;
 import java.util.Optional;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
-public enum TlsMessageContentType implements TlsIdentifiableProperty<Byte> {
+public enum TlsMessageContentType {
     CHANGE_CIPHER_SPEC((byte) 20, TlsMessageDeserializer.changeCipherSpec()),
     ALERT((byte) 21, TlsMessageDeserializer.alert()),
     HANDSHAKE((byte) 22, TlsMessageDeserializer.handshake()),
@@ -29,8 +27,7 @@ public enum TlsMessageContentType implements TlsIdentifiableProperty<Byte> {
         this.deserializer = deserializer;
     }
 
-    @Override
-    public Byte id() {
+    public byte id() {
         return id;
     }
 

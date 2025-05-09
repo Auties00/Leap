@@ -62,4 +62,8 @@ public record HelloVerifyRequestMessage(
     public boolean hashable() {
         return true;
     }
+
+    public void validate(TlsContext context) {
+
+    }
 }

@@ -41,7 +41,7 @@ public class TLS13_GCM_SocketTest {
         var compressions = List.of(
                 TlsCompression.none()
         );
-        var tlsConfig = TlsContext.newClientBuilder()
+        var tlsConfig = TlsContext.clientBuilder()
                 .versions(List.of(TlsVersion.TLS13))
                 .ciphers(ciphers)
                 .extensions(extensions)
@@ -49,7 +49,7 @@ public class TLS13_GCM_SocketTest {
                 .certificateValidator(TlsCertificateValidator.discard())
                 .build();
         try (
-                var socket = SocketClient.newBuilder()
+                var socket = SocketClient.builder()
                         .async(SocketProtocol.TCP)
                         .secure(tlsConfig)
                         .build()

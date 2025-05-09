@@ -9,8 +9,8 @@ import it.auties.leap.tls.context.TlsSource;
 import it.auties.leap.tls.ec.TlsEcPointFormat;
 import it.auties.leap.tls.extension.TlsExtension;
 import it.auties.leap.tls.extension.TlsExtensionDependencies;
-import it.auties.leap.tls.property.TlsIdentifiableProperty;
-import it.auties.leap.tls.property.TlsProperty;
+import it.auties.leap.tls.context.TlsContextualProperty;
+import it.auties.leap.tls.extension.TlsExtensionPayload;
 import it.auties.leap.tls.version.TlsVersion;
 
 import java.nio.ByteBuffer;
@@ -24,10 +24,14 @@ import static it.auties.leap.tls.util.BufferUtils.*;
 
 public record ECPointFormatExtension(
         List<TlsEcPointFormat> supportedFormats
-) implements TlsExtension.Configured.Agnostic {
-    private static final ECPointFormatExtension ALL = new ECPointFormatExtension(TlsEcPointFormat.values());
+) implements TlsExtension.Agnostic, TlsExtensionPayload {
+    private static final ECPointFormatExtension ALL = new ECPointFormatExtension(List.of(
+            TlsEcPointFormat.uncompressed(),
+            TlsEcPointFormat.ansix962CompressedPrime(),
+            TlsEcPointFormat.ansix962CompressedChar2()
+    ));
 
-    public static TlsExtension.Configured.Agnostic all() {
+    public static TlsExtension.Agnostic all() {
         return ALL;
     }
 
@@ -45,6 +49,11 @@ public record ECPointFormatExtension(
     }
 
     @Override
+    public TlsExtensionPayload toPayload(TlsContext context) {
+        return this;
+    }
+
+    @Override
     public void apply(TlsContext context, TlsSource source) {
         var connection = switch (source) {
             case LOCAL -> context.localConnectionState();
@@ -52,22 +61,31 @@ public record ECPointFormatExtension(
                     .orElseThrow(() -> new TlsAlert("No remote connection state was created", TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR));
         };
         switch (connection.type()) {
-            case CLIENT -> context.addNegotiableProperty(TlsProperty.ecPointsFormats(), supportedFormats);
-            case SERVER -> context.addNegotiatedProperty(TlsProperty.ecPointsFormats(), supportedFormats);
+            case CLIENT -> context.addAdvertisedValue(TlsContextualProperty.ecPointsFormats(), supportedFormats);
+            case SERVER -> context.addNegotiatedValue(TlsContextualProperty.ecPointsFormats(), supportedFormats);
         }
     }
 
     @Override
-    public Optional<ECPointFormatExtension> deserialize(TlsContext context, int type, ByteBuffer buffer) {
-        var ecPointFormatsLength = readBigEndianInt8(buffer);
+    public Optional<ECPointFormatExtension> deserializeClient(TlsContext context, int type, ByteBuffer source) {
+        return deserialize(context, source);
+    }
+
+    @Override
+    public Optional<? extends Client> deserializeServer(TlsContext context, int type, ByteBuffer source) {
+        return deserialize(context, source);
+    }
+
+    private Optional<ECPointFormatExtension> deserialize(TlsContext context, ByteBuffer response) {
+        var ecPointFormatsLength = readBigEndianInt8(response);
         var remoteEcPointFormats = new ArrayList<TlsEcPointFormat>();
-        var localEcPointFormats = context.getNegotiableValue(TlsProperty.ecPointsFormats())
+        var localEcPointFormats = context.getAdvertisedValue(TlsContextualProperty.ecPointsFormats())
                 .orElseThrow(() -> new TlsAlert("Missing negotiable property: ecPointsFormats", TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR))
                 .stream()
-                .collect(Collectors.toUnmodifiableMap(TlsIdentifiableProperty::id, Function.identity()));
+                .collect(Collectors.toUnmodifiableMap(TlsEcPointFormat::id, Function.identity()));
         var mode = context.localConnectionState().type();
         for(var i = 0; i < ecPointFormatsLength; i++) {
-            var ecPointFormatId = readBigEndianInt8(buffer);
+            var ecPointFormatId = readBigEndianInt8(response);
             var ecPointFormat = localEcPointFormats.get(ecPointFormatId);
             if(ecPointFormat != null) {
                 remoteEcPointFormats.add(ecPointFormat);

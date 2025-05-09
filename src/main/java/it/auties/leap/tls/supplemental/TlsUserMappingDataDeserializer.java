@@ -3,11 +3,10 @@ package it.auties.leap.tls.supplemental;
 import it.auties.leap.tls.alert.TlsAlert;
 import it.auties.leap.tls.alert.TlsAlertLevel;
 import it.auties.leap.tls.alert.TlsAlertType;
-import it.auties.leap.tls.property.TlsIdentifiableProperty;
 
 import java.nio.ByteBuffer;
 
-public interface TlsUserMappingDataDeserializer extends TlsIdentifiableProperty<Byte> {
+public interface TlsUserMappingDataDeserializer {
     static TlsUserMappingDataDeserializer upnDomainHint() {
         return TlsUserMappingData.UpnDomainHint.DESERIALIZER;
     }
@@ -15,7 +14,7 @@ public interface TlsUserMappingDataDeserializer extends TlsIdentifiableProperty<
     static TlsUserMappingDataDeserializer unsupported(byte id) {
         final class Unsupported implements TlsUserMappingDataDeserializer {
             @Override
-            public Byte id() {
+            public byte id() {
                 return id;
             }
 
@@ -28,5 +27,6 @@ public interface TlsUserMappingDataDeserializer extends TlsIdentifiableProperty<
         return new Unsupported();
     }
 
+    byte id();
     TlsUserMappingData deserialize(ByteBuffer buffer);
 }

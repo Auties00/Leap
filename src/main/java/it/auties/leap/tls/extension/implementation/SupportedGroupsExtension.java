@@ -4,14 +4,14 @@ import it.auties.leap.tls.alert.TlsAlert;
 import it.auties.leap.tls.alert.TlsAlertLevel;
 import it.auties.leap.tls.alert.TlsAlertType;
 import it.auties.leap.tls.context.TlsContext;
+import it.auties.leap.tls.context.TlsContextualProperty;
 import it.auties.leap.tls.context.TlsSource;
 import it.auties.leap.tls.extension.TlsExtension;
 import it.auties.leap.tls.extension.TlsExtensionDependencies;
+import it.auties.leap.tls.extension.TlsExtensionPayload;
 import it.auties.leap.tls.group.TlsSupportedEllipticCurve;
 import it.auties.leap.tls.group.TlsSupportedFiniteField;
 import it.auties.leap.tls.group.TlsSupportedGroup;
-import it.auties.leap.tls.property.TlsIdentifiableProperty;
-import it.auties.leap.tls.property.TlsProperty;
 import it.auties.leap.tls.version.TlsVersion;
 
 import java.nio.ByteBuffer;
@@ -25,7 +25,7 @@ import static it.auties.leap.tls.util.BufferUtils.*;
 
 public record SupportedGroupsExtension(
         List<TlsSupportedGroup> groups
-) implements TlsExtension.Configured.Agnostic {
+) implements TlsExtension.Agnostic, TlsExtensionPayload {
     private static final SupportedGroupsExtension RECOMMENDED = new SupportedGroupsExtension(List.of(
             TlsSupportedEllipticCurve.x25519(),
             TlsSupportedEllipticCurve.x448(),
@@ -55,6 +55,11 @@ public record SupportedGroupsExtension(
     }
 
     @Override
+    public TlsExtensionPayload toPayload(TlsContext context) {
+        return this;
+    }
+
+    @Override
     public void apply(TlsContext context, TlsSource source) {
         var connection = switch (source) {
             case LOCAL -> context.localConnectionState();
@@ -62,18 +67,27 @@ public record SupportedGroupsExtension(
                     .orElseThrow(() -> new TlsAlert("No remote connection state was created", TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR));
         };
         switch (connection.type()) {
-            case CLIENT -> context.addNegotiableProperty(TlsProperty.supportedGroups(), groups);
-            case SERVER -> context.addNegotiatedProperty(TlsProperty.supportedGroups(), groups);
+            case CLIENT -> context.addAdvertisedValue(TlsContextualProperty.supportedGroups(), groups);
+            case SERVER -> context.addNegotiatedValue(TlsContextualProperty.supportedGroups(), groups);
         }
     }
 
     @Override
-    public Optional<SupportedGroupsExtension> deserialize(TlsContext context, int type, ByteBuffer buffer) {
+    public Optional<SupportedGroupsExtension> deserializeClient(TlsContext context, int type, ByteBuffer source) {
+        return deserialize(context, source);
+    }
+
+    @Override
+    public Optional<SupportedGroupsExtension> deserializeServer(TlsContext context, int type, ByteBuffer source) {
+        return deserialize(context, source);
+    }
+
+    private Optional<SupportedGroupsExtension> deserialize(TlsContext context, ByteBuffer buffer) {
         var groupsSize = readBigEndianInt16(buffer);
-        var knownGroups = context.getNegotiableValue(TlsProperty.supportedGroups())
+        var knownGroups = context.getAdvertisedValue(TlsContextualProperty.supportedGroups())
                 .orElseThrow(() -> new TlsAlert("Missing negotiable property: supportedGroups", TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR))
                 .stream()
-                .collect(Collectors.toUnmodifiableMap(TlsIdentifiableProperty::id, Function.identity()));
+                .collect(Collectors.toUnmodifiableMap(TlsSupportedGroup::id, Function.identity()));
         var groups = new ArrayList<TlsSupportedGroup>(groupsSize);
         try(var _ = scopedRead(buffer, groupsSize)) {
             while(buffer.hasRemaining()) {

@@ -1,10 +1,8 @@
 package it.auties.leap.tls.ec;
 
-import it.auties.leap.tls.property.TlsIdentifiableProperty;
-
 import java.nio.ByteBuffer;
 
-public interface TlsEcParametersDeserializer extends TlsIdentifiableProperty<Byte> {
+public interface TlsEcParametersDeserializer {
     static TlsEcParametersDeserializer explicitChar2() {
         return TlsEcCurveType.ExplicitChar2.DESERIALIZER;
     }
@@ -17,5 +15,6 @@ public interface TlsEcParametersDeserializer extends TlsIdentifiableProperty<Byt
         return TlsEcCurveType.NamedCurve.DESERIALIZER;
     }
 
+    byte id();
     TlsEcCurveType deserialize(ByteBuffer buffer);
 }

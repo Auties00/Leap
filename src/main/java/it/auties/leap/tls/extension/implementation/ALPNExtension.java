@@ -8,7 +8,8 @@ import it.auties.leap.tls.connection.TlsConnectionType;
 import it.auties.leap.tls.context.TlsSource;
 import it.auties.leap.tls.extension.TlsExtension;
 import it.auties.leap.tls.extension.TlsExtensionDependencies;
-import it.auties.leap.tls.property.TlsProperty;
+import it.auties.leap.tls.context.TlsContextualProperty;
+import it.auties.leap.tls.extension.TlsExtensionPayload;
 import it.auties.leap.tls.version.TlsVersion;
 
 import java.nio.ByteBuffer;
@@ -23,7 +24,7 @@ import static it.auties.leap.tls.util.BufferUtils.*;
 public record ALPNExtension(
       List<String> supportedProtocols,
       int supportedProtocolsSize
-) implements TlsExtension.Configured.Agnostic {
+) implements TlsExtension.Agnostic, TlsExtensionPayload {
     public ALPNExtension(List<String> supportedProtocols) {
         var supportedProtocolsSources = new ArrayList<String>(supportedProtocols.size());
         var supportedProtocolsLength = 0;
@@ -32,6 +33,11 @@ public record ALPNExtension(
             supportedProtocolsLength += INT8_LENGTH + supportedProtocol.length();
         }
         this(supportedProtocolsSources, supportedProtocolsLength);
+    }
+
+    @Override
+    public TlsExtensionPayload toPayload(TlsContext context) {
+        return this;
     }
 
     @Override
@@ -55,22 +61,31 @@ public record ALPNExtension(
                     .orElseThrow(() -> new TlsAlert("No remote connection state was created", TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR));
         };
         switch (connection.type()) {
-            case CLIENT -> context.addNegotiableProperty(TlsProperty.applicationProtocols(), supportedProtocols);
-            case SERVER -> context.addNegotiatedProperty(TlsProperty.applicationProtocols(), supportedProtocols);
+            case CLIENT -> context.addAdvertisedValue(TlsContextualProperty.applicationProtocols(), supportedProtocols);
+            case SERVER -> context.addNegotiatedValue(TlsContextualProperty.applicationProtocols(), supportedProtocols);
         }
     }
 
     @Override
-    public Optional<ALPNExtension> deserialize(TlsContext context, int type, ByteBuffer buffer) {
-        var supportedProtocolsSize = readBigEndianInt16(buffer);
+    public Optional<ALPNExtension> deserializeClient(TlsContext context, int type, ByteBuffer source) {
+        return deserialize(context, source);
+    }
+
+    @Override
+    public Optional<? extends Client> deserializeServer(TlsContext context, int type, ByteBuffer source) {
+        return deserialize(context, source);
+    }
+
+    private Optional<ALPNExtension> deserialize(TlsContext context, ByteBuffer response) {
+        var supportedProtocolsSize = readBigEndianInt16(response);
         var supportedProtocols = new ArrayList<String>();
-        var negotiableProtocols = context.getNegotiableValue(TlsProperty.applicationProtocols())
+        var negotiableProtocols = context.getAdvertisedValue(TlsContextualProperty.applicationProtocols())
                 .orElseThrow(() -> new TlsAlert("Missing negotiable property: applicationProtocols", TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR));
         var negotiableProtocolsSet = new HashSet<>(negotiableProtocols);
         var mode = context.localConnectionState().type();
-        try(var _ = scopedRead(buffer, supportedProtocolsSize)) {
-            while (buffer.hasRemaining()) {
-                var supportedProtocol = new String(readBytesBigEndian8(buffer), StandardCharsets.US_ASCII);
+        try(var _ = scopedRead(response, supportedProtocolsSize)) {
+            while (response.hasRemaining()) {
+                var supportedProtocol = new String(readBytesBigEndian8(response), StandardCharsets.US_ASCII);
                 if(negotiableProtocolsSet.contains(supportedProtocol)) {
                     supportedProtocols.add(supportedProtocol);
                 }else if(mode == TlsConnectionType.CLIENT) {

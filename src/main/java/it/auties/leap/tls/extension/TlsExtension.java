@@ -1,5 +1,8 @@
 package it.auties.leap.tls.extension;
 
+import it.auties.leap.tls.alert.TlsAlert;
+import it.auties.leap.tls.alert.TlsAlertLevel;
+import it.auties.leap.tls.alert.TlsAlertType;
 import it.auties.leap.tls.certificate.TlsCertificateStatus;
 import it.auties.leap.tls.certificate.TlsCertificateTrustedAuthorities;
 import it.auties.leap.tls.context.TlsContext;
@@ -12,12 +15,20 @@ import it.auties.leap.tls.record.TlsMaxFragmentLength;
 import it.auties.leap.tls.signature.TlsSignature;
 import it.auties.leap.tls.supplemental.TlsUserMappingData;
 import it.auties.leap.tls.version.TlsVersion;
+import it.auties.leap.tls.version.TlsVersionId;
 
 import java.nio.ByteBuffer;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
-public sealed interface TlsExtension extends TlsExtensionMetadataProvider {
+import static it.auties.leap.tls.util.BufferUtils.*;
+import static it.auties.leap.tls.util.BufferUtils.readBigEndianInt16;
+import static it.auties.leap.tls.util.BufferUtils.scopedRead;
+
+public sealed interface TlsExtension {
     // Pre-TLS 1.3 Extensions (or extensions behaving differently in 1.3)
     List<TlsVersion> RENEGOTIATION_INFO_VERSIONS = List.of(TlsVersion.TLS10, TlsVersion.TLS11, TlsVersion.TLS12); // RFC 5746 - Not used in TLS 1.3
     List<TlsVersion> SESSION_TICKET_VERSIONS = List.of(TlsVersion.TLS10, TlsVersion.TLS11, TlsVersion.TLS12); // RFC 5077 - Superseded by PSK mechanism in TLS 1.3
@@ -26,8 +37,7 @@ public sealed interface TlsExtension extends TlsExtensionMetadataProvider {
     List<TlsVersion> EC_POINT_FORMATS_VERSIONS = List.of(TlsVersion.TLS10, TlsVersion.TLS11, TlsVersion.TLS12); // RFC 8422/4492 - Not used in TLS 1.3 (only uncompressed allowed)
     List<TlsVersion> HEARTBEAT_VERSIONS = List.of(TlsVersion.TLS10, TlsVersion.TLS11, TlsVersion.TLS12, TlsVersion.DTLS10, TlsVersion.DTLS12); // RFC 6520 - Applies to DTLS; Forbidden in TLS 1.3
     List<TlsVersion> SRP_VERSIONS = List.of(TlsVersion.TLS10, TlsVersion.TLS11, TlsVersion.TLS12); // RFC 5054 - Pre-TLS 1.3
-    List<TlsVersion> NEXT_PROTOCOL_NEGOTIATION_VERSIONS = List.of(TlsVersion.TLS10, TlsVersion.TLS11, TlsVersion.TLS12); // Draft, largely unused/superseded by ALPN. Limiting to pre-1.3 seems reasonable.
-    // --- Deprecated/Obsolete but maybe supported for legacy ---
+    List<TlsVersion> NEXT_PROTOCOL_NEGOTIATION_VERSIONS = List.of(TlsVersion.TLS10, TlsVersion.TLS11, TlsVersion.TLS12); // Draft, largely unused/superseded by ALPN. Limiting to pre-1.3 seems reasonable.-
     List<TlsVersion> CERT_TYPE_VERSIONS = List.of(TlsVersion.TLS10, TlsVersion.TLS11, TlsVersion.TLS12); // RFC 6091 (Obsolete by RFC 7250 for TLS 1.2+)
     List<TlsVersion> TRUNCATED_HMAC_VERSIONS = List.of(TlsVersion.TLS10, TlsVersion.TLS11, TlsVersion.TLS12); // RFC 6066 - Not used in TLS 1.3
     List<TlsVersion> CLIENT_CERTIFICATE_URL_VERSIONS = List.of(TlsVersion.TLS10, TlsVersion.TLS11, TlsVersion.TLS12); // RFC 6066
@@ -43,7 +53,6 @@ public sealed interface TlsExtension extends TlsExtensionMetadataProvider {
     List<TlsVersion> TLMSP_PROXYING_VERSIONS = List.of(TlsVersion.TLS10, TlsVersion.TLS11, TlsVersion.TLS12, TlsVersion.TLS13); // Experimental RFC 7633 - Assume general applicability.
     List<TlsVersion> TLMSP_VERSIONS = List.of(TlsVersion.TLS10, TlsVersion.TLS11, TlsVersion.TLS12, TlsVersion.TLS13); // Experimental RFC 7633 - Assume general applicability.
     List<TlsVersion> SUPPORTED_EKT_CIPHERS_VERSIONS = List.of(TlsVersion.TLS10, TlsVersion.TLS11, TlsVersion.TLS12, TlsVersion.TLS13); // RFC 8870 - Used with DTLS-SRTP. Applicable across versions where SRTP is used.
-
 
     // Extensions introduced in TLS 1.2 and applicable forward
     List<TlsVersion> SIGNATURE_ALGORITHMS_VERSIONS = List.of(TlsVersion.TLS12, TlsVersion.TLS13, TlsVersion.DTLS12, TlsVersion.DTLS13); // RFC 5246 (TLS 1.2) / RFC 8446 (TLS 1.3)
@@ -164,134 +173,182 @@ public sealed interface TlsExtension extends TlsExtensionMetadataProvider {
     int ENCRYPTED_CLIENT_HELLO_TYPE = 65037;
     int RENEGOTIATION_INFO_TYPE = 65281;
 
-    static Configured.Agnostic extendedMasterSecret() {
+    static List<TlsExtension> of(TlsContext context, ByteBuffer buffer) {
+        var extensions = new ArrayList<TlsExtension>();
+        var extensionsLength = buffer.remaining() >= INT16_LENGTH ? readBigEndianInt16(buffer) : 0;
+        try (var _ = scopedRead(buffer, extensionsLength)) {
+            var extensionTypeToDecoder = context.extensions()
+                    .stream()
+                    .collect(Collectors.toUnmodifiableMap(TlsExtension::type, Function.identity()));
+            while (buffer.hasRemaining()) {
+                var extensionType = readBigEndianInt16(buffer);
+                var extensionDecoder = extensionTypeToDecoder.get(extensionType);
+                if (extensionDecoder == null) {
+                    throw new TlsAlert(
+                            "Cannot decode extension: no extension with type " + extensionType + " was advertised",
+                            TlsAlertLevel.FATAL,
+                            TlsAlertType.DECODE_ERROR
+                    );
+                }
+
+                var extensionLength = readBigEndianInt16(buffer);
+                if (extensionLength == 0) {
+                    continue;
+                }
+
+                try(var _ = scopedRead(buffer, extensionLength)) {
+                    extensionDecoder.deserializeServer(context, extensionType, buffer)
+                            .ifPresent(extensions::add);
+                }
+            }
+        }
+        return extensions;
+    }
+
+    static Agnostic extendedMasterSecret() {
         return ExtendedMasterSecretExtension.instance();
     }
 
-    static Configured.Agnostic encryptThenMac() {
+    static Agnostic encryptThenMac() {
         return EncryptThenMacExtension.instance();
     }
 
-    static Configured.Agnostic postHandshakeAuth() {
+    static Agnostic postHandshakeAuth() {
         return PostHandshakeAuthExtension.instance();
     }
 
-    static Configured.Client nextProtocolNegotiation() {
-        return NPNClientExtension.instance();
+    static Client nextProtocolNegotiation() {
+        return NextProtocolNegotiationExtension.of();
     }
 
-    static Configured.Server nextProtocolNegotiation(String selectedProtocol) {
-        return new NPNServerExtension(selectedProtocol);
+    static Server nextProtocolNegotiation(String selectedProtocol) {
+        return NextProtocolNegotiationExtension.of(selectedProtocol);
     }
 
-    static Configurable serverNameIndication(TlsName.Type nameType) {
-        return new ServerNameExtension(nameType);
+    static Client serverNameIndication(TlsName.Type nameType) {
+        return SNIExtension.of(nameType);
     }
 
-    static Configurable supportedVersions() {
-        return SupportedVersionsExtension.instance();
+    static Client serverNameIndication(TlsName name) {
+        return SNIExtension.of(name);
     }
 
-    static Configured.Agnostic alpn(List<String> supportedProtocols) {
+    static Server serverNameIndication(List<TlsName> names) {
+        return SNIExtension.of(names);
+    }
+
+    static Client supportedVersions() {
+        return SupportedVersionsExtension.of();
+    }
+
+    static Client supportedVersions(List<TlsVersionId> versions) {
+        return SupportedVersionsExtension.of(versions);
+    }
+
+    static Server supportedVersions(TlsVersion version) {
+        return SupportedVersionsExtension.of(version);
+    }
+
+    static Agnostic applicationLayerProtocolNegotiation(List<String> supportedProtocols) {
         return new ALPNExtension(supportedProtocols);
     }
 
-    static Configured.Agnostic padding(int targetLength) {
+    static Agnostic padding(int targetLength) {
         return new PaddingExtension(targetLength);
     }
 
-    static Configured.Agnostic ecPointFormats() {
+    static Agnostic ecPointFormats() {
         return ECPointFormatExtension.all();
     }
 
-    static Configured.Agnostic ecPointFormats(List<TlsEcPointFormat> formats) {
+    static Agnostic ecPointFormats(List<TlsEcPointFormat> formats) {
         return new ECPointFormatExtension(formats);
     }
 
-    static Configured.Agnostic supportedGroups() {
+    static Agnostic supportedGroups() {
         return SupportedGroupsExtension.recommended();
     }
 
-    static Configured.Agnostic supportedGroups(List<TlsSupportedGroup> groups) {
+    static Agnostic supportedGroups(List<TlsSupportedGroup> groups) {
         return new SupportedGroupsExtension(groups);
     }
 
-    static Configured.Agnostic signatureAlgorithms() {
+    static Agnostic signatureAlgorithms() {
         return SignatureAlgorithmsExtension.recommended();
     }
 
-    static Configured.Agnostic signatureAlgorithms(List<TlsSignature> algorithms) {
+    static Agnostic signatureAlgorithms(List<TlsSignature> algorithms) {
         return new SignatureAlgorithmsExtension(algorithms);
     }
 
-    static Configured.Agnostic pskExchangeModes(List<TlsPskExchangeMode> modes) {
+    static Agnostic pskExchangeModes(List<TlsPskExchangeMode> modes) {
         return new PSKExchangeModesExtension(modes);
     }
 
-    static Configured.Agnostic maxFragmentLength(TlsMaxFragmentLength maxFragmentLength) {
+    static Agnostic maxFragmentLength(TlsMaxFragmentLength maxFragmentLength) {
         return new MaxFragmentLengthExtension(maxFragmentLength);
     }
 
-    static Configured.Agnostic clientCertificateUrl() {
+    static Agnostic clientCertificateUrl() {
         return ClientCertificateUrlExtension.instance();
     }
 
-    static Configured.Client trustedCAKeys(TlsCertificateTrustedAuthorities trustedAuthorities) {
-        return new TrustedCAKeysClientExtension(trustedAuthorities);
+    static Client trustedCAKeys(TlsCertificateTrustedAuthorities trustedAuthorities) {
+        return TruncatedCAKeysExtension.of(trustedAuthorities);
     }
 
-    static Configured.Server trustedCAKeys() {
-        return TrustedCAKeysServerExtension.instance();
+    static Server trustedCAKeys() {
+        return TruncatedCAKeysExtension.of();
     }
 
-    static Configured.Server truncatedHmac() {
+    static Server truncatedHmac() {
         return TruncatedHmacExtension.instance();
     }
 
-    static Configured.Server userMapping() {
+    static Server userMapping() {
         return TruncatedHmacExtension.instance();
     }
 
-    static Configured.Client certificateStatusRequest(TlsCertificateStatus.Request request) {
-        return new CertificateStatusRequestClientExtension(request);
+    static Client certificateStatusRequest(TlsCertificateStatus.Request request) {
+        return CertificateStatusRequestExtension.of(request);
     }
 
-    static Configured.Server certificateStatusRequest() {
-        return CertificateStatusRequestServerExtension.instance();
+    static Server certificateStatusRequest() {
+        return CertificateStatusRequestExtension.of();
     }
 
-    static Configured.Agnostic userMappingTypes(List<TlsUserMappingData> data) {
+    static Agnostic userMappingTypes(List<TlsUserMappingData> data) {
         return new UserMappingTypesExtension(data);
     }
 
-    static Configurable keyShare() {
+    static Agnostic keyShare() {
         return KeyShareExtension.instance();
     }
 
-    static Configured.Agnostic grease(int type, byte[] data) {
+    static Agnostic grease(int type, byte[] data) {
         return new GREASEExtension(type, data);
     }
 
-    static Configured.Agnostic grease(int type) {
+    static Agnostic grease(int type) {
         return new GREASEExtension(type, null);
     }
 
-    sealed interface Configured extends TlsExtension, TlsExtensionState.Configured {
-        non-sealed interface Client extends TlsExtension.Configured, TlsExtensionOwner.Client {
-            Optional<? extends TlsExtension.Configured.Server> deserialize(TlsContext context, int type, ByteBuffer response);
-        }
+    int type();
+    List<TlsVersion> versions();
+    TlsExtensionDependencies dependencies();
+    TlsExtensionPayload toPayload(TlsContext context);
+    Optional<? extends TlsExtension.Server> deserializeClient(TlsContext context, int type, ByteBuffer source);
+    Optional<? extends TlsExtension.Client> deserializeServer(TlsContext context, int type, ByteBuffer source);
 
-        non-sealed interface Server extends TlsExtension.Configured, TlsExtensionOwner.Server {
-            Optional<? extends TlsExtension.Configured.Client> deserialize(TlsContext context, int type, ByteBuffer response);
-        }
+    non-sealed interface Client extends TlsExtension {
 
-        non-sealed interface Agnostic extends Client, Server, TlsExtension.Configured  {
-            Optional<? extends TlsExtension.Configured.Agnostic> deserialize(TlsContext context, int type, ByteBuffer response);
-        }
     }
 
-    // Configurable is intrinsically agnostic
-    non-sealed interface Configurable extends TlsExtension, TlsExtensionOwner.Client, TlsExtensionOwner.Server, TlsExtensionState.Configurable {
+    non-sealed interface Server extends TlsExtension {
+
+    }
+
+    non-sealed interface Agnostic extends TlsExtension, Client, Server  {
 
     }
 }

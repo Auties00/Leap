@@ -8,23 +8,26 @@ import it.auties.leap.tls.ciphersuite.exchange.TlsKeyExchangeType;
 import it.auties.leap.tls.connection.TlsConnectionType;
 import it.auties.leap.tls.context.TlsContext;
 import it.auties.leap.tls.context.TlsSource;
+import it.auties.leap.tls.extension.TlsExtension;
 import it.auties.leap.tls.message.*;
-import it.auties.leap.tls.property.TlsProperty;
+import it.auties.leap.tls.context.TlsContextualProperty;
 import it.auties.leap.tls.version.TlsVersion;
 
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 
 import static it.auties.leap.tls.util.BufferUtils.*;
 
 public record CertificateMessage(
-        TlsVersion version,
         TlsSource source,
+        byte[] requestContext,
         List<TlsCertificate> certificates,
         int certificatesLength
 ) implements TlsHandshakeMessage {
     private static final byte ID = 0x0B;
+
     private static final TlsHandshakeMessageDeserializer DESERIALIZER = new TlsHandshakeMessageDeserializer() {
         @Override
         public int id() {
@@ -33,19 +36,23 @@ public record CertificateMessage(
 
         @Override
         public TlsMessage deserialize(TlsContext context, ByteBuffer buffer, TlsMessageMetadata metadata) {
-            var version = context.getNegotiatedValue(TlsProperty.version())
-                    .orElseThrow(() -> new TlsAlert("Missing negotiated property: version", TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR));
+            var version = context.getNegotiatedValue(TlsContextualProperty.version()).orElseThrow(() -> new TlsAlert(
+                    "Cannot decode CertificateMessage: no version was negotiated",
+                    TlsAlertLevel.FATAL,
+                    TlsAlertType.DECODE_ERROR
+            ));
             if(version == TlsVersion.TLS13 || version == TlsVersion.DTLS13) {
-                var certificateRequestContext = readBytesBigEndian8(buffer);
+                var requestContext = readBytesBigEndian8(buffer);
                 var certificatesLength = readBigEndianInt24(buffer);
                 try (var _ = scopedRead(buffer, certificatesLength)) {
                     var certificates = new ArrayList<TlsCertificate>();
                     while (buffer.hasRemaining()) {
-                        var certificate = readStreamBigEndian24(buffer);
-                        var extensions = readBytesBigEndian16(buffer);
-                        certificates.add(TlsCertificate.of(certificate));
+                        var certificate = TlsCertificate.of(readStreamBigEndian24(buffer));
+                        var extensions = TlsExtension.of(context, readBufferBigEndian16(buffer));
+                        certificate.addExtensions(extensions);
+                        certificates.add(certificate);
                     }
-                    return new CertificateMessage(metadata.version(), metadata.source(), certificates, certificatesLength);
+                    return new CertificateMessage(metadata.source(), requestContext, certificates, certificatesLength);
                 }
             } else {
                 var certificatesLength = readBigEndianInt24(buffer);
@@ -55,17 +62,22 @@ public record CertificateMessage(
                         var certificate = readStreamBigEndian24(buffer);
                         certificates.add(TlsCertificate.of(certificate));
                     }
-                    return new CertificateMessage(metadata.version(), metadata.source(), certificates, certificatesLength);
+                    return new CertificateMessage(metadata.source(), null, certificates, certificatesLength);
                 }
             }
         }
     };
 
-    public CertificateMessage(TlsVersion version, TlsSource source, List<TlsCertificate> certificates) {
-        var length = certificates.stream()
+    public CertificateMessage(TlsSource source, byte[] requestContext, List<TlsCertificate> certificates) {
+        var certificatesLength = certificates.stream()
                 .mapToInt(TlsCertificate::length)
                 .sum();
-        this(version, source, certificates, length);
+        this(source, requestContext, certificates, certificatesLength);
+    }
+
+    public CertificateMessage {
+        Objects.requireNonNull(source, "Invalid source");
+        Objects.requireNonNull(certificates, "Invalid certificates");
     }
 
     public static TlsHandshakeMessageDeserializer deserializer() {
@@ -84,17 +96,27 @@ public record CertificateMessage(
 
     @Override
     public void serializePayload(ByteBuffer buffer) {
+        if(requestContext != null) {
+            writeBytesBigEndian8(buffer, requestContext);
+        }
         writeBigEndianInt24(buffer, certificatesLength);
         for(var certificate : certificates) {
-            writeBytesBigEndian24(buffer, certificate.encoded());
+            certificate.serialize(buffer);
         }
     }
 
     @Override
+    public int payloadLength() {
+        return INT24_LENGTH + certificates.stream()
+                .mapToInt(TlsCertificate::length)
+                .sum();
+    }
+    
+    @Override
     public void apply(TlsContext context) {
-        var negotiatedCipher = context.getNegotiatedValue(TlsProperty.cipher())
+        var negotiatedCipher = context.getNegotiatedValue(TlsContextualProperty.cipher())
                 .orElseThrow(() -> new TlsAlert("Missing negotiated property: cipher", TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR));
-        if(negotiatedCipher.authFactory().isAnonymous()) {
+        if(negotiatedCipher.auth().anonymous()) {
             throw new TlsAlert("Anonymous cipher don't support certificate message", TlsAlertLevel.FATAL, TlsAlertType.UNEXPECTED_MESSAGE);
         }
 
@@ -132,8 +154,25 @@ public record CertificateMessage(
     }
 
     @Override
-    public int payloadLength() {
-        return INT24_LENGTH + certificatesLength;
+    public void validate(TlsContext context) {
+        var version = context.getNegotiatedValue(TlsContextualProperty.version()).orElseThrow(() -> new TlsAlert(
+                "Cannot validate CertificateMessage: no version was negotiated",
+                TlsAlertLevel.FATAL,
+                TlsAlertType.DECODE_ERROR
+        ));
+        if(version == TlsVersion.TLS13 || version == TlsVersion.DTLS13) {
+            if(requestContext == null) {
+                throw new IllegalArgumentException("Expected a non-null request context in (D)TLS1.3");
+            }
+
+        } else {
+            if(requestContext != null) {
+                throw new IllegalArgumentException("Expected a null request context in <=(D)TLS1.2");
+            }
+            if(certificates.stream().anyMatch(TlsCertificate::hasExtensions)) {
+                throw new IllegalArgumentException("Certificate extensions are not supported in <=(D)TLS1.2");
+            }
+        }
     }
 
     @Override

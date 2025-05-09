@@ -6,7 +6,7 @@ import it.auties.leap.tls.alert.TlsAlertType;
 import it.auties.leap.tls.context.TlsContext;
 import it.auties.leap.tls.context.TlsSource;
 import it.auties.leap.tls.message.*;
-import it.auties.leap.tls.property.TlsProperty;
+import it.auties.leap.tls.context.TlsContextualProperty;
 import it.auties.leap.tls.version.TlsVersion;
 
 import java.nio.ByteBuffer;
@@ -20,11 +20,13 @@ public record ChangeCipherSpecMessage(
 ) implements TlsMessage {
     private static final int ID = 0x01;
     private static final TlsMessageDeserializer DESERIALIZER = (_, buffer, metadata) -> {
-        var id = readBigEndianInt8(buffer);
-        if(id != ChangeCipherSpecMessage.ID) {
-            throw new TlsAlert("Invalid cipher spec", TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR);
+        if(!buffer.hasRemaining() || readBigEndianInt8(buffer) != ChangeCipherSpecMessage.ID) {
+            throw new TlsAlert(
+                    "Cannot decode ChangeCipherSpecMessage: malformed message",
+                    TlsAlertLevel.FATAL,
+                    TlsAlertType.DECODE_ERROR
+            );
         }
-
         var message = new ChangeCipherSpecMessage(metadata.version(), metadata.source());
         return Optional.of(message);
     };
@@ -55,7 +57,7 @@ public record ChangeCipherSpecMessage(
 
     @Override
     public void apply(TlsContext context) {
-        var version = context.getNegotiatedValue(TlsProperty.version())
+        var version = context.getNegotiatedValue(TlsContextualProperty.version())
                 .orElseThrow(() -> new TlsAlert("Missing negotiated property: version", TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR));
         if(version == TlsVersion.TLS13 || version == TlsVersion.DTLS13) {
             return;
@@ -72,5 +74,10 @@ public record ChangeCipherSpecMessage(
                     .orElseThrow(() -> new TlsAlert("No remote cipher", TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR))
                     .setEnabled(true);
         }
+    }
+
+    @Override
+    public void validate(TlsContext context) {
+
     }
 }

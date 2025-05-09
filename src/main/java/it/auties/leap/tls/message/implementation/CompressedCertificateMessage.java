@@ -7,8 +7,7 @@ import it.auties.leap.tls.certificate.TlsCertificateCompressionAlgorithm;
 import it.auties.leap.tls.context.TlsContext;
 import it.auties.leap.tls.context.TlsSource;
 import it.auties.leap.tls.message.*;
-import it.auties.leap.tls.property.TlsIdentifiableProperty;
-import it.auties.leap.tls.property.TlsProperty;
+import it.auties.leap.tls.context.TlsContextualProperty;
 import it.auties.leap.tls.version.TlsVersion;
 
 import java.nio.ByteBuffer;
@@ -33,10 +32,10 @@ public record CompressedCertificateMessage(
 
         @Override
         public TlsMessage deserialize(TlsContext context, ByteBuffer buffer, TlsMessageMetadata metadata) {
-            var negotiatedAlgorithms = context.getNegotiatedValue(TlsProperty.certificateCompressionAlgorithms())
+            var negotiatedAlgorithms = context.getNegotiatedValue(TlsContextualProperty.certificateCompressionAlgorithms())
                     .orElseThrow(() -> new TlsAlert("Missing negotiated property: certificateCompressionAlgorithms", TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR))
                     .stream()
-                    .collect(Collectors.toUnmodifiableMap(TlsIdentifiableProperty::id, Function.identity()));
+                    .collect(Collectors.toUnmodifiableMap(TlsContextualProperty::id, Function.identity()));
             var algorithmId = readBigEndianInt16(buffer);
             var algorithm = negotiatedAlgorithms.get(algorithmId);
             if(algorithm == null) {
@@ -85,5 +84,9 @@ public record CompressedCertificateMessage(
     @Override
     public boolean hashable() {
         return true;
+    }
+
+    public void validate(TlsContext context) {
+
     }
 }

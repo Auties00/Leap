@@ -1,8 +1,6 @@
 package it.auties.leap.tls.version;
 
 import it.auties.leap.socket.SocketProtocol;
-import it.auties.leap.tls.property.TlsIdentifiableProperty;
-import it.auties.leap.tls.property.TlsSerializableProperty;
 
 import java.nio.ByteBuffer;
 import java.util.Arrays;
@@ -13,7 +11,7 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 
 // Implementing a new version is not a supported use case: this is why this class is implemented as an enum
-public enum TlsVersion implements TlsIdentifiableProperty<TlsVersionId>, TlsSerializableProperty {
+public enum TlsVersion {
     TLS10(0x0301, "TLS1.0", SocketProtocol.TCP),
     TLS11(0x0302, "TLS1.1", SocketProtocol.TCP),
     TLS12(0x0303, "TLS1.2", SocketProtocol.TCP),
@@ -64,7 +62,6 @@ public enum TlsVersion implements TlsIdentifiableProperty<TlsVersionId>, TlsSeri
         };
     }
 
-    @Override
     public TlsVersionId id() {
         return id;
     }
@@ -77,12 +74,10 @@ public enum TlsVersion implements TlsIdentifiableProperty<TlsVersionId>, TlsSeri
         return protocol;
     }
 
-    @Override
     public void serialize(ByteBuffer payload) {
         id.serialize(payload);
     }
 
-    @Override
     public int length() {
         return id.length();
     }

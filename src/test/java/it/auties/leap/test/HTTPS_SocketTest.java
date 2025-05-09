@@ -11,7 +11,7 @@ public class HTTPS_SocketTest {
     public static void main(String[] args) throws Exception {
         var client = AsyncHttpClient.newHTTPClient();
         {
-            var request = HttpRequest.newBuilder()
+            var request = HttpRequest.builder()
                     .get()
                     .uri(URI.create("https://api.ipify.org/"))
                     .header("Connection", "Keep-Alive")

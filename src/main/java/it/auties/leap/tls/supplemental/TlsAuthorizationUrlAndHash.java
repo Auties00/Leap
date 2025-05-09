@@ -1,15 +1,11 @@
 package it.auties.leap.tls.supplemental;
 
-import it.auties.leap.tls.alert.TlsAlert;
-import it.auties.leap.tls.alert.TlsAlertLevel;
-import it.auties.leap.tls.alert.TlsAlertType;
-import it.auties.leap.tls.property.TlsSerializableProperty;
-
 import java.nio.ByteBuffer;
+import java.util.Objects;
 
 import static it.auties.leap.tls.util.BufferUtils.*;
 
-public final class TlsAuthorizationUrlAndHash implements TlsSerializableProperty {
+public final class TlsAuthorizationUrlAndHash {
     private final byte[] url;
     private final TlsAuthorizationHash hash;
 
@@ -26,14 +22,8 @@ public final class TlsAuthorizationUrlAndHash implements TlsSerializableProperty
     }
 
     public static TlsAuthorizationUrlAndHash of(byte[] url, TlsAuthorizationHash hash) {
-        if (url == null) {
-            throw new TlsAlert("url", TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR);
-        }
-
-        if(hash == null) {
-            throw new TlsAlert("hash", TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR);
-        }
-
+        Objects.requireNonNull(url, "url must not be null");
+        Objects.requireNonNull(hash, "hash must not be null");
         return new TlsAuthorizationUrlAndHash(url, hash);
     }
 
@@ -45,13 +35,11 @@ public final class TlsAuthorizationUrlAndHash implements TlsSerializableProperty
         return hash;
     }
 
-    @Override
     public void serialize(ByteBuffer buffer) {
         writeBytesBigEndian16(buffer, url);
         hash.serialize(buffer);
     }
 
-    @Override
     public int length() {
         return INT16_LENGTH + url.length
                 + hash.length();

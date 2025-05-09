@@ -17,7 +17,7 @@ public final class ExplicitPrimeEllipticCurve implements TlsSupportedEllipticCur
     }
 
     @Override
-    public Integer id() {
+    public int id() {
         return 65281;
     }
 

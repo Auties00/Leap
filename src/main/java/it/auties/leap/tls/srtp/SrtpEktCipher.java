@@ -1,14 +1,12 @@
 package it.auties.leap.tls.srtp;
 
-import it.auties.leap.tls.property.TlsIdentifiableProperty;
-
 import java.util.Arrays;
 import java.util.Map;
 import java.util.Optional;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
-public enum SrtpEktCipher implements TlsIdentifiableProperty<Byte> {
+public enum SrtpEktCipher {
     RESERVED((byte) 0),
     AESKW_128((byte) 1),
     AESKW_256((byte) 2);
@@ -26,8 +24,7 @@ public enum SrtpEktCipher implements TlsIdentifiableProperty<Byte> {
         return Optional.ofNullable(VALUES.get(id));
     }
 
-    @Override
-    public Byte id() {
+    public byte id() {
         return id;
     }
 }

@@ -16,12 +16,12 @@ import static it.auties.leap.tls.util.BufferUtils.*;
 public sealed abstract class ECCPWDKeyExchange implements TlsKeyExchange {
     private static final TlsKeyExchangeFactory EPHEMERAL_FACTORY = new TlsKeyExchangeFactory() {
         @Override
-        public TlsKeyExchange newLocalKeyExchange(TlsContext context) {
+        public Optional<TlsKeyExchange> newLocalKeyExchange(TlsContext context) {
             throw new UnsupportedOperationException();
         }
 
         @Override
-        public TlsKeyExchange newRemoteKeyExchange(TlsContext context, ByteBuffer source) {
+        public Optional<TlsKeyExchange> newRemoteKeyExchange(TlsContext context, ByteBuffer source) {
             throw new UnsupportedOperationException();
         }
 
@@ -41,7 +41,7 @@ public sealed abstract class ECCPWDKeyExchange implements TlsKeyExchange {
     }
 
     @Override
-    public Optional<TlsConnectionSecret> generatePreSharedSecret(TlsContext context) {
+    public TlsConnectionSecret generatePreSharedSecret(TlsContext context) {
         throw new UnsupportedOperationException();
     }
 

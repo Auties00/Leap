@@ -62,4 +62,8 @@ public record MessageHashMessage(
     public boolean hashable() {
         return true;
     }
+
+    public void validate(TlsContext context) {
+
+    }
 }

@@ -1,8 +1,5 @@
 package it.auties.leap.tls.connection;
 
-import it.auties.leap.tls.alert.TlsAlert;
-import it.auties.leap.tls.alert.TlsAlertLevel;
-import it.auties.leap.tls.alert.TlsAlertType;
 import it.auties.leap.tls.hash.TlsHashFactory;
 import it.auties.leap.tls.hash.TlsHkdf;
 import it.auties.leap.tls.hash.TlsHmac;
@@ -11,8 +8,6 @@ import java.nio.ByteBuffer;
 import java.util.Arrays;
 
 import static it.auties.leap.tls.util.BufferUtils.*;
-import static it.auties.leap.tls.util.BufferUtils.writeBigEndianInt8;
-import static it.auties.leap.tls.util.BufferUtils.writeBytesBigEndian8;
 
 public final class TlsConnectionSecret {
     private final byte[] data;
@@ -26,12 +21,6 @@ public final class TlsConnectionSecret {
         var info = createHkdfInfo(label.getBytes(), context, length);
         var hkdf = TlsHkdf.of(TlsHmac.of(hashFactory));
         var data = hkdf.expand(key, info, length);
-        System.out.println("______________________________");
-        System.out.println("Hash: " + Arrays.toString(context));
-        System.out.println("Key: " + Arrays.toString(key));
-        System.out.println("Info: " + Arrays.toString(info));
-        System.out.println("Result: " + Arrays.toString(data));
-        System.out.println("______________________________");
         return TlsConnectionSecret.of(data);
     }
 
@@ -71,7 +60,7 @@ public final class TlsConnectionSecret {
 
     private void checkAvailability() {
         if(destroyed) {
-            throw new TlsAlert("Cannot access a destroyed secret", TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR);
+            throw new IllegalStateException("Cannot access a destroyed secret");
         }
     }
 }

@@ -3,8 +3,6 @@ package it.auties.leap.tls.supplemental;
 import it.auties.leap.tls.alert.TlsAlert;
 import it.auties.leap.tls.alert.TlsAlertLevel;
 import it.auties.leap.tls.alert.TlsAlertType;
-import it.auties.leap.tls.property.TlsIdentifiableProperty;
-import it.auties.leap.tls.property.TlsSerializableProperty;
 import it.auties.leap.tls.util.sun.IPAddressUtil;
 
 import java.nio.ByteBuffer;
@@ -13,7 +11,7 @@ import java.util.Optional;
 
 import static it.auties.leap.tls.util.BufferUtils.*;
 
-public sealed interface TlsName extends TlsIdentifiableProperty<Byte>, TlsSerializableProperty {
+public sealed interface TlsName {
     static HostName hostName(String name) {
         if(!IPAddressUtil.isHostName(name)) {
             throw new TlsAlert("Invalid host name: " + name, TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR);
@@ -31,17 +29,10 @@ public sealed interface TlsName extends TlsIdentifiableProperty<Byte>, TlsSerial
         };
     }
 
+    byte id();
     Type type();
-
-    @Override
-    default void serialize(ByteBuffer buffer) {
-        writeBigEndianInt8(buffer, id());
-    }
-
-    @Override
-    default int length() {
-        return INT8_LENGTH;
-    }
+    void serialize(ByteBuffer buffer);
+    int length();
 
     final class HostName implements TlsName {
         private static final int ID = 0;
@@ -62,19 +53,17 @@ public sealed interface TlsName extends TlsIdentifiableProperty<Byte>, TlsSerial
         }
 
         @Override
-        public Byte id() {
+        public byte id() {
             return ID;
         }
 
-        @Override
         public void serialize(ByteBuffer buffer) {
-            TlsName.super.serialize(buffer);
+            writeBigEndianInt8(buffer, id());
             writeBytesBigEndian16(buffer, name);
         }
 
-        @Override
         public int length() {
-            return TlsName.super.length()
+            return INT8_LENGTH
                     + INT16_LENGTH + name.length;
         }
 

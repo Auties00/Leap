@@ -1,14 +1,10 @@
 package it.auties.leap.tls.certificate;
 
-import it.auties.leap.tls.alert.TlsAlert;
-import it.auties.leap.tls.alert.TlsAlertLevel;
-import it.auties.leap.tls.alert.TlsAlertType;
 import it.auties.leap.tls.compression.TlsCompressor;
-import it.auties.leap.tls.property.TlsIdentifiableProperty;
 
 import java.util.Objects;
 
-public final class TlsCertificateCompressionAlgorithm implements TlsIdentifiableProperty<Integer> {
+public final class TlsCertificateCompressionAlgorithm {
     private static final TlsCertificateCompressionAlgorithm ZLIB = new TlsCertificateCompressionAlgorithm(1, Type.ZLIB, TlsCompressor.zlib());
     private static final TlsCertificateCompressionAlgorithm BROTLI = new TlsCertificateCompressionAlgorithm(2, Type.BROTLI, TlsCompressor.brotli());
     private static final TlsCertificateCompressionAlgorithm ZSTD = new TlsCertificateCompressionAlgorithm(3, Type.ZSTD, TlsCompressor.zstd());
@@ -41,14 +37,13 @@ public final class TlsCertificateCompressionAlgorithm implements TlsIdentifiable
 
     private static TlsCertificateCompressionAlgorithm reservedForExperimentalUse(int id, TlsCompressor compressor) {
         if (id < 16384 || id > 65535) {
-            throw new TlsAlert("Only values from 16384-65535 (decimal) inclusive are reserved for Experimental Use", TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR);
+            throw new IllegalArgumentException("Only values from 16384-65535 (decimal) inclusive are reserved for Experimental Use");
         }
 
         return new TlsCertificateCompressionAlgorithm(id, Type.RESERVED_FOR_EXPERIMENTAL_USE, Objects.requireNonNullElse(compressor, TlsCompressor.unsupported()));
     }
 
-    @Override
-    public Integer id() {
+    public int id() {
         return id;
     }
 

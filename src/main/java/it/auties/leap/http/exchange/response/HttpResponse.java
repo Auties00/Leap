@@ -35,7 +35,7 @@ public final class HttpResponse<T> implements HttpExchange<T> {
         return parser.decode(io, deserializer);
     }
 
-    public static <T> HttpResponseBuilder<T> newBuilder() {
+    public static <T> HttpResponseBuilder<T> builder() {
         return new HttpResponseBuilder<>();
     }
 

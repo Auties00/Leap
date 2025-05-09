@@ -7,14 +7,15 @@ import it.auties.leap.tls.context.TlsContext;
 import it.auties.leap.tls.context.TlsSource;
 import it.auties.leap.tls.extension.TlsExtension;
 import it.auties.leap.tls.extension.TlsExtensionDependencies;
-import it.auties.leap.tls.property.TlsProperty;
+import it.auties.leap.tls.context.TlsContextualProperty;
+import it.auties.leap.tls.extension.TlsExtensionPayload;
 import it.auties.leap.tls.version.TlsVersion;
 
 import java.nio.ByteBuffer;
 import java.util.List;
 import java.util.Optional;
 
-public final class PostHandshakeAuthExtension implements TlsExtension.Configured.Agnostic {
+public final class PostHandshakeAuthExtension implements TlsExtension.Agnostic, TlsExtensionPayload {
     private static final PostHandshakeAuthExtension INSTANCE = new PostHandshakeAuthExtension();
 
     private PostHandshakeAuthExtension() {
@@ -43,14 +44,28 @@ public final class PostHandshakeAuthExtension implements TlsExtension.Configured
                     .orElseThrow(() -> new TlsAlert("No remote connection state was created", TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR));
         };
         switch (connection.type()) {
-            case CLIENT -> context.addNegotiableProperty(TlsProperty.postHandshakeAuth(), true);
-            case SERVER -> context.addNegotiatedProperty(TlsProperty.postHandshakeAuth(), true);
+            case CLIENT -> context.addAdvertisedValue(TlsContextualProperty.postHandshakeAuth(), true);
+            case SERVER -> context.addNegotiatedValue(TlsContextualProperty.postHandshakeAuth(), true);
         }
     }
 
     @Override
-    public Optional<PostHandshakeAuthExtension> deserialize(TlsContext context, int type, ByteBuffer buffer) {
-        buffer.position(buffer.limit());
+    public TlsExtensionPayload toPayload(TlsContext context) {
+        return this;
+    }
+
+    @Override
+    public Optional<PostHandshakeAuthExtension> deserializeClient(TlsContext context, int type, ByteBuffer source) {
+        return deserialize(source);
+    }
+
+    @Override
+    public Optional<? extends Client> deserializeServer(TlsContext context, int type, ByteBuffer source) {
+        return deserialize(source);
+    }
+
+    private static Optional<PostHandshakeAuthExtension> deserialize(ByteBuffer response) {
+        response.position(response.limit());
         return Optional.of(INSTANCE);
     }
 

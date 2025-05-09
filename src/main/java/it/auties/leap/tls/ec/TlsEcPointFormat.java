@@ -1,78 +1,37 @@
 package it.auties.leap.tls.ec;
 
-import it.auties.leap.tls.alert.TlsAlert;
-import it.auties.leap.tls.alert.TlsAlertLevel;
-import it.auties.leap.tls.alert.TlsAlertType;
-import it.auties.leap.tls.property.TlsIdentifiableProperty;
+public final class TlsEcPointFormat {
+    private static final TlsEcPointFormat UNCOMPRESSED = new TlsEcPointFormat((byte) 0);
+    private static final TlsEcPointFormat ANSIX_962_COMPRESSED_PRIME = new TlsEcPointFormat((byte) 1);
+    private static final TlsEcPointFormat ANSIX_962_COMPRESSED_CHAR_2 = new TlsEcPointFormat((byte) 2);
 
-import java.util.List;
+    private final byte id;
 
-public sealed interface TlsEcPointFormat extends TlsIdentifiableProperty<Byte> {
-    static TlsEcPointFormat uncompressed() {
-        return Uncompressed.INSTANCE;
+    private TlsEcPointFormat(byte id) {
+        this.id = id;
     }
 
-    static TlsEcPointFormat ansix962CompressedPrime() {
-        return Ansix962CompressedPrime.INSTANCE;
+    public static TlsEcPointFormat uncompressed() {
+        return UNCOMPRESSED;
     }
 
-    static TlsEcPointFormat ansix962CompressedChar2() {
-        return Ansix962CompressedChar2.INSTANCE;
+    public static TlsEcPointFormat ansix962CompressedPrime() {
+        return ANSIX_962_COMPRESSED_PRIME;
+    }
+
+    public static TlsEcPointFormat ansix962CompressedChar2() {
+        return ANSIX_962_COMPRESSED_CHAR_2;
     }
 
     static TlsEcPointFormat reservedForPrivateUse(byte id) {
         if (id < -8 || id > -1) {
-            throw new TlsAlert("Only values from 248-255 (decimal) inclusive are reserved for Private Use", TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR);
+            throw new IllegalArgumentException("Only values from 248-255 (decimal) inclusive are reserved for Private Use");
         }
 
-        return new Reserved(id);
+        return new TlsEcPointFormat(id);
     }
 
-    static List<TlsEcPointFormat> values() {
-        final class Formats {
-            private static final List<TlsEcPointFormat> FORMATS = List.of(Uncompressed.INSTANCE, Ansix962CompressedPrime.INSTANCE, Ansix962CompressedChar2.INSTANCE);
-        }
-
-        return Formats.FORMATS;
-    }
-
-    final class Uncompressed implements TlsEcPointFormat {
-        private static final Uncompressed INSTANCE = new Uncompressed();
-
-        @Override
-        public Byte id() {
-            return 0;
-        }
-    }
-
-    final class Ansix962CompressedPrime implements TlsEcPointFormat {
-        private static final Ansix962CompressedPrime INSTANCE = new Ansix962CompressedPrime();
-
-        @Override
-        public Byte id() {
-            return 1;
-        }
-    }
-
-    final class Ansix962CompressedChar2 implements TlsEcPointFormat {
-        private static final Ansix962CompressedChar2 INSTANCE = new Ansix962CompressedChar2();
-
-        @Override
-        public Byte id() {
-            return 2;
-        }
-    }
-
-    final class Reserved implements TlsEcPointFormat {
-        private final byte id;
-
-        private Reserved(byte id) {
-            this.id = id;
-        }
-
-        @Override
-        public Byte id() {
-            return id;
-        }
+    public byte id() {
+        return id;
     }
 }

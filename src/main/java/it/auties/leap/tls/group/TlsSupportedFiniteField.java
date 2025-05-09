@@ -3,6 +3,8 @@ package it.auties.leap.tls.group;
 import it.auties.leap.tls.ciphersuite.exchange.TlsKeyExchange;
 import it.auties.leap.tls.group.implementation.NamedFiniteField;
 
+import java.math.BigInteger;
+
 public non-sealed interface TlsSupportedFiniteField extends TlsSupportedGroup {
     static TlsSupportedFiniteField ffdhe2048() {
         return NamedFiniteField.ffdhe2048();
@@ -24,5 +26,5 @@ public non-sealed interface TlsSupportedFiniteField extends TlsSupportedGroup {
         return NamedFiniteField.ffdhe8192();
     }
 
-    boolean accepts(TlsKeyExchange exchange);
+    boolean accepts(BigInteger p, BigInteger g);
 }

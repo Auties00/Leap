@@ -8,7 +8,7 @@ import it.auties.leap.tls.ciphersuite.exchange.TlsKeyExchangeType;
 import it.auties.leap.tls.context.TlsContext;
 import it.auties.leap.tls.context.TlsSource;
 import it.auties.leap.tls.message.*;
-import it.auties.leap.tls.property.TlsProperty;
+import it.auties.leap.tls.context.TlsContextualProperty;
 import it.auties.leap.tls.version.TlsVersion;
 
 import java.nio.ByteBuffer;
@@ -31,7 +31,7 @@ public record ServerKeyExchangeMessage(
 
         @Override
         public TlsMessage deserialize(TlsContext context, ByteBuffer buffer, TlsMessageMetadata metadata) {
-            var remoteParameters = context.getNegotiatedValue(TlsProperty.cipher())
+            var remoteParameters = context.getNegotiatedValue(TlsContextualProperty.cipher())
                     .orElseThrow(() -> new TlsAlert("Missing negotiated property: cipher", TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR))
                     .keyExchangeFactory()
                     .newRemoteKeyExchange(context, buffer);
@@ -72,7 +72,7 @@ public record ServerKeyExchangeMessage(
 
     @Override
     public void apply(TlsContext context) {
-        var negotiatedCipher = context.getNegotiatedValue(TlsProperty.cipher())
+        var negotiatedCipher = context.getNegotiatedValue(TlsContextualProperty.cipher())
                 .orElseThrow(() -> new TlsAlert("Missing negotiated property: cipher", TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR));
         if (negotiatedCipher.keyExchangeFactory().type() != TlsKeyExchangeType.EPHEMERAL) {
             throw new TlsAlert("Unexpected server key exchange message for static key exchange", TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR);
@@ -96,5 +96,9 @@ public record ServerKeyExchangeMessage(
     @Override
     public boolean hashable() {
         return true;
+    }
+
+    public void validate(TlsContext context) {
+
     }
 }

@@ -1,45 +1,31 @@
 package it.auties.leap.tls.certificate;
 
-import it.auties.leap.tls.alert.TlsAlert;
-import it.auties.leap.tls.alert.TlsAlertLevel;
-import it.auties.leap.tls.alert.TlsAlertType;
-import it.auties.leap.tls.property.TlsIdentifiableProperty;
-import it.auties.leap.tls.property.TlsSerializableProperty;
-
 import java.nio.ByteBuffer;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
 
 import static it.auties.leap.tls.util.BufferUtils.*;
 
-public sealed interface TlsCertificateStatus extends TlsIdentifiableProperty<Byte>, TlsSerializableProperty {
+public sealed interface TlsCertificateStatus {
+    byte id();
     Type type();
+    void serialize(ByteBuffer buffer);
+    int length();
 
     sealed interface Request extends TlsCertificateStatus {
         static Ocsp ocsp(List<byte[]> responderId, List<byte[]> requestExtensions) {
-            checkOcsp(responderId, requestExtensions);
+            Objects.requireNonNull(responderId, "Responder id cannot be null");
+            Objects.requireNonNull(requestExtensions, "Request extensions cannot be null");
             var responderIdLength = getInt16ByteArrayLength(responderId);
             var requestExtensionsLength = getInt16ByteArrayLength(requestExtensions);
             return new Ocsp(responderId, responderIdLength, requestExtensions, requestExtensionsLength);
         }
 
         static OcspMulti ocspMulti(List<byte[]> responderId, List<byte[]> requestExtensions) {
-            checkOcsp(responderId, requestExtensions);
+            Objects.requireNonNull(responderId, "Responder id cannot be null");
+            Objects.requireNonNull(requestExtensions, "Request extensions cannot be null");
             var responderIdLength = getInt16ByteArrayLength(responderId);
             var requestExtensionsLength = getInt16ByteArrayLength(requestExtensions);
             return new OcspMulti(responderId, responderIdLength, requestExtensions, requestExtensionsLength);
-        }
-
-        private static void checkOcsp(List<byte[]> responderId, List<byte[]> requestExtensions) {
-            if (responderId == null) {
-                throw new TlsAlert("Responder id cannot be null", TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR);
-            }
-
-            if (requestExtensions == null) {
-                throw new TlsAlert("Request extensions cannot be null", TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR);
-            }
         }
 
         private static int getInt16ByteArrayLength(List<byte[]> requestExtensions) {
@@ -105,11 +91,10 @@ public sealed interface TlsCertificateStatus extends TlsIdentifiableProperty<Byt
             }
 
             @Override
-            public Byte id() {
+            public byte id() {
                 return ID;
             }
 
-            @SuppressWarnings("DuplicatedCode")
             @Override
             public void serialize(ByteBuffer buffer) {
                 writeBigEndianInt8(buffer, id());
@@ -182,11 +167,10 @@ public sealed interface TlsCertificateStatus extends TlsIdentifiableProperty<Byt
             }
 
             @Override
-            public Byte id() {
+            public byte id() {
                 return ID;
             }
 
-            @SuppressWarnings("DuplicatedCode")
             @Override
             public void serialize(ByteBuffer buffer) {
                 writeBigEndianInt8(buffer, id());
@@ -215,17 +199,12 @@ public sealed interface TlsCertificateStatus extends TlsIdentifiableProperty<Byt
 
     sealed interface Response extends TlsCertificateStatus {
         static Ocsp ocsp(byte[] data) {
-            if (data == null) {
-                throw new TlsAlert("Data cannot be null", TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR);
-            }
+            Objects.requireNonNull(data, "Data cannot be null");
             return new Ocsp(data);
         }
 
         static OcspMulti ocspMulti(List<byte[]> data) {
-            if (data == null) {
-                throw new TlsAlert("Data cannot be null", TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR);
-            }
-
+            Objects.requireNonNull(data, "Data cannot be null");
             var length = data.stream()
                     .mapToInt(entry -> INT16_LENGTH + entry.length)
                     .sum();
@@ -263,7 +242,7 @@ public sealed interface TlsCertificateStatus extends TlsIdentifiableProperty<Byt
             }
 
             @Override
-            public Byte id() {
+            public byte id() {
                 return 1;
             }
 
@@ -302,7 +281,7 @@ public sealed interface TlsCertificateStatus extends TlsIdentifiableProperty<Byt
             }
 
             @Override
-            public Byte id() {
+            public byte id() {
                 return 2;
             }
 

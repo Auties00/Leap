@@ -88,7 +88,7 @@ public interface TlsCipherEngineFactory {
     TlsCipherEngine newCipherEngine(boolean forEncryption, byte[] key);
     int keyLength();
     int blockLength();
-    // TODO: Find the correct values for this field
+    // FIXME: Find the correct values for this field
     default OptionalInt exportedKeyLength() {
         return OptionalInt.empty();
     }

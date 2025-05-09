@@ -3,13 +3,13 @@ package it.auties.leap.tls.extension.implementation;
 import it.auties.leap.tls.alert.TlsAlert;
 import it.auties.leap.tls.alert.TlsAlertLevel;
 import it.auties.leap.tls.alert.TlsAlertType;
-import it.auties.leap.tls.context.TlsContext;
 import it.auties.leap.tls.connection.TlsConnectionType;
+import it.auties.leap.tls.context.TlsContext;
+import it.auties.leap.tls.context.TlsContextualProperty;
 import it.auties.leap.tls.context.TlsSource;
 import it.auties.leap.tls.extension.TlsExtension;
 import it.auties.leap.tls.extension.TlsExtensionDependencies;
-import it.auties.leap.tls.property.TlsIdentifiableProperty;
-import it.auties.leap.tls.property.TlsProperty;
+import it.auties.leap.tls.extension.TlsExtensionPayload;
 import it.auties.leap.tls.signature.TlsSignature;
 import it.auties.leap.tls.signature.TlsSignatureAlgorithm;
 import it.auties.leap.tls.signature.TlsSignatureAlgorithm.Hash;
@@ -28,7 +28,7 @@ import static it.auties.leap.tls.util.BufferUtils.*;
 
 public record SignatureAlgorithmsExtension(
         List<TlsSignature> algorithms
-) implements TlsExtension.Configured.Agnostic {
+) implements TlsExtension.Agnostic, TlsExtensionPayload {
     private static final SignatureAlgorithmsExtension RECOMMENDED = new SignatureAlgorithmsExtension(List.of(
             TlsSignatureScheme.ecdsaSecp256r1Sha256(),
             TlsSignatureScheme.ecdsaSecp384r1Sha384(),
@@ -70,6 +70,11 @@ public record SignatureAlgorithmsExtension(
     }
 
     @Override
+    public TlsExtensionPayload toPayload(TlsContext context) {
+        return this;
+    }
+
+    @Override
     public void apply(TlsContext context, TlsSource source) {
         var connection = switch (source) {
             case LOCAL -> context.localConnectionState();
@@ -77,22 +82,31 @@ public record SignatureAlgorithmsExtension(
                     .orElseThrow(() -> new TlsAlert("No remote connection state was created", TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR));
         };
         switch (connection.type()) {
-            case CLIENT -> context.addNegotiableProperty(TlsProperty.signatureAlgorithms(), algorithms);
-            case SERVER -> context.addNegotiatedProperty(TlsProperty.signatureAlgorithms(), algorithms);
+            case CLIENT -> context.addAdvertisedValue(TlsContextualProperty.signatureAlgorithms(), algorithms);
+            case SERVER -> context.addNegotiatedValue(TlsContextualProperty.signatureAlgorithms(), algorithms);
         }
     }
 
     @Override
-    public Optional<SignatureAlgorithmsExtension> deserialize(TlsContext context, int type, ByteBuffer buffer) {
-        var algorithmsSize = readBigEndianInt16(buffer);
+    public Optional<SignatureAlgorithmsExtension> deserializeClient(TlsContext context, int type, ByteBuffer source) {
+        return deserialize(context, source);
+    }
+
+    @Override
+    public Optional<SignatureAlgorithmsExtension> deserializeServer(TlsContext context, int type, ByteBuffer source) {
+        return deserialize(context, source);
+    }
+
+    private Optional<SignatureAlgorithmsExtension> deserialize(TlsContext context, ByteBuffer source) {
+        var algorithmsSize = readBigEndianInt16(source);
         var algorithms = new ArrayList<TlsSignature>(algorithmsSize);
-        var knownAlgorithms = context.getNegotiableValue(TlsProperty.signatureAlgorithms())
+        var knownAlgorithms = context.getAdvertisedValue(TlsContextualProperty.signatureAlgorithms())
                 .orElseThrow(() -> new TlsAlert("Missing negotiable property: signatureAlgorithms", TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR))
                 .stream()
-                .collect(Collectors.toUnmodifiableMap(TlsIdentifiableProperty::id, Function.identity()));
+                .collect(Collectors.toUnmodifiableMap(TlsSignature::id, Function.identity()));
         var mode = context.localConnectionState().type();
         for (var i = 0; i < algorithmsSize; i++) {
-            var algorithmId = readBigEndianInt16(buffer);
+            var algorithmId = readBigEndianInt16(source);
             var algorithm = knownAlgorithms.get(algorithmId);
             if(algorithm != null) {
                 algorithms.add(algorithm);

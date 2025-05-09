@@ -1,76 +1,61 @@
 package it.auties.leap.tls.alert;
 
-import it.auties.leap.tls.property.TlsIdentifiableProperty;
-
 import java.util.Arrays;
 import java.util.Map;
 import java.util.Optional;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
-public enum TlsAlertType implements TlsIdentifiableProperty<Byte> {
-    CLOSE_NOTIFY((byte) 0, "close_notify", false),
-    UNEXPECTED_MESSAGE((byte) 10, "unexpected_message", false),
-    BAD_RECORD_MAC((byte) 20, "bad_record_mac", false),
-    DECRYPTION_FAILED((byte) 21, "decryption_failed", false),
-    RECORD_OVERFLOW((byte) 22, "record_overflow", false),
-    DECOMPRESSION_FAILURE((byte) 30, "decompression_failure", false),
-    HANDSHAKE_FAILURE((byte) 40, "handshake_failure", true),
-    NO_CERTIFICATE((byte) 41, "no_certificate", true),
-    BAD_CERTIFICATE((byte) 42, "bad_certificate", true),
-    UNSUPPORTED_CERTIFICATE((byte) 43, "unsupported_certificate", true),
-    CERTIFICATE_REVOKED((byte) 44, "certificate_revoked", true),
-    CERTIFICATE_EXPIRED((byte) 45, "certificate_expired", true),
-    CERTIFICATE_UNKNOWN((byte) 46, "certificate_unknown", true),
-    ILLEGAL_PARAMETER((byte) 47, "illegal_parameter", true),
-    UNKNOWN_CA((byte) 48, "unknown_ca", true),
-    ACCESS_DENIED((byte) 49, "access_denied", true),
-    DECODE_ERROR((byte) 50, "decode_error", true),
-    DECRYPT_ERROR((byte) 51, "decrypt_error", true),
-    EXPORT_RESTRICTION((byte) 60, "export_restriction", true),
-    PROTOCOL_VERSION((byte) 70, "protocol_version", true),
-    INSUFFICIENT_SECURITY((byte) 71, "insufficient_security", true),
-    INTERNAL_ERROR((byte) 80, "internal_error", false),
-    INAPPROPRIATE_FALLBACK((byte) 86, "inappropriate_fallback", false),
-    USER_CANCELED((byte) 90, "user_canceled", false),
-    NO_RENEGOTIATION((byte) 100, "no_renegotiation", true),
-    MISSING_EXTENSION((byte) 109, "missing_extension", true),
-    UNSUPPORTED_EXTENSION((byte) 110, "unsupported_extension", true),
-    CERTIFICATE_UNOBTAINABLE((byte) 111, "certificate_unobtainable", true),
-    UNRECOGNIZED_NAME((byte) 112, "unrecognized_name", true),
-    BAD_CERT_STATUS_RESPONSE((byte) 113, "bad_certificate_status_response", true),
-    BAD_CERT_HASH_VALUE((byte) 114, "bad_certificate_hash_value", true),
-    UNKNOWN_PSK_IDENTITY((byte) 115, "unknown_psk_identity", true),
-    CERTIFICATE_REQUIRED((byte) 116, "certificate_required", true),
-    NO_APPLICATION_PROTOCOL((byte) 120, "no_application_protocol", true);
+public enum TlsAlertType {
+    CLOSE_NOTIFY((byte) 0),
+    UNEXPECTED_MESSAGE((byte) 10),
+    BAD_RECORD_MAC((byte) 20),
+    DECRYPTION_FAILED((byte) 21),
+    RECORD_OVERFLOW((byte) 22),
+    DECOMPRESSION_FAILURE((byte) 30),
+    HANDSHAKE_FAILURE((byte) 40),
+    NO_CERTIFICATE((byte) 41),
+    BAD_CERTIFICATE((byte) 42),
+    UNSUPPORTED_CERTIFICATE((byte) 43),
+    CERTIFICATE_REVOKED((byte) 44),
+    CERTIFICATE_EXPIRED((byte) 45),
+    CERTIFICATE_UNKNOWN((byte) 46),
+    ILLEGAL_PARAMETER((byte) 47),
+    UNKNOWN_CA((byte) 48),
+    ACCESS_DENIED((byte) 49),
+    DECODE_ERROR((byte) 50),
+    DECRYPT_ERROR((byte) 51),
+    EXPORT_RESTRICTION((byte) 60),
+    PROTOCOL_VERSION((byte) 70),
+    INSUFFICIENT_SECURITY((byte) 71),
+    INTERNAL_ERROR((byte) 80),
+    INAPPROPRIATE_FALLBACK((byte) 86),
+    USER_CANCELED((byte) 90),
+    NO_RENEGOTIATION((byte) 100),
+    MISSING_EXTENSION((byte) 109),
+    UNSUPPORTED_EXTENSION((byte) 110),
+    CERTIFICATE_UNOBTAINABLE((byte) 111),
+    UNRECOGNIZED_NAME((byte) 112),
+    BAD_CERT_STATUS_RESPONSE((byte) 113),
+    BAD_CERT_HASH_VALUE((byte) 114),
+    UNKNOWN_PSK_IDENTITY((byte) 115),
+    CERTIFICATE_REQUIRED((byte) 116),
+    NO_APPLICATION_PROTOCOL((byte) 120);
 
     private static final Map<Byte, TlsAlertType> VALUES = Arrays.stream(values())
             .collect(Collectors.toUnmodifiableMap(TlsAlertType::id, Function.identity()));
 
     private final byte id;
-    private final String description;
-    private final boolean handshakeOnly;
 
-    TlsAlertType(byte id, String description, boolean handshakeOnly) {
+    TlsAlertType(byte id) {
         this.id = id;
-        this.description = description;
-        this.handshakeOnly = handshakeOnly;
     }
 
     public static Optional<TlsAlertType> of(byte id) {
         return Optional.ofNullable(VALUES.get(id));
     }
 
-    @Override
-    public Byte id() {
+    public byte id() {
         return id;
-    }
-
-    public String description() {
-        return description;
-    }
-
-    public boolean handshakeOnly() {
-        return handshakeOnly;
     }
 }

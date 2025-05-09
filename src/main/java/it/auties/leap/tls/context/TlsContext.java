@@ -4,91 +4,48 @@ import it.auties.leap.tls.alert.TlsAlert;
 import it.auties.leap.tls.alert.TlsAlertLevel;
 import it.auties.leap.tls.alert.TlsAlertType;
 import it.auties.leap.tls.certificate.TlsCertificateValidator;
-import it.auties.leap.tls.ciphersuite.TlsCipherSuite;
-import it.auties.leap.tls.compression.TlsCompression;
 import it.auties.leap.tls.connection.TlsConnection;
 import it.auties.leap.tls.connection.TlsConnectionHandler;
 import it.auties.leap.tls.connection.TlsConnectionHandshakeHash;
 import it.auties.leap.tls.connection.TlsConnectionSecret;
-import it.auties.leap.tls.extension.TlsExtensionOwner;
-import it.auties.leap.tls.message.TlsHandshakeMessageDeserializer;
-import it.auties.leap.tls.property.TlsProperty;
-import it.auties.leap.tls.version.TlsVersion;
+import it.auties.leap.tls.extension.TlsExtension;
 
 import java.net.InetSocketAddress;
-import java.nio.ByteBuffer;
 import java.util.*;
 
 @SuppressWarnings({"UnusedReturnValue", "unchecked"})
 public class TlsContext {
     private final TlsConnection localConnectionState;
     private final TlsCertificateValidator certificateValidator;
-    private final Map<Integer, TlsHandshakeMessageDeserializer> handshakeMessageDeserializers;
     private final TlsConnectionHandler connectionHandler;
-    private final Map<TlsProperty<?, ?>, PropertyValue<?, ?>> properties;
-    private final Queue<ByteBuffer> bufferedMessages;
+    private final Map<TlsContextualProperty<?, ?>, PropertyValue<?, ?>> properties;
+    private final Queue<byte[]> bufferedMessages;
     private final TlsConnectionHandshakeHash connectionIntegrity;
     private volatile InetSocketAddress address;
     private volatile TlsConnection remoteConnectionState;
     private volatile TlsConnectionSecret masterSecretKey;
-
-    private final Set<Integer> processedHandshakeExtensions;
+    private final List<? extends TlsExtension> extensions;
 
     TlsContext(
             TlsConnection localConnectionState,
+            List<? extends TlsExtension> extensions,
             TlsCertificateValidator certificateValidator,
             TlsConnectionHandler connectionHandler
     ) {
         this.localConnectionState = localConnectionState;
+        this.extensions = extensions;
         this.certificateValidator = certificateValidator;
-        this.handshakeMessageDeserializers = new HashMap<>();
         this.connectionHandler = connectionHandler;
         this.properties = new HashMap<>();
-        for(var deserializer : TlsHandshakeMessageDeserializer.values()) {
-            addHandshakeMessageDeserializer(deserializer);
-        }
         this.bufferedMessages = new LinkedList<>();
         this.connectionIntegrity = new TlsConnectionHandshakeHash();
-        this.processedHandshakeExtensions = new HashSet<>();
     }
 
-    static TlsContext ofClient(
-            List<TlsVersion> versions,
-            List<? extends TlsExtensionOwner.Client> extensions,
-            List<TlsCipherSuite> ciphers,
-            List<TlsCompression> compressions,
-            TlsConnection localConnectionState,
-            TlsCertificateValidator certificateValidator,
-            TlsConnectionHandler connectionHandler
-    ) {
-        return new TlsContext(localConnectionState, certificateValidator, connectionHandler)
-                .addNegotiableProperty(TlsProperty.version(), versions)
-                .addNegotiableProperty(TlsProperty.clientExtensions(), extensions)
-                .addNegotiableProperty(TlsProperty.cipher(), ciphers)
-                .addNegotiableProperty(TlsProperty.compression(), compressions);
-    }
-
-    static TlsContext ofServer(
-            List<TlsVersion> versions,
-            List<? extends TlsExtensionOwner.Server> extensions,
-            List<TlsCipherSuite> ciphers,
-            List<TlsCompression> compressions,
-            TlsConnection localConnectionState,
-            TlsCertificateValidator certificateValidator,
-            TlsConnectionHandler connectionHandler
-    ) {
-        return new TlsContext(localConnectionState, certificateValidator, connectionHandler)
-                .addNegotiableProperty(TlsProperty.version(), versions)
-                .addNegotiableProperty(TlsProperty.serverExtensions(), extensions)
-                .addNegotiableProperty(TlsProperty.cipher(), ciphers)
-                .addNegotiableProperty(TlsProperty.compression(), compressions);
-    }
-
-    public static TlsClientContextBuilder newClientBuilder() {
+    public static TlsClientContextBuilder clientBuilder() {
         return new TlsClientContextBuilder();
     }
 
-    public static TlsServerContextBuilder newServerBuilder() {
+    public static TlsServerContextBuilder serverBuilder() {
         return new TlsServerContextBuilder();
     }
 
@@ -122,13 +79,13 @@ public class TlsContext {
         return this;
     }
 
-    public <I, O> TlsContext addNegotiableProperty(TlsProperty<I, O> property, I propertyValue) {
+    public <I, O> TlsContext addAdvertisedValue(TlsContextualProperty<I, O> property, I propertyValue) {
         var value = new PropertyValue<I, O>(propertyValue);
         properties.put(property, value);
         return this;
     }
 
-    public <I, O> TlsContext addNegotiatedProperty(TlsProperty<I, O> property, O propertyValue) {
+    public <I, O> TlsContext addNegotiatedValue(TlsContextualProperty<I, O> property, O propertyValue) {
         var value = (PropertyValue<I, O>) properties.get(property);
         if(value == null) {
             throw new TlsAlert("Missing negotiable property", TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR);
@@ -138,20 +95,16 @@ public class TlsContext {
         return this;
     }
 
-    public boolean removeProperty(TlsProperty<?, ?> property) {
-        return properties.remove(property) != null;
-    }
-
-    public <I, O> Optional<I> getNegotiableValue(TlsProperty<I, O> property) {
+    public <I, O> Optional<I> getAdvertisedValue(TlsContextualProperty<I, O> property) {
         var value = (PropertyValue<I, O>) properties.get(property);
         if(value == null) {
             return Optional.empty();
         }
 
-        return Optional.ofNullable(value.negotiable());
+        return Optional.ofNullable(value.advertised());
     }
 
-    public <I, O> Optional<O> getNegotiatedValue(TlsProperty<I, O> property) {
+    public <I, O> Optional<O> getNegotiatedValue(TlsContextualProperty<I, O> property) {
         var value = (PropertyValue<I, O>) properties.get(property);
         if (value == null) {
             return Optional.empty();
@@ -160,12 +113,12 @@ public class TlsContext {
         return value.negotiated();
     }
 
-    public TlsContext addBufferedMessage(ByteBuffer buffer) {
+    public TlsContext addBufferedMessage(byte[] buffer) {
         bufferedMessages.add(buffer);
         return this;
     }
 
-    public Optional<ByteBuffer> lastBufferedMessage() {
+    public Optional<byte[]> lastBufferedMessage() {
         return Optional.ofNullable(bufferedMessages.peek());
     }
 
@@ -186,37 +139,19 @@ public class TlsContext {
         return connectionIntegrity;
     }
 
-    public TlsContext addHandshakeMessageDeserializer(TlsHandshakeMessageDeserializer deserializer) {
-        handshakeMessageDeserializers.put(deserializer.id(), deserializer);
-        return this;
-    }
-
-    public boolean removeHandshakeMessageDeserializer(TlsHandshakeMessageDeserializer deserializer) {
-        return handshakeMessageDeserializers.remove(deserializer.id()) != null;
-    }
-
-    public Optional<? extends TlsHandshakeMessageDeserializer> findHandshakeMessageDeserializer(int id) {
-        return Optional.ofNullable(handshakeMessageDeserializers.get(id));
-    }
-
-    public boolean hasProcessedExtension(int type) {
-        return processedHandshakeExtensions.contains(type);
-    }
-
-    public TlsContext addProcessedExtension(int type) {
-        processedHandshakeExtensions.add(type);
-        return this;
+    public List<? extends TlsExtension> extensions() {
+        return Collections.unmodifiableList(extensions);
     }
 
     private static final class PropertyValue<I, O> {
-        private final I negotiable;
+        private final I advertised;
         private O value;
-        private PropertyValue(I negotiable) {
-            this.negotiable = negotiable;
+        private PropertyValue(I advertised) {
+            this.advertised = advertised;
         }
 
-        private I negotiable() {
-            return negotiable;
+        private I advertised() {
+            return advertised;
         }
 
         private Optional<O> negotiated() {

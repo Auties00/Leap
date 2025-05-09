@@ -1,8 +1,5 @@
 package it.auties.leap.tls.certificate;
 
-import it.auties.leap.tls.alert.TlsAlert;
-import it.auties.leap.tls.alert.TlsAlertLevel;
-import it.auties.leap.tls.alert.TlsAlertType;
 import it.auties.leap.tls.certificate.implementation.DiscardCertificatesValidator;
 import it.auties.leap.tls.certificate.implementation.ValidateCertificatesValidator;
 import it.auties.leap.tls.context.TlsContext;
@@ -20,9 +17,8 @@ public interface TlsCertificateValidator {
 
     static TlsCertificateValidator validate(List<TlsCertificate> trustAnchors) {
         if(trustAnchors == null || trustAnchors.isEmpty()) {
-            throw new TlsAlert("No trust anchors found", TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR);
+            throw new IllegalArgumentException("No trust anchors provided");
         }
-
         return new ValidateCertificatesValidator(trustAnchors);
     }
 

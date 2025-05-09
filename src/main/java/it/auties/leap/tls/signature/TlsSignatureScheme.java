@@ -194,7 +194,7 @@ public final class TlsSignatureScheme implements TlsSignature {
     }
 
     @Override
-    public Integer id() {
+    public int id() {
         return id;
     }
 

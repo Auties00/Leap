@@ -46,7 +46,7 @@ public final class AsyncSocketClient implements SocketClient, AsyncSocketIO {
         return applicationLayer.readFully(buffer);
     }
 
-    public static AsyncSocketClientBuilder newBuilder(SocketProtocol protocol) {
+    public static AsyncSocketClientBuilder builder(SocketProtocol protocol) {
         return new AsyncSocketClientBuilder(protocol);
     }
 

@@ -1,14 +1,12 @@
 package it.auties.leap.tls.supplemental;
 
-import it.auties.leap.tls.property.TlsIdentifiableProperty;
-import it.auties.leap.tls.property.TlsSerializableProperty;
 
 import java.nio.ByteBuffer;
 import java.util.Optional;
 
 import static it.auties.leap.tls.util.BufferUtils.*;
 
-public sealed interface TlsAuthorizationDataEntry extends TlsIdentifiableProperty<Byte>, TlsSerializableProperty {
+public sealed interface TlsAuthorizationDataEntry {
     static Optional<? extends TlsAuthorizationDataEntry> of(ByteBuffer buffer) {
         var id = readBigEndianInt8(buffer);
         return switch (id) {
@@ -19,6 +17,10 @@ public sealed interface TlsAuthorizationDataEntry extends TlsIdentifiablePropert
             default -> Optional.empty();
         };
     }
+
+    byte id();
+    void serialize(ByteBuffer buffer);
+    int length();
 
     final class X509AttrCert implements TlsAuthorizationDataEntry {
         private static final int ID = 0;
@@ -39,7 +41,7 @@ public sealed interface TlsAuthorizationDataEntry extends TlsIdentifiablePropert
         }
 
         @Override
-        public Byte id() {
+        public byte id() {
             return ID;
         }
 
@@ -75,7 +77,7 @@ public sealed interface TlsAuthorizationDataEntry extends TlsIdentifiablePropert
         }
 
         @Override
-        public Byte id() {
+        public byte id() {
             return ID;
         }
 
@@ -111,7 +113,7 @@ public sealed interface TlsAuthorizationDataEntry extends TlsIdentifiablePropert
         }
 
         @Override
-        public Byte id() {
+        public byte id() {
             return ID;
         }
 
@@ -147,7 +149,7 @@ public sealed interface TlsAuthorizationDataEntry extends TlsIdentifiablePropert
         }
 
         @Override
-        public Byte id() {
+        public byte id() {
             return ID;
         }
 

@@ -17,7 +17,7 @@ public final class ExplicitChar2EllipticCurve implements TlsSupportedEllipticCur
     }
 
     @Override
-    public Integer id() {
+    public int id() {
         return 65282;
     }
 

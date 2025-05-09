@@ -5,15 +5,13 @@ import it.auties.leap.tls.alert.TlsAlertLevel;
 import it.auties.leap.tls.alert.TlsAlertType;
 import it.auties.leap.tls.hash.TlsHash;
 import it.auties.leap.tls.hash.TlsHashFactory;
-import it.auties.leap.tls.property.TlsIdentifiableProperty;
-import it.auties.leap.tls.property.TlsSerializableProperty;
 
 import java.nio.ByteBuffer;
 import java.util.Optional;
 
 import static it.auties.leap.tls.util.BufferUtils.*;
 
-public sealed interface TlsAuthorizationHash extends TlsIdentifiableProperty<Byte>, TlsSerializableProperty {
+public sealed interface TlsAuthorizationHash {
     static Optional<TlsAuthorizationHash> of(ByteBuffer buffer) {
         var id = readBigEndianInt8(buffer);
         return switch (id) {
@@ -27,7 +25,7 @@ public sealed interface TlsAuthorizationHash extends TlsIdentifiableProperty<Byt
             default -> Optional.empty();
         };
     }
-
+    
     static None none() {
         return None.INSTANCE;
     }
@@ -80,17 +78,10 @@ public sealed interface TlsAuthorizationHash extends TlsIdentifiableProperty<Byt
         return new SHA512(hash);
     }
 
+    byte id();
     Optional<byte[]> data();
-
-    @Override
-    default void serialize(ByteBuffer buffer) {
-        writeBigEndianInt8(buffer, id());
-    }
-
-    @Override
-    default int length() {
-        return INT8_LENGTH;
-    }
+    void serialize(ByteBuffer buffer);
+    int length();
 
     final class None implements TlsAuthorizationHash {
         private static final int ID = 0;
@@ -110,13 +101,21 @@ public sealed interface TlsAuthorizationHash extends TlsIdentifiableProperty<Byt
         }
 
         @Override
-        public Byte id() {
+        public byte id() {
             return ID;
         }
 
         @Override
         public Optional<byte[]> data() {
             return Optional.empty();
+        }
+
+        public void serialize(ByteBuffer buffer) {
+            writeBigEndianInt8(buffer, id());
+        }
+
+        public int length() {
+            return INT8_LENGTH;
         }
     }
 
@@ -135,13 +134,21 @@ public sealed interface TlsAuthorizationHash extends TlsIdentifiableProperty<Byt
         }
 
         @Override
-        public Byte id() {
+        public byte id() {
             return ID;
         }
 
         @Override
         public Optional<byte[]> data() {
             return Optional.of(hash);
+        }
+
+        public void serialize(ByteBuffer buffer) {
+            writeBigEndianInt8(buffer, id());
+        }
+
+        public int length() {
+            return INT8_LENGTH;
         }
     }
 
@@ -160,13 +167,21 @@ public sealed interface TlsAuthorizationHash extends TlsIdentifiableProperty<Byt
         }
 
         @Override
-        public Byte id() {
+        public byte id() {
             return ID;
         }
 
         @Override
         public Optional<byte[]> data() {
             return Optional.of(hash);
+        }
+
+        public void serialize(ByteBuffer buffer) {
+            writeBigEndianInt8(buffer, id());
+        }
+
+        public int length() {
+            return INT8_LENGTH;
         }
     }
 
@@ -185,13 +200,21 @@ public sealed interface TlsAuthorizationHash extends TlsIdentifiableProperty<Byt
         }
 
         @Override
-        public Byte id() {
+        public byte id() {
             return ID;
         }
 
         @Override
         public Optional<byte[]> data() {
             return Optional.of(hash);
+        }
+
+        public void serialize(ByteBuffer buffer) {
+            writeBigEndianInt8(buffer, id());
+        }
+
+        public int length() {
+            return INT8_LENGTH;
         }
     }
 
@@ -210,13 +233,21 @@ public sealed interface TlsAuthorizationHash extends TlsIdentifiableProperty<Byt
         }
 
         @Override
-        public Byte id() {
+        public byte id() {
             return ID;
         }
 
         @Override
         public Optional<byte[]> data() {
             return Optional.of(hash);
+        }
+
+        public void serialize(ByteBuffer buffer) {
+            writeBigEndianInt8(buffer, id());
+        }
+
+        public int length() {
+            return INT8_LENGTH;
         }
     }
 
@@ -235,13 +266,21 @@ public sealed interface TlsAuthorizationHash extends TlsIdentifiableProperty<Byt
         }
 
         @Override
-        public Byte id() {
+        public byte id() {
             return ID;
         }
 
         @Override
         public Optional<byte[]> data() {
             return Optional.of(hash);
+        }
+
+        public void serialize(ByteBuffer buffer) {
+            writeBigEndianInt8(buffer, id());
+        }
+
+        public int length() {
+            return INT8_LENGTH;
         }
     }
 
@@ -260,13 +299,21 @@ public sealed interface TlsAuthorizationHash extends TlsIdentifiableProperty<Byt
         }
 
         @Override
-        public Byte id() {
+        public byte id() {
             return ID;
         }
 
         @Override
         public Optional<byte[]> data() {
             return Optional.of(hash);
+        }
+
+        public void serialize(ByteBuffer buffer) {
+            writeBigEndianInt8(buffer, id());
+        }
+
+        public int length() {
+            return INT8_LENGTH;
         }
     }
 }

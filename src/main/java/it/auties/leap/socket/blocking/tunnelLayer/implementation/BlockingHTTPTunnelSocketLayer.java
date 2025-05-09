@@ -37,7 +37,7 @@ public final class BlockingHTTPTunnelSocketLayer extends BlockingSocketTunnelLay
 
     private void sendAuthentication(InetSocketAddress endpoint) {
         var userInfo = proxy.getUserInfo();
-        var request = HttpRequest.newBuilder()
+        var request = HttpRequest.builder()
                 .connect()
                 .uri(URI.create(endpoint.getHostName() + ":" + endpoint.getPort()))
                 .header("Proxy-Authorization", userInfo == null ? null : "Basic " + Base64.getEncoder().encodeToString(userInfo.getBytes()))

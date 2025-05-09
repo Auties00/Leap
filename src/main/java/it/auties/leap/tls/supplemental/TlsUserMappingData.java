@@ -3,14 +3,12 @@ package it.auties.leap.tls.supplemental;
 import it.auties.leap.tls.alert.TlsAlert;
 import it.auties.leap.tls.alert.TlsAlertLevel;
 import it.auties.leap.tls.alert.TlsAlertType;
-import it.auties.leap.tls.property.TlsIdentifiableProperty;
-import it.auties.leap.tls.property.TlsSerializableProperty;
 
 import java.nio.ByteBuffer;
 
 import static it.auties.leap.tls.util.BufferUtils.*;
 
-public sealed interface TlsUserMappingData extends TlsIdentifiableProperty<Byte>, TlsSerializableProperty {
+public sealed interface TlsUserMappingData {
     static UpnDomainHint upnDomainHint(byte[] userPrincipalName, byte[] domainName) {
         if (userPrincipalName == null) {
             throw new TlsAlert("userPrincipalName", TlsAlertLevel.FATAL, TlsAlertType.ILLEGAL_PARAMETER);
@@ -23,39 +21,10 @@ public sealed interface TlsUserMappingData extends TlsIdentifiableProperty<Byte>
         return new UpnDomainHint(userPrincipalName, domainName);
     }
 
-    static Reserved reservedForPrivateUse(byte id) {
-        if(id < -32 || id > -1) {
-            throw new TlsAlert(
-                    "Only values from 224-255 (decimal) inclusive are reserved for Private Use",
-                    TlsAlertLevel.FATAL,
-                    TlsAlertType.INTERNAL_ERROR
-            );
-        }
-
-        return new Reserved(id, null, TlsUserMappingDataDeserializer.unsupported(id));
-    }
-
-    static Reserved reservedForPrivateUse(byte id, TlsSerializableProperty payload, TlsUserMappingDataDeserializer deserializer) {
-        if(id < -32 || id > -1) {
-            throw new TlsAlert(
-                    "Only values from 224-255 (decimal) inclusive are reserved for Private Use",
-                    TlsAlertLevel.FATAL,
-                    TlsAlertType.INTERNAL_ERROR
-            );
-        }
-
-        if(deserializer == null) {
-            throw new TlsAlert(
-                    "No deserializer was provided",
-                    TlsAlertLevel.FATAL,
-                    TlsAlertType.INTERNAL_ERROR
-            );
-        }
-
-        return new Reserved(id, payload, deserializer);
-    }
-
+    byte id();
     Type type();
+    void serialize(ByteBuffer buffer);
+    int length();
     TlsUserMappingDataDeserializer deserializer();
 
     final class UpnDomainHint implements TlsUserMappingData {
@@ -69,7 +38,7 @@ public sealed interface TlsUserMappingData extends TlsIdentifiableProperty<Byte>
             }
 
             @Override
-            public Byte id() {
+            public byte id() {
                 return ID;
             }
         };
@@ -83,7 +52,7 @@ public sealed interface TlsUserMappingData extends TlsIdentifiableProperty<Byte>
         }
 
         @Override
-        public Byte id() {
+        public byte id() {
             return ID;
         }
 
@@ -112,47 +81,25 @@ public sealed interface TlsUserMappingData extends TlsIdentifiableProperty<Byte>
         }
     }
 
-    final class Reserved implements TlsUserMappingData {
+    non-sealed abstract class Reserved implements TlsUserMappingData {
         private final byte id;
-        private final TlsSerializableProperty payload;
-        private final TlsUserMappingDataDeserializer deserializer;
 
-        private Reserved(byte id, TlsSerializableProperty payload, TlsUserMappingDataDeserializer deserializer) {
+        protected Reserved(byte id) {
+            if(id < -32 || id > -1) {
+                throw new IllegalArgumentException("Only values from 224-255 (decimal) inclusive are reserved for Private Use");
+            }
+
             this.id = id;
-            this.payload = payload;
-            this.deserializer = deserializer;
         }
 
         @Override
-        public Byte id() {
+        public final byte id() {
             return id;
         }
 
         @Override
-        public TlsUserMappingDataDeserializer deserializer() {
-            return deserializer;
-        }
-
-        @Override
-        public Type type() {
+        public final Type type() {
             return Type.RESERVED_FOR_PRIVATE_USE;
-        }
-
-        @Override
-        public void serialize(ByteBuffer buffer) {
-            writeBigEndianInt8(buffer, id());
-            if(payload != null) {
-                payload.serialize(buffer);
-            }
-        }
-
-        @Override
-        public int length() {
-            if(payload == null) {
-                return INT8_LENGTH;
-            }else {
-                return INT8_LENGTH + payload.length();
-            }
         }
     }
 

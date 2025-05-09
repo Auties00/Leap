@@ -7,7 +7,7 @@ import it.auties.leap.tls.context.TlsContext;
 import it.auties.leap.tls.context.TlsSource;
 import it.auties.leap.tls.extension.TlsExtension;
 import it.auties.leap.tls.message.*;
-import it.auties.leap.tls.property.TlsProperty;
+import it.auties.leap.tls.context.TlsContextualProperty;
 import it.auties.leap.tls.version.TlsVersion;
 
 import java.nio.ByteBuffer;
@@ -33,7 +33,7 @@ public record EncryptedExtensionsMessage(
 
         @Override
         public TlsMessage deserialize(TlsContext context, ByteBuffer buffer, TlsMessageMetadata metadata) {
-            var extensionTypeToDecoder = context.getNegotiatedValue(TlsProperty.clientExtensions())
+            var extensionTypeToDecoder = context.getNegotiatedValue(TlsContextualProperty.clientExtensions())
                     .orElseThrow(() -> new TlsAlert("Missing negotiated property: clientExtensions", TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR))
                     .stream()
                     .collect(Collectors.toUnmodifiableMap(TlsExtension::type, Function.identity()));
@@ -95,7 +95,7 @@ public record EncryptedExtensionsMessage(
             extension.apply(context, source);
         }
 
-        context.getNegotiatedValue(TlsProperty.clientExtensions())
+        context.getNegotiatedValue(TlsContextualProperty.clientExtensions())
                 .orElseThrow(() -> new TlsAlert("Missing negotiated property: clientExtensions", TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR))
                 .stream()
                 .filter(entry -> !context.hasProcessedExtension(entry.type()))
@@ -105,5 +105,9 @@ public record EncryptedExtensionsMessage(
     @Override
     public boolean hashable() {
         return true;
+    }
+
+    public void validate(TlsContext context) {
+
     }
 }

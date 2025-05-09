@@ -83,4 +83,8 @@ public record NewConnectionIdMessage(
     public boolean hashable() {
         return true;
     }
+
+    public void validate(TlsContext context) {
+
+    }
 }

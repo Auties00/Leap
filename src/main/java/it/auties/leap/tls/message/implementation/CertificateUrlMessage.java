@@ -1,5 +1,8 @@
 package it.auties.leap.tls.message.implementation;
 
+import it.auties.leap.tls.alert.TlsAlert;
+import it.auties.leap.tls.alert.TlsAlertLevel;
+import it.auties.leap.tls.alert.TlsAlertType;
 import it.auties.leap.tls.certificate.TlsCertificateUrl;
 import it.auties.leap.tls.certificate.TlsCertificateUrlAndHash;
 import it.auties.leap.tls.context.TlsContext;
@@ -30,8 +33,11 @@ public record CertificateUrlMessage(
         @Override
         public TlsMessage deserialize(TlsContext context, ByteBuffer buffer, TlsMessageMetadata metadata) {
             var typeId = readBigEndianInt8(buffer);
-            var type = TlsCertificateUrl.IdentifierType.of(typeId)
-                    .orElseThrow(() -> new IllegalArgumentException("Invalid certificate chain type: " + typeId));
+            var type = TlsCertificateUrl.IdentifierType.of(typeId).orElseThrow(() -> new TlsAlert(
+                    "Cannot decode CertificateUrlMessage: unknown type " + typeId,
+                    TlsAlertLevel.FATAL,
+                    TlsAlertType.DECODE_ERROR
+            ));
             var urlAndHashList = new ArrayList<TlsCertificateUrlAndHash>();
             var urlAndHashListLength = buffer.remaining() >= INT16_LENGTH ? readBigEndianInt16(buffer) : 0;
             try (var _ = scopedRead(buffer, urlAndHashListLength)) {
@@ -84,5 +90,9 @@ public record CertificateUrlMessage(
     @Override
     public boolean hashable() {
         return true;
+    }
+
+    public void validate(TlsContext context) {
+
     }
 }

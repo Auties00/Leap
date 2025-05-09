@@ -3,20 +3,16 @@ package it.auties.leap.tls.group.implementation;
 import it.auties.leap.tls.alert.TlsAlert;
 import it.auties.leap.tls.alert.TlsAlertLevel;
 import it.auties.leap.tls.alert.TlsAlertType;
-import it.auties.leap.tls.ciphersuite.exchange.TlsKeyExchange;
-import it.auties.leap.tls.ciphersuite.exchange.implementation.DHKeyExchange;
+import it.auties.leap.tls.connection.TlsConnectionSecret;
 import it.auties.leap.tls.context.TlsContext;
 import it.auties.leap.tls.group.TlsSupportedFiniteField;
-import it.auties.leap.tls.property.TlsProperty;
-import it.auties.leap.tls.connection.TlsConnectionSecret;
 
-import javax.crypto.KeyAgreement;
 import javax.crypto.interfaces.DHPublicKey;
 import javax.crypto.spec.DHParameterSpec;
 import javax.crypto.spec.DHPublicKeySpec;
 import java.math.BigInteger;
 import java.security.*;
-import java.util.Arrays;
+import java.util.Objects;
 
 public final class NamedFiniteField implements TlsSupportedFiniteField {
     private static final BigInteger P2048 = new BigInteger("FFFFFFFFFFFFFFFFADF85458A2BB4A9AAFDC5620273D3CF1D8B9C583CE2D3695A9E13641146433FBCC939DCE249B3EF97D2FE363630C75D8F681B202AEC4617AD3DF1ED5D5FD65612433F51F5F066ED0856365553DED1AF3B557135E7F57C935984F0C70E0E68B77E2A689DAF3EFE8721DF158A136ADE73530ACCA4F483A797ABC0AB182B324FB61D108A94BB2C8E3FBB96ADAB760D7F4681D4F42A3DE394DF4AE56EDE76372BB190B07A7C8EE0A6D709E02FCE1CDF7E2ECC03404CD28342F619172FE9CE98583FF8E4F1232EEF28183C3FE3B1B4C6FAD733BB5FCBC2EC22005C58EF1837D1683B2C6F34A26C1B2EFFA886B423861285C97FFFFFFFFFFFFFFFF", 16);
@@ -62,7 +58,7 @@ public final class NamedFiniteField implements TlsSupportedFiniteField {
     }
 
     @Override
-    public Integer id() {
+    public int id() {
         return id;
     }
 
@@ -77,44 +73,18 @@ public final class NamedFiniteField implements TlsSupportedFiniteField {
             keyPairGenerator.initialize(spec);
             return keyPairGenerator.generateKeyPair();
         } catch (GeneralSecurityException exception) {
-            throw new TlsAlert("Cannot generate EC keypair: " + exception.getMessage(), TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR);
+            throw new TlsAlert(
+                    "Cannot generate keypair: " + exception.getMessage(),
+                    exception,
+                    TlsAlertLevel.FATAL,
+                    TlsAlertType.HANDSHAKE_FAILURE
+            );
         }
     }
 
     @Override
     public TlsConnectionSecret computeSharedSecret(TlsContext context) {
-        var privateKey = context.localConnectionState()
-                .ephemeralKeyPair()
-                .orElseThrow(() -> new TlsAlert("Missing local ephemeral key pair", TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR))
-                .privateKey()
-                .orElseThrow(() -> new TlsAlert("Missing local ephemeral private key", TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR));
-        var keyExchangeType = context.getNegotiatedValue(TlsProperty.cipher())
-                .orElseThrow(() -> new TlsAlert("Missing negotiated property: cipher", TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR))
-                .keyExchangeFactory()
-                .type();
-        var publicKey = switch (keyExchangeType) {
-            case STATIC -> context.remoteConnectionState()
-                    .orElseThrow(() -> new TlsAlert("No remote connection state was created", TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR))
-                    .staticCertificate()
-                    .orElseThrow(() -> new TlsAlert("Expected at least one static DH certificate", TlsAlertLevel.FATAL, TlsAlertType.CERTIFICATE_UNOBTAINABLE))
-                    .value()
-                    .getPublicKey();
-            case EPHEMERAL -> context.remoteConnectionState()
-                    .orElseThrow(() -> new TlsAlert("No remote connection state was created", TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR))
-                    .ephemeralKeyPair()
-                    .orElseThrow(() -> new TlsAlert("Missing remote public key for ephemeral pre master secret generation", TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR))
-                    .publicKey();
-        };
-        try {
-            var keyAgreement = KeyAgreement.getInstance("DH");
-            keyAgreement.init(privateKey, spec);
-            keyAgreement.doPhase(publicKey, true);
-            var result = keyAgreement.generateSecret();
-            System.out.println("Remote public key: " + Arrays.toString(((DHPublicKey) publicKey).getY().toByteArray()));
-            return TlsConnectionSecret.of(result);
-        }catch (GeneralSecurityException exception) {
-            throw new TlsAlert("Cannot compute shared secret: " + exception.getMessage(), TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR);
-        }
+        return JcaSharedSecret.compute(context, "DH", spec);
     }
 
     @Override
@@ -128,23 +98,31 @@ public final class NamedFiniteField implements TlsSupportedFiniteField {
             );
             return keyFactory.generatePublic(dhPubKeySpecs);
         }catch (GeneralSecurityException exception) {
-            throw new TlsAlert("Cannot parse DH key: " + exception.getMessage(), TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR);
+            throw new TlsAlert(
+                    "Cannot parse public key: " + exception.getMessage(),
+                    exception,
+                    TlsAlertLevel.FATAL,
+                    TlsAlertType.HANDSHAKE_FAILURE
+            );
         }
     }
 
     @Override
     public byte[] dumpPublicKey(PublicKey jcePublicKey) {
         if(!(jcePublicKey instanceof DHPublicKey publicKey)) {
-            throw new TlsAlert("Unsupported key type", TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR);
+            throw new TlsAlert(
+                    "Cannot dump public key: unsupported key type",
+                    TlsAlertLevel.FATAL,
+                    TlsAlertType.HANDSHAKE_FAILURE
+            );
         }
 
         return publicKey.getY().toByteArray();
     }
 
     @Override
-    public boolean accepts(TlsKeyExchange exchange) {
-        return exchange instanceof DHKeyExchange keyExchange
-                && keyExchange.p().equals(spec.getP())
-                && keyExchange.g().equals(spec.getG());
+    public boolean accepts(BigInteger p, BigInteger g) {
+        return Objects.equals(p, spec.getP())
+                && Objects.equals(g, spec.getG());
     }
 }

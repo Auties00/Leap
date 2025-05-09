@@ -5,18 +5,18 @@ import it.auties.leap.tls.alert.TlsAlertLevel;
 import it.auties.leap.tls.alert.TlsAlertType;
 import it.auties.leap.tls.connection.TlsConnectionType;
 import it.auties.leap.tls.context.TlsContext;
-import it.auties.leap.tls.property.TlsProperty;
-import it.auties.leap.tls.property.TlsSerializableProperty;
+import it.auties.leap.tls.context.TlsContextualProperty;
 
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import static it.auties.leap.tls.util.BufferUtils.*;
 
-public final class TlsCertificateTrustedAuthorities implements TlsSerializableProperty {
+public final class TlsCertificateTrustedAuthorities {
     private final List<TlsCertificateTrustedAuthority> trustedAuthoritiesList;
     private final int trustedAuthoritiesLength;
 
@@ -26,18 +26,15 @@ public final class TlsCertificateTrustedAuthorities implements TlsSerializablePr
     }
 
     public static TlsCertificateTrustedAuthorities of(List<TlsCertificateTrustedAuthority> trustedAuthoritiesList) {
-        if (trustedAuthoritiesList == null) {
-            throw new TlsAlert("Trusted authorities cannot be null", TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR);
-        }
-
+        Objects.requireNonNull(trustedAuthoritiesList, "Trusted authorities list cannot be null");
         var length = trustedAuthoritiesList.stream()
-                .mapToInt(TlsSerializableProperty::length)
+                .mapToInt(TlsCertificateTrustedAuthority::length)
                 .sum();
         return new TlsCertificateTrustedAuthorities(trustedAuthoritiesList, length);
     }
 
     public static TlsCertificateTrustedAuthorities of(TlsContext context, ByteBuffer buffer) {
-        var negotiableTrustedCAs = context.getNegotiableValue(TlsProperty.trustedCA());
+        var negotiableTrustedCAs = context.getAdvertisedValue(TlsContextualProperty.trustedCA());
         if(negotiableTrustedCAs.isEmpty()) {
             throw new TlsAlert("Trusted CAs aren't negotiable", TlsAlertLevel.FATAL, TlsAlertType.HANDSHAKE_FAILURE);
         }
@@ -66,7 +63,6 @@ public final class TlsCertificateTrustedAuthorities implements TlsSerializablePr
         return trustedAuthoritiesList;
     }
 
-    @Override
     public void serialize(ByteBuffer buffer) {
         if(trustedAuthoritiesLength > 0) {
             writeBigEndianInt16(buffer, trustedAuthoritiesLength);
@@ -76,7 +72,6 @@ public final class TlsCertificateTrustedAuthorities implements TlsSerializablePr
         }
     }
 
-    @Override
     public int length() {
         if(trustedAuthoritiesLength > 0) {
             return INT16_LENGTH

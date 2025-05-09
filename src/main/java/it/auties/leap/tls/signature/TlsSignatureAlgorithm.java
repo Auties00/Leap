@@ -3,7 +3,6 @@ package it.auties.leap.tls.signature;
 import it.auties.leap.tls.alert.TlsAlert;
 import it.auties.leap.tls.alert.TlsAlertLevel;
 import it.auties.leap.tls.alert.TlsAlertType;
-import it.auties.leap.tls.property.TlsIdentifiableProperty;
 
 import java.util.Objects;
 
@@ -33,7 +32,7 @@ public final class TlsSignatureAlgorithm implements TlsSignature {
     }
 
     @Override
-    public Integer id() {
+    public int id() {
         return (hash.id() << 8) | signature.id();
     }
 
@@ -47,7 +46,7 @@ public final class TlsSignatureAlgorithm implements TlsSignature {
         return Objects.hash(signature, hash);
     }
 
-    public static final class Signature implements TlsIdentifiableProperty<Byte> {
+    public static final class Signature {
         private static final Signature ANONYMOUS = new Signature((byte) 0, false);
         private static final Signature RSA = new Signature((byte) 1, false);
         private static final Signature DSA = new Signature((byte) 2, false);
@@ -135,8 +134,7 @@ public final class TlsSignatureAlgorithm implements TlsSignature {
             this.intrinsicHash = intrinsicHash;
         }
 
-        @Override
-        public Byte id() {
+        public byte id() {
             return id;
         }
 
@@ -145,7 +143,7 @@ public final class TlsSignatureAlgorithm implements TlsSignature {
         }
     }
 
-    public static final class Hash implements TlsIdentifiableProperty<Byte> {
+    public static final class Hash {
         private static final Hash NONE = new Hash((byte) 0);
         private static final Hash MD5 = new Hash((byte) 1);
         private static final Hash SHA1 = new Hash((byte) 2);
@@ -201,8 +199,7 @@ public final class TlsSignatureAlgorithm implements TlsSignature {
             this.id = id;
         }
 
-        @Override
-        public Byte id() {
+        public byte id() {
             return id;
         }
     }

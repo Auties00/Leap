@@ -14,13 +14,12 @@ import it.auties.leap.tls.connection.TlsConnection;
 import it.auties.leap.tls.connection.TlsConnectionHandshakeStatus;
 import it.auties.leap.tls.context.TlsContext;
 import it.auties.leap.tls.context.TlsSource;
-import it.auties.leap.tls.extension.TlsExtensionProcessor;
 import it.auties.leap.tls.message.TlsHandshakeMessage;
 import it.auties.leap.tls.message.TlsMessage;
 import it.auties.leap.tls.message.TlsMessageContentType;
 import it.auties.leap.tls.message.TlsMessageMetadata;
 import it.auties.leap.tls.message.implementation.*;
-import it.auties.leap.tls.property.TlsProperty;
+import it.auties.leap.tls.context.TlsContextualProperty;
 import it.auties.leap.tls.version.TlsVersion;
 
 import java.io.IOException;
@@ -66,7 +65,7 @@ public class AsyncSecureSocketApplicationLayer extends AsyncSocketApplicationLay
     }
 
     private CompletableFuture<Void> continueHandshake() {
-        return tlsContext.getNegotiatedValue(TlsProperty.version())
+        return tlsContext.getNegotiatedValue(TlsContextualProperty.version())
                 .map(tlsVersion -> switch (tlsVersion) {
                     case TLS11, TLS12 -> readUntil(TlsConnectionHandshakeStatus.HANDSHAKE_DONE)
                             .thenCompose(_ -> sendClientCertificate())
@@ -89,7 +88,7 @@ public class AsyncSecureSocketApplicationLayer extends AsyncSocketApplicationLay
     }
 
     private CompletableFuture<Void> sendClientHello() {
-        var versions = tlsContext.getNegotiableValue(TlsProperty.version())
+        var versions = tlsContext.getAdvertisedValue(TlsContextualProperty.version())
                 .orElseThrow(() -> new TlsAlert("Missing negotiable property: version", TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR))
                 .stream()
                 .sorted()
@@ -101,7 +100,7 @@ public class AsyncSecureSocketApplicationLayer extends AsyncSocketApplicationLay
                 case DTLS13 -> TlsVersion.DTLS12;
                 default -> highestVersion;
             };
-            var ciphers = tlsContext.getNegotiableValue(TlsProperty.cipher())
+            var ciphers = tlsContext.getAdvertisedValue(TlsContextualProperty.cipher())
                     .orElseThrow(() -> new TlsAlert("Missing negotiable property: cipher", TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR))
                     .stream()
                     .filter(cipher -> cipher.versions().contains(highestVersion))
@@ -111,7 +110,7 @@ public class AsyncSecureSocketApplicationLayer extends AsyncSocketApplicationLay
                 continue;
             }
 
-            var compressions = tlsContext.getNegotiableValue(TlsProperty.compression())
+            var compressions = tlsContext.getAdvertisedValue(TlsContextualProperty.compression())
                     .orElseThrow(() -> new TlsAlert("Missing negotiable property: compression", TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR))
                     .stream()
                     .filter(compression -> compression.versions().contains(highestVersion))
@@ -165,7 +164,7 @@ public class AsyncSecureSocketApplicationLayer extends AsyncSocketApplicationLay
     }
 
     private CompletableFuture<Void> sendClientKeyExchange() {
-        var version = tlsContext.getNegotiatedValue(TlsProperty.version())
+        var version = tlsContext.getNegotiatedValue(TlsContextualProperty.version())
                 .orElseThrow(() -> new TlsAlert("Missing negotiated property: version", TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR));
         var parameters = tlsContext.localConnectionState()
                 .keyExchange()
@@ -192,7 +191,7 @@ public class AsyncSecureSocketApplicationLayer extends AsyncSocketApplicationLay
     }
 
     private CompletableFuture<Void> sendClientChangeCipher() {
-        var version = tlsContext.getNegotiatedValue(TlsProperty.version())
+        var version = tlsContext.getNegotiatedValue(TlsContextualProperty.version())
                 .orElseThrow(() -> new TlsAlert("Missing negotiated property: version", TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR));
         var changeCipherSpec = new ChangeCipherSpecMessage(
                 version,
@@ -202,7 +201,7 @@ public class AsyncSecureSocketApplicationLayer extends AsyncSocketApplicationLay
     }
 
     private CompletableFuture<Void> sendClientFinish() {
-        var version = tlsContext.getNegotiatedValue(TlsProperty.version())
+        var version = tlsContext.getNegotiatedValue(TlsContextualProperty.version())
                 .orElseThrow(() -> new TlsAlert("Missing negotiated property: version", TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR));
         var handshakeHash = tlsContext.connectionHandshakeHash()
                 .finish(tlsContext, TlsSource.LOCAL);
@@ -329,7 +328,7 @@ public class AsyncSecureSocketApplicationLayer extends AsyncSocketApplicationLay
 
         if (isLocalCipherEnabled()) {
             assertNotEquals(buffer, tlsBuffer);
-            var version = tlsContext.getNegotiatedValue(TlsProperty.version())
+            var version = tlsContext.getNegotiatedValue(TlsContextualProperty.version())
                     .orElseThrow(() -> new TlsAlert("Missing negotiated property: version", TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR));
             var dataMessage = new ApplicationDataMessage(version, TlsSource.LOCAL, buffer);
             return write(dataMessage);
@@ -429,7 +428,7 @@ public class AsyncSecureSocketApplicationLayer extends AsyncSocketApplicationLay
     @Override
     public void close(boolean error) throws IOException {
         if (!error && tlsContext != null && isLocalCipherEnabled()) {
-            var version = tlsContext.getNegotiatedValue(TlsProperty.version())
+            var version = tlsContext.getNegotiatedValue(TlsContextualProperty.version())
                     .orElse(TlsVersion.TLS10);
             var alertMessage = new AlertMessage(
                     version,
@@ -458,7 +457,7 @@ public class AsyncSecureSocketApplicationLayer extends AsyncSocketApplicationLay
     }
 
     private boolean hasNegotiatedTls13() {
-        return tlsContext.getNegotiatedValue(TlsProperty.version())
+        return tlsContext.getNegotiatedValue(TlsContextualProperty.version())
                 .filter(version -> version == TlsVersion.TLS13 || version == TlsVersion.DTLS13)
                 .isPresent();
     }

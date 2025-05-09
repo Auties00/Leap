@@ -38,7 +38,7 @@ public final class AsyncHttpClient implements HttpClient {
     public <T> CompletableFuture<HttpResponse<T>> send(HttpRequest<?> request, HttpBodyDeserializer<T> handler) {
         var address = createAddress(request);
         var client = clients.computeIfAbsent(address, (_) -> {
-            var underlyingSocket = SocketClient.newBuilder()
+            var underlyingSocket = SocketClient.builder()
                     .async(SocketProtocol.TCP)
                     .secure(config.tlsContext())
                     .build();

@@ -5,12 +5,13 @@ import it.auties.leap.tls.alert.TlsAlertLevel;
 import it.auties.leap.tls.alert.TlsAlertType;
 import it.auties.leap.tls.connection.TlsConnectionType;
 import it.auties.leap.tls.context.TlsContext;
+import it.auties.leap.tls.context.TlsContextualProperty;
 import it.auties.leap.tls.context.TlsSource;
 import it.auties.leap.tls.extension.TlsExtension;
 import it.auties.leap.tls.extension.TlsExtensionDependencies;
-import it.auties.leap.tls.property.TlsIdentifiableProperty;
-import it.auties.leap.tls.property.TlsProperty;
+import it.auties.leap.tls.extension.TlsExtensionPayload;
 import it.auties.leap.tls.supplemental.TlsUserMappingData;
+import it.auties.leap.tls.supplemental.TlsUserMappingDataDeserializer;
 import it.auties.leap.tls.version.TlsVersion;
 
 import java.nio.ByteBuffer;
@@ -25,7 +26,7 @@ import static it.auties.leap.tls.util.BufferUtils.*;
 public record UserMappingTypesExtension(
         List<TlsUserMappingData> userMappings,
         int userMappingsLength
-) implements TlsExtension.Configured.Agnostic {
+) implements TlsExtension.Agnostic, TlsExtensionPayload {
     public UserMappingTypesExtension(List<TlsUserMappingData> userMappings) {
         var userMappingsLength = userMappings.stream()
                 .mapToInt(TlsUserMappingData::length)
@@ -49,6 +50,11 @@ public record UserMappingTypesExtension(
     }
 
     @Override
+    public TlsExtensionPayload toPayload(TlsContext context) {
+        return this;
+    }
+
+    @Override
     public void apply(TlsContext context, TlsSource source) {
         var connection = switch (source) {
             case LOCAL -> context.localConnectionState();
@@ -59,30 +65,39 @@ public record UserMappingTypesExtension(
                 .map(TlsUserMappingData::deserializer)
                 .toList();
         switch (connection.type()) {
-            case CLIENT -> context.addNegotiableProperty(TlsProperty.userMappings(), userMappingsDeserializers);
-            case SERVER -> context.addNegotiatedProperty(TlsProperty.userMappings(), userMappingsDeserializers);
+            case CLIENT -> context.addAdvertisedValue(TlsContextualProperty.userMappings(), userMappingsDeserializers);
+            case SERVER -> context.addNegotiatedValue(TlsContextualProperty.userMappings(), userMappingsDeserializers);
         }
     }
 
     @Override
-    public Optional<UserMappingTypesExtension> deserialize(TlsContext context, int type, ByteBuffer buffer) {
-        var userMappingsTypeToDeserializer = context.getNegotiableValue(TlsProperty.userMappings())
+    public Optional<UserMappingTypesExtension> deserializeClient(TlsContext context, int type, ByteBuffer source) {
+        return deserialize(context, source);
+    }
+
+    @Override
+    public Optional<UserMappingTypesExtension> deserializeServer(TlsContext context, int type, ByteBuffer source) {
+        return deserialize(context, source);
+    }
+
+    private Optional<UserMappingTypesExtension> deserialize(TlsContext context, ByteBuffer buffer) {
+        var userMappingsTypeToDeserializer = context.getAdvertisedValue(TlsContextualProperty.userMappings())
                 .orElseThrow(() -> new TlsAlert("Missing negotiable property: userMappings", TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR))
                 .stream()
-                .collect(Collectors.toUnmodifiableMap(TlsIdentifiableProperty::id, Function.identity()));
+                .collect(Collectors.toUnmodifiableMap(TlsUserMappingDataDeserializer::id, Function.identity()));
         var userMappings = new ArrayList<TlsUserMappingData>();
         var userMappingsLength = readBigEndianInt8(buffer);
         try(var _ = scopedRead(buffer, userMappingsLength)) {
-           while (buffer.hasRemaining()) {
-               var userMappingType = readBigEndianInt8(buffer);
-               var userMappingDeserializer = userMappingsTypeToDeserializer.get(userMappingType);
-               if(userMappingDeserializer != null) {
-                   var userMapping = userMappingDeserializer.deserialize(buffer);
-                   userMappings.add(userMapping);
-               } else if(context.localConnectionState().type() == TlsConnectionType.CLIENT) {
-                   throw new TlsAlert("Remote tried to negotiate a user mapping type that wasn't advertised", TlsAlertLevel.FATAL, TlsAlertType.ILLEGAL_PARAMETER);
-               }
-           }
+            while (buffer.hasRemaining()) {
+                var userMappingType = readBigEndianInt8(buffer);
+                var userMappingDeserializer = userMappingsTypeToDeserializer.get(userMappingType);
+                if(userMappingDeserializer != null) {
+                    var userMapping = userMappingDeserializer.deserialize(buffer);
+                    userMappings.add(userMapping);
+                } else if(context.localConnectionState().type() == TlsConnectionType.CLIENT) {
+                    throw new TlsAlert("Remote tried to negotiate a user mapping type that wasn't advertised", TlsAlertLevel.FATAL, TlsAlertType.ILLEGAL_PARAMETER);
+                }
+            }
         }
         var extension = new UserMappingTypesExtension(userMappings, userMappingsLength);
         return Optional.of(extension);

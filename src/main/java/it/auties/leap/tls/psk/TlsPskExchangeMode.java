@@ -3,11 +3,10 @@ package it.auties.leap.tls.psk;
 import it.auties.leap.tls.alert.TlsAlert;
 import it.auties.leap.tls.alert.TlsAlertLevel;
 import it.auties.leap.tls.alert.TlsAlertType;
-import it.auties.leap.tls.property.TlsIdentifiableProperty;
 
 import java.util.Objects;
 
-public final class TlsPskExchangeMode implements TlsIdentifiableProperty<Byte> {
+public final class TlsPskExchangeMode {
     private static final TlsPskExchangeMode KE = new TlsPskExchangeMode((byte) 0, Type.KE, TlsPskExchangeModeGenerator.ke());
     private static final TlsPskExchangeMode DHE_KE = new TlsPskExchangeMode((byte) 1, Type.DHE_KE, TlsPskExchangeModeGenerator.dheKe());
 
@@ -41,8 +40,7 @@ public final class TlsPskExchangeMode implements TlsIdentifiableProperty<Byte> {
         return new TlsPskExchangeMode(id, Type.RESERVED_FOR_PRIVATE_USE, Objects.requireNonNullElse(generator, TlsPskExchangeModeGenerator.stub()));
     }
 
-    @Override
-    public Byte id() {
+    public byte id() {
         return id;
     }
 

@@ -1,11 +1,11 @@
 package it.auties.leap.tls.connection;
 
 import it.auties.leap.tls.certificate.TlsCertificate;
-import it.auties.leap.tls.ciphersuite.exchange.TlsKeyExchange;
-import it.auties.leap.tls.ciphersuite.exchange.TlsKeyExchangeType;
 import it.auties.leap.tls.ciphersuite.cipher.TlsCipher;
-import it.auties.leap.tls.group.TlsSupportedGroupKeys;
+import it.auties.leap.tls.ciphersuite.exchange.TlsKeyExchange;
 import it.auties.leap.tls.group.TlsSupportedGroup;
+import it.auties.leap.tls.group.TlsSupportedGroupKeys;
+import it.auties.leap.tls.message.TlsHandshakeMessageFlow;
 
 import java.util.*;
 
@@ -25,6 +25,7 @@ public final class TlsConnection {
 
     private volatile TlsCipher cipher;
 
+    private final TlsHandshakeMessageFlow handshakeFlow;
     private volatile TlsConnectionHandshakeStatus handshakeStatus;
     private volatile TlsConnectionSecret handshakeSecret;
 
@@ -36,6 +37,7 @@ public final class TlsConnection {
         this.ephemeralKeyPairs = new HashMap<>();
         this.handshakeStatus = TlsConnectionHandshakeStatus.HANDSHAKE_WAIT;
         this.certificates = certificates;
+        this.handshakeFlow = TlsHandshakeMessageFlow.of(type);
     }
 
     public static TlsConnection of(TlsConnectionType type, byte[] randomData, byte[] sessionId, byte[] dtlsCookie) {
@@ -43,18 +45,10 @@ public final class TlsConnection {
     }
 
     public static TlsConnection of(TlsConnectionType type, byte[] randomData, byte[] sessionId, byte[] dtlsCookie, List<TlsCertificate> certificates) {
-        if(type == null) {
-            throw new NullPointerException("type");
-        }
-
-        if(randomData == null) {
-            throw new NullPointerException("randomData");
-        }
-
-        if(certificates == null) {
-            throw new NullPointerException("certificates");
-        }
-
+        Objects.requireNonNull(type, "Type cannot be null");
+        Objects.requireNonNull(randomData, "Random data cannot be null");
+        Objects.requireNonNull(sessionId, "Session ID cannot be null");
+        Objects.requireNonNull(certificates, "Certificates cannot be null");
         return new TlsConnection(type, randomData, sessionId, dtlsCookie, certificates);
     }
 
@@ -115,12 +109,6 @@ public final class TlsConnection {
     }
 
     public boolean chooseEphemeralKeyPair(TlsSupportedGroup group) {
-        //  TODO: Should we sanity check this?
-        //  Also handle the return type
-        //  if(keyExchange == null || keyExchange.type() != TlsKeyExchangeType.EPHEMERAL || selectedEphemeralKeyPair != null) {
-        //            return false;
-        //        }
-
         if(!ephemeralKeyPairs.containsKey(group.id())) {
             return false;
         }
@@ -147,10 +135,6 @@ public final class TlsConnection {
     }
 
     public boolean chooseStaticCertificate(TlsCertificate certificate) {
-        if(keyExchange == null || keyExchange.type() != TlsKeyExchangeType.STATIC || selectedStaticCertificate != null) {
-            return false;
-        }
-
         if(!certificates.contains(certificate)) {
             return false;
         }
@@ -166,5 +150,9 @@ public final class TlsConnection {
 
     public Optional<TlsConnectionSecret> handshakeSecret() {
         return Optional.ofNullable(handshakeSecret);
+    }
+
+    public TlsHandshakeMessageFlow handshakeFlow() {
+        return handshakeFlow;
     }
 }

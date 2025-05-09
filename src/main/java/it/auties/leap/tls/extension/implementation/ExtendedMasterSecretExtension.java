@@ -7,14 +7,15 @@ import it.auties.leap.tls.context.TlsContext;
 import it.auties.leap.tls.context.TlsSource;
 import it.auties.leap.tls.extension.TlsExtension;
 import it.auties.leap.tls.extension.TlsExtensionDependencies;
-import it.auties.leap.tls.property.TlsProperty;
+import it.auties.leap.tls.context.TlsContextualProperty;
+import it.auties.leap.tls.extension.TlsExtensionPayload;
 import it.auties.leap.tls.version.TlsVersion;
 
 import java.nio.ByteBuffer;
 import java.util.List;
 import java.util.Optional;
 
-public final class ExtendedMasterSecretExtension implements TlsExtension.Configured.Agnostic {
+public final class ExtendedMasterSecretExtension implements TlsExtension.Agnostic, TlsExtensionPayload {
     private static final ExtendedMasterSecretExtension INSTANCE = new ExtendedMasterSecretExtension();
 
     private ExtendedMasterSecretExtension() {
@@ -36,6 +37,11 @@ public final class ExtendedMasterSecretExtension implements TlsExtension.Configu
     }
 
     @Override
+    public TlsExtensionPayload toPayload(TlsContext context) {
+        return this;
+    }
+
+    @Override
     public void apply(TlsContext context, TlsSource source) {
         var connection = switch (source) {
             case LOCAL -> context.localConnectionState();
@@ -43,13 +49,22 @@ public final class ExtendedMasterSecretExtension implements TlsExtension.Configu
                     .orElseThrow(() -> new TlsAlert("No remote connection state was created", TlsAlertLevel.FATAL, TlsAlertType.INTERNAL_ERROR));
         };
         switch (connection.type()) {
-            case CLIENT -> context.addNegotiableProperty(TlsProperty.extendedMasterSecret(), true);
-            case SERVER -> context.addNegotiatedProperty(TlsProperty.extendedMasterSecret(), true);
+            case CLIENT -> context.addAdvertisedValue(TlsContextualProperty.extendedMasterSecret(), true);
+            case SERVER -> context.addNegotiatedValue(TlsContextualProperty.extendedMasterSecret(), true);
         }
     }
 
     @Override
-    public Optional<ExtendedMasterSecretExtension> deserialize(TlsContext context, int type, ByteBuffer buffer) {
+    public Optional<ExtendedMasterSecretExtension> deserializeClient(TlsContext context, int type, ByteBuffer source) {
+        return deserialize(source);
+    }
+
+    @Override
+    public Optional<? extends Client> deserializeServer(TlsContext context, int type, ByteBuffer source) {
+        return deserialize(source);
+    }
+
+    private Optional<ExtendedMasterSecretExtension> deserialize(ByteBuffer buffer) {
         buffer.position(buffer.limit());
         return Optional.of(INSTANCE);
     }
